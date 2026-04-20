@@ -1,0 +1,12 @@
+export default function App() {
+  return (
+    <main style={{ fontFamily: "sans-serif", padding: 24 }}>
+      <h1>{{app_name}}</h1>
+      <p>Fallback scaffold ready.</p>
+      <ul>
+        {{feature_markup}}
+      </ul>
+    </main>
+  );
+}
+

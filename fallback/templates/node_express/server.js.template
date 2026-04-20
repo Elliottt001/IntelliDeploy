@@ -1,0 +1,15 @@
+const express = require("express");
+
+const app = express();
+app.use(express.json());
+
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
+{{feature_blocks}}
+
+app.listen({{port}}, "0.0.0.0", () => {
+  console.log("server listening on port {{port}}");
+});
+

@@ -1,0 +1,12 @@
+# {{app_name}}
+
+## Run locally
+
+```bash
+{{start_command}}
+```
+
+## Healthcheck
+
+`GET {{healthcheck_path}}`
+

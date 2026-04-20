@@ -1,0 +1,11 @@
+export default function Page() {
+  return (
+    <main style={{ fontFamily: "sans-serif", padding: 24 }}>
+      <h1>{{app_name}}</h1>
+      <ul>
+        {{feature_markup}}
+      </ul>
+    </main>
+  );
+}
+

@@ -1,0 +1,18 @@
+{
+  "name": "fallback-react-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port {{port}}",
+    "build": "vite build",
+    "start": "vite --host 0.0.0.0 --port {{port}}"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
+

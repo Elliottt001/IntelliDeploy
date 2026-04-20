@@ -1,0 +1,42 @@
+{
+  "raw_query": "部署一个 FastAPI API 服务",
+  "user_intent": {
+    "target_output_type": "deployable_app",
+    "target_app_type": "backend_api",
+    "expected_features": [
+      "health endpoint"
+    ],
+    "preferred_language": "python",
+    "preferred_framework": "FastAPI",
+    "constraints": {
+      "timeout_seconds": 300
+    }
+  },
+  "repo_info": {
+    "rank": 1,
+    "retrieval_score": 0.88,
+    "repo_url": "https://github.com/example/fastapi-no-docker",
+    "default_branch": "main",
+    "description": "FastAPI service without Dockerfile",
+    "topics": [
+      "fastapi",
+      "api"
+    ],
+    "stars": 12,
+    "is_archived": false,
+    "last_commit_at": "2026-04-12T12:00:00Z"
+  },
+  "file_tree": [
+    "main.py",
+    "requirements.txt",
+    "README.md"
+  ],
+  "key_files": {
+    "main.py": "from fastapi import FastAPI\napp = FastAPI()\n\n@app.get('/health')\ndef health():\n    return {'ok': True}\n",
+    "requirements.txt": "fastapi==0.115.0\nuvicorn==0.30.0\n",
+    "README.md": "# FastAPI Service\n\nRun with `uvicorn main:app --host 0.0.0.0 --port 8000`.\n"
+  },
+  "project_id": "proj-2",
+  "deployment_id": "dep-2",
+  "request_id": "req-2"
+}

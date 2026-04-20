@@ -1,0 +1,36 @@
+export type LandingTheme = 'light' | 'dark';
+
+export const landingThemeTokens = {
+  light: {
+    textPrimary: '#494A64',
+    textSecondary: 'rgba(73, 74, 100, 0.8)',
+    textMuted: 'rgba(73, 74, 100, 0.6)',
+    surface: '#FFFFFF',
+    surfaceAlt: 'rgba(255, 255, 255, 0.68)',
+    border: 'rgba(200, 200, 220, 0.5)',
+    borderSoft: 'rgba(200, 200, 220, 0.3)',
+    accent: '#7C62FF',
+    accentSoft: '#A496FF',
+    accentGlow: 'rgba(124, 98, 255, 0.35)',
+    inputPlaceholder: 'rgba(73, 74, 100, 0.5)',
+    iconSurface: '#FFFFFF',
+    iconBorder: '#E0E0E0',
+    iconForeground: '#42364E',
+  },
+  dark: {
+    textPrimary: '#F5F7FF',
+    textSecondary: 'rgba(227, 232, 255, 0.8)',
+    textMuted: 'rgba(202, 210, 245, 0.6)',
+    surface: 'rgba(14, 18, 38, 0.94)',
+    surfaceAlt: 'rgba(17, 21, 44, 0.74)',
+    border: 'rgba(146, 156, 255, 0.18)',
+    borderSoft: 'rgba(146, 156, 255, 0.12)',
+    accent: '#9C8BFF',
+    accentSoft: '#C2B8FF',
+    accentGlow: 'rgba(140, 118, 255, 0.32)',
+    inputPlaceholder: 'rgba(227, 232, 255, 0.4)',
+    iconSurface: 'rgba(19, 24, 48, 0.92)',
+    iconBorder: 'rgba(255, 255, 255, 0.08)',
+    iconForeground: '#F4F6FF',
+  },
+} as const;

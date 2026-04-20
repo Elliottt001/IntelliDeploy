@@ -1,0 +1,8 @@
+FROM {{base_image}}
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN {{install_command}}
+COPY . .
+EXPOSE {{port}}
+CMD {{start_command}}
+

@@ -1,0 +1,9 @@
+server {
+  listen {{port}};
+  server_name _;
+  location / {
+    root /usr/share/nginx/html;
+    try_files $uri /index.html;
+  }
+}
+

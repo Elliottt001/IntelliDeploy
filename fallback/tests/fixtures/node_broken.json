@@ -1,0 +1,39 @@
+{
+  "raw_query": "部署一个 Node API 服务",
+  "user_intent": {
+    "target_output_type": "deployable_app",
+    "target_app_type": "backend_api",
+    "expected_features": [
+      "health endpoint"
+    ],
+    "preferred_language": "javascript",
+    "preferred_framework": "Express",
+    "constraints": {}
+  },
+  "repo_info": {
+    "rank": 1,
+    "retrieval_score": 0.7,
+    "repo_url": "https://github.com/example/node-broken",
+    "default_branch": "main",
+    "description": "Express app with start conflict",
+    "topics": [
+      "express"
+    ],
+    "stars": 1,
+    "is_archived": false,
+    "last_commit_at": "2026-04-10T12:00:00Z"
+  },
+  "file_tree": [
+    "server.js",
+    "package.json",
+    "README.md"
+  ],
+  "key_files": {
+    "server.js": "const express = require(\"express\"); const app = express(); app.get(\"/health\", (_req, res) => res.json({ok: true})); app.listen(3000, \"0.0.0.0\");",
+    "package.json": "{\"name\":\"demo\",\"scripts\":{\"dev\":\"node server.js\"},\"dependencies\":{\"express\":\"^4.19.2\"}}",
+    "README.md": "# demo\n\nRun with npm start\n"
+  },
+  "project_id": "proj-b",
+  "deployment_id": "dep-b",
+  "request_id": "req-b"
+}
