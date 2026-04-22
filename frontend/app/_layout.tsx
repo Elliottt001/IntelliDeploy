@@ -19,6 +19,8 @@ export default function RootLayout() {
       />
       <Stack.Screen name="login" options={{ title: '登录' }} />
       <Stack.Screen name="register" options={{ title: '注册' }} />
+      {/* tabs 容器，headerShown: false 让各 tab 自己管 header */}
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
     </Stack>
   );
 }

@@ -15,6 +15,7 @@ from app.routers.intellideploy import (
     generation_router,
     deployments_router,
     images_router,
+    chat_router,
 )
 
 
@@ -45,6 +46,7 @@ app.include_router(user_settings_router)
 app.include_router(generation_router)
 app.include_router(deployments_router)
 app.include_router(images_router)
+app.include_router(chat_router)
 
 
 @app.exception_handler(HTTPException)

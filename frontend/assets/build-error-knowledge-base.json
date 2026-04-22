@@ -1,0 +1,275 @@
+{
+  "version": "1.0.0",
+  "description": "构建报错与修复方案知识库，供自愈 Agent 通过 RAG 检索使用",
+  "sources": [
+    "https://stackoverflow.com/questions/54428608",
+    "https://middleware.io/blog/kubernetes-common-errors-fix/",
+    "https://www.perfectscale.io/blog/kubernetes-errors",
+    "https://institute.sfeir.com/en/kubernetes-training/troubleshooting-docker-kubernetes-errors-common/",
+    "https://copyprogramming.com/howto/npm-install-fail-on-node-gyp-rebuild",
+    "https://copyprogramming.com/howto/docker-cannot-install-specific-pip-packages"
+  ],
+  "errors": [
+    {
+      "id": "docker-001",
+      "category": "Docker Build",
+      "error_pattern": "gyp ERR! find Python",
+      "aliases": [
+        "npm ERR! gyp ERR!",
+        "Can't find Python executable",
+        "node-gyp rebuild failed",
+        "gyp ERR! configure error"
+      ],
+      "description": "node-gyp 编译原生 C/C++ 模块时找不到 Python，常见于 node:alpine 镜像",
+      "root_cause": "Alpine 镜像默认不含 python3、make、g++ 等编译工具链",
+      "solution": {
+        "summary": "在 npm install 前安装编译依赖",
+        "dockerfile_fix": "RUN apk add --no-cache python3 make g++\nRUN npm install",
+        "alternative": "改用 node:18-slim（Debian-based）可避免此问题，已内置编译工具",
+        "recommended_base_image": "node:18-alpine（需手动加工具链）或 node:18-slim（开箱即用）"
+      },
+      "tags": ["node", "npm", "alpine", "native-modules", "node-gyp"]
+    },
+    {
+      "id": "docker-002",
+      "category": "Docker Build",
+      "error_pattern": "npm install.*ECONNRESET|npm ERR! network",
+      "aliases": [
+        "npm ERR! network timeout",
+        "ECONNREFUSED registry.npmjs.org",
+        "npm ERR! code ECONNRESET"
+      ],
+      "description": "Docker 构建时 npm install 网络超时或连接被重置",
+      "root_cause": "构建环境 DNS 解析失败或 npm registry 访问受限",
+      "solution": {
+        "summary": "配置 npm registry 镜像源或增加超时时间",
+        "dockerfile_fix": "RUN npm config set registry https://registry.npmmirror.com\nRUN npm install --network-timeout=600000",
+        "alternative": "在 Dockerfile 中先 COPY package*.json，利用缓存层减少重复下载"
+      },
+      "tags": ["node", "npm", "network", "registry", "timeout"]
+    },
+    {
+      "id": "docker-003",
+      "category": "Docker Build",
+      "error_pattern": "pip.*SSL.*Certificate|pip.*certificate verify failed",
+      "aliases": [
+        "Certificate did not match expected hostname: pypi.org",
+        "SSLError: HTTPSConnectionPool",
+        "pip install SSL error"
+      ],
+      "description": "pip install 时 SSL 证书验证失败",
+      "root_cause": "容器内系统时间偏差或企业代理拦截 HTTPS 流量导致证书不可信",
+      "solution": {
+        "summary": "使用受信任的 PyPI 镜像源",
+        "dockerfile_fix": "RUN pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt",
+        "alternative": "RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt"
+      },
+      "tags": ["python", "pip", "ssl", "certificate", "pypi"]
+    },
+    {
+      "id": "docker-004",
+      "category": "Docker Build",
+      "error_pattern": "apt-get.*Unable to locate package|E: Package.*has no installation candidate",
+      "aliases": [
+        "E: Unable to locate package",
+        "apt-get install failed",
+        "Package not found"
+      ],
+      "description": "apt-get install 找不到包，常见于未更新包列表",
+      "root_cause": "Debian/Ubuntu 镜像默认不含 apt 缓存，必须先 apt-get update",
+      "solution": {
+        "summary": "在同一 RUN 层中先执行 update 再 install",
+        "dockerfile_fix": "RUN apt-get update && apt-get install -y --no-install-recommends \\\n    build-essential \\\n    python3 \\\n    && rm -rf /var/lib/apt/lists/*",
+        "note": "update 和 install 必须在同一 RUN 指令中，否则 Docker 缓存会导致 update 被跳过"
+      },
+      "tags": ["debian", "ubuntu", "apt", "package-manager", "build-essential"]
+    },
+    {
+      "id": "docker-005",
+      "category": "Docker Build",
+      "error_pattern": "COPY.*no such file or directory|COPY failed.*not found",
+      "aliases": [
+        "COPY failed: file not found in build context",
+        "no such file or directory in Dockerfile COPY"
+      ],
+      "description": "Dockerfile COPY 指令找不到文件",
+      "root_cause": "文件路径相对于 build context（docker build 命令执行目录），而非 Dockerfile 所在目录",
+      "solution": {
+        "summary": "确认 build context 路径，或使用 .dockerignore 排除无关文件",
+        "example": "docker build -t myapp . （在项目根目录执行）",
+        "dockerfile_fix": "# 错误：COPY ../config.json /app/\n# 正确：将文件移入 build context 范围内\nCOPY config.json /app/"
+      },
+      "tags": ["dockerfile", "copy", "build-context", "path"]
+    },
+    {
+      "id": "k8s-001",
+      "category": "Kubernetes",
+      "error_pattern": "CrashLoopBackOff",
+      "aliases": [
+        "Back-off restarting failed container",
+        "pod keeps restarting"
+      ],
+      "description": "Pod 反复启动后崩溃，Kubernetes 以指数退避方式重启（10s→20s→40s→最长5min）",
+      "root_cause": "常见原因：缺少环境变量、Dockerfile CMD 错误、依赖服务（数据库/Redis）未就绪、OOMKilled",
+      "solution": {
+        "summary": "按优先级排查",
+        "steps": [
+          "kubectl logs <pod-name> --previous  # 查看上次崩溃日志",
+          "kubectl describe pod <pod-name>     # 查看 Events 和退出码",
+          "退出码 1：应用报错，看日志定位",
+          "退出码 137：OOMKilled，增加 resources.limits.memory",
+          "退出码 139：段错误，检查依赖版本",
+          "添加 readinessProbe 等待依赖服务就绪"
+        ]
+      },
+      "tags": ["kubernetes", "pod", "crashloop", "restart", "oom"]
+    },
+    {
+      "id": "k8s-002",
+      "category": "Kubernetes",
+      "error_pattern": "ImagePullBackOff|ErrImagePull",
+      "aliases": [
+        "Failed to pull image",
+        "rpc error: code = Unknown desc = failed to pull",
+        "unauthorized: authentication required"
+      ],
+      "description": "Kubernetes 无法拉取容器镜像",
+      "root_cause": "镜像名/tag 错误、私有仓库未配置 imagePullSecrets、镜像不存在",
+      "solution": {
+        "summary": "检查镜像名称和仓库认证",
+        "steps": [
+          "kubectl describe pod <pod-name> 查看具体错误",
+          "确认镜像 tag 存在：docker pull <image>:<tag>",
+          "私有仓库需创建 Secret：kubectl create secret docker-registry regcred --docker-server=<registry> --docker-username=<user> --docker-password=<pass>",
+          "在 Pod spec 中引用：imagePullSecrets: [{name: regcred}]"
+        ]
+      },
+      "tags": ["kubernetes", "image", "pull", "registry", "secret"]
+    },
+    {
+      "id": "k8s-003",
+      "category": "Kubernetes",
+      "error_pattern": "OOMKilled|exit code 137",
+      "aliases": [
+        "Container OOMKilled",
+        "Killed process",
+        "memory limit exceeded"
+      ],
+      "description": "容器因超出内存限制被系统强制终止",
+      "root_cause": "resources.limits.memory 设置过低，或应用存在内存泄漏",
+      "solution": {
+        "summary": "调整内存限制或优化应用",
+        "yaml_fix": "resources:\n  requests:\n    memory: \"256Mi\"\n  limits:\n    memory: \"512Mi\"",
+        "steps": [
+          "kubectl top pod <pod-name> 查看实际内存用量",
+          "适当提高 limits.memory",
+          "Node.js 应用可设置 --max-old-space-size=<MB>"
+        ]
+      },
+      "tags": ["kubernetes", "oom", "memory", "resources", "limits"]
+    },
+    {
+      "id": "k8s-004",
+      "category": "Kubernetes",
+      "error_pattern": "Pending.*Insufficient.*cpu|Pending.*Insufficient.*memory|0/N nodes are available",
+      "aliases": [
+        "pod stuck in Pending",
+        "Insufficient cpu",
+        "Insufficient memory",
+        "no nodes available to schedule pods"
+      ],
+      "description": "Pod 一直处于 Pending 状态，无法被调度到节点",
+      "root_cause": "集群资源不足，或 resources.requests 设置过高",
+      "solution": {
+        "summary": "降低资源请求或扩容节点",
+        "steps": [
+          "kubectl describe pod <pod-name> 查看 Events 中的调度失败原因",
+          "kubectl get nodes 确认节点状态",
+          "降低 resources.requests.cpu 和 resources.requests.memory",
+          "Sealos 环境：在控制台扩容集群节点数量"
+        ]
+      },
+      "tags": ["kubernetes", "pending", "scheduling", "resources", "nodes"]
+    },
+    {
+      "id": "k8s-005",
+      "category": "Kubernetes",
+      "error_pattern": "Readiness probe failed|Liveness probe failed",
+      "aliases": [
+        "probe failed: HTTP probe failed with statuscode",
+        "container is not ready"
+      ],
+      "description": "健康检查探针失败，Pod 被标记为不可用",
+      "root_cause": "应用启动慢导致探针超时、探针路径配置错误、端口不匹配",
+      "solution": {
+        "summary": "调整探针参数或修正探针路径",
+        "yaml_fix": "readinessProbe:\n  httpGet:\n    path: /health\n    port: 8080\n  initialDelaySeconds: 30   # 给应用足够启动时间\n  periodSeconds: 10\n  failureThreshold: 3",
+        "steps": [
+          "确认应用实际监听端口与探针 port 一致",
+          "增大 initialDelaySeconds（Node.js 建议 15-30s，Java 建议 60s）",
+          "确认 /health 路由存在且返回 2xx"
+        ]
+      },
+      "tags": ["kubernetes", "probe", "readiness", "liveness", "health-check"]
+    },
+    {
+      "id": "docker-006",
+      "category": "Docker Build",
+      "error_pattern": "failed to solve.*no space left on device|no space left on device",
+      "aliases": [
+        "write /var/lib/docker: no space left on device",
+        "disk quota exceeded"
+      ],
+      "description": "Docker 构建时磁盘空间不足",
+      "root_cause": "Docker 镜像层、构建缓存、停止的容器占用大量磁盘",
+      "solution": {
+        "summary": "清理 Docker 资源",
+        "commands": [
+          "docker system prune -af          # 清理所有未使用资源",
+          "docker image prune -af           # 仅清理镜像",
+          "docker builder prune             # 清理构建缓存"
+        ],
+        "dockerfile_fix": "# 多阶段构建减小镜像体积\nFROM node:18-alpine AS builder\nWORKDIR /app\nCOPY package*.json ./\nRUN npm ci --only=production\n\nFROM node:18-alpine\nWORKDIR /app\nCOPY --from=builder /app/node_modules ./node_modules\nCOPY . ."
+      },
+      "tags": ["docker", "disk", "space", "prune", "multi-stage"]
+    },
+    {
+      "id": "docker-007",
+      "category": "Docker Build",
+      "error_pattern": "permission denied.*COPY|permission denied.*RUN",
+      "aliases": [
+        "COPY: permission denied",
+        "mkdir: cannot create directory: Permission denied",
+        "chown: changing ownership"
+      ],
+      "description": "Dockerfile 中文件权限不足",
+      "root_cause": "以非 root 用户运行时，目标目录没有写权限",
+      "solution": {
+        "summary": "在切换用户前创建目录并设置权限",
+        "dockerfile_fix": "RUN mkdir -p /app && chown -R node:node /app\nWORKDIR /app\nUSER node\nCOPY --chown=node:node . ."
+      },
+      "tags": ["docker", "permission", "user", "chown", "workdir"]
+    },
+    {
+      "id": "k8s-006",
+      "category": "Kubernetes",
+      "error_pattern": "CreateContainerConfigError|secret.*not found|configmap.*not found",
+      "aliases": [
+        "Error: secret not found",
+        "configmap not found",
+        "CreateContainerConfigError"
+      ],
+      "description": "Pod 引用的 Secret 或 ConfigMap 不存在",
+      "root_cause": "部署顺序问题，Secret/ConfigMap 未提前创建",
+      "solution": {
+        "summary": "确保 Secret/ConfigMap 在 Deployment 之前创建",
+        "steps": [
+          "kubectl get secret <secret-name> -n <namespace>  # 确认是否存在",
+          "kubectl create secret generic <name> --from-literal=key=value",
+          "在 CI/CD 流水线中确保 Secret 创建步骤在 Deployment 之前"
+        ]
+      },
+      "tags": ["kubernetes", "secret", "configmap", "env", "deployment"]
+    }
+  ]
+}
