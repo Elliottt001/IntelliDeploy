@@ -1,56 +1,23 @@
-# Python bytecode and caches
-__pycache__/
-*.py[cod]
-
-# IntelliDeploy fallback runtime outputs
-fallback/workspaces/
-fallback/artifacts/
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
-node_modules/
-
-# Python
-__pycache__/
-*.py[cod]
-
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
-
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
+# 敏感信息
+.env
 *.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
 *.pem
 
-# local env files
-.env*.local
+# 压缩包和项目产物
+*.rar
+*.zip
+*.tar.gz
 
-# typescript
-*.tsbuildinfo
-
-# generated native folders (frontend)
-/frontend/ios
-/frontend/android
-
+# IDE 配置
+.vscode/
 .idea/
-docs/
-.worktrees/
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 系统垃圾文件
+.DS_Store
+Thumbs.db
