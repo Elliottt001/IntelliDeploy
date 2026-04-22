@@ -119,17 +119,12 @@ const API_BASE_URL = 'http://localhost:9000';
 - `DATABASE_URL`
 - `ACCESS_TOKEN_EXPIRE_MINUTES`
 
-默认数据库为本地 SQLite：
-```text
-sqlite:///./intellideploy.db
-```
-
-如果需要更高并发写入，可切换到 PostgreSQL（推荐生产环境）：
+默认数据库为 PostgreSQL（全局统一）：
 ```text
 postgresql+psycopg://postgres:your_password@127.0.0.1:5432/intellideploy
 ```
 
-切换方式：修改 `backend/.env` 里的 `DATABASE_URL`，并重新安装后端依赖。
+请修改 `backend/.env` 里的 `DATABASE_URL` 为你本机 PostgreSQL 的真实账号密码与库名。
 
 后端首次启动时会自动创建数据库表。
 

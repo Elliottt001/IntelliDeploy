@@ -1,28 +1,68 @@
 # 敏感信息
 .env
+.env.*
+!.env.example
 *.key
 *.pem
+*.p12
+*.crt
 
 # 压缩包和项目产物
 *.rar
 *.zip
+*.tar
 *.tar.gz
+*.7z
 
-# IDE 配置
+# IDE / 本地工具配置
 .vscode/
 .idea/
+.claude/
 
-# Python 缓存
+# Python 缓存与虚拟环境
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.so
+*.egg-info/
+.python-version
+.venv/
+venv/
+env/
+
+# Python 测试与静态分析缓存
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+
+# 前端/Node 本地产物
+node_modules/
+frontend/node_modules/
+frontend/.expo/
+frontend/dist/
+frontend/.cache/
+frontend/.next/
+frontend/.nuxt/
+frontend/coverage/
+frontend/*.tsbuildinfo
+
+# 通用日志与运行时文件
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # 系统垃圾文件
 .DS_Store
 Thumbs.db
 
-# Frontend 本地产物
-frontend/.expo/
-frontend/dist/
-frontend/node_modules/
+# 项目运行时输出
+fallback/artifacts/
+fallback/workspaces/
