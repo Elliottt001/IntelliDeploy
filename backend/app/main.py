@@ -7,10 +7,14 @@ from fastapi.responses import JSONResponse
 from app.database import Base, engine
 from app import models as _models  # noqa: F401
 from app.routers.auth import router as auth_router
+from app.routers.websocket import router as websocket_router
 from app.routers.intellideploy import (
     github_router,
     projects_router,
     user_settings_router,
+    generation_router,
+    deployments_router,
+    images_router,
 )
 
 
@@ -34,9 +38,13 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(websocket_router)
 app.include_router(github_router)
 app.include_router(projects_router)
 app.include_router(user_settings_router)
+app.include_router(generation_router)
+app.include_router(deployments_router)
+app.include_router(images_router)
 
 
 @app.exception_handler(HTTPException)
