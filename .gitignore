@@ -21,3 +21,8 @@ __pycache__/
 # 系统垃圾文件
 .DS_Store
 Thumbs.db
+
+# Frontend 本地产物
+frontend/.expo/
+frontend/dist/
+frontend/node_modules/
