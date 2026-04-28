@@ -35,12 +35,14 @@ export default function Register() {
     setLoading(true);
     try {
       await authAPI.register(username, email, password);
-      Alert.alert('成功', '注册成功！请登录', [
-        { text: '去登录', onPress: () => router.push('/login') },
-      ]);
+      router.push('/login');
     } catch (error: any) {
       const message = error.response?.data?.detail || '注册失败，请稍后重试';
-      Alert.alert('错误', message);
+      if (Platform.OS === 'web') {
+        window.alert(message);
+      } else {
+        Alert.alert('错误', message);
+      }
     } finally {
       setLoading(false);
     }

@@ -173,12 +173,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   title: {
-    fontSize: 50,
+    fontSize: 43,
     fontWeight: '600',
     letterSpacing: -1,
   },
   description: {
-    fontSize: 24,
+    fontSize: 21,
     fontWeight: '400',
     lineHeight: 42,
   },

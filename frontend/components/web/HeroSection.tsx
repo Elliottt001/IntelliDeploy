@@ -74,48 +74,26 @@ export default function HeroSection({ theme }: HeroSectionProps) {
 
       {Platform.OS === 'web' && (
         <View style={styles.waveDecorationsContainer}>
-          <View
-            style={[
-              styles.waveDecoration,
-              {
-                background: isDark
-                  ? 'radial-gradient(ellipse at 20% 50%, rgba(132,115,255,0.28) 0%, transparent 72%)'
-                  : 'radial-gradient(ellipse at 20% 50%, rgba(164,150,255,0.12) 0%, transparent 70%)',
-                top: 0,
+          {([
+            { top: 0, height: 400, pos: '20% 50%', lightOpacity: '0.12', darkOpacity: '0.28' },
+            { top: 100, height: 350, pos: '80% 30%', lightOpacity: '0.10', darkOpacity: '0.22' },
+            { top: 200, height: 300, pos: '50% 80%', lightOpacity: '0.06', darkOpacity: '0.18' },
+          ] as const).map((d, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                top: d.top,
                 left: 0,
                 right: 0,
-                height: 400,
-              } as any,
-            ]}
-          />
-          <View
-            style={[
-              styles.waveDecoration,
-              {
+                height: d.height,
                 background: isDark
-                  ? 'radial-gradient(ellipse at 80% 30%, rgba(113,146,255,0.22) 0%, transparent 70%)'
-                  : 'radial-gradient(ellipse at 80% 30%, rgba(175,201,246,0.10) 0%, transparent 70%)',
-                top: 100,
-                left: 0,
-                right: 0,
-                height: 350,
-              } as any,
-            ]}
-          />
-          <View
-            style={[
-              styles.waveDecoration,
-              {
-                background: isDark
-                  ? 'radial-gradient(ellipse at 50% 80%, rgba(188,143,255,0.18) 0%, transparent 60%)'
-                  : 'radial-gradient(ellipse at 50% 80%, rgba(124,98,255,0.06) 0%, transparent 60%)',
-                top: 200,
-                left: 0,
-                right: 0,
-                height: 300,
-              } as any,
-            ]}
-          />
+                  ? `radial-gradient(ellipse at ${d.pos}, rgba(132,115,255,${d.darkOpacity}) 0%, transparent 70%)`
+                  : `radial-gradient(ellipse at ${d.pos}, rgba(164,150,255,${d.lightOpacity}) 0%, transparent 70%)`,
+                pointerEvents: 'none',
+              }}
+            />
+          ))}
         </View>
       )}
 

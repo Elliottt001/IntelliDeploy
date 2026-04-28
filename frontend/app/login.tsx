@@ -31,13 +31,15 @@ export default function Login() {
       const response = await authAPI.login(username, password);
       const { access_token } = response.data;
       await AsyncStorage.setItem('token', access_token);
-      Alert.alert('成功', '登录成功！', [
-        { text: '确定', onPress: () => router.replace('/') },
-      ]);
+      router.replace('/(tabs)/chat');
     } catch (error: any) {
       const message =
         error.response?.data?.detail || '登录失败，请检查用户名和密码';
-      Alert.alert('错误', message);
+      if (Platform.OS === 'web') {
+        window.alert(message);
+      } else {
+        Alert.alert('错误', message);
+      }
     } finally {
       setLoading(false);
     }
