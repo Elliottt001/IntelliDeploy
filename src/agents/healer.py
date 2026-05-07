@@ -1,5 +1,6 @@
 import json
 import logging
+import asyncio
 from typing import List
 
 class ParallelHealer:
@@ -7,7 +8,7 @@ class ParallelHealer:
         self.llm = llm_client
         self.logger = logging.getLogger(__name__)
 
-    async def generate_variants(self, diagnosis, current_dockerfile: str) -> List[str]:
+    async def generate_variants(self, diagnosis, current_dockerfile: str, timeout_seconds: float | None = None) -> List[str]:
         prompt = f"""
         你是一名顶尖的 Docker 修复专家。
         当前故障诊断: {diagnosis.root_cause} (类型: {diagnosis.error_type})
@@ -18,7 +19,8 @@ class ParallelHealer:
         {current_dockerfile}
         """
         
-        response = await self.llm.chat("You are a code generator.", prompt)
+        call = self.llm.chat("You are a code generator.", prompt)
+        response = await asyncio.wait_for(call, timeout=timeout_seconds) if timeout_seconds else await call
         return self._parse_variants(response)
 
     def _parse_variants(self, response: str) -> List[str]:

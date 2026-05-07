@@ -66,3 +66,6 @@ Thumbs.db
 # 项目运行时输出
 fallback/artifacts/
 fallback/workspaces/
+
+docs/
+temp/

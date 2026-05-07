@@ -1,0 +1,31 @@
+[
+  {
+    "case_id": "main_flow_portfolio",
+    "prompt_id": "builder.main_flow",
+    "version": "1.0.0",
+    "input": {
+      "flow_id": "flow-001",
+      "stage": "BUILDING",
+      "user_intent": "Build and deploy a personal portfolio website",
+      "repo_profile": {"detected_frameworks": ["React"], "has_valid_dockerfile": false},
+      "constraints": {"target_port": 8080}
+    },
+    "golden_output": {
+      "contract_version": "1.0.0",
+      "context": {
+        "contract_version": "1.0.0",
+        "flow_id": "flow-001",
+        "stage": "BUILDING",
+        "user_intent": "Build and deploy a personal portfolio website",
+        "repo_profile": {"detected_frameworks": ["React"], "has_valid_dockerfile": false}
+      },
+      "action": {
+        "agent": "BUILDER",
+        "action": "Generate Dockerfile and startup command for React app",
+        "output": {"base_image": "node:20-alpine", "start_command": "npm run start"},
+        "confidence": 0.86
+      },
+      "proposed_files": ["Dockerfile", "deploy/start.sh"]
+    }
+  }
+]
