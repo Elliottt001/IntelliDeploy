@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -161,6 +161,7 @@ class QueryTaskStatusResponse(BaseModel):
     project_id: str
     deployment_id: str
     status: TaskStatus
+    execution_engine: Optional[str] = None
     current_stage: Optional[str] = None
     progress_message: Optional[str] = None
     artifact_ready: bool
@@ -168,6 +169,10 @@ class QueryTaskStatusResponse(BaseModel):
     error_code: Optional[ErrorCode] = None
     error_message: Optional[str] = None
     recoverable: Optional[bool] = None
+    session_id: Optional[str] = None
+    iteration_count: Optional[int] = None
+    is_approved: Optional[bool] = None
+    failure_reason: Optional[str] = None
 
 
 # ==================== 接口 C：获取生成产物结果 ====================
@@ -189,6 +194,26 @@ class GetArtifactResultResponse(BaseModel):
     summary: Optional[str] = None
     deploy_ready: bool
     next_action: Optional[NextAction] = None
+    execution_engine: Optional[str] = None
+    session_id: Optional[str] = None
+    artifact_version: Optional[str] = None
+    current_configs: Optional[Dict[str, Any]] = None
+    review_history: Optional[List[Dict[str, Any]]] = None
+    security_reports: Optional[List[Dict[str, Any]]] = None
+
+
+class AgentEventResponse(BaseModel):
+    id: Optional[int] = None
+    task_id: str
+    session_id: str
+    deployment_id: str
+    iteration_count: Optional[int] = None
+    agent_name: str
+    stage: Optional[str] = None
+    event_type: str
+    message: Optional[str] = None
+    payload: Optional[Dict[str, Any]] = None
+    created_at: Optional[datetime] = None
 
 
 # ==================== 接口 D：部署失败后回传修复/重生成请求 ====================

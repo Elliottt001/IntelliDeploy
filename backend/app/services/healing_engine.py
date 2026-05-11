@@ -1,4 +1,4 @@
-"""
+﻿"""
 自愈引擎
 实现熔断限制和并行试错机制
 """
@@ -28,6 +28,12 @@ class HealingEngine:
         self.db = db
         self.circuit_breaker = CircuitBreakerService()
         self.generation_service = GenerationTaskService(db)
+
+    def _get_latest_generation_task_id(self, deployment_id: int) -> Optional[str]:
+        tasks = self.generation_service.get_tasks_by_deployment(deployment_id)
+        if not tasks:
+            return None
+        return tasks[0].task_id
 
     async def check_can_heal(self, project_id: str) -> bool:
         """
@@ -98,7 +104,7 @@ class HealingEngine:
         feedback_request = DeployFailureFeedbackRequest(
             project_id=project_id,
             deployment_id=str(deployment_id),
-            source_task_id="",  # 如果有原始任务ID可以填入
+            source_task_id=self._get_latest_generation_task_id(deployment_id) or "",  # 如果有原始任务ID可以填入
             failed_stage=FailedStage(failed_stage),
             error_type=log_info.get("error_type"),
             sanitized_error_log=log_info.get("sanitized_log", error_logs[:1000]),
@@ -183,7 +189,7 @@ class HealingEngine:
             feedback_request = DeployFailureFeedbackRequest(
                 project_id=project_id,
                 deployment_id=str(deployment_id),
-                source_task_id="",
+                source_task_id=self._get_latest_generation_task_id(deployment_id) or "",
                 failed_stage=FailedStage(failed_stage),
                 error_type=log_info.get("error_type"),
                 sanitized_error_log=log_info.get("sanitized_log", error_logs[:1000]),
@@ -241,3 +247,4 @@ class HealingEngine:
             "can_heal": can_heal,
             "circuit_breaker_active": not can_heal,
         }
+

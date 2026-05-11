@@ -1,4 +1,4 @@
-"""
+﻿"""
 部署相关的API路由
 """
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -79,6 +79,9 @@ async def start_deployment(
         db.add(deployment)
         db.commit()
         db.refresh(deployment)
+        task.deployment_id = deployment.id
+        db.add(task)
+        db.commit()
 
         # 启动部署
         orchestrator = DeploymentOrchestrator(db, kubeconfig=request.kubeconfig)
@@ -275,3 +278,4 @@ async def list_project_deployments(
             for d in deployments
         ],
     }
+

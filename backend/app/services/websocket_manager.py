@@ -4,7 +4,6 @@ WebSocket管理器
 """
 from typing import Dict, Set
 from fastapi import WebSocket
-import json
 import asyncio
 
 
@@ -14,6 +13,8 @@ class ConnectionManager:
     def __init__(self):
         # deployment_id -> Set[WebSocket]
         self.active_connections: Dict[str, Set[WebSocket]] = {}
+        # session_id -> Set[WebSocket]
+        self.session_connections: Dict[str, Set[WebSocket]] = {}
         self._lock = asyncio.Lock()
 
     async def connect(self, websocket: WebSocket, deployment_id: str):
@@ -25,10 +26,7 @@ class ConnectionManager:
             deployment_id: 部署ID
         """
         await websocket.accept()
-        async with self._lock:
-            if deployment_id not in self.active_connections:
-                self.active_connections[deployment_id] = set()
-            self.active_connections[deployment_id].add(websocket)
+        await self._connect_to_registry(websocket, deployment_id, self.active_connections)
 
     async def disconnect(self, websocket: WebSocket, deployment_id: str):
         """
@@ -38,11 +36,39 @@ class ConnectionManager:
             websocket: WebSocket连接
             deployment_id: 部署ID
         """
+        await self._disconnect_from_registry(websocket, deployment_id, self.active_connections)
+
+    async def connect_session(self, websocket: WebSocket, session_id: str):
+        """连接session级WebSocket。"""
+        await websocket.accept()
+        await self._connect_to_registry(websocket, session_id, self.session_connections)
+
+    async def disconnect_session(self, websocket: WebSocket, session_id: str):
+        """断开session级WebSocket。"""
+        await self._disconnect_from_registry(websocket, session_id, self.session_connections)
+
+    async def _connect_to_registry(
+        self,
+        websocket: WebSocket,
+        channel_id: str,
+        registry: Dict[str, Set[WebSocket]],
+    ):
         async with self._lock:
-            if deployment_id in self.active_connections:
-                self.active_connections[deployment_id].discard(websocket)
-                if not self.active_connections[deployment_id]:
-                    del self.active_connections[deployment_id]
+            if channel_id not in registry:
+                registry[channel_id] = set()
+            registry[channel_id].add(websocket)
+
+    async def _disconnect_from_registry(
+        self,
+        websocket: WebSocket,
+        channel_id: str,
+        registry: Dict[str, Set[WebSocket]],
+    ):
+        async with self._lock:
+            if channel_id in registry:
+                registry[channel_id].discard(websocket)
+                if not registry[channel_id]:
+                    del registry[channel_id]
 
     async def send_message(self, deployment_id: str, message: Dict):
         """
@@ -66,6 +92,19 @@ class ConnectionManager:
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
 
+    async def send_session_message(self, session_id: str, message: Dict):
+        """发送消息给指定session的所有连接。"""
+        if session_id not in self.session_connections:
+            return
+
+        connections = list(self.session_connections.get(session_id, []))
+        tasks = []
+        for connection in connections:
+            tasks.append(self._send_to_session_connection(connection, session_id, message))
+
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
     async def _send_to_connection(self, connection: WebSocket, deployment_id: str, message: Dict):
         """
         发送消息到单个连接
@@ -80,6 +119,13 @@ class ConnectionManager:
         except Exception:
             # 连接已断开,移除
             await self.disconnect(connection, deployment_id)
+
+    async def _send_to_session_connection(self, connection: WebSocket, session_id: str, message: Dict):
+        """发送消息到单个session连接。"""
+        try:
+            await connection.send_json(message)
+        except Exception:
+            await self.disconnect_session(connection, session_id)
 
     async def broadcast_status(self, deployment_id: str, status: str, data: Dict = None):
         """
@@ -135,6 +181,43 @@ class ConnectionManager:
         }
         await self.send_message(deployment_id, message)
 
+    async def broadcast_session_event(self, session_id: str, event_type: str, data: Dict):
+        """广播session级事件。"""
+        message = {
+            "type": "event",
+            "session_id": session_id,
+            "event_type": event_type,
+            "data": data,
+            "timestamp": self._get_timestamp(),
+        }
+        await self.send_session_message(session_id, message)
+
+    async def broadcast_agent_state(
+        self,
+        deployment_id: str,
+        *,
+        stage: str,
+        message: str = "",
+        data: Dict | None = None,
+    ):
+        payload = {"stage": stage, "message": message}
+        if data:
+            payload.update(data)
+        await self.broadcast_event(deployment_id, "agent_state", payload)
+
+    async def broadcast_agent_state_by_session(
+        self,
+        session_id: str,
+        *,
+        stage: str,
+        message: str = "",
+        data: Dict | None = None,
+    ):
+        payload = {"stage": stage, "message": message}
+        if data:
+            payload.update(data)
+        await self.broadcast_session_event(session_id, "agent_state", payload)
+
     async def broadcast_error(self, deployment_id: str, error_message: str, error_type: str = None):
         """
         广播错误
@@ -164,6 +247,10 @@ class ConnectionManager:
             int: 连接数
         """
         return len(self.active_connections.get(deployment_id, set()))
+
+    def get_session_connection_count(self, session_id: str) -> int:
+        """获取指定session的连接数。"""
+        return len(self.session_connections.get(session_id, set()))
 
     def _get_timestamp(self) -> str:
         """获取当前时间戳"""

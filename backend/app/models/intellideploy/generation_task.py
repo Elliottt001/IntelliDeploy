@@ -18,9 +18,13 @@ class GenerationTask(Base):
     generation_mode = Column(String, nullable=False)  # AUTO / VIBE / COMPONENT_REASSEMBLY
 
     # 任务状态
+    execution_engine = Column(String, nullable=False, default="fallback")  # fallback / main_graph
+    session_id = Column(String, nullable=True, index=True)
     status = Column(String, nullable=False, default="QUEUED")  # QUEUED / RUNNING / GENERATING / STITCHING / PACKAGING / SUCCEEDED / FAILED
     current_stage = Column(String, nullable=True)
     progress_message = Column(String, nullable=True)
+    iteration_count = Column(Integer, nullable=True)
+    is_approved = Column(Boolean, nullable=True)
 
     # 输入参数(JSON存储)
     original_prompt = Column(Text, nullable=False)
@@ -35,15 +39,18 @@ class GenerationTask(Base):
     artifact_type = Column(String, nullable=True)  # TEMPLATE_PROJECT / STITCHED_PROJECT
     artifact_path = Column(String, nullable=True)
     artifact_uri = Column(String, nullable=True)
+    artifact_version = Column(String, nullable=True)
     dockerfile_content = Column(Text, nullable=True)
 
     # 运行时信息(JSON存储)
     runtime_info = Column(JSON, nullable=True)
     required_envs = Column(JSON, nullable=True)
+    graph_state_snapshot = Column(JSON, nullable=True)
 
     # 错误信息
     error_code = Column(String, nullable=True)
     error_message = Column(Text, nullable=True)
+    failure_reason = Column(Text, nullable=True)
     recoverable = Column(Boolean, nullable=True)
 
     # 其他

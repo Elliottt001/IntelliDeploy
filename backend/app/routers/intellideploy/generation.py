@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.fallback import (
+    AgentEventResponse,
     StartFallbackTaskRequest,
     StartFallbackTaskResponse,
     QueryTaskStatusResponse,
@@ -157,3 +158,27 @@ async def get_deployment_events(
             for event in events
         ],
     }
+
+
+@router.get("/task/{task_id}/agent-events", response_model=list[AgentEventResponse])
+async def get_task_agent_events(
+    task_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    获取某个生成任务的多智能体事件流。
+    """
+    service = GenerationTaskService(db)
+    return [service.build_agent_event_response(event) for event in service.get_task_agent_events(task_id)]
+
+
+@router.get("/session/{session_id}/agent-events", response_model=list[AgentEventResponse])
+async def get_session_agent_events(
+    session_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    获取某个session的多智能体事件流。
+    """
+    service = GenerationTaskService(db)
+    return [service.build_agent_event_response(event) for event in service.get_session_agent_events(session_id)]
