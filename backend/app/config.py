@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     BASE_URL: str = ""
     API_KEY: str = ""
     SEALOS_DOMAIN_SUFFIX: str = "usw.sealos.io"
+    GITHUB_TOKEN: str = ""
+    GITHUB_SEARCH_TOKENS: str = ""
+    GITHUB_SEARCH_TIMEOUT_SECONDS: float = 10.0
 
     # 杨钞越的降级生成服务地址
     FALLBACK_SERVICE_URL: str = "http://localhost:8001"
