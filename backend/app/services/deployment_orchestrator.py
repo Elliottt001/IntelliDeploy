@@ -19,6 +19,7 @@ from app.services.sealos_client import SealosClient, DeploymentStatus, get_sealo
 from app.services.healing_engine import HealingEngine
 from app.services.generation_task_service import GenerationTaskService
 from app.services.image_builder import get_image_builder, BuildMethod
+from app.services.websocket_manager import get_ws_manager
 
 
 MAX_CONTEXT_BYTES = 5_000_000
@@ -74,6 +75,13 @@ class DeploymentOrchestrator:
         )
         self.db.add(event)
         self.db.commit()
+        await self._broadcast_stage(
+            deployment_id,
+            "Building",
+            "running",
+            "开始构建部署镜像",
+            0.64,
+        )
 
         # 如果提供了kubeconfig,使用新的客户端
         if kubeconfig:
@@ -100,6 +108,14 @@ class DeploymentOrchestrator:
                 "build",
                 "info",
                 f"Build context prepared with {len(context_files)} file(s)",
+            )
+            await self._broadcast_stage(
+                deployment_id,
+                "Building",
+                "running",
+                f"构建上下文已准备: {len(context_files)} 个文件",
+                0.66,
+                {"context_file_count": len(context_files)},
             )
 
             # 构建镜像
@@ -129,6 +145,14 @@ class DeploymentOrchestrator:
                 )
                 self.db.add(event)
                 self.db.commit()
+                await self._broadcast_stage(
+                    deployment_id,
+                    "Building",
+                    "failed",
+                    build_result.get("error", "镜像构建失败"),
+                    0.68,
+                    {"logs": build_result.get("logs")},
+                )
 
                 # 触发自愈
                 await self._trigger_healing_if_needed(
@@ -149,6 +173,14 @@ class DeploymentOrchestrator:
             )
             self.db.add(event)
             self.db.commit()
+            await self._broadcast_stage(
+                deployment_id,
+                "Building",
+                "success",
+                f"镜像构建成功: {built_image}",
+                0.72,
+                {"image": built_image},
+            )
 
             # 步骤2: 推送镜像(如果指定了registry)
             final_image = built_image
@@ -199,6 +231,14 @@ class DeploymentOrchestrator:
             )
             self.db.add(event)
             self.db.commit()
+            await self._broadcast_stage(
+                deployment_id,
+                "Deploying",
+                "running",
+                "正在创建 Sealos 应用",
+                0.78,
+                {"image": final_image},
+            )
 
             result = await self.sealos_client.create_app(
                 name=deployment.runtime_name,
@@ -226,6 +266,14 @@ class DeploymentOrchestrator:
             )
             self.db.add(event)
             self.db.commit()
+            await self._broadcast_stage(
+                deployment_id,
+                "Deploying",
+                "success",
+                f"Sealos 应用已创建: {result.get('app_id')}",
+                0.86,
+                {"app_id": result.get("app_id"), "access_url": deployment.access_url},
+            )
 
             # 执行健康检查
             if artifact.runtime.healthcheck_path and deployment.access_url:
@@ -260,6 +308,14 @@ class DeploymentOrchestrator:
 
             # 触发自愈
             await self._trigger_healing_if_needed(deployment_id, str(e), "BUILD")
+            await self._broadcast_stage(
+                deployment_id,
+                "Finalize",
+                "failed",
+                f"部署失败: {str(e)}",
+                1.0,
+                {"error_type": deployment.error_type},
+            )
 
             raise
 
@@ -292,6 +348,13 @@ class DeploymentOrchestrator:
         )
         self.db.add(event)
         self.db.commit()
+        await self._broadcast_stage(
+            deployment_id,
+            "HealthCheck",
+            "running",
+            f"正在健康检查: {health_url}",
+            0.9,
+        )
 
         # 重试健康检查
         for attempt in range(settings.HEALTHCHECK_RETRIES):
@@ -314,6 +377,22 @@ class DeploymentOrchestrator:
                     )
                     self.db.add(event)
                     self.db.commit()
+                    await self._broadcast_stage(
+                        deployment_id,
+                        "HealthCheck",
+                        "success",
+                        "健康检查通过",
+                        0.96,
+                        {"health_url": health_url},
+                    )
+                    await self._broadcast_stage(
+                        deployment_id,
+                        "Finalize",
+                        "success",
+                        "应用已部署完成",
+                        1.0,
+                        {"access_url": deployment.access_url},
+                    )
 
                     return True
 
@@ -335,6 +414,14 @@ class DeploymentOrchestrator:
                     )
                     self.db.add(event)
                     self.db.commit()
+                    await self._broadcast_stage(
+                        deployment_id,
+                        "HealthCheck",
+                        "failed",
+                        f"健康检查失败: {str(e)}",
+                        0.94,
+                        {"health_url": health_url},
+                    )
 
                     if trigger_healing:
                         await self._trigger_healing_if_needed(deployment_id, str(e), "HEALTHCHECK")
@@ -357,6 +444,14 @@ class DeploymentOrchestrator:
             failed_stage: 失败阶段
         """
         try:
+            await self._broadcast_stage(
+                deployment_id,
+                "Healing",
+                "running",
+                f"{failed_stage} 失败,正在启动自愈",
+                0.72,
+                {"failed_stage": failed_stage},
+            )
             result = await self.run_parallel_healing_race(
                 deployment_id=deployment_id,
                 error_logs=error_message,
@@ -385,6 +480,14 @@ class DeploymentOrchestrator:
             )
             self.db.add(event)
             self.db.commit()
+            await self._broadcast_stage(
+                deployment_id,
+                "Healing",
+                "failed",
+                f"自愈触发失败: {str(e)}",
+                0.82,
+                {"error_type": "HEALING_TRIGGER_ERROR"},
+            )
 
     async def run_parallel_healing_race(
         self,
@@ -399,6 +502,13 @@ class DeploymentOrchestrator:
             failed_stage=failed_stage,
         )
         if not task_ids:
+            await self._broadcast_stage(
+                deployment_id,
+                "Healing",
+                "failed",
+                "没有可用的自愈候选",
+                0.78,
+            )
             return {
                 "success": False,
                 "deployment_id": deployment_id,
@@ -410,6 +520,14 @@ class DeploymentOrchestrator:
             "heal",
             "info",
             f"Starting parallel healing race with {len(task_ids)} candidate(s)",
+        )
+        await self._broadcast_stage(
+            deployment_id,
+            "Healing",
+            "running",
+            f"正在并行试错 {len(task_ids)} 个修复候选",
+            0.76,
+            {"task_ids": task_ids},
         )
 
         tasks = [
@@ -439,12 +557,28 @@ class DeploymentOrchestrator:
                         "info",
                         f"Healing candidate {result.get('task_id')} won the race",
                     )
+                    await self._broadcast_stage(
+                        deployment_id,
+                        "Healing",
+                        "success",
+                        f"自愈候选胜出: {result.get('task_id')}",
+                        0.92,
+                        result,
+                    )
                     return result
                 failures.append(result)
         except asyncio.TimeoutError:
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
+            await self._broadcast_stage(
+                deployment_id,
+                "Healing",
+                "failed",
+                "并行自愈超时",
+                0.86,
+                {"task_ids": task_ids, "failures": failures},
+            )
             return {
                 "success": False,
                 "deployment_id": deployment_id,
@@ -453,6 +587,14 @@ class DeploymentOrchestrator:
                 "message": "Parallel healing race timed out.",
             }
 
+        await self._broadcast_stage(
+            deployment_id,
+            "Healing",
+            "failed",
+            "所有自愈候选都失败",
+            0.86,
+            {"task_ids": task_ids, "failures": failures},
+        )
         return {
             "success": False,
             "deployment_id": deployment_id,
@@ -488,6 +630,14 @@ class DeploymentOrchestrator:
                 "info",
                 f"Candidate {task_id} building image with {len(context_files)} context file(s)",
             )
+            await self._broadcast_stage(
+                deployment_id,
+                "Healing",
+                "running",
+                f"候选 {task_id} 正在构建镜像",
+                0.8,
+                {"task_id": task_id, "context_file_count": len(context_files)},
+            )
             build_result = await builder.build_image(
                 dockerfile_content=artifact.dockerfile_content,
                 context_files=context_files,
@@ -522,6 +672,14 @@ class DeploymentOrchestrator:
             deployment.error_type = None
             deployment.status = DeploymentStatus.RUNNING.value
             self.db.commit()
+            await self._broadcast_stage(
+                deployment_id,
+                "Healing",
+                "running",
+                f"候选 {task_id} 已部署,正在验证",
+                0.88,
+                {"task_id": task_id, "access_url": deployment.access_url},
+            )
 
             if artifact.runtime.healthcheck_path and deployment.access_url:
                 healthy = await self._perform_health_check(
@@ -535,6 +693,14 @@ class DeploymentOrchestrator:
                 deployment.status = DeploymentStatus.SUCCESS.value
                 deployment.finished_at = datetime.now()
                 self.db.commit()
+                await self._broadcast_stage(
+                    deployment_id,
+                    "Finalize",
+                    "success",
+                    "自愈部署已完成",
+                    1.0,
+                    {"task_id": task_id, "access_url": deployment.access_url},
+                )
 
             return {
                 "success": True,
@@ -553,6 +719,14 @@ class DeploymentOrchestrator:
                 "warning",
                 f"Healing candidate {task_id} failed: {str(exc)}",
                 error_type="HEALING_CANDIDATE_FAILED",
+            )
+            await self._broadcast_stage(
+                deployment_id,
+                "Healing",
+                "failed",
+                f"候选 {task_id} 失败: {str(exc)}",
+                0.84,
+                {"task_id": task_id, "error": str(exc)},
             )
             return {
                 "success": False,
@@ -687,6 +861,24 @@ class DeploymentOrchestrator:
         )
         self.db.add(event)
         self.db.commit()
+
+    async def _broadcast_stage(
+        self,
+        deployment_id: int,
+        stage: str,
+        status: str,
+        message: str,
+        progress: float,
+        data: Optional[Dict] = None,
+    ) -> None:
+        await get_ws_manager().broadcast_pipeline_stage(
+            str(deployment_id),
+            stage,
+            status=status,
+            message=message,
+            progress=progress,
+            data=data,
+        )
 
     async def poll_deployment_status(self, deployment_id: int) -> Dict:
         """

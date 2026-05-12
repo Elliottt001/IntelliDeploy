@@ -9,6 +9,47 @@ const api = axios.create({
 });
 
 export const RAG_RESULT_STORAGE_KEY = 'intellideploy:last-rag-search';
+export const DEPLOYMENT_STATUS_STORAGE_KEY = 'intellideploy:active-deployment-id';
+
+export type PipelineStage =
+  | 'Thinking'
+  | 'Building'
+  | 'Reviewing'
+  | 'SecurityCheck'
+  | 'Consensus'
+  | 'Generating'
+  | 'Packaging'
+  | 'Deploying'
+  | 'HealthCheck'
+  | 'Healing'
+  | 'Finalize';
+
+export type PipelineStageStatus = 'pending' | 'running' | 'success' | 'failed' | 'skipped';
+
+export type PipelineStageMessage = {
+  type: 'pipeline_stage';
+  deployment_id: string;
+  stage: PipelineStage;
+  status: PipelineStageStatus;
+  message: string;
+  progress?: number;
+  data?: Record<string, unknown>;
+  timestamp: string;
+};
+
+export type DeploymentWebSocketMessage =
+  | PipelineStageMessage
+  | {
+      type: 'status' | 'log' | 'event' | 'error';
+      deployment_id: string;
+      status?: string;
+      log?: string;
+      level?: string;
+      event_type?: string;
+      error_message?: string;
+      data?: Record<string, unknown>;
+      timestamp: string;
+    };
 
 export type RepoProfile = {
   source_repo_url?: string | null;
@@ -65,6 +106,17 @@ export type RagSearchResponse = {
   selected?: RagCandidate | null;
   generated_at: string;
   warnings: string[];
+};
+
+export type RagStartGenerationResponse = {
+  search: RagSearchResponse;
+  generation: {
+    accepted: boolean;
+    task_id: string;
+    status: string;
+    queued_at: string;
+    message?: string | null;
+  };
 };
 
 type RetrievalCandidate = {
@@ -132,7 +184,21 @@ export const ragAPI = {
       data: mapRetrievalToRagSearch(response.data),
     };
   },
+  startGeneration: async (payload: {
+    project_id: string;
+    deployment_id: string;
+    raw_query: string;
+    request_id?: string;
+    selected_repo_url?: string;
+  }) => {
+    const response = await api.post<RagStartGenerationResponse>('/api/rag/start-generation', payload);
+    return response;
+  },
 };
+
+export function deploymentWebSocketUrl(deploymentId: string | number): string {
+  return `${API_BASE_URL.replace(/^http/, 'ws')}/ws/deployments/${deploymentId}`;
+}
 
 export default api;
 

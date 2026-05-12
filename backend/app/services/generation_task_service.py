@@ -17,6 +17,7 @@ from app.schemas.fallback import (
     TaskStatus,
 )
 from app.services.fallback_client import get_fallback_client
+from app.services.websocket_manager import get_ws_manager
 
 
 class GenerationTaskService:
@@ -74,6 +75,15 @@ class GenerationTaskService:
         self.db.add(event)
         self.db.commit()
 
+        await get_ws_manager().broadcast_pipeline_stage(
+            str(request.deployment_id),
+            "Generating",
+            status="running",
+            message=f"生成任务已入队: {response.task_id}",
+            progress=0.45,
+            data={"task_id": response.task_id, "task_status": response.status.value},
+        )
+
         return response
 
     async def query_task_status(self, task_id: str) -> QueryTaskStatusResponse:
@@ -111,6 +121,26 @@ class GenerationTaskService:
 
             self.db.commit()
 
+            stage, stage_status, progress = self._map_task_stage(
+                response.current_stage,
+                response.status.value,
+                response.artifact_ready,
+            )
+            await get_ws_manager().broadcast_pipeline_stage(
+                str(task.deployment_id),
+                stage,
+                status=stage_status,
+                message=response.progress_message or self._task_status_message(response.status.value),
+                progress=progress,
+                data={
+                    "task_id": task_id,
+                    "task_status": response.status.value,
+                    "current_stage": response.current_stage,
+                    "artifact_ready": response.artifact_ready,
+                    "recoverable": response.recoverable,
+                },
+            )
+
         return response
 
     async def get_artifact_result(self, task_id: str) -> GetArtifactResultResponse:
@@ -143,6 +173,20 @@ class GenerationTaskService:
             task.summary = response.summary
             task.deploy_ready = response.deploy_ready
             self.db.commit()
+
+            await get_ws_manager().broadcast_pipeline_stage(
+                str(task.deployment_id),
+                "Packaging" if response.deploy_ready else "Generating",
+                status="success" if response.deploy_ready else "failed",
+                message=response.summary or ("生成产物已就绪" if response.deploy_ready else "生成产物未达到部署条件"),
+                progress=0.62 if response.deploy_ready else 0.58,
+                data={
+                    "task_id": task_id,
+                    "artifact_type": response.artifact_type.value,
+                    "deploy_ready": response.deploy_ready,
+                    "artifact_uri": response.artifact_uri,
+                },
+            )
 
         return response
 
@@ -201,6 +245,20 @@ class GenerationTaskService:
             self.db.add(event)
             self.db.commit()
 
+            await get_ws_manager().broadcast_pipeline_stage(
+                str(request.deployment_id),
+                "Healing",
+                status="running",
+                message=f"部署失败,已启动修复生成任务: {response.task_id}",
+                progress=0.72,
+                data={
+                    "task_id": response.task_id,
+                    "source_task_id": request.source_task_id,
+                    "failed_stage": request.failed_stage.value,
+                    "error_type": request.error_type,
+                },
+            )
+
         return response
 
     def get_task_by_id(self, task_id: str) -> Optional[GenerationTask]:
@@ -224,3 +282,37 @@ class GenerationTaskService:
             .order_by(DeploymentEvent.created_at.desc())
             .all()
         )
+
+    @staticmethod
+    def _map_task_stage(
+        current_stage: Optional[str],
+        task_status: str,
+        artifact_ready: bool,
+    ) -> tuple[str, str, float]:
+        if task_status == TaskStatus.FAILED.value:
+            return ("Finalize", "failed", 1.0)
+        if task_status == TaskStatus.SUCCEEDED.value or artifact_ready:
+            return ("Packaging", "success", 0.62)
+        if task_status == TaskStatus.QUEUED.value:
+            return ("Generating", "running", 0.45)
+
+        stage_key = (current_stage or "").lower()
+        if stage_key in {"classifying", "planning", "thinking"}:
+            return ("Thinking", "running", 0.16)
+        if stage_key in {"solving", "building", "generating"}:
+            return ("Building", "running", 0.5)
+        if stage_key in {"validating", "reviewing"}:
+            return ("Reviewing", "running", 0.56)
+        if stage_key in {"materializing", "packaging"}:
+            return ("Packaging", "running", 0.6)
+        return ("Generating", "running", 0.5)
+
+    @staticmethod
+    def _task_status_message(task_status: str) -> str:
+        messages = {
+            TaskStatus.QUEUED.value: "生成任务等待调度",
+            TaskStatus.RUNNING.value: "生成任务正在执行",
+            TaskStatus.SUCCEEDED.value: "生成任务已完成",
+            TaskStatus.FAILED.value: "生成任务失败",
+        }
+        return messages.get(task_status, "生成任务状态已更新")

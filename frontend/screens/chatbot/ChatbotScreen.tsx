@@ -14,10 +14,54 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
-import { ragAPI, RAG_RESULT_STORAGE_KEY, type RagCandidate } from '../../services/api';
+import {
+  DEPLOYMENT_STATUS_STORAGE_KEY,
+  deploymentWebSocketUrl,
+  ragAPI,
+  RAG_RESULT_STORAGE_KEY,
+  type DeploymentWebSocketMessage,
+  type PipelineStage,
+  type PipelineStageMessage,
+  type PipelineStageStatus,
+  type RagCandidate,
+} from '../../services/api';
 
 const catImage =
   'https://www.figma.com/api/mcp/asset/be3df654-ec89-4c35-a63a-f7e408efb85c';
+
+const PIPELINE_STAGES: PipelineStage[] = [
+  'Thinking',
+  'Building',
+  'Reviewing',
+  'SecurityCheck',
+  'Consensus',
+  'Generating',
+  'Packaging',
+  'Deploying',
+  'HealthCheck',
+  'Healing',
+  'Finalize',
+];
+
+const STAGE_LABELS: Record<PipelineStage, string> = {
+  Thinking: '理解',
+  Building: '构建',
+  Reviewing: '评审',
+  SecurityCheck: '安全',
+  Consensus: '共识',
+  Generating: '生成',
+  Packaging: '打包',
+  Deploying: '部署',
+  HealthCheck: '检查',
+  Healing: '自愈',
+  Finalize: '完成',
+};
+
+const initialPipelineState = (): Record<PipelineStage, PipelineStageStatus> =>
+  PIPELINE_STAGES.reduce((acc, stage) => {
+    acc[stage] = 'pending';
+    return acc;
+  }, {} as Record<PipelineStage, PipelineStageStatus>);
 
 export default function Chatbot() {
   const router = useRouter();
@@ -28,6 +72,13 @@ export default function Chatbot() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedRepo, setSelectedRepo] = useState<RagCandidate | null>(null);
+  const [deploymentId, setDeploymentId] = useState<string | null>(null);
+  const [pipelineMessage, setPipelineMessage] = useState('等待需求输入');
+  const [pipelineProgress, setPipelineProgress] = useState(0);
+  const [pipelineState, setPipelineState] = useState<Record<PipelineStage, PipelineStageStatus>>(
+    initialPipelineState
+  );
+  const wsRef = useRef<WebSocket | null>(null);
   const intro = useRef(new Animated.Value(0)).current;
   const botIntro = useRef(new Animated.Value(0)).current;
   const userIntro = useRef(new Animated.Value(0)).current;
@@ -163,6 +214,50 @@ export default function Chatbot() {
   ]);
 
   useEffect(() => {
+    AsyncStorage.getItem(DEPLOYMENT_STATUS_STORAGE_KEY).then((storedDeploymentId) => {
+      if (storedDeploymentId) {
+        setDeploymentId(storedDeploymentId);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!deploymentId) {
+      return;
+    }
+
+    const socket = new WebSocket(deploymentWebSocketUrl(deploymentId));
+    wsRef.current = socket;
+
+    socket.onopen = () => {
+      socket.send('ping');
+    };
+    socket.onmessage = (event) => {
+      if (event.data === 'pong') {
+        return;
+      }
+      try {
+        const payload = JSON.parse(event.data) as DeploymentWebSocketMessage;
+        if (payload.type === 'pipeline_stage') {
+          applyPipelineStage(payload);
+        }
+      } catch {
+        // Ignore non-JSON heartbeat frames.
+      }
+    };
+    socket.onerror = () => {
+      setPipelineMessage('实时状态连接异常，继续保留当前阶段');
+    };
+
+    return () => {
+      socket.close();
+      if (wsRef.current === socket) {
+        wsRef.current = null;
+      }
+    };
+  }, [deploymentId]);
+
+  useEffect(() => {
     Animated.timing(dockMode, {
       toValue: inputMode === 'keyboard' ? 0 : 1,
       duration: 260,
@@ -193,6 +288,8 @@ export default function Chatbot() {
     setIsGenerating(true);
     setSearchError(null);
     setSelectedRepo(null);
+    setPipelineState(initialPipelineState());
+    applyLocalStage('Thinking', 'running', '正在理解需求并检索候选仓库', 0.12);
     cardIntro.setValue(0);
     sendPulse.setValue(0);
 
@@ -228,7 +325,12 @@ export default function Chatbot() {
 
     try {
       const result = await ragAPI.search(message.trim());
+      applyLocalStage('Building', 'success', '语义召回已完成，正在整理候选仓库', 0.38);
       await AsyncStorage.setItem(RAG_RESULT_STORAGE_KEY, JSON.stringify(result.data));
+      if (result.data.selected) {
+        applyLocalStage('Generating', 'success', '已选出最匹配的可部署仓库', 0.58);
+        applyLocalStage('Packaging', 'success', '应用卡片和部署上下文已准备', 0.7);
+      }
       setSelectedRepo(result.data.selected ?? result.data.candidates[0] ?? null);
       setIsGenerating(false);
       Animated.spring(cardIntro, {
@@ -239,6 +341,7 @@ export default function Chatbot() {
       }).start();
     } catch (error) {
       setSearchError(error instanceof Error ? error.message : 'RAG 检索失败，请稍后重试');
+      applyLocalStage('Finalize', 'failed', '检索失败，请稍后重试', 1);
       setIsGenerating(false);
       Animated.spring(cardIntro, {
         toValue: 1,
@@ -246,6 +349,40 @@ export default function Chatbot() {
         bounciness: 9,
         useNativeDriver: true,
       }).start();
+    }
+  };
+
+  const applyPipelineStage = (payload: PipelineStageMessage) => {
+    applyLocalStage(
+      payload.stage,
+      payload.status,
+      payload.message || `${STAGE_LABELS[payload.stage]}阶段已更新`,
+      payload.progress
+    );
+  };
+
+  const applyLocalStage = (
+    stage: PipelineStage,
+    status: PipelineStageStatus,
+    text: string,
+    progress?: number
+  ) => {
+    setPipelineState((current) => {
+      const next = { ...current };
+      const stageIndex = PIPELINE_STAGES.indexOf(stage);
+      if (stageIndex >= 0) {
+        PIPELINE_STAGES.slice(0, stageIndex).forEach((previousStage) => {
+          if (next[previousStage] === 'pending' || next[previousStage] === 'running') {
+            next[previousStage] = 'success';
+          }
+        });
+      }
+      next[stage] = status;
+      return next;
+    });
+    setPipelineMessage(text);
+    if (typeof progress === 'number') {
+      setPipelineProgress(Math.max(0, Math.min(1, progress)));
     }
   };
 
@@ -450,7 +587,7 @@ export default function Chatbot() {
             ]}
           >
             <Text style={styles.generatingText}>
-              {isGenerating ? '产品生成中……' : '产品已生成'}
+              {isGenerating ? pipelineMessage : searchError ? '生成遇到问题' : '产品已生成'}
             </Text>
             <View style={styles.generatingDots}>
               {[0, 1, 2].map((dot) => (
@@ -475,15 +612,32 @@ export default function Chatbot() {
                   {
                     transform: [
                       {
-                        translateX: generating.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [-86, 156],
-                        }),
+                        translateX: isGenerating
+                          ? generating.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [-86, 156],
+                            })
+                          : 156 * pipelineProgress - 86,
                       },
                     ],
                   },
                 ]}
               />
+            </View>
+            <View style={styles.stageRail}>
+              {PIPELINE_STAGES.map((stage) => (
+                <View key={stage} style={styles.stageItem}>
+                  <View
+                    style={[
+                      styles.stageDot,
+                      pipelineState[stage] === 'running' && styles.stageDotRunning,
+                      pipelineState[stage] === 'success' && styles.stageDotSuccess,
+                      pipelineState[stage] === 'failed' && styles.stageDotFailed,
+                    ]}
+                  />
+                  <Text style={styles.stageLabel}>{STAGE_LABELS[stage]}</Text>
+                </View>
+              ))}
             </View>
           </Animated.View>
 
@@ -822,8 +976,10 @@ const styles = StyleSheet.create({
   },
   generatingText: {
     color: '#161823',
-    fontSize: 24,
+    fontSize: 15,
     fontWeight: '600',
+    lineHeight: 21,
+    paddingRight: 46,
   },
   generateBubble: {
     marginTop: 40,
@@ -853,6 +1009,38 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 3,
     backgroundColor: '#7C62FF',
+  },
+  stageRail: {
+    marginTop: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  stageItem: {
+    width: 45,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stageDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#D9DCEF',
+    marginRight: 5,
+  },
+  stageDotRunning: {
+    backgroundColor: '#7C62FF',
+  },
+  stageDotSuccess: {
+    backgroundColor: '#36B37E',
+  },
+  stageDotFailed: {
+    backgroundColor: '#FF5A7A',
+  },
+  stageLabel: {
+    color: '#6C6E8E',
+    fontSize: 9,
+    lineHeight: 12,
   },
   appCard: {
     marginLeft: 36,

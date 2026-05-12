@@ -23,7 +23,7 @@ async def websocket_deployment(
 
     消息格式:
     {
-        "type": "status" | "log" | "event" | "error",
+        "type": "status" | "log" | "event" | "error" | "pipeline_stage",
         "deployment_id": int,
         "data": {...},
         "timestamp": "ISO8601"
@@ -52,6 +52,14 @@ async def websocket_deployment(
                 "created_at": deployment.created_at.isoformat(),
             },
         )
+        await manager.broadcast_pipeline_stage(
+            deployment_id_str,
+            *_pipeline_snapshot(deployment.status),
+            data={
+                "runtime_name": deployment.runtime_name,
+                "access_url": deployment.access_url,
+            },
+        )
 
         # 保持连接并接收客户端消息(如果需要)
         while True:
@@ -71,3 +79,15 @@ async def websocket_deployment(
     finally:
         # 断开连接
         await manager.disconnect(websocket, deployment_id_str)
+
+
+def _pipeline_snapshot(status: str) -> tuple[str, str, str, float]:
+    snapshots = {
+        "pending": ("Thinking", "running", "正在理解需求并准备生成方案", 0.08),
+        "building": ("Building", "running", "正在构建镜像", 0.55),
+        "running": ("Deploying", "success", "应用已创建,正在等待健康检查", 0.82),
+        "success": ("Finalize", "success", "应用已部署完成", 1.0),
+        "failed": ("Finalize", "failed", "部署流程失败", 1.0),
+        "crash_loop_backoff": ("Healing", "running", "运行异常,正在尝试自愈", 0.86),
+    }
+    return snapshots.get(status, ("Thinking", "running", "正在同步部署状态", 0.1))

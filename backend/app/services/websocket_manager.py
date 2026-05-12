@@ -2,7 +2,7 @@
 WebSocket管理器
 用于实时推送部署状态和日志
 """
-from typing import Dict, Set
+from typing import Any, Dict, Set
 from fastapi import WebSocket
 import json
 import asyncio
@@ -152,6 +152,33 @@ class ConnectionManager:
             "timestamp": self._get_timestamp(),
         }
         await self.send_message(deployment_id, message)
+
+    async def broadcast_pipeline_stage(
+        self,
+        deployment_id: str,
+        stage: str,
+        status: str = "running",
+        message: str = "",
+        progress: float | None = None,
+        data: Dict[str, Any] | None = None,
+    ):
+        """
+        广播部署流水线阶段状态。
+
+        这是前后端强契约事件,用于驱动 Thinking -> Building -> Healing 等状态机。
+        """
+        payload = {
+            "type": "pipeline_stage",
+            "deployment_id": deployment_id,
+            "stage": stage,
+            "status": status,
+            "message": message,
+            "data": data or {},
+            "timestamp": self._get_timestamp(),
+        }
+        if progress is not None:
+            payload["progress"] = max(0.0, min(1.0, float(progress)))
+        await self.send_message(deployment_id, payload)
 
     def get_connection_count(self, deployment_id: str) -> int:
         """

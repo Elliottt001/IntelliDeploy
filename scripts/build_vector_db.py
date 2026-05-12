@@ -16,6 +16,9 @@
     export OPENAI_API_KEY="sk-xxx"             # 使用 OpenAI embedding 时需要
     python3 scripts/build_vector_db.py --target-repos 10000
 
+只抓取和清洗、不做向量入库：
+    python3 scripts/build_vector_db.py --target-repos 10000 --skip-embedding
+
 本脚本是一次性、纯离线的数据初始化脚本：
     1. 不接入 FastAPI。
     2. 不接入现有 Agent 矩阵。
@@ -50,12 +53,12 @@ from typing import Any, Iterable
 
 import requests
 from bs4 import BeautifulSoup
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 GITHUB_API_URL = "https://api.github.com"
 DEFAULT_DATA_DIR = Path("data/vector_bootstrap")
 DEFAULT_QUERY = "stars:>50 fork:false archived:false"
+DEFAULT_SENTENCE_TRANSFORMER_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 DEFAULT_QUERY_FACETS = [
     "fullstack react api",
     "fullstack nextjs api",
@@ -208,6 +211,7 @@ class Settings:
     embedding_batch_size: int
     chroma_collection: str
     skip_embedding: bool
+    require_embedding: bool
 
 
 class StateStore:
@@ -599,6 +603,7 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
 
 
 def parse_args() -> Settings:
+    load_local_env_files()
     parser = argparse.ArgumentParser(
         description="Build an offline local vector database from high-star GitHub README files."
     )
@@ -627,7 +632,7 @@ def parse_args() -> Settings:
     )
     parser.add_argument(
         "--embedding-model",
-        default=os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
+        default=os.getenv("EMBEDDING_MODEL"),
         help="OpenAI 或 sentence-transformers 模型名。",
     )
     parser.add_argument("--embedding-batch-size", type=int, default=64, help="Embedding 批大小。")
@@ -637,7 +642,15 @@ def parse_args() -> Settings:
         action="store_true",
         help="只抓取和清洗 README，不执行 embedding 和入库，便于先验证爬虫。",
     )
+    parser.add_argument(
+        "--require-embedding",
+        action="store_true",
+        help="如果 embedding 凭证或依赖不可用则直接失败；默认会保留抓取结果并跳过入库。",
+    )
     args = parser.parse_args()
+
+    embedding_provider = args.embedding_provider
+    embedding_model = args.embedding_model or default_embedding_model(embedding_provider)
 
     return Settings(
         target_repos=args.target_repos,
@@ -651,11 +664,12 @@ def parse_args() -> Settings:
         retry_base_sleep=args.retry_base_sleep,
         chunk_size=args.chunk_size,
         chunk_overlap=args.chunk_overlap,
-        embedding_provider=args.embedding_provider,
-        embedding_model=args.embedding_model,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
         embedding_batch_size=args.embedding_batch_size,
         chroma_collection=args.chroma_collection,
         skip_embedding=args.skip_embedding,
+        require_embedding=args.require_embedding,
     )
 
 
@@ -665,6 +679,28 @@ def configure_logging() -> None:
         format="%(asctime)s %(levelname)s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+
+
+def load_local_env_files() -> None:
+    """读取本地 .env 文件，只补充当前进程尚未设置的环境变量。"""
+    for env_path in (Path(".env"), Path("backend/.env")):
+        if not env_path.exists():
+            continue
+        for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+def default_embedding_model(provider: str) -> str:
+    if provider == "sentence-transformers":
+        return DEFAULT_SENTENCE_TRANSFORMER_MODEL
+    return "text-embedding-3-small"
 
 
 def default_github_queries() -> list[str]:
@@ -903,6 +939,31 @@ def build_embedding_provider(settings: Settings) -> EmbeddingProvider:
     return RetryingEmbeddingProvider(provider, settings.max_retries, settings.retry_base_sleep)
 
 
+def embedding_is_ready(settings: Settings) -> tuple[bool, str]:
+    """预检 embedding 所需的环境变量和依赖，避免长爬取结束后才抛异常。"""
+    if settings.skip_embedding:
+        return False, "--skip-embedding is set"
+
+    if settings.embedding_provider == "openai":
+        if not os.getenv("OPENAI_API_KEY"):
+            return (
+                False,
+                "OPENAI_API_KEY is not set. Set it, or rerun with --skip-embedding, "
+                "or use --embedding-provider=sentence-transformers.",
+            )
+        return True, "OpenAI embedding is configured"
+
+    try:
+        import sentence_transformers  # noqa: F401
+    except ImportError:
+        return (
+            False,
+            "sentence-transformers is not installed. Run `pip install sentence-transformers`, "
+            "or choose --embedding-provider=openai with OPENAI_API_KEY.",
+        )
+    return True, "sentence-transformers embedding is configured"
+
+
 def build_chroma_collection(settings: Settings) -> Any:
     import chromadb
 
@@ -916,13 +977,56 @@ def build_chroma_collection(settings: Settings) -> Any:
 
 
 def chunk_text(settings: Settings, text: str) -> list[str]:
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=settings.chunk_size,
-        chunk_overlap=settings.chunk_overlap,
-        separators=["\n\n", "\n", ". ", " ", ""],
-    )
-    chunks = splitter.split_text(text)
+    try:
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=settings.chunk_size,
+            chunk_overlap=settings.chunk_overlap,
+            separators=["\n\n", "\n", ". ", " ", ""],
+        )
+        chunks = splitter.split_text(text)
+    except ImportError:
+        logging.warning(
+            "langchain-text-splitters is not installed; using the built-in simple text splitter."
+        )
+        chunks = simple_chunk_text(text, settings.chunk_size, settings.chunk_overlap)
     return [chunk.strip() for chunk in chunks if len(chunk.strip()) >= 80]
+
+
+def simple_chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
+    """依赖缺失时的保底分块器，优先按段落累积，避免完全无法入库。"""
+    paragraphs = [paragraph.strip() for paragraph in re.split(r"\n{2,}", text) if paragraph.strip()]
+    chunks: list[str] = []
+    current = ""
+
+    for paragraph in paragraphs:
+        if not current:
+            current = paragraph
+        elif len(current) + len(paragraph) + 2 <= chunk_size:
+            current = f"{current}\n\n{paragraph}"
+        else:
+            chunks.extend(split_oversized_chunk(current, chunk_size, chunk_overlap))
+            current = paragraph
+
+    if current:
+        chunks.extend(split_oversized_chunk(current, chunk_size, chunk_overlap))
+    return chunks
+
+
+def split_oversized_chunk(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
+    if len(text) <= chunk_size:
+        return [text]
+
+    chunks: list[str] = []
+    step = max(chunk_size - chunk_overlap, 1)
+    for start in range(0, len(text), step):
+        chunk = text[start : start + chunk_size].strip()
+        if chunk:
+            chunks.append(chunk)
+        if start + chunk_size >= len(text):
+            break
+    return chunks
 
 
 def embed_and_store(settings: Settings, store: StateStore) -> None:
@@ -1016,19 +1120,32 @@ def main() -> int:
     configure_logging()
     settings = parse_args()
     settings.data_dir.mkdir(parents=True, exist_ok=True)
+    logging.info(
+        "Embedding config: provider=%s, model=%s",
+        settings.embedding_provider,
+        settings.embedding_model,
+    )
 
     if not settings.github_token:
         logging.warning(
             "GITHUB_TOKEN/GH_TOKEN is not set. Anonymous GitHub API quota is too low for 10000 repos."
         )
 
+    can_embed, embedding_message = embedding_is_ready(settings)
+    if can_embed:
+        logging.info("Embedding precheck passed: %s", embedding_message)
+    elif settings.require_embedding:
+        raise RuntimeError(embedding_message)
+    else:
+        logging.warning("Embedding will be skipped: %s", embedding_message)
+
     store = StateStore(settings.data_dir / "bootstrap_state.sqlite3")
     client = GitHubClient(settings)
     try:
         collect_repositories(settings, store, client)
         fetch_and_clean_readmes(settings, store, client)
-        if settings.skip_embedding:
-            logging.info("Skip embedding because --skip-embedding is set.")
+        if not can_embed:
+            logging.info("Skip embedding. Re-run the same command after configuring embedding to resume from SQLite.")
         else:
             embed_and_store(settings, store)
         print_summary(settings, store)

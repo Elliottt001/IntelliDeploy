@@ -16,6 +16,7 @@ from app.schemas.fallback import (
     StartFallbackTaskResponse,
 )
 from app.services.generation_task_service import GenerationTaskService
+from app.services.websocket_manager import get_ws_manager
 from src.agents.multi_agent_graph import build_multi_agent_graph
 
 
@@ -38,12 +39,28 @@ class MultiAgentDeploymentService:
         self,
         request: StartFallbackTaskRequest,
     ) -> StartFallbackTaskResponse:
+        await self._broadcast_stage(
+            request.deployment_id,
+            "Thinking",
+            "running",
+            "Multi-Agent 正在分析需求和仓库上下文",
+            0.08,
+        )
         graph_state = self.run_consensus(request)
+        await self._broadcast_graph_stages(request, graph_state)
         consensus = graph_state.get("consensus_result") or {}
         final_decision = consensus.get("final_decision")
 
         self._record_consensus_event(request, graph_state)
         if final_decision == "REJECT" or graph_state.get("final_status") == "FAILED":
+            await self._broadcast_stage(
+                request.deployment_id,
+                "Finalize",
+                "failed",
+                consensus.get("rationale") or "Multi-Agent 共识拒绝部署",
+                1.0,
+                {"consensus": consensus},
+            )
             self._record_event(
                 int(request.deployment_id),
                 "agent",
@@ -54,6 +71,14 @@ class MultiAgentDeploymentService:
             raise MultiAgentConsensusRejected(consensus, graph_state)
 
         governed_request = self._apply_graph_result_to_request(request, graph_state)
+        await self._broadcast_stage(
+            request.deployment_id,
+            "Generating",
+            "running",
+            "共识通过,正在启动生成任务",
+            0.42,
+            {"consensus": consensus},
+        )
         return await self.generation_service.start_fallback_task(governed_request)
 
     def run_consensus(self, request: StartFallbackTaskRequest) -> dict[str, Any]:
@@ -202,3 +227,72 @@ class MultiAgentDeploymentService:
         )
         self.db.add(event)
         self.db.commit()
+
+    async def _broadcast_graph_stages(
+        self,
+        request: StartFallbackTaskRequest,
+        graph_state: dict[str, Any],
+    ) -> None:
+        consensus = graph_state.get("consensus_result") or {}
+        builder_result = graph_state.get("builder_result") or {}
+        reviewer_decision = graph_state.get("reviewer_decision") or "UNKNOWN"
+        security_decision = graph_state.get("security_decision") or "UNKNOWN"
+
+        await self._broadcast_stage(
+            request.deployment_id,
+            "Thinking",
+            "success",
+            "需求和仓库上下文分析完成",
+            0.18,
+        )
+        if builder_result:
+            await self._broadcast_stage(
+                request.deployment_id,
+                "Building",
+                "success",
+                "Builder Agent 已生成部署方案",
+                0.28,
+                {"builder_result": builder_result},
+            )
+        await self._broadcast_stage(
+            request.deployment_id,
+            "Reviewing",
+            "success" if reviewer_decision in {"APPROVE", "PASS", "UNKNOWN"} else "failed",
+            f"Reviewer Agent 决策: {reviewer_decision}",
+            0.33,
+            {"decision": reviewer_decision, "feedback": graph_state.get("reviewer_feedback")},
+        )
+        await self._broadcast_stage(
+            request.deployment_id,
+            "SecurityCheck",
+            "success" if security_decision in {"APPROVE", "PASS", "UNKNOWN"} else "failed",
+            f"Security Agent 决策: {security_decision}",
+            0.38,
+            {"decision": security_decision, "feedback": graph_state.get("security_feedback")},
+        )
+        await self._broadcast_stage(
+            request.deployment_id,
+            "Consensus",
+            "success" if consensus.get("final_decision") == "APPROVE" else "failed",
+            consensus.get("rationale") or "Multi-Agent 共识已完成",
+            0.4,
+            {"consensus": consensus},
+        )
+
+    async def _broadcast_stage(
+        self,
+        deployment_id: str,
+        stage: str,
+        status: str,
+        message: str,
+        progress: float,
+        data: dict[str, Any] | None = None,
+    ) -> None:
+        await get_ws_manager().broadcast_pipeline_stage(
+            str(deployment_id),
+            stage,
+            status=status,
+            message=message,
+            progress=progress,
+            data=data,
+        )
