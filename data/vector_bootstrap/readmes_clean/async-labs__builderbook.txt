@@ -1,0 +1,247 @@
+Support Ukraine: link
+Builder Book
+Open source web app to self-publish and sell books or other online content.
+If you want to learn how to build this project from scratch, check out our book:
+The open source project is located in the builderbook folder. If you purchased our book, codebases for each of the book's chapters are located in the book folder.
+We've used this builderbook project to build:
+Builder Book - learn how to build full-stack web apps from scratch
+SaaS Boilerplate - open source web app to build your own SaaS product
+Work in biotech - job board for biotech startup companies
+AI-cruiter - browser extension is built for recruiters managing a high volume of job applicants. AI-cruiter uses LLMs - like ChatGPT and PaLM 2 - to generate succinct and relevant summaries of your job applicants' resumes
+Async - open source urgent vs non-urgent team communication tool for small teams
+Async Labs - many custom dev projects
+Live app:
+Sponsors
+Showcase
+Check out projects built with the help of this open source app. Feel free to add your own project by creating a pull request.
+Retaino by Earl Lee: Save, annotate, review, and share great web content. Receive smart email digests to retain key information.
+michaelstromer.nyc by Michael Stromer: Books and articles by Michael Stromer.
+SaaS Boilerplate: Open source web app to build your own SaaS product.
+Work in biotech: Job board for small and young biotech companies
+Async: Open source web app for team communication, separate urgent vs. non-urgent conversations.
+Async Labs: We build custom SaaS web applications.
+Contents
+What can I learn from this project?
+Run locally
+Add a new book
+Add your own styles
+Deploy to Heroku
+Scaling
+Docker
+Screenshots
+Built with
+Core stack
+Third party APIs
+Contributing
+Team
+License
+Project structure
+What can I learn from this project?
+You will learn how to structure your project and build many internal and external API infrastructures.
+On the browser, the main technologies you will learn are: Next.js, React.js, Material-UI.
+On the server, the main technologies you will learn are: Next.js, Node.js, Express.js, Mongoose.js, MongoDB database.
+In addition to the above technologies, you can learn how to integrate your web application with the following external API services:
+Google OAuth API
+Github API
+Stripe API
+AWS SES API
+Mailchimp API
+Plus, you can learn many concepts such as session and cookie, headers, HTTP request-response, Express middleware, Promise, async/await, and more. You have to know these concepts to be a confident web developer, no matter what language you use.
+The main use cases for this project, besides learning, are:
+To write and host free documentation with Github being a source of truth for content.
+To sell online content, such as books.
+To extend it (see our second book, SaaS Boilerplate Book) to start software business.
+Creating a Google OAuth Client
+This guide will walk you through the steps to create a Google OAuth client for your application.
+Prerequisites
+Before you begin, make sure you have the following:
+A Google account
+Access to the Google Cloud Console
+Sign in to Google Cloud Console:
+Go to the Google Cloud Console.
+Sign in with your Google account or create one if you don't have it.
+Create a New Project:
+Click on the project dropdown in the top navigation bar.
+Click on "New Project."
+Give your project a name and click "Create."
+Enable the Google+ API (if required):
+If you plan to use Google+ Sign-In for authentication, enable the "Google+ API" for your project.
+In the Cloud Console, go to the API & Services > Library.
+Search for "Google+ API" and enable it.
+Create OAuth Client ID:
+In the Cloud Console, navigate to the API & Services > Credentials page.
+Click on "Create Credentials" and then select "OAuth client ID."
+Select the application type, typically "Web application" for a website or web application.
+Fill out the necessary information, such as the name of the OAuth client and authorized redirect URIs (where Google should redirect the user after authentication). You can use as a redirect URI for development.
+Click "Create" to generate your OAuth client credentials. It will provide you with a client ID and client secret.
+Creating a GitHub Client ID and Client Secret
+To create a GitHub Client ID and Client Secret, follow these steps:
+Sign in to your GitHub Account:
+If you don't have a GitHub account, create one.
+Go to Developer Settings:
+Click on your profile picture in the top right corner of GitHub and select "Settings." In the left sidebar, under "Developer settings," click on "OAuth Apps."
+Create a New OAuth App:
+Click on the "Register a new application" button.
+Fill in the Application Details:
+You'll be prompted to fill in details about your application:
+Application Name: The name of your application.
+Homepage URL: The URL to your application's website.
+Application Description: A brief description of your application.
+Authorization callback URL: This is the URL to which GitHub will redirect users after they authorize your application. For testing purposes, you can use if you're developing locally.
+Generate Your Client ID and Client Secret:
+After you've filled in the details, click the "Register application" button. GitHub will generate a Client ID and Client Secret for your application.
+Run locally
+Clone the project and run yarn to add packages.
+Before you start the app, create a .env file at the app's root. This file must have values for some env variables specified below.
+To get MONGOURLTEST, we recommend a free MongoDB at MongoDB Atlas (to be updated soon with MongoDB Atlas, see issue).
+Get GOOGLECLIENTID and GOOGLECLIENTSECRET by following official OAuth tutorial.
+Important: For Google OAuth app, callback URL is:
+Important: You have to enable Google+ API in your Google Cloud Platform account.
+Specify your own secret key for Express session SESSIONSECRET:
+To use all features and third-party integrations (such as Stripe, Google OAuth, Mailchimp), create a .env file and add values for all variables as shown below. These variables are also listed in .env.example, which you can use as a template to create your own .env file.
+.env :
+IMPORTANT: do not publish your actual values for environmentable variables in .env.example; this file is public and only meant to show you how your .env file should look.
+Add your value (domain that you own) for COOKIEDOMAIN and NEXTPUBLICPRODUCTIONURLAPP.
+Start the app with yarn dev.
+To get NEXTPUBLICGAMEASUREMENTID, set up Google Analytics and follow these instructions to find your tracking ID.
+To get Stripe-related API keys, set up or log into your Stripe account and find your key here.
+Env keys NEXTPUBLICGAMEASUREMENTID and NEXTPUBLICSTRIPETESTPUBLISHABLEKEY/NEXTPUBLICSTRIPELIVEPUBLISHABLEKEY are universally available (client and server). Env keys inside .env file are used in server code only unless they have NEXTPUBLIC prepended to their name. In that case, they are universally available.
+To make user a book's owner, set "isAdmin": true on corresponding MongoDB document in your database (default value is false for any new user).
+Important: if you don't add values for environmental variables to .env file, corresponding functionality will not work. For example, login with Google account, purchasing book, getting repo information via GitHub API and other third-party API infrastructures.
+Add a new book
+Create a new Github repo (public or private).
+In that repo, create an introduction.md file and write some content.
+At the top of your introduction.md file, add metadata in the format shown below. See this file as an example.
+Go to the app, click "Connect Github".
+Click "Add Book". Enter details and select the Github repo you created.
+Click "Save".
+When you add new .md files or update content, go to the BookDetail page of your app and click Sync with Github.
+Important: All .md files in your Github repo must have metadata in the format shown above.
+Important: All .md files in your Github repo must have name introduction.md or chapter-N.md.
+To make the content of a .md file private (meaning a person must purchase the content to see it), remove isFree:true and add excerpt:"". Add some excerpt content - this content is public and serves as a free preview.
+Add your own styles
+To change the color scheme of this app, modify the primary and secondary theme colors inside lib/context.js. Select any colors from Material UI's official color palette.
+Recommended ways to add your own styles to this app:
+Inline style for a single element
+Reusable style for multiple elements within single page or component
+Reusable/importable style for multiple pages or components
+Global style for all pages in application
+Inline style for a single element
+USE CASE: apply a style to one element on a single page/component
+For example, in our book page, we wrote this single inline style:
+See usage
+Reusable style for multiple elements within single page or component
+USE CASE: apply the same style to multiple elements on a single page/component.
+For example, in our tutorials page, we created styleExcerpt and applied it to a element within the page:
+See usage
+Reusable/importable style for multiple pages or components
+USE CASE: apply the same style to elements on multiple pages/components.
+For example, we created styleH1 inside components/SharedStyles.js and exported the style at the bottom of the file:
+See usage
+We then imported styleH1 into our book page, as well as our index page, and applied the style to a element:
+See usage
+Global style for all pages in application
+USE CASE: apply the same style to elements on all pages of your app.
+Create your style in pages/document.js. For example, we specified a style for all hyperlinks that use the element:
+See usage
+Deploy to Heroku
+In this section, we will learn how to deploy our app to Heroku cloud. We will deploy our React-Next-Express app to lightweight Heroku container called dyno.
+Instructions are for app located at /book/8-end.
+Adjust route if you are deploying app from the root of this public repo.
+We will discuss the following topics in this section:
+installing Heroku on Linux-based OS
+creating app on Heroku dashboard
+preparing app for deployment
+configuring env variables
+deploying app
+checking logs
+adding custom domain
+Let's go step by step.
+Install Heroku CLI (command-line interface) on your OS. Follow the official guide. In this book we provide instructions for Linux-based systems, in particular, a Ubuntu OS. For Ubuntu OS, run in your terminal:
+sudo snap install --classic heroku
+To confirm a successful installation, run:
+heroku --version
+As example, my output that confirms successful installation, looks like:
+heroku/7.22.7 linux-x64 node-v11.10.1
+Sign up for Heroku, go to your Heroku dashboard and click purple New button on the right:
+On the next screen, give a name to your app and select a region. Click purple Create app button at the bottom:
+You will be redirected to Deploy tab of your newly created Heroku app:
+As you can see from the above screenshot, you have two options. You can deploy the app directly from your local machine using Heroku CLI or directly from GitHub.
+In this tutorial, we will deploy a async-labs/builderbook/book/8-end app from our public async-labs/builderbook repo hosted on GitHub. Deploying from a private repo will be a similar process.
+Deploying from GitHub has a few advantages. Heroku uses git to track changes in a codebase. It's possible to deploy app from the local machine using Heroku CLI, however you have to create a Git repo for async-labs/builderbook/book/8-end with package.json file at the root level. A first advantage is that we can deploy from a non-root folder using GitHub instead of Heroku CLI.
+A second advantage is automation, later on you can create a branch that automatically deploy every new commit to Heroku. For example, we have a deploy branch for our demo for SaaS boilerplate. When we commit to master branch - there is no new deployment, when we commit to deploy branch - new change is automatically deployed to Heroku app.
+Let's set up deploying from GitHub. On Deploy tab of your Heroku app at Heroku dashboard, click Connect to GitHub , then search for your repo, then click Connect next to the name of the proper repo:
+If successful, you will see green text Connected and be offered to select a branch and deploy app automatically or manually. Automatic deployment will deploy every new commit, manual deployment requires you to manually click on Deploy Branch button. For simplicity, we will deploy manually from master branch of our async-labs/builderbook repo.
+Before we perform a manual deployment via GitHub, we need Heroku to run some additional code while app is being deploying. Firstly, we need to tell Heroku that 8-end app in the async-labs/builderbook repo is not at the root level, it's actually nested at /book/8-end. Secondly, Heroku needs to know that our app is Node.js app so Heroku finds package.json file, properly installs dependencies and runs proper scripts (such as build and start scripts from package.json). To achieve this, we need to add so called buildpacks to our Heroku app. Click Settings tab, scroll to Buildpacks section and click purple Add buildpack button:
+Add two buildpacks, first is and second is heroku/nodejs:
+Next, scroll up while on Settings tab and click purple Reveal Config Vars button, create a new environmental variable PROJECTPATH with value book/8-end:
+The above variable will be used by the first buildpack subdir-heroku-buildpack to deploy app from repo's subdirectory.
+If we deploy app at this point, our app will deploy with errors since we did not add environmental variables. Similar to how you added PROJECTPATH variable, add all environmental variables from book/8-end/.env file to your Heroku app. Remember to add the rest of env variables for all features to work, including signup event.
+While on Settings tab, scroll to Domains and certificates section and note your app's URL. My app's URL is:
+Let's deploy, go to Deploy tab, scroll to Manual deploy section and click Deploy branch button.
+After deployment process is complete , navigate to your app's URL:
+Server logs are not available on Heroku dashboard. To see logs, you have to use Heroku CLI.
+In your terminal, run:
+heroku login
+Follow instructions to log in to Heroku CLI.
+After successful login, terminal will print:
+Logged in as
+Where is an email address that you used to create your Heroku account.
+To see logs, in your terminal run:
+heroku logs --app builderbook-8-end --tail
+In your terminal, you will see your most recent logs and be able to see a real-time logs.
+You can output certain number of lines (N) for retrieved logs by adding --num N to the heroku logs command.
+You can print only app's logs by adding --source app or system's logs by adding --source heroku.
+Time to add a custom domain. The Heroku app that we created is deployed on free dyno. Free dyno plan does not let you to add a custom domain to your app. To add custom domain, go to Resources tab and click purple Change Dyno Type button:
+Select a Hobby plan and click Save button.
+Navigate to Settings tab and scroll to the Domains and certificates and click purple Add domain button:
+Type your custom domain name, I added heroku.builderbook.org as a custom domain, click Save changes button.
+Heroku will display you a value for CNAME record that you have to create for your custom domain. For me, custom domain is heroku.builderbook.org and I manage DNS records at Now by Zeit.
+After you create a CNAME, ACM status on Heroku's dashboard will change to Ok:
+It's important that you remember to manually add your custom domain to the settings of your Google OAuth app (Chapter 3) and GitHub OAuth app (Chapter 6). If you forget to do it, you will see errors when you try to log in to your app or when you try to connect GitHub to your app.
+Scaling
+You may want to consider splitting single Next/Express server into two servers:
+Next server for serving pages, server-side caching, sitemap and robots
+Express server for internal and external APIs
+Here is an example of a web application with split servers:
+Splitting servers will get you:
+faster page loads since Next rendering does not block internal and external APIs,
+faster code reload times during development,
+faster deployment and more flexible scaling of individual apps.
+Docker
+Install Docker and Docker Compose
+Modify docker-compose-dev.yml file
+If using Ubuntu, follow these steps:
+Start app with docker-compose -f docker-compose-dev.yml up
+Screenshots
+Chapter excerpt with Buy Button for Public/Guest visitor:
+Chapter content and Table of Contents for book Customer:
+Add-book/Edit-book page for Admin user:
+Book-detail page for Admin user:
+Built with
+Core stack
+React
+Material-UI
+Next
+Express
+Mongoose
+MongoDB
+Third party APIs
+Google OAuth
+Github
+AWS SES
+Stripe
+MailChimp
+Check out package.json.
+Contributing
+We welcome suggestions and bug reports via issues and and pull requests.
+By participating in this project, you are expected to uphold Builder Book's Code of Conduct.
+Want to support this project? Consider buying our books, which teach you how to build web apps from scratch. Also check out our open source SaaS boilerplate.
+Team
+Kelly Burke
+Timur Zhiyentayev
+You can contact us at
+If you are interested in working with us, check out Async Labs.
+License
+All code in this repository is provided under the MIT License.
+Project structure

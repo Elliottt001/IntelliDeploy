@@ -1,0 +1,37 @@
+social-network
+Mini social network that I made as my first web app project.
+Demo
+social-network
+Screenshots
+Gif
+Link to a full video
+Video
+Built With
+React - A JavaScript library for building user interfaces
+Redux - State managment
+Semantic UI React - UI
+Socket.io - Used for realtime features
+Node - Used for backend
+Mongodb - Database
+Features
+Like posts, comments, replies
+See likes for posts, comments, replies
+Follow, unfollow
+Update user information
+Search users
+Tag people on post and in comments with autocomplete
+Send verification email
+Pagination for home feed, user profile, hashtag page, location page, notifications, comments, replies
+Realtime
+Get notification when someone likes your post, comment, reply, tag you on post or reply on comment
+Chat send text message, image
+Seen feature and activity status of user
+Installing
+Install dependencies
+Create variables.env file and replace values with yours
+Go into client/src/services/socketService.js and replace
+with your local IP address on port 5000
+Run project
+Run with Docker Compose
+Contribute
+Show your support by ⭐ the project.

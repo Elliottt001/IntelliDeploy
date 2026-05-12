@@ -1,0 +1,71 @@
+Daffodil - Storefront that can connect to any ecommerce backend.
+Daffodil is an ecommerce development framework for building high-quality storefronts that can connect to any ecommerce backend.
+daff.io
+|
+demo.daff.io
+Demo
+Wanna see what we're trying to do? Check out the demo.
+Quickstart
+From a new Angular app, simply run
+Documentation
+Get started with Daffodil, learn the fundamentals and explore advanced topics on our documentation website.
+Getting Started
+Learn about drivers
+Contributing
+Contributing Guidelines
+Read through our contributing guidelines to learn about our submission process, coding rules, and more.
+Want to Help?
+Want to report a bug, contribute some code, or improve the documentation? Excellent! Read up on our guidelines for contributing and then check out one of our issues labeled as good first issue or good first challenge .
+Code of Conduct
+Please read and follow our Code of Conduct.
+Community
+Join the conversation and help the community.
+Discord
+YouTube
+Packages
+Below is a table of currently available Daffodil packages.
+| Package | Version | Stability |
+| @daffodil/analytics | |
+| @daffodil/auth | |
+| @daffodil/authorizenet | |
+| @daffodil/cart | |
+| @daffodil/cart-customer | |
+| @daffodil/cart-store-credit | |
+| @daffodil/category | |
+| @daffodil/checkout | |
+| @daffodil/contact | |
+| @daffodil/content | |
+| @daffodil/core | |
+| @daffodil/customer | |
+| @daffodil/customer-auth | |
+| @daffodil/customer-order | |
+| @daffodil/customer-payment | |
+| @daffodil/customer-payment-authorizenet | |
+| @daffodil/customer-store-credit | |
+| @daffodil/design | |
+| @daffodil/dev-tools | |
+| @daffodil/driver | |
+| @daffodil/external-router | |
+| @daffodil/forms | |
+| @daffodil/geography | |
+| @daffodil/navigation | |
+| @daffodil/newsletter | |
+| @daffodil/order | |
+| @daffodil/payment | |
+| @daffodil/paypal | |
+| @daffodil/product | |
+| @daffodil/product-composite | |
+| @daffodil/product-configurable | |
+| @daffodil/related-products | |
+| @daffodil/reviews | |
+| @daffodil/router | |
+| @daffodil/router-store | |
+| @daffodil/search | |
+| @daffodil/search-category | |
+| @daffodil/search-product | |
+| @daffodil/search-product-composite | |
+| @daffodil/search-product-configurable | |
+| @daffodil/seo | |
+| @daffodil/ssr | |
+| @daffodil/upsell-products | |
+Think Daffodil is the bees-knees? Give our repo a star :star: :heart:.

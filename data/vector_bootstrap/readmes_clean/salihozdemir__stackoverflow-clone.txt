@@ -1,0 +1,48 @@
+Stackoverflow Clone
+Live:
+This project is a simplified a full stack clone of Stackoverflow. I wrote it to learn more about Nodejs, React/Next, pixel perfect design and NoSQL databases in general. Feel free to contribute!
+:rocket: Tech Stack
+ReactJs
+NextJs
+Storybook
+PostCSS
+NodeJs
+Express
+MongoDB
+Mongoose
+:warning: Prerequisite
+node
+npm
+mongodb
+:cd: How to run local
+:magright: Testing
+Make sure mongodb is running before testing the server.
+There are missing tests on the server side and there are no tests on the client side yet.
+:globewithmeridians: Deploy
+Deploying Server App on Heroku
+You will need to have setup a MongoDB Atlas account and database.
+Make sure that the cluster has allowlisted connections from anywhere.
+Create a Heroku new app.
+Go to app settings
+Add the following enviroments.
+DATABASEURL (to use your MongoDB connection string)
+JWTSECRET
+Add Nodejs to buildpacks
+# Go into the repository
+$ cd stackoverflow-clone
+# Heroku Setup
+$ npm install -g heroku
+$ heroku login
+$ heroku git:remote -a your-app-name
+# push subdirectory repository with subtree
+$ git subtree push --prefix server heroku master
+Deploying Client App on Vercel
+Select client directory
+Add heroku api url to SITENAME enviorement
+Finally deploy client application
+:scroll: Todo
+[ ] Add missing components to storybook
+[ ] Complete missing server tests
+[ ] Add text editor for post
+:memo: License
+This project is made available under the MIT License.

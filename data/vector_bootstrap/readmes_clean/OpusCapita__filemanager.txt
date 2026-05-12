@@ -1,0 +1,43 @@
+Filemanager
+Demo
+React Documentation
+Demo and react documentation are powered by React Showroom
+Packages
+Client React
+Server Node
+Client React connector for Server Node API v1
+Client React connector for Google Drive API v2
+Detailed documentation for each package is coming soon.
+Spring Boot Starter
+Spring boot applications can benefit from Spring boot starter package found here:
+Spring Boot - see README there for details
+Basic usage
+Client implementation is an npm package which can be embed into your application.
+It uses React framework and supports connectors to different file storages.
+Predefined connectors are:
+Client React connector for Server Node API v1
+Client React connector for Google Drive API v2
+You can write you own custom connectors (documentation on how to do it will appear later).
+How to use Server Node
+Server Node API v1 Documentation
+Install package
+Now you have at least two ways of using it:
+Start as application
+Use as middleware
+How to use Client React
+Install packages
+Use it as a child component of you application
+Changelog
+Code of Conduct
+Contributing Guide
+Development
+In any directory with Makefile (including repo's root) type make to see available commands (requires make utility to be installed locally, ideally GNU MAKE 4.2.1).
+There're prebuilt docker images with tools needed for building code and deploying demo application:
+Main contributors
+| | Alexey Sergeev |
+| | Kirill Volkovich |
+| | Andrei Mourzenkov |
+| Aleksandr Baliunov |
+| Egor Stambakio |
+License
+Licensed under the Apache License, Version 2.0. See LICENSE for the full license text.

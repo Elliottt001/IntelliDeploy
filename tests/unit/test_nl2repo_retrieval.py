@@ -15,7 +15,14 @@ from app.agent_core.brains.context_rag_agent import (  # noqa: E402
     NL2RepoRetrievalPipeline,
     RepositoryCandidate,
 )
-from app.agent_core.brains.router_agent import RouterAgent  # noqa: E402
+from app.agent_core.brains.github_retriever import GitHubTokenPool  # noqa: E402
+from app.agent_core.brains.llm_clients import (  # noqa: E402
+    OpenAICompatibleRepoReranker,
+    StructuredLLMOutputError,
+    _json_schema_response_format,
+    _strict_json_schema,
+)
+from app.agent_core.brains.router_agent import IntentStructuringError, RepoIntent, RouterAgent  # noqa: E402
 from app.agent_core.memory.vector_store import BM25ReadmeStore, ReadmeDocument  # noqa: E402
 from app.schemas.retrieval import ReadmeCorpusItem, RepoSearchRequest  # noqa: E402
 from app.services.retrieval_service import RetrievalService  # noqa: E402
@@ -39,6 +46,22 @@ class FakeGitHubSearchClient:
         return candidate
 
 
+class FakeRedisClient:
+    def __init__(self):
+        self.values: dict[str, str] = {}
+
+    async def get(self, key: str):
+        return self.values.get(key)
+
+    async def set(self, key: str, value: str, ex=None):
+        self.values[key] = value
+
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
 def test_router_agent_structures_vague_portfolio_intent():
     intent = RouterAgent().structure_intent(
         "\u5e2e\u6211\u505a\u4e00\u4e2a\u597d\u770b\u7684\u4e2a\u4eba\u7f51\u7ad9"
@@ -54,6 +77,69 @@ def test_router_agent_structures_vague_portfolio_intent():
     assert "portfolio" in intent.expected_features
     assert intent.preferred_framework in {"Next.js", "React", "Vue"}
     assert intent.constraints["frontend_only"] is True
+
+
+def test_router_agent_raises_when_configured_model_returns_invalid_payload():
+    router = RouterAgent(model_client=lambda query: {"raw_query": query})
+
+    with pytest.raises(IntentStructuringError):
+        router.structure_intent("build an app")
+
+
+def test_strict_llm_response_format_uses_json_schema():
+    schema = _strict_json_schema(RepoIntent)
+    response_format = _json_schema_response_format("repo_intent", schema)
+
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["strict"] is True
+    assert schema["additionalProperties"] is False
+
+
+def test_reranker_rejects_unknown_candidate_names(monkeypatch):
+    def fake_chat_completion_content(*args, **kwargs):
+        return '{"ordered_full_names":["unknown/repo"]}'
+
+    monkeypatch.setattr(
+        "app.agent_core.brains.llm_clients._chat_completion_content",
+        fake_chat_completion_content,
+    )
+    reranker = OpenAICompatibleRepoReranker(
+        api_base="https://models.example",
+        api_key="test-key",
+        model="test-model",
+    )
+    intent = RouterAgent().structure_intent("dream journal")
+    candidates = [
+        RepositoryCandidate(
+            full_name="dream/dreamlog",
+            html_url="https://github.com/dream/dreamlog",
+        )
+    ]
+
+    with pytest.raises(StructuredLLMOutputError):
+        reranker(intent, candidates)
+
+
+@pytest.mark.anyio
+async def test_github_token_pool_uses_remaining_quota_and_cools_exhausted_tokens():
+    redis = FakeRedisClient()
+    pool = GitHubTokenPool(
+        ["token-low", "token-high"],
+        redis_client=redis,
+        cooldown_seconds=60,
+    )
+    await pool._set_state("token-low", {"remaining": 1})
+    await pool._set_state("token-high", {"remaining": 42})
+
+    assert await pool.acquire_token() == "token-high"
+
+    class FakeResponse:
+        status_code = 429
+        headers = {}
+
+    await pool.record_response("token-high", FakeResponse())
+
+    assert await pool.acquire_token() == "token-low"
 
 
 def test_bm25_readme_store_ranks_long_tail_semantic_match_first():
@@ -85,7 +171,7 @@ def test_bm25_readme_store_ranks_long_tail_semantic_match_first():
     assert results[0].score > results[1].score
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_pipeline_merges_dual_track_results_and_reranks_for_deployability():
     store = BM25ReadmeStore()
     store.upsert_many(
@@ -171,7 +257,7 @@ async def test_pipeline_merges_dual_track_results_and_reranks_for_deployability(
     assert result.repository_profile.has_valid_dockerfile is True
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_retrieval_service_accepts_request_scoped_readme_corpus():
     github_client = FakeGitHubSearchClient([])
     service = RetrievalService(github_client=github_client)

@@ -1,0 +1,137 @@
+React Redux Universal Hot Example
+---
+About
+This is a starter boilerplate app I've put together using the following technologies:
+Isomorphic Universal rendering
+Both client and server make calls to load data from separate API server
+React
+React Router
+Express
+Feathers
+Passport, feathers-authentication and redux-auth-wrapper for authentication
+Babel for ES6 and ES7 magic
+Webpack for bundling
+Webpack Dev Middleware
+Webpack Hot Middleware
+Redux's futuristic Flux implementation
+Redux Dev Tools for next generation DX (developer experience). Watch Dan Abramov's talk.
+ESLint to maintain a consistent code style
+react-final-form to manage form state
+lru-memoize to speed up form validation
+multireducer to combine single reducers into one key-based reducer
+style-loader, sass-loader and less-loader to allow import of stylesheets in plain css, sass and less,
+bootstrap-loader to customize Bootstrap
+font-awesome
+react-helmet to manage title and meta tag information on both server and client
+webpack-isomorphic-tools to allow require() work for statics both on client and server
+Jest to allow writing unit tests for the project.
+I cobbled this together from a wide variety of similar "starter" repositories. As I post this in June 2015, all of these libraries are right at the bleeding edge of web development. They may fall out of fashion as quickly as they have come into it, but I personally believe that this stack is the future of web development and will survive for several years. I'm building my new projects like this, and I recommend that you do, too.
+Features
+Hot reload
+Enjoy the developer experience! Your saved changes to the CSS and JS are reflected instantaneously without refreshing the page ! On the server as on the client.
+Preserving the state of application on the client.
+Next generation JavaScript
+Use JSX syntax with all ES6 features, and some of ES7 (see .babelrc ).
+CSS in modules
+Write composable, modular and maintenable CSS with your components.
+Predictable state management
+Unidirectional data flow with Redux helps you write applications that behave consistently and are easy to test. On top of that, it provides a great developer experience.
+Backend API oriented services
+With Feathers it's easy to create scalable real-time applications with services and hooks.
+Cross cutting concerns are an extremely powerful part of aspect oriented programming. They are a very good fit for web and mobile applications since the majority are primarily CRUD applications with lots of shared functionality. You can create before and after hooks and chain them together to create very complex processes while still maintaining modularity and flexibility.
+Authentication
+Passport authentication allows you to use all the desired strategies. The connections in REST and in real time are protected in the same way with the hooks. React-router, redux and redux-auth-wrapper allow you to keep control in your React app.
+Progressive wep app & Offline-first
+Progressive Web Apps are user experiences that have the reach of the web, and are:
+Reliable - Load instantly and never show the downasaur, even in uncertain network conditions.
+Fast - Respond quickly to user interactions with silky smooth animations and no janky scrolling.
+Engaging - Feel like a natural app on the device, with an immersive user experience.
+This new level of quality allows Progressive Web Apps to earn a place on the user's home screen.
+Lazy loading & dynamic routing
+The code splitting makes the size of your main bundle almost fixed, and with react-router you can load application pieces on demand. You can send bundles to people who are only trained, such as administration.
+Universal rendering
+With the help of server side rendering the first rendering is never empty and performance is better. This is the time for example to prefetch the data.
+Webpack-isomorphic-tools to allow require() work for statics both on client and server.
+SEO
+This project supports SEO for search engines even without support indexing of JavaScript content, thanks to server-side rendering.
+Installation
+Running Dev Server
+The first time it may take a little while to generate the first webpack-assets.json and complain with a few dozen [webpack-isomorphic-tools] (waiting for the first Webpack build to finish) printouts, but be patient. Give it 30 seconds.
+Using Redux DevTools
+Redux Devtools are enabled by default in development.
+CTRL + H Toggle DevTools Dock
+CTRL + Q Move DevTools Dock Position
+see redux-devtools-dock-monitor for more detailed information.
+If you have the Redux DevTools chrome extension installed it will automatically be used on the client-side instead.
+If you want to disable the dev tools during development, set DEVTOOLS to false in /webpack/dev.config.js.
+DevTools are not enabled during production by default.
+Building and Running Production Server
+Demo
+A demonstration of this app can be seen running on heroku, which is a deployment of the heroku branch.
+Explanation
+What initially gets run is bin/server.js, which does little more than enable ES6 and ES7 awesomeness in the server-side node code. It then initiates server.js. In server.js we proxy any requests to /api/ to the API server, running at localhost:3030. All the data fetching calls from the client go to /api/. Aside from serving the favicon and static content from /static, the only thing server.js does is initiate delegate rendering to react-router. At the bottom of server.js, we listen to port 3000 and initiate the API server.
+Routing and HTML return
+The primary section of server.js generates an HTML page with the contents returned by react-router. First we instantiate an ApiClient, a facade that both server and client code use to talk to the API server. On the server side, ApiClient is given the request object so that it can pass along the session cookie to the API server to maintain session state. We pass this API client facade to the redux middleware so that the action creators have access to it.
+You can also use app for RESTful calls to api.
+Then we perform server-side data fetching, wait for the data to be loaded, and render the page with the now-fully-loaded redux state.
+The last interesting bit of the main routing section of server.js is that we swap in the hashed script and css from the webpack-assets.json that the Webpack Dev Server – or the Webpack build process on production – has spit out on its last run. You won't have to deal with webpack-assets.json manually because webpack-isomorphic-tools take care of that.
+We also spit out the redux state into a global window.data variable in the webpage to be loaded by the client-side redux code.
+Server-side Data Fetching
+The redial package exposes an API to return promises that need to be fulfilled before a route is rendered. It exposes a container, which wraps our render tree on both server and client. More documentation is available on the redial page.
+Client Side
+The client side entry point is reasonably named client.js. All it does is load the routes, initiate react-router, rehydrate the redux state from the window.data passed in from the server, and render the page over top of the server-rendered DOM. This makes React enable all its event listeners without having to re-render the DOM.
+Redux Middleware
+The middleware, clientMiddleware.js, serves two functions:
+To allow the action creators access to the client API facade. Remember this is the same on both the client and the server, and cannot simply be imported because it holds the cookie needed to maintain session on server-to-server requests.
+To allow some actions to pass a "promise generator", a function that takes the API client and returns a promise. Such actions require three action types, the REQUEST action that initiates the data loading, and a SUCCESS and FAILURE action that will be fired depending on the result of the promise. There are other ways to accomplish this, some discussed here, which you may prefer, but to the author of this example, the middleware way feels cleanest.
+Redux Modules... What the Duck?
+The src/redux/modules folder contains "modules" to help
+isolate concerns within a Redux application (aka Ducks, a Redux Style Proposal that I came up with). I encourage you to read the
+Ducks Docs and provide feedback.
+Getting data and actions into components
+To understand how the data and action bindings get into the components – there's only one, InfoBar, in this example – I'm going to refer to you to the Redux library. The only innovation I've made is to package the component and its wrapper in the same js file. This is to encapsulate the fact that the component is bound to the redux actions and state. The component using InfoBar needn't know or care if InfoBar uses the redux data or not.
+Images
+Now it's possible to render the image both on client and server. Please refer to issue #39 for more detail discussion, the usage would be like below (super easy):
+Styles
+This project uses local styles using css-loader. The way it works is that you import your stylesheet at the top of the render() function in your React Component, and then you use the classnames returned from that import. Like so:
+Then you set the className of your element to match one of the CSS classes in your SCSS file, and you're good to go!
+Alternative to Local Styles
+If you'd like to use plain inline styles this is possible with a few modifications to your webpack configuration.
+1. Configure Isomorphic Tools to Accept CSS
+In webpack-isomorphic-tools.js add css to the list of style module extensions
+2. Add a CSS loader to webpack dev config
+In dev.config.js modify module loaders to include a test and loader for css
+3. Add a CSS loader to the webpack prod config
+You must use the ExtractTextPlugin in this loader. In prod.config.js modify module loaders to include a test and loader for css
+Now you may simply omit assigning the required stylesheet to a variable and keep it at the top of your render() function.
+NOTE In order to use this method with scss or less files one more modification must be made. In both dev.config.js and prod.config.js in the loaders for less and scss files remove
+modules
+localIdentName...
+Before:
+After:
+After this modification to both loaders you will be able to use scss and less files in the same way as css files.
+Unit Tests
+The project uses Jest to run your unit tests.
+To run the tests in the project, just simply run yarn test if you have Chrome installed, it will be automatically launched as a test service for you.
+Deployment on Heroku
+To get this project to work on Heroku, you need to:
+Remove the "PORT": 8080 line from the start-prod script of package.json.
+heroku config:set NODEENV=production
+heroku config:set NODEPATH=./src
+heroku config:set NPMCONFIGPRODUCTION=false
+This is to enable webpack to run the build on deploy.
+The first deploy might take a while, but after that your nodemodules dir should be cached.
+FAQ
+This project moves fast and has an active community, so if you have a question that is not answered below please file an issue.
+Roadmap
+Although this isn't a library, we recently started versioning to make it easier to track breaking changes and emerging best practices.
+Inline Styles - CSS is dead
+Contributing
+I am more than happy to accept external contributions to the project in the form of feedback, bug reports and even better - pull requests :)
+If you would like to submit a pull request, please make an effort to follow the guide in CONTRIBUTING.md.
+---
+Thanks for checking this out.
+Created by:
+– Erik Rasmussen, @erikras
+Maintened by:
+– Kévin Berthommier, @bertho-zero

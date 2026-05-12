@@ -1,0 +1,98 @@
+Remult
+Full-stack CRUD, simplified, with SSOT TypeScript entities
+Tutorials |
+Quickstart |
+Example Apps
+What is Remult?
+Remult uses TypeScript entities as a single source of truth for: ✅ CRUD + Realtime API, ✅ frontend type-safe API client, and
+✅ backend ORM.
+:zap: Zero-boilerplate CRUD + Realtime API with paging, sorting, and filtering
+:okhand: Fullstack type-safety for API queries, mutations and RPC, without code generation
+:sparkles: Input validation, defined once, runs both on the backend and on the frontend for best UX
+:lock: Fine-grained code-based API authorization
+:relieved: Incrementally adoptable
+Remult supports all major databases, including: PostgreSQL, MySQL, SQLite, MongoDB, MSSQL and Oracle.
+Remult is frontend and backend framework agnostic and comes with adapters for Express, Fastify, Next.js, Nuxt, SvelteKit, SolidStart, Nest, Koa, Hapi and Hono.
+Want to experience Remult firsthand? Try our interactive online tutorial.
+Remult promotes a consistent query syntax for both frontend and Backend code:
+Usage
+Define schema in code
+👉 Don't like decorators? we have full support for Working without decorators
+Add backend API with a single line of code
+Example:
+Remult adds route handlers for a fully functional REST API and realtime live-query endpoints, optionally including an Open API spec and a GraphQL endpoint
+Fetch data with type-safe frontend code
+:mega: Realtime Live Queries
+:ballotboxwithcheck: Data validation and constraints - defined once
+Enforced in frontend:
+Enforced in backend:
+:lock: Secure the API with fine-grained authorization
+:rocket: Relations
+Automatic admin UI
+Learn more here.
+What about complex CRUD?
+While simple CRUD shouldn’t require any backend coding, using Remult means
+having the ability to handle any complex scenario by controlling the backend in
+numerous ways:
+Backend computed (read-only) fields - from simple
+expressions to
+complex data lookups or even direct db access (SQL)
+Custom side-effects with
+entity lifecycle hooks
+(before/after saving/deleting)
+Backend only updatable fields (e.g. “last updated at”)
+Relations
+Roll-your-own type-safe endpoints with
+Backend Methods
+Roll-your-own low-level endpoints (Express, Fastify, koa, others…)
+Installation
+The remult package is one and the same for both the frontend bundle and the
+backend. Install it once for a monolith project or per-repo in a monorepo.
+Tutorials
+The best way to learn Remult is by following a tutorial of a simple Todo web app
+with a Node.js Express backend.
+Tutorial with React
+Tutorial with Angular
+Tutorial with Vue
+Tutorial with Next.js
+Tutorial with Sveltekit
+Tutorial with SolidStart
+Demo
+Watch code demo on YouTube here (14 mins)
+Documentation
+The documentation covers the main features of Remult.
+However, it is still a work-in-progress.
+Example Apps
+Fullstack TodoMVC example with React and Express.
+(Source code |
+CodeSandbox)
+CRM demo with a React +
+MUI front-end and Postgres database.
+Status
+Remult is production-ready and, in fact, used in production apps since 2018.
+However, we’re keeping the major version at zero so we can use community
+feedback to finalize the v1 API.
+Motivation
+Full-stack web development is (still) too complicated. Simple CRUD, a common
+requirement of any business application, should be simple to build, maintain,
+and extend when the need arises.
+Remult abstracts away repetitive, boilerplate, error-prone, and poorly designed
+code on the one hand, and enables total flexibility and control on the other.
+Remult helps building fullstack apps using only TypeScript code you can easily
+follow and safely refactor, and fits nicely into any existing or new project
+by being minimalistic and completely unopinionated regarding the developer’s
+choice of other frameworks and tools.
+Other frameworks tend to fall into either too much abstraction (no-code,
+low-code, BaaS) or partial abstraction (MVC frameworks, GraphQL, ORMs, API
+generators, code generators), and tend to be opinionated regarding the
+development tool-chain, deployment environment, configuration/conventions or
+DSL. Remult attempts to strike a better balance.
+Contributing
+Contributions are welcome. See CONTRIBUTING.md.
+:speechballoon: Any feedback or suggestions? Start a
+discussion.
+:muscle: Want to help out? Look for "help wanted" labeled
+issues.
+:star: Give this repo a star.
+License
+Remult is MIT Licensed.

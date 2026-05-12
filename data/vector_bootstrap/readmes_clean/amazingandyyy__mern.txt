@@ -1,0 +1,49 @@
+🌐 MERN Stack
+MongoDB, Expressjs, React/Redux, Nodejs
+MERN is a fullstack implementation in MongoDB, Expressjs, React/Redux, Nodejs.
+MERN stack is the idea of using Javascript/Node for fullstack web development.
+clone or download
+project structure
+Usage (run fullstack app on your machine)
+Prerequisites
+MongoDB
+Node ^10.0.0
+npm
+notice, you need client and server runs concurrently in different terminal session, in order to make them talk to each other
+Client-side usage(PORT: 3000)
+Server-side usage(PORT: 8000)
+Prepare your secret
+run the script at the first level:
+(You need to add a JWTSECRET in .env to connect to MongoDB)
+Start
+Deploy Server to Heroku
+After creating heroku
+if using webpack:
+remember to update the file of client/webpack.prod.js
+if using parcel
+remember to update the file of client/.env.production
+Dependencies(tech-stacks)
+Client-side | Server-side
+axios: ^0.15.3 | bcrypt-nodejs: ^0.0.3
+babel-preset-stage-1: ^6.1.18|body-parser: ^1.15.2
+lodash: ^3.10.1 | cors: ^2.8.1
+react: ^16.2.0 | dotenv: ^2.0.0
+react-dom: ^16.2.0 | express: ^4.14.0
+react-redux: ^4.0.0 | jwt-simple: ^0.5.1
+react-router-dom: ^4.2.2 | mongoose: ^4.7.4
+redux: ^3.7.2 | morgan: ^1.7.0
+redux-thunk: ^2.1.0 |
+Screenshots of this project
+User visit public and Home page
+User can sign in or sign up
+After signing in user can go to account route and make request to token-protected API endpoint
+Standard
+BUGs or comments
+Create new Issues (preferred)
+Email Me: (welcome, say hi)
+Author
+Amazingandyyy
+I recently launch my monthly mentorship program, feel free to reach out and see what we can grow together:
+Join the growing community
+License
+MIT

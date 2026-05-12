@@ -1,0 +1,48 @@
+ZenStack: Modern Data Layer for TypeScript Apps
+What's ZenStack
+Read full documentation at 👉🏻
+ZenStack is a TypeScript database toolkit for developing full-stack or backend Node.js/Bun applications. It provides a unified data modeling and query solution with the following features:
+🔧 Modern schema-first ORM that's compatible with Prisma's schema and API
+📊 Versatile API - high-level ORM queries + low-level Kysely query builder
+🔐 Built-in access control and data validation
+🚀 Advanced data modeling patterns like polymorphism
+🧩 Designed for extensibility and flexibility
+⚙️ Automatic CRUD web APIs with adapters for popular frameworks
+🏖️ Automatic TanStack Query hooks for easy CRUD from the frontend
+💎 Zod schema generation
+What's New in V3
+ZenStack V3 is a major rewrite. It replaced Prisma ORM with its own ORM engine built on top of Kysely while keeping a Prisma-compatible query API. This architecture change brings the level of flexibility that we couldn't imagine in previous versions. Please check this blog post for why we made this bold decision.
+Even without using advanced features, ZenStack offers the following benefits as a drop-in replacement to Prisma:
+Pure TypeScript implementation without any Rust/WASM components.
+More TypeScript type inference, less code generation.
+Fully-typed query-builder API as a better escape hatch compared to Prisma's raw queries or typed SQL.
+Try It Now
+Installation
+Creating a new project
+Use the following command to scaffold a simple TypeScript command line application with ZenStack configured:
+Setting up an existing project
+Or, if you have an existing project, use the CLI to initialize it:
+Setting up manually
+Alternatively, you can set it up manually:
+Then create a zenstack folder and a schema.zmodel file in it.
+Documentation
+Sponsors
+Thank you for your generous support!
+Current Sponsors
+Suhyl
+Marblism
+Mermaid Chart
+CodeRabbit
+Johann Rohn
+Previous Sponsors
+Benjamin Zecirovic
+Ulric
+Fabian Jocks
+Community
+Join our discord server for chat and updates!
+Contributors
+Thanks to all the contributors who have helped make ZenStack better!
+Source
+Docs
+License
+MIT

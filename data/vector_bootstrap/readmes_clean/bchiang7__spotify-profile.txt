@@ -1,0 +1,20 @@
+Spotify Profile
+A web app for visualizing personalized Spotify data
+Built with a bunch of things, but to name a few:
+Spotify Web API
+Create React App
+Express
+Reach Router
+Styled Components
+Setup
+Register a Spotify App and add as a Redirect URI in the app settings
+Create an .env file in the root of the project based on .env.example
+nvm use
+yarn && yarn client:install
+yarn dev
+Deploying to Heroku
+Create new heroku app
+Set Heroku environment variables
+Push to Heroku
+Add as a Redirect URI in the spotify application settings
+Once the app is live on Heroku, hitting should be the same as hitting

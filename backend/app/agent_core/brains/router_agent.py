@@ -7,6 +7,10 @@ from typing import Callable, Iterable
 from pydantic import BaseModel, Field
 
 
+class IntentStructuringError(RuntimeError):
+    """Raised when a configured structured-output model returns invalid intent."""
+
+
 class RepoIntent(BaseModel):
     """Structured query intent consumed by retrieval agents."""
 
@@ -55,10 +59,12 @@ class RouterAgent:
         model_client: Callable[[str], dict] | None = None,
         min_stars: int = 50,
         recent_days: int = 365,
+        fallback_on_model_error: bool = False,
     ):
         self.model_client = model_client
         self.min_stars = min_stars
         self.recent_days = recent_days
+        self.fallback_on_model_error = fallback_on_model_error
 
     def structure_intent(self, natural_language_query: str) -> RepoIntent:
         query = natural_language_query.strip()
@@ -70,8 +76,12 @@ class RouterAgent:
                 payload = self.model_client(query)
                 intent = RepoIntent.model_validate(payload)
                 return self._with_guarded_github_query(intent)
-            except Exception:
-                pass
+            except Exception as exc:
+                if self.fallback_on_model_error:
+                    return self._heuristic_intent(query)
+                raise IntentStructuringError(
+                    "Configured intent model failed strict RepoIntent validation."
+                ) from exc
 
         return self._heuristic_intent(query)
 

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import itertools
+import json
+import time
 from typing import Sequence
 
 import httpx
@@ -9,6 +12,7 @@ import httpx
 from app.agent_core.brains.context_rag_agent import RepositoryCandidate
 from app.agent_core.memory.vector_store import clean_readme_text
 from app.config import settings
+from app.services.redis_client import RedisClient, get_redis_client
 
 
 class GitHubSearchError(Exception):
@@ -16,12 +20,27 @@ class GitHubSearchError(Exception):
 
 
 class GitHubTokenPool:
-    """Round-robin token provider for GitHub Search API calls."""
+    """Redis-backed GitHub token provider with rate-limit awareness.
 
-    def __init__(self, tokens: Sequence[str] | None = None):
+    Token state is persisted so multiple API workers avoid repeatedly picking a
+    token that GitHub has already exhausted. When Redis is disabled the shared
+    RedisClient transparently falls back to process memory, which keeps local
+    tests and demos dependency-free.
+    """
+
+    def __init__(
+        self,
+        tokens: Sequence[str] | None = None,
+        redis_client: RedisClient | None = None,
+        cooldown_seconds: int = 300,
+        namespace: str = "github_search_tokens",
+    ):
         clean_tokens = [token.strip() for token in (tokens or []) if token.strip()]
         self._tokens = clean_tokens
         self._cycle = itertools.cycle(clean_tokens) if clean_tokens else None
+        self.redis = redis_client or get_redis_client()
+        self.cooldown_seconds = cooldown_seconds
+        self.namespace = namespace
 
     @classmethod
     def from_settings(cls) -> "GitHubTokenPool":
@@ -33,9 +52,89 @@ class GitHubTokenPool:
         return cls(tokens)
 
     def next_token(self) -> str | None:
+        """Compatibility shim for old call sites.
+
+        New network code should use ``await acquire_token()`` so it can consult
+        the persisted rate-limit state.
+        """
         if self._cycle is None:
             return None
         return next(self._cycle)
+
+    async def acquire_token(self) -> str | None:
+        if not self._tokens:
+            return None
+
+        now = int(time.time())
+        best_token: str | None = None
+        best_remaining = -1
+
+        for token in self._tokens:
+            state = await self._get_state(token)
+            cooled_until = int(state.get("cooled_until") or 0)
+            reset_at = int(state.get("reset_at") or 0)
+            remaining = int(state.get("remaining") or 5000)
+
+            if cooled_until > now:
+                continue
+            if remaining <= 0 and reset_at > now:
+                await self._set_state(token, {**state, "cooled_until": reset_at})
+                continue
+
+            if remaining > best_remaining:
+                best_token = token
+                best_remaining = remaining
+
+        return best_token
+
+    async def record_response(self, token: str | None, response: httpx.Response) -> None:
+        if not token:
+            return
+
+        remaining = _safe_int(response.headers.get("x-ratelimit-remaining"))
+        reset_at = _safe_int(response.headers.get("x-ratelimit-reset"))
+        now = int(time.time())
+
+        state = await self._get_state(token)
+        if remaining is not None:
+            state["remaining"] = remaining
+        if reset_at is not None:
+            state["reset_at"] = reset_at
+
+        if response.status_code in {403, 429} or remaining == 0:
+            state["cooled_until"] = reset_at or (now + self.cooldown_seconds)
+        else:
+            state["cooled_until"] = 0
+
+        await self._set_state(token, state)
+
+    async def cooldown_token(self, token: str | None, seconds: int | None = None) -> None:
+        if not token:
+            return
+        state = await self._get_state(token)
+        state["remaining"] = 0
+        state["cooled_until"] = int(time.time()) + (seconds or self.cooldown_seconds)
+        await self._set_state(token, state)
+
+    async def _get_state(self, token: str) -> dict:
+        raw = await self.redis.get(self._state_key(token))
+        if not raw:
+            return {}
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+
+    async def _set_state(self, token: str, state: dict) -> None:
+        await self.redis.set(
+            self._state_key(token),
+            json.dumps(state),
+            ex=max(self.cooldown_seconds * 2, 600),
+        )
+
+    def _state_key(self, token: str) -> str:
+        digest = hashlib.sha256(token.encode("utf-8")).hexdigest()[:16]
+        return f"{self.namespace}:{digest}"
 
 
 class GitHubRepositorySearchClient:
@@ -157,26 +256,38 @@ class GitHubRepositorySearchClient:
         allow_404: bool = False,
     ):
         url = f"{self.api_base}{path}"
-        headers = {
-            "Accept": "application/vnd.github+json",
-            "User-Agent": "IntelliDeploy",
-        }
-        token = self.token_pool.next_token()
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
+        attempts = max(len(self.token_pool._tokens), 1)
+        rate_limit_errors: list[str] = []
 
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-            response = await client.get(url, params=params, headers=headers)
+            for _ in range(attempts):
+                headers = {
+                    "Accept": "application/vnd.github+json",
+                    "User-Agent": "IntelliDeploy",
+                }
+                token = await self.token_pool.acquire_token()
+                if token:
+                    headers["Authorization"] = f"Bearer {token}"
 
-        if allow_404 and response.status_code == 404:
-            return None
-        if response.status_code in {403, 429}:
-            raise GitHubSearchError("GitHub search rate limit exceeded")
-        if response.status_code >= 400:
-            raise GitHubSearchError(
-                f"GitHub API request failed: {response.status_code} {response.text[:200]}"
-            )
-        return response.json()
+                response = await client.get(url, params=params, headers=headers)
+                await self.token_pool.record_response(token, response)
+
+                if allow_404 and response.status_code == 404:
+                    return None
+                if response.status_code in {403, 429}:
+                    rate_limit_errors.append(response.text[:200])
+                    await self.token_pool.cooldown_token(token)
+                    if token:
+                        continue
+                    break
+                if response.status_code >= 400:
+                    raise GitHubSearchError(
+                        f"GitHub API request failed: {response.status_code} {response.text[:200]}"
+                    )
+                return response.json()
+
+        detail = "; ".join(rate_limit_errors) or "all configured tokens are cooling down"
+        raise GitHubSearchError(f"GitHub search rate limit exceeded: {detail}")
 
     @staticmethod
     def _candidate_from_search_item(item: dict) -> RepositoryCandidate:
@@ -223,3 +334,12 @@ _KEY_FILE_NAMES = {
     "next.config.js",
     "procfile",
 }
+
+
+def _safe_int(value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None

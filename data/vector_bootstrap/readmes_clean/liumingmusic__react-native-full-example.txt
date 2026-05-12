@@ -1,0 +1,78 @@
+关注微信公众号，获取更多资源
+小明找厕所
+0 介绍
+支持ios和android两个平台
+下载：git clone
+安装：cd toilet --> npm install --> react-native run-ios(run-android)
+服务端：具体看下面说明
+1、express开发
+1.1 npm环境设置
+安装node软件：
+安装淘宝滤镜：npm install -g cnpm --registry =
+设置全局的npm从国内下载资源， npmrc添加配置。mac下面地址为 /Users/liumingming/.npmrc，修改strict-ssl=true 和 registry=
+1.2 express环境搭建
+安装express-generator：npm install -g express-generator，用户快速创建express项目
+生成项目模块：进入到项目目录 /User/liumm/Astudy/app/toiletApp 下面，执行命令 express -e service，其中-e为ejs模块简写
+在服务端项目安装依赖：进入服务端项目 /User/liumm/Astudy/app/toiletApp/service 执行命令 cnpm install，安装依赖类库
+启动项目：使用在当前目录中使用 npm start启动项目，其中start命令在package.json已经配置
+预览：启动已经开发本地的 localhost:3000，访问地址即可看见启动的页面
+修改预览：项目中app.js 文件为服务启动入口路径。修改项目下面 views/index.ejs文件，重启服务进行查看
+express修改热加载：安装supervisor，npm install supervisor -g，修改项目自动更新
+1.3 项目文件目录组织
+1.4 读取接口设计
+统一规定后端返回数据格式
+笑料数据接口: /data/read/cookies
+互联网资讯接口: /data/read/it
+管理数据接口: /data/read/manager
+散文数据接口: /data/read/prose
+阅读模块配置: /data/read/config
+1.6 数据存储接口设计
+写入操作数据都为post请求，统一为 /data/write，传入参数如下：
+删除操作数据都为post请求，统一为 /data/delete，传入参数如下：
+1.7 页面开发
+登录界面
+首页界面
+编辑界面
+删除操作
+修改操作
+查看操作
+1.8 调试express代码
+安装node-inspector: sudo cnpm install -g node-inspector
+Terminal输入: supervisor --debug ./bin/www
+打开新的Terminal输入: node-inspector & (注:也是在项目目录之中)
+输入第三步显示的地址，开发浏览器访问输入(
+如果不想使用8080端口可以修改: node-inspector & -p 8888
+1.9 项目部署在服务器中
+购买云服务器平台(可以看看阿里云、华为云、腾讯云)，目的只是操作技术，并非运维，只要能用就行
+下载linux版的nodejs包，下载xshell进行安装
+购买好的云服务账号，使用shell进行登录(网上教程很多，就是单纯的登录进去)
+使用xshell自带的工具rz(在命令行中输入rz之后回车)，选择下载好的nodejs，进行远程导入，
+使用命令: tar -xzf node-v4.4.4-linux-arm64.tar.gz 进行解压(注:导入进行来的node包，可以选择你知道的路径下面，便于后续查找)
+进入到当前解压node的目录，输入pwd命令，获取当前文件夹的全路径
+使用软连接快速使用命令(其中一个是node，一个是npm)，使用软连接(类似快捷方式):
+ln -s /home/kun/mysofltware/node-v0.10.28-linux-x64/bin/node /usr/local/bin/node
+ln -s /home/kun/mysofltware/node-v0.10.28-linux-x64/bin/npm /usr/local/bin/npm
+使用npm安装开发中使用express相关的包
+新建一个文件夹，在里面使用git clone xxx.git 克隆你的项目，之后进入项目路径(服务端)，输入npm install 安装相应的依赖
+使用npm安装pm2，用来启动和查看node相关的服,可参考
+使用命令: pm2 start ./bin/www 启动服务，即可使用外网查看。
+只是大致记录步骤，后续视频完善。
+2、app开发
+2.1 react native 环境搭建
+首先和后端express开发一下，安装node(上面操作过就可以忽略)
+使用cnpm安装react-native-cli，命令如下：cnpm install -g react-native-cli
+接下来可以react-native 这个命令初始化项目，命令如下：react-native init toilet（其中toilet为初始化项目的文件夹名称，也就是项目名）
+接下来进入项目路径，cd toilet，执行命令react-native run-ios进行项目启动。这样就可以看见初始化状态下面的项目了
+修改index.ios.js文件，保存。选中模拟器使用快捷键 command+r 进行修改后的刷新
+2.2 文件目录组织
+2.3 组件关系图
+2.4 app运行展示
+2.5 优化加载
+打包jsbundle文件 加载成功便于app加载
+react-native bundle --entey-file index.ios.js --platform ios --dev false --bndle-output main.ios.jsbundle
+2.6 第三方组件
+react-native-material-design
+react-native-image-picker
+react-native-barcodescanner
+react-native-gifted-chat
+fastui-form

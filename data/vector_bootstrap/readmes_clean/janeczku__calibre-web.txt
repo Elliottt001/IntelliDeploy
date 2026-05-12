@@ -1,0 +1,106 @@
+Calibre-Web
+Calibre-Web is a web app that offers a clean and intuitive interface for browsing, reading, and downloading eBooks using a valid Calibre database.
+Table of Contents (click to expand)
+About
+Features
+Installation
+Installation via pip (recommended)
+Quick start
+Requirements
+Docker Images
+Troubleshooting
+Contributor Recognition
+Contact
+Contributing to Calibre-Web
+This software is a fork of library and licensed under the GPL v3 License.
+Features
+Modern and responsive Bootstrap 3 HTML5 interface
+Full graphical setup
+Comprehensive user management with fine-grained per-user permissions
+Admin interface
+Multilingual user interface supporting 20+ languages (supported languages)
+OPDS feed for eBook reader apps
+Advanced search and filtering options
+Custom book collection (shelves) creation
+eBook metadata editing and deletion support
+Metadata download from various sources (extensible via plugins)
+eBook conversion through Calibre binaries
+eBook download restriction to logged-in users
+Public user registration support
+Send eBooks to E-Readers with a single click
+Sync Kobo devices with your Calibre library
+In-browser eBook reading support for multiple formats
+Upload new books in various formats, including audio formats
+Calibre Custom Columns support
+Content hiding based on categories and Custom Column content per user
+Self-update capability
+"Magic Link" login for easy access on eReaders
+LDAP, Google/GitHub OAuth, and proxy authentication support
+Installation
+Installation via pip (recommended)
+Create a virtual environment: It’s essential to isolate your Calibre-Web installation to avoid dependency conflicts. You can create a virtual environment by running:
+Activate the virtual environment:
+Install Calibre-Web: Use pip to install the application:
+Install optional features: For additional functionality, you may need to install optional features. Refer to this page for details on what can be installed.
+Start Calibre-Web: After installation, you can start the application with:
+Note: Users of Raspberry Pi OS may encounter installation issues. If you do, try upgrading pip and/or installing cargo as follows:
+Important Links
+For additional installation examples, check the following:
+Manual installation
+Linux Mint installation
+Cloud Provider setup
+Quick Start
+Access Calibre-Web: Open your browser and navigate to:
+or for the OPDS catalog:
+Log in: Use the default admin credentials:
+Username: admin
+Password: admin123
+Database Setup: If you do not have a Calibre database, download a sample from:
+Move it out of the Calibre-Web folder to avoid overwriting during updates.
+Configure Calibre Database: In the admin interface, set the Location of Calibre database to the path of the folder containing your Calibre library (where metadata.db is located) and click "Save".
+Google Drive Integration: For hosting your Calibre library on Google Drive, refer to the Google Drive integration guide.
+Admin Configuration: Configure your instance via the admin page, referring to the Basic Configuration and UI Configuration guides.
+Requirements
+Python Version: Ensure you have Python 3.7 or newer.
+Imagemagick: Required for cover extraction from EPUBs. Windows users may also need to install Ghostscript for PDF cover extraction.
+Optional Tools:
+Calibre desktop program: Recommended for on-the-fly conversion and metadata editing. Set the path to Calibre’s converter tool on the setup page.
+Kepubify tool: Needed for Kobo device support. Download the tool and place the binary in /opt/kepubify on Linux or C:\Program Files\kepubify on Windows.
+Docker Images
+Pre-built Docker images are available:
+LinuxServer - x64, aarch64
+Docker Hub: linuxserver/calibre-web
+GitHub: linuxserver/docker-calibre-web
+Optional Calibre layer: linuxserver/docker-mods
+To include the Calibre ebook-convert binary (x64 only), add the environment variable:
+in your Docker run/compose file. Omit this variable for a lightweight image.
+Paths Configuration:
+Set Path to Calibre Binaries to /usr/bin.
+Set Path to Unrar to /usr/bin/unrar.
+Troubleshooting
+Common Issues:
+If you experience issues starting the application, check the log files located in the logs directory for error messages.
+If eBooks fail to load, verify that the Location of Calibre database is correctly set and that the database file is accessible.
+You need to enable uploads under Basic settings for this option to appear
+Configuration Errors: Ensure that your Calibre database is compatible and properly formatted. Refer to the Calibre documentation for guidance on maintaining the database.
+Performance Problems:
+If the application is slow, consider increasing the allocated resources (CPU/RAM) to your server or optimizing the Calibre database by removing duplicates and unnecessary entries.
+Regularly clear the cache in your web browser to improve loading times.
+User Management Issues: If users are unable to log in or register, check the user permission settings in the admin interface. Ensure that registration is enabled and that users are being assigned appropriate roles.
+Support Resources: For additional help, consider visiting the FAQ section of the wiki or posting your questions in the Discord community.
+Contributor Recognition
+We would like to thank all the contributors and maintainers of Calibre-Web for their valuable input and dedication to the project. Your contributions are greatly appreciated.
+Contact
+Join us on Discord
+For more information, How To's, and FAQs, please visit the Wiki
+Contributing to Calibre-Web
+To contribute, please check our Contributing Guidelines. We welcome issues, feature requests, and pull requests from the community.
+Reporting Bugs
+If you encounter bugs or issues, please report them in the issues section of the repository. Be sure to include detailed information about your setup and the problem encountered.
+Feature Requests
+We welcome suggestions for new features. Please create a new issue in the repository to discuss your ideas.
+Additional Resources
+Documentation: Comprehensive documentation is available on the Calibre-Web wiki.
+Community Contributions: Explore the community contributions to see ongoing work and how you can get involved.
+---
+Thank you for using Calibre-Web! We hope you enjoy managing your eBook library with our tool.

@@ -1,0 +1,49 @@
+3REE
+An example universal JS application written with the 3REE stack, React + Redux + RethinkDB + Express. A stack for building apps, front and back end, with just Javascript.
+This project was initially conceived to experiment with using these technologies in conjunction with one-another. I have written a blog that relates to this codebase.
+This project is useful for:
+seeing how to build a Universal Javascript application
+understanding how to handle asyncronousity in Redux action creators
+seeing how you can use Socket.io with Redux
+building your own Redux powered application
+seeing how you can use System.import() with React Router + Webpack2 to acheive code splitting for different routes of your application
+forking so that you can build your own 3REE stack app!
+Main Features
+Universal (Isomorphic) Javascript Application
+Use of Webpack 2's Code Splitting and Tree Shaking features
+Asyncronous Redux actions example
+Use of RethinkDB Changefeeds for realtime updates reflected in the UI
+Demo
+There is a demo app hosted at 3ree-demo.workshape.io. Check it out. If it is down, please email
+Setup
+You will need to install RethinkDB. You can find instruction on how to do so here. Make sure you have the latest version installed.
+Clone the repo git clone :GordyD/3ree.git
+Make sure you are using Node v6.0.0 (I recommend using n for Node version management)
+Run npm install
+If your local environment is not reflected by config/default.json, then add a file at config/local.json to provide local customisation.
+Run npm run db-setup to set up DB
+Running Dev Server
+On Linux/OSX: npm start
+On Windows: npm run start:win
+This will start the Webpack dev server - for serving the client, as well as the server-side API.
+Go to in two separate tabs - see changes propagate in real time (Hot Module Replacement works too).
+Running Production Server
+You will need to roll out your own deployment script for a server, but before you can ship you will need to:
+Build the client with npm run build:prod
+Ensure all production npm modules are installed on the server. e.g. npm install --prod
+Rsync your application to your server
+Set up nginx or your web server of choice to map HTTP requests for your URL to
+Run npm run start:prod to run on your server
+Go to your URL
+NOTE: Production has not been tested on Windows.
+Tech Used
+| Tech | Description |
+| React | View layer |
+| React Router | Universal routing |
+| Redux | State management |
+| RethinkDB | Persistance layer |
+| Express | Node.js server framework |
+| [Socket.io]() | Used for realtime communication between clients and server |
+| Webpack | Module bundling + build for client |
+| Superagent | Universal http requests |
+| Stylus | Expressive, dynamic, robust CSS |

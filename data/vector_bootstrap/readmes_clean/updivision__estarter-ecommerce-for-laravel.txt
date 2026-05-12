@@ -1,0 +1,51 @@
+eStarter. The beginning of your beautiful, custom ecommerce on Laravel.
+What's new?
+Upgrade to Laravel 5.5 & latest version of BackPack
+Clients Management (including addresses and companies)
+Specific Prices for products
+Cart Rules
+Orders
+Notification Templates
+Users Management
+Roles & Permissions
+All Features
+Create and organize categories & subcategoires
+Create attributes and group them in sets of attributes
+Create currencies
+Create carriers
+Create taxes and use them on products
+Create order statuses
+Create products and upload product multiple images at once, using dropzone
+Ability to create product groups
+Ability to clone a product
+Add Clients
+See orders & change order statuses that will notify users via e-mail
+Add / Edit Notification templates
+Create users with different roles & permissions
+Create cart rules
+Create Specific prices
+Installation
+Clone repository
+Run in your terminal
+Setup database connection in .env file
+Do not forget to add in your env file following lines:
+Migrate tables and seed with demo data
+Access it on
+Setup
+In order to use the shop and be able to add products, you must have a minimum configuration:
+Create at least one category;
+Create at least one attribute for at least one of these types: text, textarea, date, dropdown, multiple select, media;
+Create at least one attribute set;
+Create a tax (eg. VAT).
+After creating these, you’re ready to add your first product.
+Known Issues
+Product image uploader - still - not fully responsive
+EER Diagram
+Screenshots (update soon)
+Contributors
+Paul Duca
+Diana Marusic
+Andrei Barta
+License
+eStarter is based on Backpack which is free for non-commercial use and $49/project for commercial use. Please see License File and backpackforlaravel.com for more information.
+[ico-downloads]:

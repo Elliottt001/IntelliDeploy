@@ -7,6 +7,17 @@ from urllib import request
 
 from app.agent_core.brains.context_rag_agent import RepositoryCandidate
 from app.agent_core.brains.router_agent import RepoIntent
+from pydantic import BaseModel, Field, ValidationError
+
+
+class StructuredLLMOutputError(RuntimeError):
+    """Raised when a configured model does not satisfy a strict output schema."""
+
+
+class RepoRerankResult(BaseModel):
+    ordered_full_names: list[str] = Field(
+        description="Candidate full_name values ordered from best to worst."
+    )
 
 
 class OpenAICompatibleIntentClient:
@@ -23,6 +34,7 @@ class OpenAICompatibleIntentClient:
         self.timeout_seconds = timeout_seconds
 
     def __call__(self, query: str) -> dict[str, Any]:
+        schema = _strict_json_schema(RepoIntent)
         payload = {
             "model": self.model,
             "temperature": 0.1,
@@ -47,7 +59,10 @@ class OpenAICompatibleIntentClient:
                     ),
                 },
             ],
-            "response_format": {"type": "json_object"},
+            "response_format": _json_schema_response_format(
+                "repo_intent",
+                schema,
+            ),
         }
         content = _chat_completion_content(
             self.api_base, self.api_key, payload, self.timeout_seconds
@@ -55,7 +70,12 @@ class OpenAICompatibleIntentClient:
         data = _parse_json_content(content)
         data.setdefault("raw_query", query)
         data.setdefault("normalized_query", query.lower())
-        return data
+        try:
+            return RepoIntent.model_validate(data).model_dump(mode="json")
+        except ValidationError as exc:
+            raise StructuredLLMOutputError(
+                f"Intent model output did not match RepoIntent schema: {exc}"
+            ) from exc
 
 
 class OpenAICompatibleRepoReranker:
@@ -74,6 +94,7 @@ class OpenAICompatibleRepoReranker:
     def __call__(
         self, intent: RepoIntent, candidates: list[RepositoryCandidate]
     ) -> list[str]:
+        allowed_names = {candidate.full_name for candidate in candidates}
         candidate_summaries = [
             {
                 "full_name": candidate.full_name,
@@ -111,14 +132,26 @@ class OpenAICompatibleRepoReranker:
                     ),
                 },
             ],
-            "response_format": {"type": "json_object"},
+            "response_format": _json_schema_response_format(
+                "repo_rerank_result",
+                _strict_json_schema(RepoRerankResult),
+            ),
         }
         content = _chat_completion_content(
             self.api_base, self.api_key, payload, self.timeout_seconds
         )
         data = _parse_json_content(content)
-        ordered = data.get("ordered_full_names") or data.get("top_repositories") or []
-        return [str(name) for name in ordered]
+        try:
+            rerank_result = RepoRerankResult.model_validate(data)
+        except ValidationError as exc:
+            raise StructuredLLMOutputError(
+                f"Reranker output did not match schema: {exc}"
+            ) from exc
+
+        ordered = [name for name in rerank_result.ordered_full_names if name in allowed_names]
+        if not ordered:
+            raise StructuredLLMOutputError("Reranker returned no valid candidate full_name values.")
+        return ordered
 
 
 def _chat_completion_content(
@@ -149,3 +182,34 @@ def _parse_json_content(content: str) -> dict[str, Any]:
         if not match:
             raise
         return json.loads(match.group(0))
+
+
+def _json_schema_response_format(name: str, schema: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": name,
+            "strict": True,
+            "schema": schema,
+        },
+    }
+
+
+def _strict_json_schema(model: type[BaseModel]) -> dict[str, Any]:
+    schema = model.model_json_schema()
+    _disallow_extra_properties(schema)
+    return schema
+
+
+def _disallow_extra_properties(schema_fragment: Any) -> None:
+    if isinstance(schema_fragment, dict):
+        if schema_fragment.get("type") == "object":
+            schema_fragment["additionalProperties"] = False
+            properties = schema_fragment.get("properties")
+            if isinstance(properties, dict):
+                schema_fragment["required"] = list(properties)
+        for value in schema_fragment.values():
+            _disallow_extra_properties(value)
+    elif isinstance(schema_fragment, list):
+        for item in schema_fragment:
+            _disallow_extra_properties(item)
