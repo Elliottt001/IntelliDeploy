@@ -29,6 +29,16 @@ class Settings(BaseSettings):
     # Sealos配置
     SEALOS_API_URL: str = "https://cloud.sealos.io/api"
     SEALOS_API_TOKEN: str = ""
+    SEALOS_BUILD_TIMEOUT_SECONDS: int = 600
+    SEALOS_BUILD_POLL_INTERVAL_SECONDS: int = 5
+
+    # Kaniko云端构建配置
+    KANIKO_KUBECONFIG: str = ""
+    KANIKO_NAMESPACE: str = "default"
+    KANIKO_IMAGE: str = "gcr.io/kaniko-project/executor:latest"
+    KANIKO_DOCKER_CONFIG_SECRET: str = ""
+    KANIKO_JOB_TIMEOUT_SECONDS: int = 600
+    KANIKO_CONTEXT_MAX_BYTES: int = 900_000
 
     # 部署配置
     DEPLOYMENT_TIMEOUT: int = 300  # 5分钟

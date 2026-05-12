@@ -6,7 +6,8 @@ import asyncio
 import base64
 import json
 import tempfile
-import shutil
+import time
+import uuid
 from typing import Optional, Dict, List
 from pathlib import Path
 from enum import Enum
@@ -86,6 +87,27 @@ class ImageBuilder:
             )
         else:
             raise ValueError(f"Unsupported build method: {self.method}")
+
+    @staticmethod
+    def _full_image_name(image_name: str | None, image_tag: str) -> str:
+        return f"{image_name}:{image_tag}" if image_name else f"intellideploy-temp:{image_tag}"
+
+    @staticmethod
+    def _safe_context_files(
+        dockerfile_content: str,
+        context_files: Optional[Dict[str, str]],
+    ) -> Dict[str, str]:
+        files: Dict[str, str] = {}
+        for file_path, content in (context_files or {}).items():
+            normalized = Path(file_path)
+            if normalized.is_absolute() or ".." in normalized.parts:
+                continue
+            path = normalized.as_posix()
+            if Path(path).name.lower() == "dockerfile":
+                continue
+            files[path] = content
+        files["Dockerfile"] = dockerfile_content
+        return files
 
     async def _build_with_docker_api(
         self,
@@ -288,45 +310,109 @@ class ImageBuilder:
             Dict: 构建结果
         """
         try:
-            # TODO: 实现Sealos构建服务API调用
-            # 这需要Sealos提供构建API端点
-
-            async with httpx.AsyncClient(timeout=600) as client:
-                # 准备构建请求
-                build_request = {
-                    "dockerfile": dockerfile_content,
-                    "context": context_files or {},
-                    "image_name": image_name,
-                    "image_tag": image_tag,
-                    "build_args": build_args or {},
+            if not settings.SEALOS_API_TOKEN:
+                return {
+                    "status": BuildStatus.FAILED.value,
+                    "error": "SEALOS_API_TOKEN is required for Sealos remote builds.",
                 }
 
-                # 调用Sealos构建API
+            full_image_name = self._full_image_name(image_name, image_tag)
+            files = self._safe_context_files(dockerfile_content, context_files)
+            encoded_files = {
+                path: base64.b64encode(content.encode("utf-8")).decode("ascii")
+                for path, content in files.items()
+            }
+            build_request = {
+                "image": full_image_name,
+                "image_name": image_name,
+                "image_tag": image_tag,
+                "dockerfile_path": "Dockerfile",
+                "files": encoded_files,
+                "context": context_files or {},
+                "build_args": build_args or {},
+            }
+            async with httpx.AsyncClient(timeout=600) as client:
                 response = await client.post(
                     f"{settings.SEALOS_API_URL}/build",
                     json=build_request,
                     headers={"Authorization": f"Bearer {settings.SEALOS_API_TOKEN}"},
                 )
 
-                if response.status_code == 200:
-                    result = response.json()
-                    return {
-                        "status": BuildStatus.SUCCESS.value,
-                        "image": result.get("image"),
-                        "image_id": result.get("image_id"),
-                        "logs": result.get("logs", ""),
-                    }
-                else:
+                if response.status_code >= 400:
                     return {
                         "status": BuildStatus.FAILED.value,
                         "error": f"Sealos build failed: {response.text}",
                     }
+
+                result = response.json()
+                build_id = result.get("build_id") or result.get("id") or result.get("task_id")
+                if result.get("status") in {"success", "succeeded", BuildStatus.SUCCESS.value}:
+                    return self._sealos_success_result(result, full_image_name)
+                if result.get("status") in {"failed", BuildStatus.FAILED.value}:
+                    return {
+                        "status": BuildStatus.FAILED.value,
+                        "error": result.get("error") or "Sealos build failed.",
+                        "logs": result.get("logs", ""),
+                    }
+                if not build_id:
+                    return self._sealos_success_result(result, full_image_name)
+
+                return await self._poll_sealos_build(client, str(build_id), full_image_name)
 
         except Exception as e:
             return {
                 "status": BuildStatus.FAILED.value,
                 "error": f"Sealos build error: {str(e)}",
             }
+
+    async def _poll_sealos_build(
+        self,
+        client: httpx.AsyncClient,
+        build_id: str,
+        full_image_name: str,
+    ) -> Dict:
+        deadline = time.monotonic() + settings.SEALOS_BUILD_TIMEOUT_SECONDS
+        status_url = f"{settings.SEALOS_API_URL}/build/{build_id}"
+
+        while time.monotonic() < deadline:
+            response = await client.get(
+                status_url,
+                headers={"Authorization": f"Bearer {settings.SEALOS_API_TOKEN}"},
+            )
+            if response.status_code >= 400:
+                return {
+                    "status": BuildStatus.FAILED.value,
+                    "error": f"Sealos build status failed: {response.text}",
+                }
+
+            result = response.json()
+            status = str(result.get("status", "")).lower()
+            if status in {"success", "succeeded", "completed"}:
+                return self._sealos_success_result(result, full_image_name, build_id=build_id)
+            if status in {"failed", "error", "cancelled"}:
+                return {
+                    "status": BuildStatus.FAILED.value,
+                    "error": result.get("error") or f"Sealos build {status}",
+                    "logs": result.get("logs", ""),
+                    "build_id": build_id,
+                }
+            await asyncio.sleep(settings.SEALOS_BUILD_POLL_INTERVAL_SECONDS)
+
+        return {
+            "status": BuildStatus.FAILED.value,
+            "error": f"Sealos build timed out after {settings.SEALOS_BUILD_TIMEOUT_SECONDS}s",
+            "build_id": build_id,
+        }
+
+    @staticmethod
+    def _sealos_success_result(result: Dict, fallback_image: str, build_id: str | None = None) -> Dict:
+        return {
+            "status": BuildStatus.SUCCESS.value,
+            "image": result.get("image") or result.get("image_ref") or fallback_image,
+            "image_id": result.get("image_id") or result.get("digest"),
+            "logs": result.get("logs", ""),
+            "build_id": build_id or result.get("build_id") or result.get("id") or result.get("task_id"),
+        }
 
     async def _build_with_kaniko(
         self,
@@ -349,12 +435,185 @@ class ImageBuilder:
         Returns:
             Dict: 构建结果
         """
-        # TODO: 实现Kaniko构建
-        # 需要创建K8s Job运行Kaniko
-        return {
-            "status": BuildStatus.FAILED.value,
-            "error": "Kaniko build not implemented yet",
-        }
+        try:
+            if not settings.KANIKO_KUBECONFIG:
+                return {
+                    "status": BuildStatus.FAILED.value,
+                    "error": "KANIKO_KUBECONFIG is required for Kaniko builds.",
+                }
+
+            full_image_name = self._full_image_name(image_name, image_tag)
+            files = self._safe_context_files(dockerfile_content, context_files)
+            manifest_size = sum(len(content.encode("utf-8")) for content in files.values())
+            if manifest_size > settings.KANIKO_CONTEXT_MAX_BYTES:
+                return {
+                    "status": BuildStatus.FAILED.value,
+                    "error": (
+                        "Kaniko inline ConfigMap context is too large "
+                        f"({manifest_size} bytes > {settings.KANIKO_CONTEXT_MAX_BYTES})."
+                    ),
+                }
+
+            return await asyncio.to_thread(
+                self._run_kaniko_job_sync,
+                files,
+                full_image_name,
+                build_args or {},
+            )
+        except Exception as e:
+            return {
+                "status": BuildStatus.FAILED.value,
+                "error": f"Kaniko build error: {str(e)}",
+            }
+
+    def _run_kaniko_job_sync(
+        self,
+        files: Dict[str, str],
+        full_image_name: str,
+        build_args: Dict[str, str],
+    ) -> Dict:
+        from kubernetes import client, config
+        import yaml
+
+        api_exception = client.ApiException
+
+        cfg = yaml.safe_load(settings.KANIKO_KUBECONFIG)
+        config.load_kube_config_from_dict(cfg)
+
+        namespace = settings.KANIKO_NAMESPACE
+        suffix = uuid.uuid4().hex[:10]
+        job_name = f"intellideploy-kaniko-{suffix}"
+        context_mount = "/workspace"
+
+        batch_api = client.BatchV1Api()
+        core_api = client.CoreV1Api()
+
+        config_map = client.V1ConfigMap(
+            metadata=client.V1ObjectMeta(name=f"{job_name}-context"),
+            data=files,
+        )
+        core_api.create_namespaced_config_map(namespace=namespace, body=config_map)
+
+        args = [
+            f"--dockerfile={context_mount}/Dockerfile",
+            f"--context=dir://{context_mount}",
+            f"--destination={full_image_name}",
+            "--snapshotMode=redo",
+        ]
+        for key, value in build_args.items():
+            args.append(f"--build-arg={key}={value}")
+
+        volumes = [
+            client.V1Volume(
+                name="build-context",
+                config_map=client.V1ConfigMapVolumeSource(name=f"{job_name}-context"),
+            )
+        ]
+        mounts = [client.V1VolumeMount(name="build-context", mount_path=context_mount)]
+
+        if settings.KANIKO_DOCKER_CONFIG_SECRET:
+            volumes.append(
+                client.V1Volume(
+                    name="docker-config",
+                    secret=client.V1SecretVolumeSource(secret_name=settings.KANIKO_DOCKER_CONFIG_SECRET),
+                )
+            )
+            mounts.append(client.V1VolumeMount(name="docker-config", mount_path="/kaniko/.docker"))
+
+        job = client.V1Job(
+            metadata=client.V1ObjectMeta(name=job_name),
+            spec=client.V1JobSpec(
+                backoff_limit=0,
+                ttl_seconds_after_finished=300,
+                template=client.V1PodTemplateSpec(
+                    metadata=client.V1ObjectMeta(labels={"job-name": job_name}),
+                    spec=client.V1PodSpec(
+                        restart_policy="Never",
+                        containers=[
+                            client.V1Container(
+                                name="kaniko",
+                                image=settings.KANIKO_IMAGE,
+                                args=args,
+                                volume_mounts=mounts,
+                            )
+                        ],
+                        volumes=volumes,
+                    ),
+                ),
+            ),
+        )
+        batch_api.create_namespaced_job(namespace=namespace, body=job)
+
+        logs = ""
+        deadline = time.monotonic() + settings.KANIKO_JOB_TIMEOUT_SECONDS
+        try:
+            while time.monotonic() < deadline:
+                current = batch_api.read_namespaced_job(name=job_name, namespace=namespace)
+                succeeded = int(getattr(current.status, "succeeded", 0) or 0)
+                failed = int(getattr(current.status, "failed", 0) or 0)
+                logs = self._read_kaniko_logs(core_api, namespace, job_name) or logs
+                if succeeded > 0:
+                    return {
+                        "status": BuildStatus.SUCCESS.value,
+                        "image": full_image_name,
+                        "image_id": None,
+                        "logs": logs,
+                        "job_name": job_name,
+                    }
+                if failed > 0:
+                    return {
+                        "status": BuildStatus.FAILED.value,
+                        "error": "Kaniko job failed",
+                        "logs": logs,
+                        "job_name": job_name,
+                    }
+                time.sleep(3)
+
+            return {
+                "status": BuildStatus.FAILED.value,
+                "error": f"Kaniko job timed out after {settings.KANIKO_JOB_TIMEOUT_SECONDS}s",
+                "logs": logs,
+                "job_name": job_name,
+            }
+        finally:
+            self._cleanup_kaniko_resources(
+                batch_api=batch_api,
+                core_api=core_api,
+                namespace=namespace,
+                job_name=job_name,
+                api_exception=api_exception,
+            )
+
+    @staticmethod
+    def _read_kaniko_logs(core_api, namespace: str, job_name: str) -> str:
+        pods = core_api.list_namespaced_pod(namespace=namespace, label_selector=f"job-name={job_name}")
+        chunks: list[str] = []
+        for pod in list(getattr(pods, "items", []) or []):
+            pod_name = pod.metadata.name
+            try:
+                chunks.append(
+                    core_api.read_namespaced_pod_log(
+                        name=pod_name,
+                        namespace=namespace,
+                        container="kaniko",
+                        tail_lines=200,
+                    )
+                )
+            except Exception as exc:
+                chunks.append(f"<failed to read {pod_name} logs: {exc}>")
+        return "\n".join(chunks)
+
+    @staticmethod
+    def _cleanup_kaniko_resources(batch_api, core_api, namespace: str, job_name: str, api_exception) -> None:
+        for delete_call, name in (
+            (batch_api.delete_namespaced_job, job_name),
+            (core_api.delete_namespaced_config_map, f"{job_name}-context"),
+        ):
+            try:
+                delete_call(name=name, namespace=namespace)
+            except api_exception as exc:
+                if getattr(exc, "status", None) != 404:
+                    raise
 
     async def push_image(self, image_name: str, registry: Optional[str] = None) -> Dict:
         """
