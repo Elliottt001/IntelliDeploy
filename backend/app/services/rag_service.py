@@ -15,7 +15,7 @@ from app.schemas.rag import (
     RepoIntent,
     RerankStage,
 )
-from app.services.generation_task_service import GenerationTaskService
+from app.services.multi_agent_deployment_service import MultiAgentDeploymentService
 from app.schemas.retrieval import RepoSearchRequest, RepoSearchResponse
 from app.services.retrieval_service import RetrievalService, get_retrieval_service
 
@@ -102,7 +102,7 @@ class RagService:
             repo_profile=candidate.repo_profile,
             constraints=request.constraints or Constraints(),
         )
-        generation = await GenerationTaskService(self.db).start_fallback_task(generation_request)
+        generation = await MultiAgentDeploymentService(self.db).start_generation_with_consensus(generation_request)
         return search_response, generation
 
     def _intent_from_retrieval(self, response: RepoSearchResponse) -> RepoIntent:

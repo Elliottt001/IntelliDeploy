@@ -14,6 +14,10 @@ from app.schemas.fallback import (
     DeployFailureFeedbackResponse,
 )
 from app.services.generation_task_service import GenerationTaskService
+from app.services.multi_agent_deployment_service import (
+    MultiAgentConsensusRejected,
+    MultiAgentDeploymentService,
+)
 
 router = APIRouter(prefix="/api/generation", tags=["generation"])
 
@@ -31,10 +35,19 @@ async def start_fallback_task(
     - Top1 修复失败，转 Branch B (REPAIR_EXHAUSTED)
     - 人工指定强制走生成 (FORCE_FALLBACK)
     """
-    service = GenerationTaskService(db)
+    service = MultiAgentDeploymentService(db)
     try:
-        response = await service.start_fallback_task(request)
+        response = await service.start_generation_with_consensus(request)
         return response
+    except MultiAgentConsensusRejected as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "message": str(e),
+                "consensus": e.consensus_result,
+                "trace": e.graph_state.get("trace", []),
+            },
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -35,6 +35,12 @@ class SubmitRepoProfile(BaseModel):
     dependency_files: list[str] = Field(default_factory=list)
     has_valid_dockerfile: bool | None = None
     readme_summary: str | None = None
+    healthcheck_path: str | None = None
+    target_port: int | None = None
+    agent_build_plan: dict | None = None
+    agent_consensus: dict | None = None
+    agent_trace: list[str] = Field(default_factory=list)
+    agent_proposed_files: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="ignore")
 

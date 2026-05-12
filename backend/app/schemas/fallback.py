@@ -95,6 +95,12 @@ class RepoProfile(BaseModel):
     dependency_files: Optional[List[str]] = None
     has_valid_dockerfile: Optional[bool] = None
     readme_summary: Optional[str] = None
+    healthcheck_path: Optional[str] = None
+    target_port: Optional[int] = None
+    agent_build_plan: Optional[Dict] = None
+    agent_consensus: Optional[Dict] = None
+    agent_trace: Optional[List[str]] = None
+    agent_proposed_files: Optional[List[str]] = None
 
 
 class Constraints(BaseModel):
