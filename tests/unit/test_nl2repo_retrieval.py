@@ -49,6 +49,11 @@ def test_router_agent_structures_vague_portfolio_intent():
     assert intent.is_frontend_only is True
     assert "stars:>50" in intent.github_query
     assert "pushed:>" in intent.github_query
+    assert intent.target_output_type == "repository"
+    assert intent.target_app_type == "portfolio_site"
+    assert "portfolio" in intent.expected_features
+    assert intent.preferred_framework in {"Next.js", "React", "Vue"}
+    assert intent.constraints["frontend_only"] is True
 
 
 def test_bm25_readme_store_ranks_long_tail_semantic_match_first():
@@ -97,6 +102,12 @@ async def test_pipeline_merges_dual_track_results_and_reranks_for_deployability(
                     "pushed_at": "2026-04-01T00:00:00Z",
                     "topics": ["journal", "dreams", "nextjs"],
                     "files": ["Dockerfile", "package.json"],
+                    "file_tree": ["Dockerfile", "package.json", "src/main.ts"],
+                    "key_files": {
+                        "README.md": "# DreamLog",
+                        "Dockerfile": "FROM node:20-alpine",
+                        "package.json": '{"scripts":{"start":"next start"}}',
+                    },
                 },
             )
         ]
@@ -112,6 +123,7 @@ async def test_pipeline_merges_dual_track_results_and_reranks_for_deployability(
                 language="JavaScript",
                 topics=["portfolio"],
                 files=["package.json"],
+                file_tree=["package.json", "src/App.jsx"],
                 source_scores={"github": 1.0},
             ),
             RepositoryCandidate(
@@ -123,6 +135,12 @@ async def test_pipeline_merges_dual_track_results_and_reranks_for_deployability(
                 language="TypeScript",
                 topics=["journal", "dreams", "nextjs"],
                 files=["Dockerfile", "package.json"],
+                file_tree=["Dockerfile", "package.json", "src/main.ts"],
+                key_files={
+                    "README.md": "# DreamLog",
+                    "Dockerfile": "FROM node:20-alpine",
+                    "package.json": '{"scripts":{"start":"next start"}}',
+                },
                 source_scores={"github": 0.7},
             ),
         ]
@@ -141,6 +159,12 @@ async def test_pipeline_merges_dual_track_results_and_reranks_for_deployability(
     assert github_client.seen_queries
     assert len(result.candidates) == 2
     assert result.candidates[0].full_name == "dream/dreamlog"
+    assert result.candidates[0].rank == 1
+    assert result.candidates[0].retrieval_score == result.candidates[0].score
+    assert result.candidates[0].repo_url == "https://github.com/dream/dreamlog"
+    assert result.candidates[0].last_commit_at == "2026-04-01T00:00:00Z"
+    assert "src/main.ts" in result.candidates[0].file_tree
+    assert "Dockerfile" in result.candidates[0].key_files
     assert result.candidates[0].score_breakdown["docker_bonus"] > 0
     assert result.repository_profile is not None
     assert result.repository_profile.source_repo_url == "https://github.com/dream/dreamlog"
@@ -167,6 +191,11 @@ async def test_retrieval_service_accepts_request_scoped_readme_corpus():
                     "pushed_at": "2026-04-01T00:00:00Z",
                     "topics": ["dreams", "nextjs"],
                     "files": ["Dockerfile", "package.json"],
+                    "file_tree": ["Dockerfile", "package.json", "src/main.ts"],
+                    "key_files": {
+                        "README.md": "# DreamLog",
+                        "Dockerfile": "FROM node:20-alpine",
+                    },
                 },
             )
         ],
@@ -175,6 +204,21 @@ async def test_retrieval_service_accepts_request_scoped_readme_corpus():
     response = await service.search(request)
 
     assert response.intent.keywords
+    assert response.intent.target_output_type == "repository"
     assert response.candidates[0].full_name == "dream/dreamlog"
+    payload = response.model_dump()
+    assert {
+        "rank",
+        "retrieval_score",
+        "repo_url",
+        "default_branch",
+        "description",
+        "topics",
+        "stars",
+        "is_archived",
+        "last_commit_at",
+        "file_tree",
+        "key_files",
+    }.issubset(payload["candidates"][0])
     assert response.repository_profile is not None
     assert response.repository_profile.has_valid_dockerfile is True

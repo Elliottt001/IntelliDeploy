@@ -30,6 +30,8 @@ class RetrievalService:
         self.llm_reranker = llm_reranker or self._build_llm_reranker()
 
     async def search(self, request: RepoSearchRequest) -> RepoSearchResponse:
+        # Request-scoped README records let tests, demos, and future crawlers
+        # inject fresh corpus data without mutating the process-wide BM25 store.
         store = self._store_for_request(request.readme_corpus or [])
         pipeline = NL2RepoRetrievalPipeline(
             router=self.router,
@@ -44,6 +46,9 @@ class RetrievalService:
         return RepoSearchResponse.model_validate(result.model_dump())
 
     def upsert_readmes(self, items: list[ReadmeCorpusItem]) -> int:
+        # This endpoint is intentionally simple for the first phase. A later
+        # crawler can swap the backing store for ES/Meili/pgvector without
+        # changing Router Agent or Context/RAG Agent call sites.
         documents = [self._document_from_item(item) for item in items]
         self.readme_store.upsert_many(documents)
         return len(documents)
@@ -73,6 +78,8 @@ class RetrievalService:
             from app.agent_core.brains.llm_clients import OpenAICompatibleIntentClient
             from app.config import settings
 
+            # Use the configured low-latency model only when credentials are
+            # present. Otherwise RouterAgent falls back to deterministic rules.
             api_base = settings.MODEL_API or settings.BASE_URL
             api_key = settings.MODEL_KEY or settings.API_KEY
             if api_base and api_key and settings.MODEL_NAME:
@@ -93,6 +100,8 @@ class RetrievalService:
             from app.agent_core.brains.llm_clients import OpenAICompatibleRepoReranker
             from app.config import settings
 
+            # LLM reranking is optional. The coarse deployability scorer remains
+            # the source of truth when model access is unavailable or times out.
             api_base = settings.MODEL_API or settings.BASE_URL
             api_key = settings.MODEL_KEY or settings.API_KEY
             if api_base and api_key and settings.MODEL_NAME:

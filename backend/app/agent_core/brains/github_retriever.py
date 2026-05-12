@@ -67,6 +67,9 @@ class GitHubRepositorySearchClient:
     ) -> RepositoryCandidate:
         owner_repo = candidate.full_name
         branch = candidate.default_branch
+
+        # Root contents are cheap and give the hard-rule scorer quick evidence
+        # for package managers, Dockerfiles, and common framework files.
         contents_path = f"/repos/{owner_repo}/contents"
         params = {"ref": branch} if branch else None
         contents = await self._request_json(contents_path, params=params, allow_404=True)
@@ -75,20 +78,77 @@ class GitHubRepositorySearchClient:
                 {item.get("name", "") for item in contents if item.get("name")}
             )
 
-        if not candidate.readme_snippet:
-            readme = await self._request_json(
-                f"/repos/{owner_repo}/readme", params=params, allow_404=True
+        # The interface contract asks for a file tree. GitHub's recursive tree
+        # endpoint is a good fit, and we cap the stored tree to protect payload
+        # size for unusually large repositories.
+        if branch:
+            tree = await self._request_json(
+                f"/repos/{owner_repo}/git/trees/{branch}",
+                params={"recursive": "1"},
+                allow_404=True,
             )
-            if isinstance(readme, dict) and readme.get("content"):
-                try:
-                    decoded = base64.b64decode(readme["content"]).decode(
-                        "utf-8", errors="ignore"
-                    )
-                    candidate.readme_snippet = clean_readme_text(decoded)[:1000]
-                except Exception:
-                    candidate.readme_snippet = ""
+            if isinstance(tree, dict) and isinstance(tree.get("tree"), list):
+                candidate.file_tree = [
+                    item["path"]
+                    for item in tree["tree"][:500]
+                    if item.get("type") == "blob" and item.get("path")
+                ]
+
+        await self._attach_readme(owner_repo, branch, candidate)
+        await self._attach_key_files(owner_repo, branch, candidate)
 
         return candidate
+
+    async def _attach_readme(
+        self, owner_repo: str, branch: str | None, candidate: RepositoryCandidate
+    ) -> None:
+        params = {"ref": branch} if branch else None
+        readme = await self._request_json(
+            f"/repos/{owner_repo}/readme", params=params, allow_404=True
+        )
+        if not isinstance(readme, dict) or not readme.get("content"):
+            return
+
+        decoded = self._decode_content(readme)
+        if decoded is None:
+            return
+
+        readme_name = readme.get("name") or "README.md"
+        candidate.key_files.setdefault(readme_name, decoded)
+        if not candidate.readme_snippet:
+            candidate.readme_snippet = clean_readme_text(decoded)[:1000]
+
+    async def _attach_key_files(
+        self, owner_repo: str, branch: str | None, candidate: RepositoryCandidate
+    ) -> None:
+        key_paths = self._select_key_paths(candidate.file_tree or candidate.files)
+        for path in key_paths[:12]:
+            if path in candidate.key_files:
+                continue
+            params = {"ref": branch} if branch else None
+            content = await self._request_json(
+                f"/repos/{owner_repo}/contents/{path}", params=params, allow_404=True
+            )
+            if isinstance(content, dict):
+                decoded = self._decode_content(content)
+                if decoded is not None:
+                    candidate.key_files[path] = decoded[:20000]
+
+    @staticmethod
+    def _decode_content(payload: dict) -> str | None:
+        try:
+            return base64.b64decode(payload["content"]).decode("utf-8", errors="ignore")
+        except Exception:
+            return None
+
+    @staticmethod
+    def _select_key_paths(paths: list[str]) -> list[str]:
+        selected: list[str] = []
+        for path in paths:
+            name = path.replace("\\", "/").rsplit("/", 1)[-1].lower()
+            if name in _KEY_FILE_NAMES or path.lower() in _KEY_FILE_NAMES:
+                selected.append(path)
+        return selected
 
     async def _request_json(
         self,
@@ -122,14 +182,44 @@ class GitHubRepositorySearchClient:
     def _candidate_from_search_item(item: dict) -> RepositoryCandidate:
         return RepositoryCandidate(
             full_name=item.get("full_name", ""),
+            repo_url=item.get("html_url", ""),
             html_url=item.get("html_url", ""),
             description=item.get("description") or "",
             stars=int(item.get("stargazers_count") or 0),
             forks=int(item.get("forks_count") or 0),
             open_issues_count=item.get("open_issues_count"),
             pushed_at=item.get("pushed_at"),
+            last_commit_at=item.get("pushed_at"),
             language=item.get("language"),
             topics=list(item.get("topics") or []),
             default_branch=item.get("default_branch"),
+            is_archived=bool(item.get("archived") or False),
             source_scores={"github": 1.0},
         )
+
+
+_KEY_FILE_NAMES = {
+    "readme.md",
+    "readme",
+    "package.json",
+    "requirements.txt",
+    "pyproject.toml",
+    "pom.xml",
+    "go.mod",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    "poetry.lock",
+    "uv.lock",
+    "dockerfile",
+    "docker-compose.yml",
+    "makefile",
+    "main.py",
+    "app.py",
+    "server.js",
+    "index.js",
+    "main.ts",
+    "vite.config.ts",
+    "next.config.js",
+    "procfile",
+}

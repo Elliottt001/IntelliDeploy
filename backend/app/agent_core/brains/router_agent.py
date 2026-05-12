@@ -10,7 +10,31 @@ from pydantic import BaseModel, Field
 class RepoIntent(BaseModel):
     """Structured query intent consumed by retrieval agents."""
 
-    raw_query: str
+    raw_query: str = Field(description="Original user request from the API caller.")
+    target_output_type: str = Field(
+        default="repository",
+        description="The standardized asset type expected by downstream agents.",
+    )
+    target_app_type: str = Field(
+        default="web_app",
+        description="Coarse product category inferred from the natural language query.",
+    )
+    expected_features: list[str] = Field(
+        default_factory=list,
+        description="Feature terms normalized from vague product language.",
+    )
+    preferred_language: str | None = Field(
+        default=None,
+        description="Preferred repository language inferred for GitHub ranking.",
+    )
+    preferred_framework: str | None = Field(
+        default=None,
+        description="Preferred framework inferred for deployability matching.",
+    )
+    constraints: dict[str, object] = Field(
+        default_factory=dict,
+        description="Machine-readable constraints that shape retrieval and reranking.",
+    )
     normalized_query: str
     keywords: list[str] = Field(default_factory=list)
     github_query: str
@@ -55,32 +79,44 @@ class RouterAgent:
         normalized = query.lower()
         keywords: list[str] = []
         tech_stack: list[str] = []
+        expected_features: list[str] = []
+        target_app_type = "web_app"
         is_frontend_only = False
         has_database = False
 
         if self._contains_any(normalized, ["personal website", "portfolio", "blog", "\u4e2a\u4eba\u7f51\u7ad9"]):
             keywords.extend(["portfolio", "personal website", "blog", "minimalist"])
+            expected_features.extend(["portfolio", "blog", "responsive layout"])
             tech_stack.extend(["Next.js", "React", "Vue"])
+            target_app_type = "portfolio_site"
             is_frontend_only = True
 
         if self._contains_any(normalized, ["\u5c0f\u7ea2\u4e66", "xiaohongshu", "rednote"]):
             keywords.extend(["image-sharing", "social-network", "waterfall-layout", "community"])
+            expected_features.extend(["image sharing", "social feed", "waterfall layout"])
             tech_stack.extend(["Next.js", "React"])
+            target_app_type = "social_app"
             has_database = True
 
         if self._contains_any(normalized, ["dream", "dreams", "\u68a6", "\u68a6\u5883"]):
             keywords.extend(["dream", "journal", "sleep", "mood tracker"])
+            expected_features.extend(["dream journal", "tags", "calendar", "search"])
             tech_stack.extend(["Next.js", "React", "TypeScript"])
+            target_app_type = "journal_app"
             has_database = True
 
         if self._contains_any(normalized, ["agent", "workflow", "\u81ea\u52a8\u5316", "\u667a\u80fd\u4f53"]):
             keywords.extend(["ai agent", "workflow automation", "llm"])
+            expected_features.extend(["agent workflow", "automation", "llm integration"])
             tech_stack.extend(["Python", "FastAPI"])
+            target_app_type = "agent_service"
             has_database = True
 
         if self._contains_any(normalized, ["api", "backend", "\u540e\u7aef"]):
             keywords.extend(["api", "backend"])
+            expected_features.extend(["api service", "backend"])
             tech_stack.extend(["Python", "FastAPI"])
+            target_app_type = "api_service"
             has_database = True
 
         if not keywords:
@@ -88,13 +124,25 @@ class RouterAgent:
 
         if not keywords:
             keywords.extend(["web app", "deployable", "template"])
+            expected_features.extend(["web app", "deployable"])
             tech_stack.extend(["Next.js", "React"])
 
         keywords = self._dedupe(keywords)[:8]
         tech_stack = self._dedupe(tech_stack)[:5]
+        expected_features = self._dedupe(expected_features or keywords)[:8]
 
         intent = RepoIntent(
             raw_query=query,
+            target_app_type=target_app_type,
+            expected_features=expected_features,
+            preferred_language=self._preferred_language(tech_stack),
+            preferred_framework=tech_stack[0] if tech_stack else None,
+            constraints={
+                "frontend_only": is_frontend_only,
+                "has_database": has_database,
+                "min_stars": self.min_stars,
+                "recent_days": self.recent_days,
+            },
             normalized_query=normalized,
             keywords=keywords,
             tech_stack=tech_stack,
@@ -113,6 +161,19 @@ class RouterAgent:
         if "pushed:>" not in guarded:
             guarded = f"{guarded} pushed:>{self._cutoff_date()}"
         intent.github_query = guarded
+        intent.target_output_type = intent.target_output_type or "repository"
+        intent.expected_features = intent.expected_features or intent.keywords
+        intent.preferred_framework = intent.preferred_framework or (
+            intent.tech_stack[0] if intent.tech_stack else None
+        )
+        intent.preferred_language = intent.preferred_language or self._preferred_language(
+            intent.tech_stack
+        )
+        intent.constraints = {
+            "min_stars": self.min_stars,
+            "recent_days": self.recent_days,
+            **intent.constraints,
+        }
         return intent
 
     def _build_github_query(self, keywords: Iterable[str], tech_stack: Iterable[str]) -> str:
@@ -163,3 +224,14 @@ class RouterAgent:
             "fastapi": "fastapi",
         }
         return mapping.get(key)
+
+    @staticmethod
+    def _preferred_language(tech_stack: list[str]) -> str | None:
+        normalized = {stack.lower().replace(".", "").replace(" ", "") for stack in tech_stack}
+        if "typescript" in normalized or "nextjs" in normalized:
+            return "TypeScript"
+        if "python" in normalized or "fastapi" in normalized:
+            return "Python"
+        if "react" in normalized or "vue" in normalized:
+            return "JavaScript"
+        return None

@@ -13,21 +13,58 @@ from app.schemas.fallback import PackageManager, RepoProfile
 
 
 class RepositoryCandidate(BaseModel):
+    rank: int | None = Field(
+        default=None,
+        description="1-based rank after deployability reranking.",
+    )
     full_name: str
+    repo_url: str = Field(
+        default="",
+        description="Canonical GitHub repository URL expected by API consumers.",
+    )
     html_url: str = ""
     description: str = ""
     stars: int = 0
     forks: int = 0
     open_issues_count: int | None = None
+    is_archived: bool = False
+    last_commit_at: str | None = Field(
+        default=None,
+        description="Timestamp of the latest known commit or push activity.",
+    )
     pushed_at: str | None = None
     language: str | None = None
     topics: list[str] = Field(default_factory=list)
     files: list[str] = Field(default_factory=list)
+    file_tree: list[str] = Field(
+        default_factory=list,
+        description="Repository file tree paths used by the downstream Builder Agent.",
+    )
+    key_files: dict[str, str] = Field(
+        default_factory=dict,
+        description="Selected README, dependency, build, entrypoint, and config file contents.",
+    )
     readme_snippet: str = ""
     default_branch: str | None = None
+    retrieval_score: float = Field(
+        default=0.0,
+        description="Final numeric score copied from score for the public API contract.",
+    )
     source_scores: dict[str, float] = Field(default_factory=dict)
     score: float = 0.0
     score_breakdown: dict[str, float] = Field(default_factory=dict)
+
+    def model_post_init(self, __context: Any) -> None:
+        if not self.repo_url and self.html_url:
+            self.repo_url = self.html_url
+        if not self.html_url and self.repo_url:
+            self.html_url = self.repo_url
+        if self.last_commit_at is None and self.pushed_at is not None:
+            self.last_commit_at = self.pushed_at
+        if self.pushed_at is None and self.last_commit_at is not None:
+            self.pushed_at = self.last_commit_at
+        if not self.file_tree and self.files:
+            self.file_tree = list(self.files)
 
     @property
     def repo_key(self) -> str:
@@ -71,18 +108,31 @@ class NL2RepoRetrievalPipeline:
 
     async def retrieve(self, natural_language_query: str, top_n: int = 3) -> RetrievalResult:
         intent = self.router.structure_intent(natural_language_query)
+
+        # Run exact GitHub search and README BM25 retrieval concurrently. The
+        # slower path determines latency, so neither path should block the other.
         github_task = self._github_search(intent)
         readme_task = self._readme_search(intent)
         github_candidates, readme_candidates = await asyncio.gather(
             github_task, readme_task
         )
 
+        # Dedupe before enrichment so the same repository only pays the GitHub
+        # contents/readme lookup cost once.
         merged = self._merge_candidates(github_candidates + readme_candidates)
         enriched = await self._enrich_candidates(merged)
         filtered = [candidate for candidate in enriched if self._passes_hard_rules(candidate)]
+
+        # Coarse ranking is deterministic and cheap. Optional LLM reranking only
+        # sees the Top 10 summaries to avoid context-window and latency blowups.
         ranked = self._coarse_rank(intent, filtered)
         ranked = self._llm_rank(intent, ranked[:10])
         selected = ranked[:top_n]
+        for index, candidate in enumerate(selected, start=1):
+            candidate.rank = index
+            candidate.retrieval_score = candidate.score
+            candidate.repo_url = candidate.repo_url or candidate.html_url
+            candidate.last_commit_at = candidate.last_commit_at or candidate.pushed_at
         profile = self.extract_repository_profile(selected[0]) if selected else None
         return RetrievalResult(
             intent=intent,
@@ -129,11 +179,15 @@ class NL2RepoRetrievalPipeline:
             forks=int(metadata.get("forks") or 0),
             open_issues_count=metadata.get("open_issues_count"),
             pushed_at=metadata.get("pushed_at"),
+            last_commit_at=metadata.get("last_commit_at") or metadata.get("pushed_at"),
             language=metadata.get("language"),
             topics=list(metadata.get("topics") or []),
             files=list(metadata.get("files") or []),
+            file_tree=list(metadata.get("file_tree") or metadata.get("files") or []),
+            key_files=dict(metadata.get("key_files") or {}),
             readme_snippet=readme_snippet,
             default_branch=metadata.get("default_branch"),
+            is_archived=bool(metadata.get("is_archived") or metadata.get("archived") or False),
             source_scores={"bm25": normalized_score},
         )
 
@@ -169,20 +223,30 @@ class NL2RepoRetrievalPipeline:
             current.html_url = current.html_url or candidate.html_url
             current.language = current.language or candidate.language
             current.pushed_at = self._newer_timestamp(current.pushed_at, candidate.pushed_at)
+            current.last_commit_at = self._newer_timestamp(
+                current.last_commit_at, candidate.last_commit_at
+            )
             current.topics = sorted(set(current.topics) | set(candidate.topics))
             current.files = sorted(set(current.files) | set(candidate.files))
+            current.file_tree = sorted(set(current.file_tree) | set(candidate.file_tree))
+            current.key_files = {**candidate.key_files, **current.key_files}
             current.readme_snippet = current.readme_snippet or candidate.readme_snippet
             current.default_branch = current.default_branch or candidate.default_branch
+            current.is_archived = current.is_archived or candidate.is_archived
         return list(merged.values())
 
     def _passes_hard_rules(self, candidate: RepositoryCandidate) -> bool:
+        if candidate.is_archived:
+            return False
+
         pushed_at = self._parse_timestamp(candidate.pushed_at)
         if pushed_at is not None:
             cutoff = datetime.now(timezone.utc) - timedelta(days=365)
             if pushed_at < cutoff:
                 return False
 
-        if candidate.files and not self._has_engineering_structure(candidate.files):
+        candidate_paths = self._candidate_paths(candidate)
+        if candidate_paths and not self._has_engineering_structure(candidate_paths):
             return False
 
         return True
@@ -229,12 +293,14 @@ class NL2RepoRetrievalPipeline:
             "retrieval_relevance": 40.0 * source_score,
             "stars": min(math.log(candidate.stars + 1, 10) * 5.0, 20.0),
             "recency": self._recency_score(candidate.pushed_at),
-            "docker_bonus": 50.0 if self._has_docker(candidate.files) else 0.0,
+            "docker_bonus": 50.0
+            if self._has_docker(self._candidate_paths(candidate))
+            else 0.0,
             "template_stack_bonus": 30.0
             if self._matches_preferred_stack(intent, candidate)
             else 0.0,
             "package_structure": 10.0
-            if self._has_engineering_structure(candidate.files)
+            if self._has_engineering_structure(self._candidate_paths(candidate))
             else 0.0,
             "dual_track_bonus": 10.0
             if {"github", "bm25"}.issubset(candidate.source_scores)
@@ -245,8 +311,8 @@ class NL2RepoRetrievalPipeline:
     def extract_repository_profile(self, candidate: RepositoryCandidate) -> RepoProfile:
         dependency_files = [
             file_name
-            for file_name in candidate.files
-            if file_name.lower()
+            for file_name in self._candidate_paths(candidate)
+            if self._path_name(file_name)
             in {
                 "package.json",
                 "requirements.txt",
@@ -261,15 +327,15 @@ class NL2RepoRetrievalPipeline:
             }
         ]
         frameworks = self._detected_frameworks(candidate)
-        package_manager = self._detect_package_manager(candidate.files)
+        package_manager = self._detect_package_manager(self._candidate_paths(candidate))
         return RepoProfile(
-            source_repo_url=candidate.html_url,
+            source_repo_url=candidate.repo_url or candidate.html_url,
             detected_languages=[candidate.language] if candidate.language else None,
             detected_frameworks=frameworks or None,
             package_manager=package_manager,
-            entrypoints=self._detect_entrypoints(candidate.files) or None,
+            entrypoints=self._detect_entrypoints(self._candidate_paths(candidate)) or None,
             dependency_files=dependency_files or None,
-            has_valid_dockerfile=self._has_docker(candidate.files),
+            has_valid_dockerfile=self._has_docker(self._candidate_paths(candidate)),
             readme_summary=(candidate.readme_snippet or candidate.description)[:500] or None,
         )
 
@@ -294,6 +360,7 @@ class NL2RepoRetrievalPipeline:
                 candidate.language or "",
                 " ".join(candidate.topics),
                 " ".join(candidate.files),
+                " ".join(candidate.file_tree),
             ]
         ).lower()
         for stack in intent.tech_stack:
@@ -306,7 +373,12 @@ class NL2RepoRetrievalPipeline:
 
     def _detected_frameworks(self, candidate: RepositoryCandidate) -> list[str]:
         text = " ".join(
-            [candidate.description, " ".join(candidate.topics), " ".join(candidate.files)]
+            [
+                candidate.description,
+                " ".join(candidate.topics),
+                " ".join(candidate.files),
+                " ".join(candidate.file_tree),
+            ]
         ).lower()
         frameworks: list[str] = []
         for label, markers in {
@@ -323,7 +395,7 @@ class NL2RepoRetrievalPipeline:
 
     @staticmethod
     def _detect_package_manager(files: list[str]) -> PackageManager | None:
-        names = {file_name.lower() for file_name in files}
+        names = {NL2RepoRetrievalPipeline._path_name(file_name) for file_name in files}
         if "pnpm-lock.yaml" in names:
             return PackageManager.pnpm
         if "yarn.lock" in names:
@@ -344,21 +416,30 @@ class NL2RepoRetrievalPipeline:
 
     @staticmethod
     def _detect_entrypoints(files: list[str]) -> list[str]:
-        names = {file_name.lower() for file_name in files}
+        names = {NL2RepoRetrievalPipeline._path_name(file_name) for file_name in files}
         entrypoints: list[str] = []
-        for candidate in ["dockerfile", "package.json", "main.py", "app.py", "go.mod"]:
-            if candidate in names:
-                entrypoints.append(candidate)
+        for file_path in files:
+            if NL2RepoRetrievalPipeline._path_name(file_path) in {
+                "dockerfile",
+                "package.json",
+                "main.py",
+                "app.py",
+                "server.js",
+                "index.js",
+                "main.ts",
+                "go.mod",
+            }:
+                entrypoints.append(file_path)
         return entrypoints
 
     @staticmethod
     def _has_docker(files: list[str]) -> bool:
-        names = {file_name.lower() for file_name in files}
+        names = {NL2RepoRetrievalPipeline._path_name(file_name) for file_name in files}
         return "dockerfile" in names or "docker-compose.yml" in names
 
     @staticmethod
     def _has_engineering_structure(files: list[str]) -> bool:
-        names = {file_name.lower() for file_name in files}
+        names = {NL2RepoRetrievalPipeline._path_name(file_name) for file_name in files}
         return bool(
             names
             & {
@@ -371,6 +452,14 @@ class NL2RepoRetrievalPipeline:
                 "docker-compose.yml",
             }
         )
+
+    @staticmethod
+    def _candidate_paths(candidate: RepositoryCandidate) -> list[str]:
+        return sorted(set(candidate.files) | set(candidate.file_tree))
+
+    @staticmethod
+    def _path_name(file_path: str) -> str:
+        return file_path.replace("\\", "/").rsplit("/", 1)[-1].lower()
 
     @staticmethod
     def _newer_timestamp(first: str | None, second: str | None) -> str | None:
