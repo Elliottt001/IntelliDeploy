@@ -151,7 +151,7 @@ class NL2RepoRetrievalPipeline:
             return []
 
         for index, candidate in enumerate(candidates):
-            candidate.source_scores.setdefault("github", 1.0 - index * 0.02)
+            candidate.source_scores.setdefault("github_search", 1.0 - index * 0.02)
         return candidates
 
     async def _readme_search(self, intent: RepoIntent) -> list[RepositoryCandidate]:
@@ -188,7 +188,7 @@ class NL2RepoRetrievalPipeline:
             readme_snippet=readme_snippet,
             default_branch=metadata.get("default_branch"),
             is_archived=bool(metadata.get("is_archived") or metadata.get("archived") or False),
-            source_scores={"bm25": normalized_score},
+            source_scores={"readme_bm25": normalized_score},
         )
 
     async def _enrich_candidates(
@@ -303,7 +303,7 @@ class NL2RepoRetrievalPipeline:
             if self._has_engineering_structure(self._candidate_paths(candidate))
             else 0.0,
             "dual_track_bonus": 10.0
-            if {"github", "bm25"}.issubset(candidate.source_scores)
+            if {"github_search", "readme_bm25"}.issubset(candidate.source_scores)
             else 0.0,
         }
         return breakdown

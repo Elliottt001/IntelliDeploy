@@ -67,6 +67,43 @@ export type RagSearchResponse = {
   warnings: string[];
 };
 
+type RetrievalCandidate = {
+  rank?: number | null;
+  full_name: string;
+  repo_url?: string;
+  html_url?: string;
+  description?: string;
+  stars?: number;
+  forks?: number;
+  is_archived?: boolean;
+  last_commit_at?: string | null;
+  pushed_at?: string | null;
+  language?: string | null;
+  topics?: string[];
+  default_branch?: string | null;
+  retrieval_score?: number;
+  source_scores?: Record<string, number>;
+  score?: number;
+  score_breakdown?: Record<string, number>;
+  readme_snippet?: string;
+};
+
+type RetrievalSearchResponse = {
+  intent: {
+    raw_query: string;
+    keywords?: string[];
+    github_query?: string;
+    tech_stack?: string[];
+    target_app_type?: string;
+    target_output_type?: string;
+    is_frontend_only?: boolean;
+    has_database?: boolean;
+    constraints?: Record<string, unknown>;
+  };
+  candidates: RetrievalCandidate[];
+  repository_profile?: RepoProfile | null;
+};
+
 // 请求拦截器：自动添加 token
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem('token');
@@ -85,12 +122,92 @@ export const authAPI = {
 };
 
 export const ragAPI = {
-  search: (rawQuery: string) =>
-    api.post<RagSearchResponse>('/api/rag/search', {
-      raw_query: rawQuery,
-      top_k: 3,
-      include_readme: true,
-    }),
+  search: async (rawQuery: string) => {
+    const response = await api.post<RetrievalSearchResponse>('/api/retrieval/repos/search', {
+      natural_language_query: rawQuery,
+      top_n: 3,
+    });
+    return {
+      ...response,
+      data: mapRetrievalToRagSearch(response.data),
+    };
+  },
 };
 
 export default api;
+
+function mapRetrievalToRagSearch(data: RetrievalSearchResponse): RagSearchResponse {
+  const candidates = data.candidates.map((candidate, index) => {
+    const repoUrl = candidate.repo_url || candidate.html_url || '';
+    const score = candidate.score || candidate.retrieval_score || 0;
+    const profile = index === 0 && data.repository_profile ? data.repository_profile : {};
+    return {
+      rank: candidate.rank || index + 1,
+      repo_url: repoUrl,
+      full_name: candidate.full_name,
+      name: candidate.full_name.split('/').pop() || candidate.full_name,
+      owner: candidate.full_name.includes('/') ? candidate.full_name.split('/')[0] : '',
+      description: candidate.description || '',
+      default_branch: candidate.default_branch || null,
+      topics: candidate.topics || [],
+      stars: candidate.stars || 0,
+      forks: candidate.forks || 0,
+      language: candidate.language || null,
+      is_archived: Boolean(candidate.is_archived),
+      last_commit_at: candidate.last_commit_at || candidate.pushed_at || null,
+      retrieval_sources: Object.keys(candidate.source_scores || {}),
+      retrieval_score: score,
+      deployability_score: deployabilityScore(candidate.score_breakdown || {}),
+      final_score: score,
+      rerank_stage: candidate.score_breakdown ? 'coarse' : 'fallback',
+      match_reasons: matchReasons(candidate),
+      readme_summary: profile.readme_summary || candidate.readme_snippet || candidate.description || null,
+      repo_profile: {
+        source_repo_url: profile.source_repo_url || repoUrl,
+        detected_languages: profile.detected_languages || (candidate.language ? [candidate.language] : []),
+        detected_frameworks: profile.detected_frameworks || [],
+        package_manager: profile.package_manager || null,
+        entrypoints: profile.entrypoints || [],
+        dependency_files: profile.dependency_files || [],
+        has_valid_dockerfile: profile.has_valid_dockerfile ?? null,
+        readme_summary: profile.readme_summary || candidate.readme_snippet || candidate.description || null,
+      },
+      missing_components: [],
+    };
+  });
+  return {
+    request_id: `retrieval-${Date.now()}`,
+    intent: {
+      raw_query: data.intent.raw_query,
+      keywords: data.intent.keywords || [],
+      github_query: data.intent.github_query || '',
+      tech_stack: data.intent.tech_stack || [],
+      target_app_type: data.intent.target_app_type || 'unknown',
+      target_output_type: data.intent.target_output_type || 'repository',
+      is_frontend_only: Boolean(data.intent.is_frontend_only),
+      has_database: data.intent.has_database ?? null,
+      constraints: data.intent.constraints || {},
+    },
+    candidates,
+    selected: candidates[0] || null,
+    generated_at: new Date().toISOString(),
+    warnings: [],
+  };
+}
+
+function deployabilityScore(scoreBreakdown: Record<string, number>): number {
+  return Math.min(
+    (scoreBreakdown.docker_bonus || 0) +
+      (scoreBreakdown.template_stack_bonus || 0) +
+      (scoreBreakdown.package_structure || 0),
+    100
+  );
+}
+
+function matchReasons(candidate: RetrievalCandidate): string[] {
+  const sources = Object.keys(candidate.source_scores || {}).map((source) => `source:${source}`);
+  const scores = Object.entries(candidate.score_breakdown || {})
+    .filter(([, value]) => value > 0)
+    .map(([key]) => `score:${key}`);
+  return [...sources, ...scores];
+}

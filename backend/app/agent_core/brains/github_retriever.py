@@ -194,7 +194,7 @@ class GitHubRepositorySearchClient:
             topics=list(item.get("topics") or []),
             default_branch=item.get("default_branch"),
             is_archived=bool(item.get("archived") or False),
-            source_scores={"github": 1.0},
+            source_scores={"github_search": 1.0},
         )
 
 

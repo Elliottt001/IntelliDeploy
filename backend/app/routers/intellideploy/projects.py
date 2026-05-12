@@ -11,7 +11,8 @@ from app.models.intellideploy.analysis import Analysis
 from app.models.intellideploy.deployment import Deployment
 from app.models.intellideploy.project import Project
 from app.models.user import User
-from app.schemas.rag import RagCandidate, RagSearchRequest
+from app.schemas.rag import RagCandidate
+from app.schemas.retrieval import RepoSearchRequest
 from app.services.intellideploy_ai import analyze_repository
 from app.services.intellideploy_auto_docker import auto_analyze_and_push
 from app.services.intellideploy_auto_yaml import auto_analyze_and_push_sealos
@@ -26,6 +27,7 @@ from app.services.intellideploy_k8s import deploy_with_kubeconfig
 from app.services.intellideploy_project_utils import parse_repo_url
 from app.services.intellideploy_sealos import slugify
 from app.services.rag_service import RagService
+from app.services.retrieval_service import get_retrieval_service
 from app.utils.security import get_current_user
 
 router = APIRouter(prefix="/api/projects", tags=["intellideploy-projects"])
@@ -92,14 +94,13 @@ async def _create_project_from_query(payload: CreateProjectPayload, current_user
     if not query:
         return _error_response("rawQuery is required", 400)
 
-    search = await RagService(db).search(
-        RagSearchRequest(
-            raw_query=query,
-            top_k=max(1, min(payload.topK, 10)),
-            include_readme=True,
-        ),
-        user_id=current_user.id,
+    retrieval = await get_retrieval_service().search(
+        RepoSearchRequest(
+            natural_language_query=query,
+            top_n=max(1, min(payload.topK, 10)),
+        )
     )
+    search = RagService(db).search_response_from_retrieval("project-create", retrieval)
     candidate = _select_rag_candidate(search.candidates, payload.selectedRepoUrl)
     if candidate is None:
         return _error_response("No repository candidates matched the query", 404)

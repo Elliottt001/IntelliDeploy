@@ -11,7 +11,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+
+import { ragAPI, RAG_RESULT_STORAGE_KEY, type RagCandidate } from '../../services/api';
 
 const catImage =
   'https://www.figma.com/api/mcp/asset/be3df654-ec89-4c35-a63a-f7e408efb85c';
@@ -23,6 +26,8 @@ export default function Chatbot() {
   const [sentMessage, setSentMessage] = useState('帮我生成一个可以部署到云上的宠物救助 App');
   const [isGenerating, setIsGenerating] = useState(true);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [selectedRepo, setSelectedRepo] = useState<RagCandidate | null>(null);
   const intro = useRef(new Animated.Value(0)).current;
   const botIntro = useRef(new Animated.Value(0)).current;
   const userIntro = useRef(new Animated.Value(0)).current;
@@ -175,7 +180,7 @@ export default function Chatbot() {
     }).start();
   }, [detailIntro, detailOpen]);
 
-  const submit = () => {
+  const submit = async () => {
     if (!message.trim()) {
       return;
     }
@@ -186,6 +191,8 @@ export default function Chatbot() {
     setMessage('');
     setDetailOpen(false);
     setIsGenerating(true);
+    setSearchError(null);
+    setSelectedRepo(null);
     cardIntro.setValue(0);
     sendPulse.setValue(0);
 
@@ -219,7 +226,10 @@ export default function Chatbot() {
       }),
     ]).start();
 
-    generationTimer.current = setTimeout(() => {
+    try {
+      const result = await ragAPI.search(message.trim());
+      await AsyncStorage.setItem(RAG_RESULT_STORAGE_KEY, JSON.stringify(result.data));
+      setSelectedRepo(result.data.selected ?? result.data.candidates[0] ?? null);
       setIsGenerating(false);
       Animated.spring(cardIntro, {
         toValue: 1,
@@ -227,7 +237,16 @@ export default function Chatbot() {
         bounciness: 9,
         useNativeDriver: true,
       }).start();
-    }, 1380);
+    } catch (error) {
+      setSearchError(error instanceof Error ? error.message : 'RAG 检索失败，请稍后重试');
+      setIsGenerating(false);
+      Animated.spring(cardIntro, {
+        toValue: 1,
+        speed: 11,
+        bounciness: 9,
+        useNativeDriver: true,
+      }).start();
+    }
   };
 
   const startVoicePress = () => {
@@ -469,7 +488,13 @@ export default function Chatbot() {
           </Animated.View>
 
           <Pressable
-            onPress={() => setDetailOpen((open) => !open)}
+            onPress={() => {
+              if (selectedRepo) {
+                router.push('/app-gallery');
+                return;
+              }
+              setDetailOpen((open) => !open);
+            }}
             onPressIn={pressCardIn}
             onPressOut={pressCardOut}
           >
@@ -505,12 +530,24 @@ export default function Chatbot() {
                 <Image source={{ uri: catImage }} style={styles.appIconCat} resizeMode="contain" />
               </View>
               <View style={styles.appCardCopy}>
-                <Text style={styles.appCardTitle}>Pawzzle 寻爪</Text>
-                <Text style={styles.appCardMeta}>救助社区 · App 卡片</Text>
-                <Text style={styles.appCardDesc}>
-                  领养列表、走失发布、志愿者协作和一键部署已生成。
+                <Text style={styles.appCardTitle}>
+                  {searchError ? '检索暂时失败' : selectedRepo?.name || 'Pawzzle 寻爪'}
                 </Text>
-                <Text style={styles.tapHint}>轻触查看生成详情</Text>
+                <Text style={styles.appCardMeta}>
+                  {selectedRepo
+                    ? `${selectedRepo.language || 'GitHub'} · ${selectedRepo.stars} stars`
+                    : searchError
+                      ? 'RAG 检索 · 请重试'
+                      : '救助社区 · App 卡片'}
+                </Text>
+                <Text style={styles.appCardDesc}>
+                  {searchError ||
+                    selectedRepo?.description ||
+                    '领养列表、走失发布、志愿者协作和一键部署已生成。'}
+                </Text>
+                <Text style={styles.tapHint}>
+                  {selectedRepo ? '轻触查看候选仓库' : '轻触查看生成详情'}
+                </Text>
               </View>
             </Animated.View>
           </Pressable>

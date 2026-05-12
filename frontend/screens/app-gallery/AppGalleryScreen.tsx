@@ -11,7 +11,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+
+import { RAG_RESULT_STORAGE_KEY, type RagCandidate, type RagSearchResponse } from '../../services/api';
 
 const pawzzleIcon =
   'https://www.figma.com/api/mcp/asset/63e6374b-b674-41ee-8d63-b7c980904e01';
@@ -24,7 +27,19 @@ const stellarPreview =
 const voraPreview =
   'https://www.figma.com/api/mcp/asset/c00c1b16-5a79-472e-a5da-4c7495cdd1d5';
 
-const apps = [
+type GalleryApp = {
+  name: string;
+  rating: string;
+  badge: string;
+  meta: string;
+  description: string;
+  icon: string;
+  preview: string;
+  rotation: string;
+  repoUrl?: string;
+};
+
+const fallbackApps: GalleryApp[] = [
   {
     name: 'Pawzzle寻爪',
     rating: '4.8 · 1.2k 评价',
@@ -65,10 +80,37 @@ export default function AppGallery() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [apps, setApps] = useState<GalleryApp[]>(fallbackApps);
   const intro = useRef(new Animated.Value(0)).current;
   const floatLoop = useRef(new Animated.Value(0)).current;
   const cardFlip = useRef(new Animated.Value(0)).current;
   const dragX = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let mounted = true;
+
+    AsyncStorage.getItem(RAG_RESULT_STORAGE_KEY)
+      .then((raw) => {
+        if (!mounted || !raw) {
+          return;
+        }
+        const search = JSON.parse(raw) as RagSearchResponse;
+        const mapped = search.candidates.map(candidateToGalleryApp);
+        if (mapped.length > 0) {
+          setApps(mapped);
+          setActiveIndex(0);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setApps(fallbackApps);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     Animated.timing(intro, {
@@ -352,6 +394,26 @@ function GalleryAction({
       <Text style={[styles.actionLabel, active && styles.actionLabelActive]}>{label}</Text>
     </Pressable>
   );
+}
+
+function candidateToGalleryApp(candidate: RagCandidate, index: number): GalleryApp {
+  const frameworks = candidate.repo_profile.detected_frameworks || [];
+  const language = candidate.language || candidate.repo_profile.detected_languages?.[0] || 'GitHub';
+  const score = Math.round(candidate.final_score || candidate.retrieval_score || 0);
+  return {
+    name: candidate.name,
+    rating: `${candidate.stars} stars · ${candidate.forks} forks`,
+    badge: index === 0 ? '最佳匹配' : `Top ${candidate.rank}`,
+    meta: `${language}${frameworks.length ? `｜${frameworks.slice(0, 2).join(' / ')}` : ''}`,
+    description:
+      candidate.description ||
+      candidate.readme_summary ||
+      `根据你的需求匹配到 ${candidate.full_name}，综合分 ${score}，可继续进入部署分析。`,
+    icon: pawzzleIcon,
+    preview: index % 2 === 0 ? pawzzlePreview : stellarPreview,
+    rotation: index % 2 === 0 ? '0deg' : '8deg',
+    repoUrl: candidate.repo_url,
+  };
 }
 
 const styles = StyleSheet.create({
