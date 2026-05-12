@@ -18,9 +18,11 @@ export const lightTokens = {
     white: '#FFFFFF',
     glass: 'rgba(255,255,255,0.72)',
     glassSoft: 'rgba(255,255,255,0.42)',
-    lavenderCard: 'rgba(240,236,252,0.84)',
-    blueCard: 'rgba(195,215,253,0.82)',
-    profileCard: 'rgba(255,255,255,0.74)',
+    cloudSurface: 'rgba(255,255,255,0.30)',
+    cardLavender: 'rgba(220,218,253,0.84)',
+    cardProducts: 'rgba(234,214,255,0.84)',
+    cardBlue: 'rgba(195,215,253,0.84)',
+    cardProfile: 'rgba(255,255,255,0.84)',
     pinkBlob: 'rgba(246,184,255,0.30)',
     purpleBlob: 'rgba(124,98,255,0.18)',
     redDot: '#FF4D67',
@@ -116,7 +118,7 @@ export const lightLayout = {
   inspirationHeader: { left: 35, top: 249, width: 307, height: 15 },
   cloud: { left: 39, top: 277, width: 303, height: 111 },
   featureHeader: { left: 35, top: 419, width: 307, height: 15 },
-  card: { left: 28, width: 321, collapsedHeight: 70, expandedHeight: 195 },
+  card: { left: 28, width: 321, visibleStep: 70, collapsedHeight: 70, expandedHeight: 195 },
   bottomNav: { left: 20, top: 729, width: 335, height: 54 },
 };
 

@@ -24,6 +24,7 @@ export type FeatureCardData = {
   collapsedTop: number;
   expandedTop: number;
   accent: string;
+  stackOrder: number;
 };
 
 export type BottomNavItem = {

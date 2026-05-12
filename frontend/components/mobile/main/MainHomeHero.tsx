@@ -51,10 +51,7 @@ export default function MainHomeHero({
       </Pressable>
 
       <View style={styles.copy}>
-        <View style={styles.greetingRow}>
-          <Text style={styles.greeting}>Hi!</Text>
-          <Text style={styles.greeting}>Oasis✨</Text>
-        </View>
+        <Text style={styles.greeting}>Hi！Oasis✨</Text>
         <Text style={styles.question}>今天又有什么新想法？</Text>
         <Pressable accessibilityRole="button" onPress={onOpenMibo}>
           <Animated.Text
@@ -114,19 +111,18 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-6deg' }],
   },
   copy: {
+    width: 148,
     marginLeft: 0,
     paddingTop: 1,
-  },
-  greetingRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
   },
   greeting: {
     color: lightTokens.colors.heroText,
     fontSize: lightTokens.typography.heroTitle,
     fontWeight: '600',
     lineHeight: 25,
+    width: 148,
+    textAlign: 'center',
   },
   question: {
     color: lightTokens.colors.textMuted,
@@ -134,11 +130,16 @@ const styles = StyleSheet.create({
     height: 15,
     lineHeight: 14,
     marginTop: 1,
+    width: 148,
+    textAlign: 'center',
   },
   miboLink: {
     color: lightTokens.colors.primaryGradient,
     fontSize: lightTokens.typography.mibo,
+    lineHeight: 12,
     textDecorationLine: 'underline',
+    width: 148,
+    textAlign: 'center',
     marginLeft: 74,
     marginTop: 13,
   },

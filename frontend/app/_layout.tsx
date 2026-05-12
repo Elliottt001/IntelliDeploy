@@ -1,10 +1,20 @@
 import { Stack } from 'expo-router';
 import { Platform } from 'react-native';
 
+const nativeFlyTransition =
+  Platform.OS === 'web'
+    ? {}
+    : {
+        animation: 'slide_from_bottom' as const,
+        animationDuration: 600,
+        gestureDirection: 'vertical' as const,
+      };
+
 export default function RootLayout() {
   return (
     <Stack
       screenOptions={{
+        ...nativeFlyTransition,
         headerStyle: { backgroundColor: '#4A90D9' },
         headerTintColor: '#fff',
         headerTitleStyle: { fontWeight: '600' },

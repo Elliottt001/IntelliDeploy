@@ -30,10 +30,6 @@ export default function MainHomeFeatureCard({
   onPress,
   onOpenGallery,
 }: MainHomeFeatureCardProps) {
-  const height = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [lightLayout.card.collapsedHeight, lightLayout.card.expandedHeight],
-  });
   const top = progress.interpolate({
     inputRange: [0, 1],
     outputRange: [card.collapsedTop, card.expandedTop],
@@ -46,6 +42,10 @@ export default function MainHomeFeatureCard({
     inputRange: [0, 1],
     outputRange: [1, 1.08],
   });
+  const detailTranslateY = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [10, 0],
+  });
 
   return (
     <Animated.View
@@ -56,14 +56,21 @@ export default function MainHomeFeatureCard({
         card.id === 'profile' && styles.profileCard,
         {
           top,
-          height,
-          zIndex: isExpanded ? 10 : 1,
-          elevation: isExpanded ? 8 : 3,
+          height: lightLayout.card.expandedHeight,
+          zIndex: isExpanded ? 20 : card.stackOrder,
+          elevation: isExpanded ? 9 : card.stackOrder + 2,
         },
       ]}
     >
       {card.id !== 'profile' ? <CardSpeckles /> : null}
-      <Pressable style={[styles.hitArea, card.id === 'products' && styles.productsHitArea]} onPress={() => onPress(card.id)}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.hitArea,
+          card.id === 'products' && styles.productsHitArea,
+          pressed && styles.hitAreaPressed,
+        ]}
+        onPress={() => onPress(card.id)}
+      >
         {card.id === 'products' ? <ProductsTopRow /> : renderLead(card.id)}
 
         {card.id !== 'products' ? (
@@ -89,7 +96,10 @@ export default function MainHomeFeatureCard({
         ) : null}
       </Pressable>
 
-      <Animated.View pointerEvents={isExpanded ? 'auto' : 'none'} style={[styles.detail, { opacity: detailOpacity }]}>
+      <Animated.View
+        pointerEvents={isExpanded ? 'auto' : 'none'}
+        style={[styles.detail, { opacity: detailOpacity, transform: [{ translateY: detailTranslateY }] }]}
+      >
         {renderDetail(card.id, onOpenGallery)}
       </Animated.View>
     </Animated.View>
@@ -171,11 +181,29 @@ function renderDetail(id: MainHomeCardId, onOpenGallery: () => void) {
   if (id === 'products') {
     return (
       <View style={styles.productsDetail}>
-        <View style={styles.productBox} />
+        <View style={styles.productBoxShadow} />
+        <View style={styles.productBoxBack} />
+        <View style={styles.productLid}>
+          <View style={styles.productLidGlow} />
+        </View>
+        <View style={styles.productBox}>
+          <View style={styles.productBoxLeft} />
+          <View style={styles.productBoxRight} />
+          <View style={styles.productBoxRibbon} />
+        </View>
         <View style={[styles.productShard, styles.productShardA]} />
         <View style={[styles.productShard, styles.productShardB]} />
         <View style={[styles.productShard, styles.productShardC]} />
-        <Text style={styles.productText}>收藏进度：21/50 免费扩容</Text>
+        <View style={[styles.productShard, styles.productShardD]} />
+        <FloatingAppBadge label="D" style={styles.productBadgeDrive} />
+        <FloatingAppBadge label="Xd" style={styles.productBadgeDesign} />
+        <FloatingAppBadge label="N" style={styles.productBadgeNotion} />
+        <FloatingAppBadge label="T" style={styles.productBadgeTeams} />
+        <View style={styles.productSparkle}>
+          <Text style={styles.productSparkleText}>+</Text>
+        </View>
+        <Text style={styles.productText}>收藏进度：21/50</Text>
+        <Text style={styles.productLink}>免费扩容</Text>
       </View>
     );
   }
@@ -210,6 +238,14 @@ function GalleryPill({ icon, label }: { icon: string; label: string }) {
     <View style={styles.galleryPill}>
       <Text style={styles.galleryIcon}>{icon}</Text>
       <Text style={styles.galleryText}>{label}</Text>
+    </View>
+  );
+}
+
+function FloatingAppBadge({ label, style }: { label: string; style: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[styles.productBadge, style]}>
+      <Text style={styles.productBadgeText}>{label}</Text>
     </View>
   );
 }
@@ -275,18 +311,18 @@ const styles = StyleSheet.create({
     borderRadius: lightTokens.radii.card,
     borderWidth: 1,
     borderColor: lightTokens.colors.white,
-    backgroundColor: lightTokens.colors.lavenderCard,
+    backgroundColor: lightTokens.colors.cardLavender,
     overflow: 'hidden',
     ...lightTokens.shadow.soft,
   },
   productsCard: {
-    backgroundColor: 'rgba(236,227,252,0.82)',
+    backgroundColor: lightTokens.colors.cardProducts,
   },
   squareCard: {
-    backgroundColor: lightTokens.colors.blueCard,
+    backgroundColor: lightTokens.colors.cardBlue,
   },
   profileCard: {
-    backgroundColor: lightTokens.colors.profileCard,
+    backgroundColor: lightTokens.colors.cardProfile,
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
@@ -299,6 +335,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingLeft: 31,
     paddingRight: 20,
+  },
+  hitAreaPressed: {
+    transform: [{ scale: 0.985 }],
   },
   copy: {
     minWidth: 92,
@@ -592,56 +631,202 @@ const styles = StyleSheet.create({
   },
   productsDetail: {
     position: 'absolute',
+    left: 58,
+    top: -18,
+    width: 240,
+    height: 142,
+  },
+  productBoxShadow: {
+    position: 'absolute',
     left: 45,
-    top: 4,
-    width: 235,
-    height: 112,
+    top: 92,
+    width: 108,
+    height: 26,
+    borderRadius: 54,
+    backgroundColor: 'rgba(112,82,202,0.18)',
+  },
+  productBoxBack: {
+    position: 'absolute',
+    left: 52,
+    top: 62,
+    width: 114,
+    height: 54,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.58)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.70)',
+    transform: [{ rotate: '-2deg' }],
+  },
+  productLid: {
+    position: 'absolute',
+    left: 57,
+    top: 62,
+    width: 98,
+    height: 29,
+    borderRadius: 14,
+    backgroundColor: '#B992FF',
+    overflow: 'hidden',
+    transform: [{ rotate: '-8deg' }],
+  },
+  productLidGlow: {
+    position: 'absolute',
+    right: -10,
+    top: -14,
+    width: 62,
+    height: 42,
+    borderRadius: 31,
+    backgroundColor: 'rgba(255,255,255,0.35)',
   },
   productBox: {
     position: 'absolute',
-    left: 18,
-    top: 26,
-    width: 129,
-    height: 72,
-    borderRadius: 20,
+    left: 61,
+    top: 83,
+    width: 92,
+    height: 55,
+    borderRadius: 13,
+    overflow: 'hidden',
+    backgroundColor: '#8F65FF',
     borderWidth: 1,
-    borderColor: lightTokens.colors.white,
-    backgroundColor: 'rgba(255,255,255,0.70)',
+    borderColor: 'rgba(255,255,255,0.58)',
+  },
+  productBoxLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 46,
+    backgroundColor: '#A985FF',
+  },
+  productBoxRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 46,
+    backgroundColor: '#7C62FF',
+  },
+  productBoxRibbon: {
+    position: 'absolute',
+    left: 40,
+    top: -2,
+    bottom: -2,
+    width: 13,
+    backgroundColor: 'rgba(255,255,255,0.30)',
   },
   productShard: {
     position: 'absolute',
-    borderRadius: 7,
-    backgroundColor: 'rgba(124,98,255,0.35)',
+    borderRadius: 6,
+    backgroundColor: 'rgba(124,98,255,0.44)',
   },
   productShardA: {
-    left: 0,
-    top: 17,
-    width: 58,
-    height: 76,
+    left: 14,
+    top: 46,
+    width: 55,
+    height: 78,
     transform: [{ rotate: '-12deg' }],
   },
   productShardB: {
-    left: 85,
-    top: 6,
-    width: 22,
+    left: 94,
+    top: 38,
+    width: 20,
     height: 78,
     transform: [{ rotate: '8deg' }],
   },
   productShardC: {
-    left: 127,
-    top: 20,
-    width: 49,
-    height: 70,
+    left: 133,
+    top: 49,
+    width: 50,
+    height: 68,
     transform: [{ rotate: '-8deg' }],
+  },
+  productShardD: {
+    left: 156,
+    top: 70,
+    width: 55,
+    height: 45,
+    backgroundColor: 'rgba(192,92,246,0.24)',
+    transform: [{ rotate: '16deg' }],
+  },
+  productBadge: {
+    position: 'absolute',
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.70)',
+    backgroundColor: lightTokens.colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...lightTokens.shadow.soft,
+  },
+  productBadgeDrive: {
+    left: 36,
+    top: 69,
+    backgroundColor: '#34A853',
+    transform: [{ rotate: '-16deg' }],
+  },
+  productBadgeDesign: {
+    left: 112,
+    top: 78,
+    backgroundColor: '#5B2DA3',
+    transform: [{ rotate: '13deg' }],
+  },
+  productBadgeNotion: {
+    left: 96,
+    top: 101,
+    backgroundColor: '#171717',
+    transform: [{ rotate: '-11deg' }],
+  },
+  productBadgeTeams: {
+    left: 147,
+    top: 88,
+    backgroundColor: '#5C7CFA',
+    transform: [{ rotate: '8deg' }],
+  },
+  productBadgeText: {
+    color: lightTokens.colors.white,
+    fontSize: 7,
+    fontWeight: '800',
+  },
+  productSparkle: {
+    position: 'absolute',
+    left: 73,
+    top: 111,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#B592FF',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.58)',
+  },
+  productSparkleText: {
+    color: lightTokens.colors.white,
+    fontSize: 18,
+    lineHeight: 20,
+    fontWeight: '600',
   },
   productText: {
     position: 'absolute',
     right: 0,
-    top: 58,
-    width: 82,
+    top: 84,
+    width: 88,
     color: lightTokens.colors.textMuted,
-    fontSize: 8,
-    lineHeight: 14,
+    fontSize: 7,
+    lineHeight: 12,
+    textAlign: 'right',
+  },
+  productLink: {
+    position: 'absolute',
+    right: 0,
+    top: 103,
+    width: 88,
+    color: lightTokens.colors.primaryGradient,
+    fontSize: 7,
+    lineHeight: 12,
+    textAlign: 'right',
+    textDecorationLine: 'underline',
   },
   squareDetail: {
     position: 'absolute',
