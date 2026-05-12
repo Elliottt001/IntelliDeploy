@@ -4,5 +4,14 @@ from app.routers.intellideploy.user_settings import router as user_settings_rout
 from app.routers.intellideploy.generation import router as generation_router
 from app.routers.intellideploy.deployments import router as deployments_router
 from app.routers.intellideploy.images import router as images_router
+from app.routers.intellideploy.rag import router as rag_router
 
-__all__ = ["github_router", "projects_router", "user_settings_router", "generation_router", "deployments_router", "images_router"]
+__all__ = [
+    "github_router",
+    "projects_router",
+    "user_settings_router",
+    "generation_router",
+    "deployments_router",
+    "images_router",
+    "rag_router",
+]

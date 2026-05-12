@@ -11,6 +11,7 @@ from app.models.intellideploy.analysis import Analysis
 from app.models.intellideploy.deployment import Deployment
 from app.models.intellideploy.project import Project
 from app.models.user import User
+from app.schemas.rag import RagCandidate, RagSearchRequest
 from app.services.intellideploy_ai import analyze_repository
 from app.services.intellideploy_auto_docker import auto_analyze_and_push
 from app.services.intellideploy_auto_yaml import auto_analyze_and_push_sealos
@@ -24,6 +25,7 @@ from app.services.intellideploy_github import (
 from app.services.intellideploy_k8s import deploy_with_kubeconfig
 from app.services.intellideploy_project_utils import parse_repo_url
 from app.services.intellideploy_sealos import slugify
+from app.services.rag_service import RagService
 from app.utils.security import get_current_user
 
 router = APIRouter(prefix="/api/projects", tags=["intellideploy-projects"])
@@ -31,6 +33,10 @@ router = APIRouter(prefix="/api/projects", tags=["intellideploy-projects"])
 
 class CreateProjectPayload(BaseModel):
     repoUrl: str | None = None
+    rawQuery: str | None = None
+    selectedRepoUrl: str | None = None
+    topK: int = 3
+    autoAnalyze: bool = True
 
 
 def _error_response(message: str, status_code: int) -> JSONResponse:
@@ -46,9 +52,12 @@ def list_projects(current_user: User = Depends(get_current_user), db: Session = 
 
 
 @router.post("")
-def create_project(payload: CreateProjectPayload, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def create_project(payload: CreateProjectPayload, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if payload.rawQuery and not payload.repoUrl:
+        return await _create_project_from_query(payload, current_user, db)
+
     if not payload.repoUrl:
-        return _error_response("Missing repoUrl", 400)
+        return _error_response("Missing repoUrl or rawQuery", 400)
 
     parsed = parse_repo_url(payload.repoUrl)
     if not parsed:
@@ -73,6 +82,74 @@ def create_project(payload: CreateProjectPayload, current_user: User = Depends(g
         db.commit()
         db.refresh(project)
         return {"project": _project_scalar_json(project)}
+    except GitHubApiError as e:
+        status = 401 if "token missing" in str(e).lower() else 500
+        return _error_response(str(e), status)
+
+
+async def _create_project_from_query(payload: CreateProjectPayload, current_user: User, db: Session):
+    query = (payload.rawQuery or "").strip()
+    if not query:
+        return _error_response("rawQuery is required", 400)
+
+    search = await RagService(db).search(
+        RagSearchRequest(
+            raw_query=query,
+            top_k=max(1, min(payload.topK, 10)),
+            include_readme=True,
+        ),
+        user_id=current_user.id,
+    )
+    candidate = _select_rag_candidate(search.candidates, payload.selectedRepoUrl)
+    if candidate is None:
+        return _error_response("No repository candidates matched the query", 404)
+
+    parsed = parse_repo_url(candidate.repo_url)
+    if not parsed:
+        return _error_response("RAG selected an invalid repository URL", 500)
+
+    existing = db.query(Project).filter(Project.user_id == current_user.id, Project.repo_url == candidate.repo_url).first()
+    if existing:
+        if payload.autoAnalyze:
+            _upsert_analysis_from_rag_candidate(existing, candidate, query, db)
+        return {
+            "project": _project_json(existing, db, include_deployments=True),
+            "rag": search.model_dump(mode="json"),
+        }
+
+    try:
+        try:
+            repo = get_repo_meta(db, current_user.id, parsed["owner"], parsed["repo"])
+        except GitHubApiError:
+            repo = {
+                "name": candidate.name,
+                "html_url": candidate.repo_url,
+                "owner": {"login": candidate.owner},
+                "visibility": "public",
+                "private": False,
+                "default_branch": candidate.default_branch or "main",
+            }
+
+        project = Project(
+            name=repo.get("name") or candidate.name,
+            repo_url=repo.get("html_url") or candidate.repo_url,
+            repo_owner=repo.get("owner", {}).get("login") or candidate.owner,
+            repo_name=repo.get("name") or candidate.name,
+            visibility=repo.get("visibility") or ("private" if repo.get("private") else "public"),
+            default_branch=repo.get("default_branch") or candidate.default_branch or "main",
+            user_id=current_user.id,
+        )
+        db.add(project)
+        db.commit()
+        db.refresh(project)
+
+        if payload.autoAnalyze:
+            _upsert_analysis_from_rag_candidate(project, candidate, query, db)
+
+        return {
+            "project": _project_json(project, db, include_deployments=True),
+            "rag": search.model_dump(mode="json"),
+        }
     except GitHubApiError as e:
         status = 401 if "token missing" in str(e).lower() else 500
         return _error_response(str(e), status)
@@ -248,6 +325,102 @@ def _analysis_json(analysis: Analysis | None):
         "envVars": analysis.env_vars,
         "rawResponse": analysis.raw_response,
     }
+
+
+def _select_rag_candidate(candidates: list[RagCandidate], selected_repo_url: str | None) -> RagCandidate | None:
+    if selected_repo_url:
+        for candidate in candidates:
+            if candidate.repo_url == selected_repo_url:
+                return candidate
+    return candidates[0] if candidates else None
+
+
+def _upsert_analysis_from_rag_candidate(project: Project, candidate: RagCandidate, raw_query: str, db: Session) -> Analysis:
+    profile = candidate.repo_profile
+    frameworks = profile.detected_frameworks or []
+    languages = profile.detected_languages or []
+    package_manager = profile.package_manager or _infer_package_manager(frameworks, languages)
+    runtime = _infer_runtime(package_manager, frameworks, languages)
+    port = _infer_port(frameworks, runtime)
+
+    analysis = db.query(Analysis).filter(Analysis.project_id == project.id).first()
+    if not analysis:
+        analysis = Analysis(project_id=project.id)
+        db.add(analysis)
+
+    analysis.runtime = runtime
+    analysis.base_image = _base_image_for_runtime(runtime)
+    analysis.install_cmd = _install_command(package_manager)
+    analysis.start_cmd = _start_command(frameworks, runtime)
+    analysis.ports = str(port)
+    analysis.needs_database = bool(candidate.repo_profile.readme_summary and "database" in candidate.repo_profile.readme_summary.lower())
+    analysis.needs_ingress = True
+    analysis.env_vars = []
+    analysis.raw_response = {
+        "source": "rag_candidate",
+        "rawQuery": raw_query,
+        "candidate": candidate.model_dump(mode="json"),
+    }
+    db.commit()
+    db.refresh(analysis)
+    return analysis
+
+
+def _infer_package_manager(frameworks: list[str], languages: list[str]) -> str:
+    if any(item in frameworks for item in ("React", "Next.js", "Vue", "Vite", "Node.js", "Express")):
+        return "npm"
+    if "Python" in languages or any(item in frameworks for item in ("Python", "FastAPI", "Flask", "Django")):
+        return "pip"
+    if "Go" in languages:
+        return "go"
+    return "npm"
+
+
+def _infer_runtime(package_manager: str, frameworks: list[str], languages: list[str]) -> str:
+    if package_manager == "pip" or "Python" in languages:
+        return "python"
+    if package_manager == "go" or "Go" in languages:
+        return "go"
+    if "Java" in languages:
+        return "java"
+    return "node"
+
+
+def _base_image_for_runtime(runtime: str) -> str:
+    return {
+        "python": "python:3.12-slim",
+        "go": "golang:1.22-alpine",
+        "java": "eclipse-temurin:21-jre",
+        "node": "node:20-alpine",
+    }.get(runtime, "node:20-alpine")
+
+
+def _install_command(package_manager: str) -> str:
+    return {
+        "pip": "pip install -r requirements.txt",
+        "go": "go mod download",
+        "npm": "npm install",
+    }.get(package_manager, "npm install")
+
+
+def _start_command(frameworks: list[str], runtime: str) -> str:
+    if runtime == "python":
+        if "FastAPI" in frameworks:
+            return "uvicorn main:app --host 0.0.0.0 --port 8000"
+        return "python app.py"
+    if runtime == "go":
+        return "go run ./"
+    if "Next.js" in frameworks:
+        return "npm run start"
+    return "npm run start"
+
+
+def _infer_port(frameworks: list[str], runtime: str) -> int:
+    if "FastAPI" in frameworks or runtime == "python":
+        return 8000
+    if runtime == "go":
+        return 8080
+    return 3000
 
 
 def _deployment_json(deployment: Deployment):
