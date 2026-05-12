@@ -3,8 +3,11 @@
 协调整个部署流程: 生成产物 → 构建镜像 → 部署 → 健康检查 → 自愈
 """
 import asyncio
-from typing import Optional, Dict
 from datetime import datetime
+from pathlib import Path
+from typing import Dict, Optional
+from urllib.parse import urlparse
+import zipfile
 
 from sqlalchemy.orm import Session
 
@@ -16,6 +19,11 @@ from app.services.sealos_client import SealosClient, DeploymentStatus, get_sealo
 from app.services.healing_engine import HealingEngine
 from app.services.generation_task_service import GenerationTaskService
 from app.services.image_builder import get_image_builder, BuildMethod
+
+
+MAX_CONTEXT_BYTES = 5_000_000
+IGNORED_CONTEXT_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build"}
+IGNORED_CONTEXT_FILES = {".DS_Store"}
 
 
 class DeploymentOrchestrator:
@@ -86,11 +94,19 @@ class DeploymentOrchestrator:
             self.db.add(event)
             self.db.commit()
 
+            context_files = self._extract_context_files(artifact)
+            self._record_event(
+                deployment_id,
+                "build",
+                "info",
+                f"Build context prepared with {len(context_files)} file(s)",
+            )
+
             # 构建镜像
             builder = get_image_builder(method=BuildMethod.DOCKER_API)
             build_result = await builder.build_image(
                 dockerfile_content=artifact.dockerfile_content,
-                context_files=None,  # TODO: 如果有代码文件需要传入
+                context_files=context_files,
                 image_name=image_name,
                 image_tag=image_tag,
             )
@@ -247,7 +263,12 @@ class DeploymentOrchestrator:
 
             raise
 
-    async def _perform_health_check(self, deployment_id: int, health_url: str) -> bool:
+    async def _perform_health_check(
+        self,
+        deployment_id: int,
+        health_url: str,
+        trigger_healing: bool = True,
+    ) -> bool:
         """
         执行健康检查
 
@@ -315,8 +336,8 @@ class DeploymentOrchestrator:
                     self.db.add(event)
                     self.db.commit()
 
-                    # 触发自愈
-                    await self._trigger_healing_if_needed(deployment_id, str(e), "HEALTHCHECK")
+                    if trigger_healing:
+                        await self._trigger_healing_if_needed(deployment_id, str(e), "HEALTHCHECK")
 
             # 等待后重试
             if attempt < settings.HEALTHCHECK_RETRIES - 1:
@@ -336,19 +357,22 @@ class DeploymentOrchestrator:
             failed_stage: 失败阶段
         """
         try:
-            task_id = await self.healing_engine.trigger_healing(
+            result = await self.run_parallel_healing_race(
                 deployment_id=deployment_id,
                 error_logs=error_message,
                 failed_stage=failed_stage,
             )
 
-            if task_id:
-                # 自愈已触发,等待新的生成任务完成
-                # 这里可以选择轮询或使用回调
-                pass
-            else:
-                # 自愈被熔断或失败
-                pass
+            if result.get("success"):
+                return
+
+            self._record_event(
+                deployment_id,
+                "heal",
+                "warning",
+                result.get("message", "Parallel healing did not produce a successful candidate."),
+                error_type="HEALING_RACE_FAILED",
+            )
 
         except Exception as e:
             # 自愈触发失败,记录日志
@@ -361,6 +385,308 @@ class DeploymentOrchestrator:
             )
             self.db.add(event)
             self.db.commit()
+
+    async def run_parallel_healing_race(
+        self,
+        deployment_id: int,
+        error_logs: str,
+        failed_stage: str,
+        registry: Optional[str] = None,
+    ) -> Dict:
+        task_ids = await self.healing_engine.parallel_healing(
+            deployment_id=deployment_id,
+            error_logs=error_logs,
+            failed_stage=failed_stage,
+        )
+        if not task_ids:
+            return {
+                "success": False,
+                "deployment_id": deployment_id,
+                "message": "No healing candidates were accepted.",
+            }
+
+        self._record_event(
+            deployment_id,
+            "heal",
+            "info",
+            f"Starting parallel healing race with {len(task_ids)} candidate(s)",
+        )
+
+        tasks = [
+            asyncio.create_task(
+                self._attempt_healing_candidate(
+                    deployment_id=deployment_id,
+                    task_id=task_id,
+                    index=index,
+                    registry=registry,
+                )
+            )
+            for index, task_id in enumerate(task_ids, start=1)
+        ]
+
+        failures: list[Dict] = []
+        try:
+            for completed in asyncio.as_completed(tasks, timeout=settings.HEALING_TIMEOUT):
+                result = await completed
+                if result.get("success"):
+                    for task in tasks:
+                        if not task.done():
+                            task.cancel()
+                    await asyncio.gather(*tasks, return_exceptions=True)
+                    self._record_event(
+                        deployment_id,
+                        "heal",
+                        "info",
+                        f"Healing candidate {result.get('task_id')} won the race",
+                    )
+                    return result
+                failures.append(result)
+        except asyncio.TimeoutError:
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            return {
+                "success": False,
+                "deployment_id": deployment_id,
+                "task_ids": task_ids,
+                "failures": failures,
+                "message": "Parallel healing race timed out.",
+            }
+
+        return {
+            "success": False,
+            "deployment_id": deployment_id,
+            "task_ids": task_ids,
+            "failures": failures,
+            "message": "All healing candidates failed.",
+        }
+
+    async def _attempt_healing_candidate(
+        self,
+        deployment_id: int,
+        task_id: str,
+        index: int,
+        registry: Optional[str] = None,
+    ) -> Dict:
+        try:
+            artifact = await self._wait_for_healing_artifact(task_id)
+            if not artifact.deploy_ready:
+                raise RuntimeError("Healing artifact is not deploy-ready.")
+
+            deployment = self.db.query(Deployment).filter(Deployment.id == deployment_id).first()
+            if not deployment:
+                raise ValueError(f"Deployment {deployment_id} not found")
+
+            context_files = self._extract_context_files(artifact)
+            image_name = f"{deployment.runtime_name}-heal-{index}"
+            image_tag = f"deploy-{deployment_id}-{task_id[:8]}"
+            builder = get_image_builder(method=BuildMethod.DOCKER_API)
+
+            self._record_event(
+                deployment_id,
+                "heal",
+                "info",
+                f"Candidate {task_id} building image with {len(context_files)} context file(s)",
+            )
+            build_result = await builder.build_image(
+                dockerfile_content=artifact.dockerfile_content,
+                context_files=context_files,
+                image_name=image_name,
+                image_tag=image_tag,
+            )
+            if build_result["status"] != "success":
+                raise RuntimeError(build_result.get("logs") or build_result.get("error") or "Image build failed")
+
+            final_image = build_result.get("image")
+            if registry:
+                push_result = await builder.push_image(final_image, registry)
+                if push_result["status"] == "success":
+                    final_image = push_result["image"]
+
+            env_vars = self._env_vars_from_artifact(artifact)
+            deploy_result = await self.sealos_client.create_app(
+                name=deployment.runtime_name,
+                image=final_image,
+                port=artifact.runtime.exposed_port,
+                env_vars=env_vars,
+                enable_ingress=True,
+                needs_database=False,
+            )
+
+            deployment.sealos_app_id = deploy_result.get("app_id")
+            deployment.namespace = deploy_result.get("namespace")
+            deployment.ingress_domain = deploy_result.get("ingress_domain")
+            deployment.access_url = deploy_result.get("access_url")
+            deployment.dockerfile_content = artifact.dockerfile_content
+            deployment.error_message = None
+            deployment.error_type = None
+            deployment.status = DeploymentStatus.RUNNING.value
+            self.db.commit()
+
+            if artifact.runtime.healthcheck_path and deployment.access_url:
+                healthy = await self._perform_health_check(
+                    deployment_id,
+                    f"{deployment.access_url}{artifact.runtime.healthcheck_path}",
+                    trigger_healing=False,
+                )
+                if not healthy:
+                    raise RuntimeError("Healing candidate failed health check.")
+            else:
+                deployment.status = DeploymentStatus.SUCCESS.value
+                deployment.finished_at = datetime.now()
+                self.db.commit()
+
+            return {
+                "success": True,
+                "deployment_id": deployment_id,
+                "task_id": task_id,
+                "image": final_image,
+                "access_url": deployment.access_url,
+                "status": deployment.status,
+            }
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            self._record_event(
+                deployment_id,
+                "heal",
+                "warning",
+                f"Healing candidate {task_id} failed: {str(exc)}",
+                error_type="HEALING_CANDIDATE_FAILED",
+            )
+            return {
+                "success": False,
+                "deployment_id": deployment_id,
+                "task_id": task_id,
+                "error": str(exc),
+            }
+
+    async def _wait_for_healing_artifact(self, task_id: str) -> GetArtifactResultResponse:
+        deadline = asyncio.get_running_loop().time() + settings.HEALING_TIMEOUT
+        while True:
+            status = await self.generation_service.query_task_status(task_id)
+            if status.artifact_ready or status.status == "SUCCEEDED":
+                return await self.generation_service.get_artifact_result(task_id)
+            if status.status == "FAILED":
+                raise RuntimeError(status.error_message or f"Healing task {task_id} failed.")
+            if asyncio.get_running_loop().time() >= deadline:
+                raise TimeoutError(f"Healing task {task_id} timed out waiting for artifact.")
+            await asyncio.sleep(settings.DEPLOYMENT_POLL_INTERVAL)
+
+    def _extract_context_files(self, artifact: GetArtifactResultResponse) -> Dict[str, str]:
+        context_files: Dict[str, str] = {}
+        if artifact.context_files:
+            context_files.update(self._sanitize_context_files(artifact.context_files))
+
+        if artifact.artifact_path:
+            context_files.update(self._read_artifact_path_context(artifact.artifact_path))
+
+        return {
+            path: content
+            for path, content in context_files.items()
+            if Path(path).name.lower() != "dockerfile"
+        }
+
+    def _read_artifact_path_context(self, artifact_path: str) -> Dict[str, str]:
+        parsed = urlparse(artifact_path)
+        if parsed.scheme and parsed.scheme != "file":
+            return {}
+
+        path = Path(parsed.path if parsed.scheme == "file" else artifact_path)
+        if not path.exists():
+            return {}
+        if path.is_dir():
+            return self._read_directory_context(path)
+        if zipfile.is_zipfile(path):
+            return self._read_zip_context(path)
+        return {}
+
+    def _read_directory_context(self, root: Path) -> Dict[str, str]:
+        context_files: Dict[str, str] = {}
+        total_bytes = 0
+        for path in sorted(root.rglob("*")):
+            if not path.is_file():
+                continue
+            relative = path.relative_to(root)
+            if any(part in IGNORED_CONTEXT_DIRS for part in relative.parts):
+                continue
+            if relative.name in IGNORED_CONTEXT_FILES:
+                continue
+            size = path.stat().st_size
+            if total_bytes + size > MAX_CONTEXT_BYTES:
+                break
+            try:
+                context_files[relative.as_posix()] = path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                continue
+            total_bytes += size
+        return context_files
+
+    def _read_zip_context(self, path: Path) -> Dict[str, str]:
+        context_files: Dict[str, str] = {}
+        total_bytes = 0
+        with zipfile.ZipFile(path) as archive:
+            for info in archive.infolist():
+                if info.is_dir():
+                    continue
+                relative = Path(info.filename)
+                if any(part in IGNORED_CONTEXT_DIRS for part in relative.parts):
+                    continue
+                if relative.name in IGNORED_CONTEXT_FILES:
+                    continue
+                if total_bytes + info.file_size > MAX_CONTEXT_BYTES:
+                    break
+                try:
+                    context_files[relative.as_posix()] = archive.read(info).decode("utf-8")
+                except UnicodeDecodeError:
+                    continue
+                total_bytes += info.file_size
+        return context_files
+
+    @staticmethod
+    def _sanitize_context_files(files: Dict[str, str]) -> Dict[str, str]:
+        sanitized: Dict[str, str] = {}
+        total_bytes = 0
+        for file_path, content in files.items():
+            relative = Path(file_path)
+            if relative.is_absolute() or ".." in relative.parts:
+                continue
+            if any(part in IGNORED_CONTEXT_DIRS for part in relative.parts):
+                continue
+            if relative.name in IGNORED_CONTEXT_FILES:
+                continue
+            encoded_size = len(content.encode("utf-8"))
+            if total_bytes + encoded_size > MAX_CONTEXT_BYTES:
+                break
+            sanitized[relative.as_posix()] = content
+            total_bytes += encoded_size
+        return sanitized
+
+    @staticmethod
+    def _env_vars_from_artifact(artifact: GetArtifactResultResponse) -> Dict[str, str]:
+        env_vars = {}
+        for env in artifact.required_envs:
+            if env.example_value:
+                env_vars[env.name] = env.example_value
+        return env_vars
+
+    def _record_event(
+        self,
+        deployment_id: int,
+        phase: str,
+        level: str,
+        message: str,
+        error_type: Optional[str] = None,
+    ) -> None:
+        event = DeploymentEvent(
+            deployment_id=deployment_id,
+            phase=phase,
+            level=level,
+            message=message,
+            error_type=error_type,
+        )
+        self.db.add(event)
+        self.db.commit()
 
     async def poll_deployment_status(self, deployment_id: int) -> Dict:
         """

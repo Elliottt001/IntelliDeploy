@@ -57,11 +57,44 @@ def _read_dockerfile_content(artifact: DeployArtifact) -> str | None:
     return path.read_text(encoding="utf-8")
 
 
+def _read_context_files(artifact: DeployArtifact, max_bytes: int = 5_000_000) -> dict[str, str]:
+    project_root = Path(artifact.project_root)
+    if not project_root.exists() or not project_root.is_dir():
+        return {}
+
+    context_files: dict[str, str] = {}
+    total_bytes = 0
+    ignored_dirs = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build"}
+    ignored_files = {".DS_Store"}
+
+    for path in sorted(project_root.rglob("*")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(project_root)
+        if any(part in ignored_dirs for part in relative.parts):
+            continue
+        if relative.name in ignored_files:
+            continue
+
+        size = path.stat().st_size
+        if total_bytes + size > max_bytes:
+            break
+
+        try:
+            context_files[relative.as_posix()] = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        total_bytes += size
+
+    return context_files
+
+
 def _build_artifact_response(task_id: str, artifact: DeployArtifact, *, plan_runtime: ArtifactRuntime, required_envs: list[Any], summary: str | None, next_action: str | None) -> ArtifactResponse:
     return ArtifactResponse(
         task_id=task_id,
         artifact_type=artifact.artifact_type,
         artifact_path=str(artifact.artifact_path),
+        context_files=_read_context_files(artifact),
         dockerfile_content=_read_dockerfile_content(artifact),
         runtime=plan_runtime,
         required_envs=list(required_envs),

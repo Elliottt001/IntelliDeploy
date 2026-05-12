@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -182,6 +182,7 @@ class GetArtifactResultResponse(BaseModel):
     artifact_path: Optional[str] = None
     artifact_uri: Optional[str] = None
     artifact_key: Optional[str] = None
+    context_files: Optional[Dict[str, str]] = None
     dockerfile_content: str
     runtime: RuntimeInfo
     required_envs: List[RequiredEnv]

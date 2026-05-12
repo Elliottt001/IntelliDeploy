@@ -70,6 +70,7 @@ class ArtifactResponse(BaseModel):
     artifact_path: str | None = None
     artifact_uri: str | None = None
     artifact_key: str | None = None
+    context_files: dict[str, str] | None = None
     dockerfile_content: str | None = None
     runtime: ArtifactRuntime
     required_envs: list[EnvVarSpec] = Field(default_factory=list)
@@ -79,4 +80,3 @@ class ArtifactResponse(BaseModel):
     next_action: str | None = None
 
     model_config = ConfigDict(extra="ignore")
-

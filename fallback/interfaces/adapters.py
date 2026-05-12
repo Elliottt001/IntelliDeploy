@@ -111,6 +111,7 @@ def to_artifact_response(payload: ArtifactResponse | dict[str, Any]) -> Fallback
         artifact_path=artifact.artifact_path,
         artifact_uri=artifact.artifact_uri,
         artifact_key=artifact.artifact_key,
+        context_files=artifact.context_files,
         dockerfile_content=_require(artifact.dockerfile_content, field_name="dockerfile_content"),
         runtime={
             "base_image": runtime.base_image,

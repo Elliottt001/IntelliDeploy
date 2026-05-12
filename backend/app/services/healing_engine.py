@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models.intellideploy.deployment import Deployment
 from app.models.intellideploy.deployment_event import DeploymentEvent
+from app.models.intellideploy.generation_task import GenerationTask
 from app.schemas.fallback import (
     DeployFailureFeedbackRequest,
     FailedStage,
@@ -93,12 +94,13 @@ class HealingEngine:
 
         # 清洗错误日志
         log_info = sanitize_deployment_log(error_logs, failed_stage)
+        source_task_id = self._latest_source_task_id(deployment_id)
 
         # 构造反馈请求
         feedback_request = DeployFailureFeedbackRequest(
             project_id=project_id,
             deployment_id=str(deployment_id),
-            source_task_id="",  # 如果有原始任务ID可以填入
+            source_task_id=source_task_id,
             failed_stage=FailedStage(failed_stage),
             error_type=log_info.get("error_type"),
             sanitized_error_log=log_info.get("sanitized_log", error_logs[:1000]),
@@ -174,6 +176,7 @@ class HealingEngine:
 
         # 清洗错误日志
         log_info = sanitize_deployment_log(error_logs, failed_stage)
+        source_task_id = self._latest_source_task_id(deployment_id)
 
         # 创建多个并行任务
         task_ids = []
@@ -183,7 +186,7 @@ class HealingEngine:
             feedback_request = DeployFailureFeedbackRequest(
                 project_id=project_id,
                 deployment_id=str(deployment_id),
-                source_task_id="",
+                source_task_id=source_task_id,
                 failed_stage=FailedStage(failed_stage),
                 error_type=log_info.get("error_type"),
                 sanitized_error_log=log_info.get("sanitized_log", error_logs[:1000]),
@@ -211,6 +214,17 @@ class HealingEngine:
             self.db.commit()
 
         return task_ids
+
+    def _latest_source_task_id(self, deployment_id: int) -> str:
+        task = (
+            self.db.query(GenerationTask)
+            .filter(GenerationTask.deployment_id == deployment_id)
+            .order_by(GenerationTask.queued_at.desc())
+            .first()
+        )
+        if not task:
+            raise ValueError(f"No generation task found for deployment {deployment_id}")
+        return task.task_id
 
     async def reset_healing_state(self, project_id: str):
         """

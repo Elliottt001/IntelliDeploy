@@ -118,6 +118,7 @@ class FallbackArtifactResponse(BaseModel):
     artifact_path: str | None = None
     artifact_uri: str | None = None
     artifact_key: str | None = None
+    context_files: dict[str, str] | None = None
     dockerfile_content: str
     runtime: FallbackArtifactRuntime
     required_envs: list[RequiredEnvVar] = Field(default_factory=list)
