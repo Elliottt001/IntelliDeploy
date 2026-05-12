@@ -1,7 +1,5 @@
 # LZH 检索与召回后端说明
 
-这份文档给后端同事快速理解“阶段一：自然语言需求 -> Top 3 GitHub 仓库候选”的实现。
-
 ## 入口接口
 
 代码入口在 `backend/app/routers/intellideploy/retrieval.py`。
@@ -184,11 +182,3 @@ python -m pytest tests\unit\test_nl2repo_retrieval.py -q
 
 - 检索模块测试通过。
 - 整体 `tests/unit` 里有旧测试失败：`ErrorParser` 缺少 `diagnose` 方法，和本模块无关。
-
-## 开发约定建议
-
-开发过程中写这种 `devREADME` 是合理的，尤其适合多人并行、接口还在快速变化的阶段。注意三点：
-
-- 保持短，讲入口、字段、调用方式和测试命令即可。
-- 不要让它替代正式接口契约；稳定后最好同步到 OpenAPI、`docs/` 或接口平台。
-- 每次改接口字段时顺手更新文档，否则后续会变成误导。
