@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Platform, Animated, Easing } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Platform, Animated, Easing, Image, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 
 interface Message {
@@ -23,7 +23,6 @@ export default function ChatbotNewPage() {
   const rippleAnim1 = useRef(new Animated.Value(0)).current;
   const rippleAnim2 = useRef(new Animated.Value(0)).current;
   const rippleAnim3 = useRef(new Animated.Value(0)).current;
-  const rippleAnim4 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Fade in animation
@@ -33,14 +32,14 @@ export default function ChatbotNewPage() {
       useNativeDriver: true,
     }).start();
 
-    // Float animation loop
+    // Float animation loop - 3 seconds up and down
     Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
           toValue: 1,
-          duration: 3000,
+        duration: 3000,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+        useNativeDriver: true,
         }),
         Animated.timing(floatAnim, {
           toValue: 0,
@@ -51,22 +50,22 @@ export default function ChatbotNewPage() {
       ])
     ).start();
 
-    // Ripple animations
+    // Ripple animations - 3 layers with different delays
     const createRipple = (anim: Animated.Value, delay: number) => {
       Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
           Animated.parallel([
             Animated.timing(anim, {
-              toValue: 1,
-              duration: 3000,
+            toValue: 1,
+              duration: 2000,
               easing: Easing.out(Easing.ease),
               useNativeDriver: true,
             }),
           ]),
           Animated.timing(anim, {
             toValue: 0,
-            duration: 0,
+        duration: 0,
             useNativeDriver: true,
           }),
         ])
@@ -74,14 +73,13 @@ export default function ChatbotNewPage() {
     };
 
     createRipple(rippleAnim1, 0);
-    createRipple(rippleAnim2, 750);
-    createRipple(rippleAnim3, 1500);
-    createRipple(rippleAnim4, 2250);
-  }, [fadeAnim, floatAnim, rippleAnim1, rippleAnim2, rippleAnim3, rippleAnim4]);
+    createRipple(rippleAnim2, 666);
+    createRipple(rippleAnim3, 1333);
+  }, [fadeAnim, floatAnim, rippleAnim1, rippleAnim2, rippleAnim3]);
 
   const suggestions = [
     '推荐几款好用的开发工具',
-    '如何使用Docker部署应用？',
+    '如何使用Docker部署项目？',
     '帮我生成一个Python爬虫代码！',
   ];
 
@@ -121,18 +119,18 @@ export default function ChatbotNewPage() {
     outputRange: [0, -12],
   });
 
-  const createRippleStyle = (anim: Animated.Value) => ({
+  const createRippleStyle = (anim: Animated.Value, index: number) => ({
     transform: [
       {
         scale: anim.interpolate({
           inputRange: [0, 1],
-          outputRange: [0.8, 1.8],
+          outputRange: [0.9, 1.3 + index * 0.1],
         }),
       },
     ],
     opacity: anim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.6, 0],
+      inputRange: [0, 0.5, 1],
+      outputRange: [0.4, 0.2, 0],
     }),
   });
 
@@ -140,18 +138,21 @@ export default function ChatbotNewPage() {
     <View style={styles.container}>
       {/* Main Chat Container */}
       <Animated.View style={[styles.chatContainer, { opacity: fadeAnim }]}>
-        {/* Background Gradient */}
+        {/* Background with gradient */}
         <View style={styles.background} />
 
-        {/* Animated Blobs */}
-        <View style={[styles.blob, styles.blobPink]} />
-        <View style={[styles.blob, styles.blobPurple]} />
 
         {/* Header */}
         <View style={styles.header}>
-          <Pressable style={styles.headerButton} onPress={() => router.back()}>
+          <Pressable style={styles.headerButton} onPress={() => {
+            if (router.canGoBack()) {
+           router.back();
+            } else {
+              router.push('/');
+            }
+          }}>
             <Text style={styles.headerButtonText}>←</Text>
-          </Pressable>
+      </Pressable>
           <View style={styles.headerTitle}>
             <Text style={styles.titleText}>
               <Text style={styles.titleHighlight}>Mibo</Text> AI Chatbot
@@ -168,110 +169,111 @@ export default function ChatbotNewPage() {
           contentContainerStyle={styles.contentContainer}
         >
           {messages.length === 0 ? (
-            <>
+       <>
               {/* Hero Section */}
               <View style={styles.hero}>
-                {/* Ripple Animations */}
+                {/* Ripple Animations - 3 layers */}
                 <View style={styles.rippleContainer}>
-                  <Animated.View style={[styles.ripple, createRippleStyle(rippleAnim1)]} />
-                  <Animated.View style={[styles.ripple, createRippleStyle(rippleAnim2)]} />
-                  <Animated.View style={[styles.ripple, createRippleStyle(rippleAnim3)]} />
-                  <Animated.View style={[styles.ripple, createRippleStyle(rippleAnim4)]} />
+                  <Animated.View style={[styles.ripple, styles.ripple1, createRippleStyle(rippleAnim1, 0)]} />
+                  <Animated.View style={[styles.ripple, styles.ripple2, createRippleStyle(rippleAnim2, 1)]} />
+                  <Animated.View style={[styles.ripple, styles.ripple3, createRippleStyle(rippleAnim3, 2)]} />
                 </View>
 
-                {/* Robot Mascot */}
+           {/* Robot Mascot with Image */}
                 <Animated.View style={[styles.robotContainer, { transform: [{ translateY: floatY }] }]}>
-                  <View style={styles.robot}>
-                    <View style={styles.robotFace}>
-                      <View style={styles.robotEyes}>
-                        <View style={styles.robotEye} />
-                        <View style={styles.robotEye} />
-                      </View>
-                      <View style={styles.robotMouth} />
-                    </View>
-                  </View>
-                  {/* Cat Ears */}
-                  <View style={[styles.ear, styles.earLeft]} />
-                  <View style={[styles.ear, styles.earRight]} />
-                </Animated.View>
+        {/* Under Robot Ripple Platform - Using processed transparent image */}
+          <Image
+            source={require('../assets/chatbot/underrobot.png')}
+        style={styles.underRobotImage}
+            resizeMode="contain"
+          />
+
+
+          {/* Robot Image */}
+          <Image
+          source={require('../assets/chatbot/robot.png')}
+            style={styles.robotImage}
+            resizeMode="contain"
+          />
+           </Animated.View>
 
                 {/* Welcome Message */}
                 <View style={styles.welcomeMessage}>
                   <Text style={styles.welcomeTitle}>
-                    你好！我是 <Text style={styles.welcomeHighlight}>Mibo^^</Text>
+                  你好！我是 <Text style={styles.welcomeHighlight}>Mibo^^</Text>
                   </Text>
-                  <Text style={styles.welcomeSubtitle}>
+               <Text style={styles.welcomeSubtitle}>
                     有什么可以帮助您的吗？
-                  </Text>
+               </Text>
                 </View>
-              </View>
+          </View>
 
-              {/* Suggestion Buttons */}
+            {/* Suggestion Buttons */}
               {showSuggestions && (
                 <View style={styles.suggestions}>
                   {suggestions.map((suggestion, index) => (
-                    <Pressable
-                      key={index}
+                <Pressable
+                    key={index}
                       style={styles.suggestionButton}
-                      onPress={() => handleSend(suggestion)}
-                    >
-                      <Text style={styles.suggestionText}>{suggestion}</Text>
-                    </Pressable>
-                  ))}
+                  onPress={() => handleSend(suggestion)}
+                  >
+              <Text style={styles.suggestionText}>{suggestion}</Text>
+         </Pressable>
+                ))}
                 </View>
               )}
             </>
-          ) : (
-            <>
-              {/* Chat Messages */}
+      ) : (
+         <>
+          {/* Chat Messages */}
               <View style={styles.messagesContainer}>
                 {messages.map((message) => (
                   <View
-                    key={message.id}
-                    style={[
-                      styles.messageBubble,
-                      message.role === 'user' ? styles.userBubble : styles.aiBubble,
-                    ]}
+              key={message.id}
+                style={[
+                 styles.messageBubble,
+            message.role === 'user' ? styles.userBubble : styles.aiBubble,
+            ]}
                   >
                     <Text
-                      style={[
-                        styles.messageText,
-                        message.role === 'user' ? styles.userText : styles.aiText,
-                      ]}
+                   style={[
+                 styles.messageText,
+                   message.role === 'user' ? styles.userText : styles.aiText,
+                  ]}
                     >
                       {message.content}
-                    </Text>
+         </Text>
                   </View>
-                ))}
+              ))}
 
                 {isLoading && (
                   <View style={[styles.messageBubble, styles.aiBubble]}>
-                    <Text style={styles.aiText}>正在思考中......</Text>
-                  </View>
+                <Text style={styles.aiText}>正在思考中......</Text>
+             </View>
                 )}
               </View>
 
               {/* AI Card */}
               {showAICard && (
                 <Pressable style={styles.aiCard}>
-                  <View style={styles.aiCardHeader}>
-                    <View style={styles.aiCardIcon}>
-                      <Text style={styles.aiCardIconText}>✨</Text>
+              <View style={styles.aiCardHeader}>
+               <View style={styles.aiCardIcon}>
+                    <Text style={styles.aiCardIconText}>✨</Text>
                     </View>
-                    <View style={styles.aiCardTitleContainer}>
-                      <Text style={styles.aiCardTitle}>智能开发助手</Text>
-                      <Text style={styles.aiCardMeta}>AI 生成卡片</Text>
+          <View style={styles.aiCardTitleContainer}>
+              <Text style={styles.aiCardTitle}>智能开发助手</Text>
+                  <Text style={styles.aiCardMeta}>AI 生成卡片</Text>
                     </View>
                   </View>
                   <Text style={styles.aiCardDescription}>
                     已为您生成完整的应用架构方案，包括前端界面、后端API和数据库设计。
                   </Text>
-                  <View style={styles.aiCardFooter}>
-                    <Text style={styles.aiCardAction}>请帮我部署这个应用到云端</Text>
-                    <Text style={styles.aiCardArrow}>→</Text>
+            <View style={styles.aiCardFooter}>
+               <Text style={styles.aiCardAction}>请帮我部署这个应用到云端</Text>
+                <Text style={styles.aiCardArrow}>→</Text>
                   </View>
                 </Pressable>
-              )}
+        )}
             </>
           )}
         </ScrollView>
@@ -279,16 +281,19 @@ export default function ChatbotNewPage() {
         {/* Input Bar */}
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
-            placeholder="在这里输入你的问题......"
+         style={styles.input}
+          placeholder="在这里输入你的问题......"
             placeholderTextColor="#8B8FAF"
             value={inputText}
             onChangeText={setInputText}
             onSubmitEditing={() => handleSend(inputText)}
           />
+          <Pressable style={styles.micButton}>
+            <Text style={styles.micButtonText}>🎤</Text>
+        </Pressable>
           <Pressable
             style={styles.sendButton}
-            onPress={() => handleSend(inputText)}
+        onPress={() => handleSend(inputText)}
           >
             <Text style={styles.sendButtonText}>↑</Text>
           </Pressable>
@@ -301,7 +306,7 @@ export default function ChatbotNewPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#E8E8E8',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -311,7 +316,7 @@ const styles = StyleSheet.create({
     height: 896,
     borderRadius: 32,
     overflow: 'hidden',
-    backgroundColor: '#F7F9FF',
+    backgroundColor: '#E8EBFF',
     position: 'relative',
     ...Platform.select({
       web: {
@@ -322,34 +327,16 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 20 },
         shadowOpacity: 0.15,
         shadowRadius: 60,
-        elevation: 20,
+      elevation: 20,
       },
     }),
   },
   background: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#F7F9FF',
-  },
-  blob: {
-    position: 'absolute',
-    borderRadius: 9999,
-  },
-  blobPink: {
-    right: -96,
-    bottom: 80,
-    width: 256,
-    height: 320,
-    backgroundColor: 'rgba(246, 184, 255, 0.25)',
-  },
-  blobPurple: {
-    left: -80,
-    top: 160,
-    width: 256,
-    height: 224,
-    backgroundColor: 'rgba(124, 98, 255, 0.15)',
+    backgroundColor: '#E8EBFF',
   },
   header: {
-    position: 'absolute',
+  position: 'absolute',
     top: 48,
     left: 28,
     right: 28,
@@ -363,13 +350,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
       web: {
         backdropFilter: 'blur(10px)',
-      },
+    },
     }),
   },
   headerButtonText: {
@@ -379,6 +366,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     marginHorizontal: 16,
+    alignItems: 'center',
   },
   titleText: {
     fontSize: 18,
@@ -398,99 +386,64 @@ const styles = StyleSheet.create({
   },
   hero: {
     alignItems: 'center',
-    paddingTop: 40,
+    paddingTop: 20,
     paddingBottom: 32,
     position: 'relative',
   },
   rippleContainer: {
     position: 'absolute',
-    top: 40,
+    top: 20,
     left: 0,
     right: 0,
-    height: 192,
+    height: 280,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ripple: {
     position: 'absolute',
-    width: 256,
-    height: 256,
-    borderRadius: 128,
-    borderWidth: 2,
-    borderColor: 'rgba(124, 98, 255, 0.2)',
+    borderRadius: 9999,
+    borderWidth: 1.5,
+  },
+  ripple1: {
+    width: 200,
+    height: 200,
+  borderColor: 'rgba(200, 190, 255, 0.3)',
+  },
+  ripple2: {
+    width: 260,
+    height: 260,
+    borderColor: 'rgba(200, 190, 255, 0.25)',
+  },
+  ripple3: {
+    width: 320,
+    height: 320,
+    borderColor: 'rgba(200, 190, 255, 0.2)',
   },
   robotContainer: {
-    width: 192,
-    height: 192,
+    width: 240,
+    height: 240,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
     zIndex: 10,
   },
-  robot: {
-    width: 128,
-    height: 128,
-    borderRadius: 32,
-    backgroundColor: '#7C62FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 20px 40px rgba(124, 98, 255, 0.3)',
-      },
-      default: {
-        shadowColor: '#7C62FF',
-        shadowOffset: { width: 0, height: 20 },
-        shadowOpacity: 0.3,
-        shadowRadius: 40,
-        elevation: 10,
-      },
-    }),
+  robotImage: {
+    width: 200,
+    height: 200,
   },
-  robotFace: {
-    alignItems: 'center',
-  },
-  robotEyes: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 16,
-  },
-  robotEye: {
-    width: 24,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#00E5FF',
-  },
-  robotMouth: {
-    width: 48,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#00E5FF',
-  },
-  ear: {
+  underRobotImage: {
     position: 'absolute',
-    width: 32,
-    height: 32,
-    backgroundColor: '#B39DFF',
-  },
-  earLeft: {
-    top: -8,
-    left: 32,
-    borderTopLeftRadius: 32,
-    transform: [{ rotate: '-12deg' }],
-  },
-  earRight: {
-    top: -8,
-    right: 32,
-    borderTopRightRadius: 32,
-    transform: [{ rotate: '12deg' }],
+    bottom: -40,
+  width: 360,
+    height: 180,
+    zIndex: -1,
   },
   welcomeMessage: {
-    marginTop: 32,
+    marginTop: 20,
     alignItems: 'center',
   },
   welcomeTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: '#161823',
     marginBottom: 8,
@@ -507,23 +460,23 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   suggestionButton: {
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderWidth: 1,
-    borderColor: '#FFFFFF',
+    borderColor: 'rgba(255, 255, 255, 0.9)',
     ...Platform.select({
       web: {
-        backdropFilter: 'blur(10px)',
-        boxShadow: '0 8px 14px rgba(175, 167, 215, 0.16)',
-      },
-      default: {
+     backdropFilter: 'blur(10px)',
+        boxShadow: '0 4px 12px rgba(175, 167, 215, 0.15)',
+    },
+    default: {
         shadowColor: '#AFA7D7',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.16,
-        shadowRadius: 14,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 4 },
+     shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 3,
       },
     }),
   },
@@ -549,10 +502,10 @@ const styles = StyleSheet.create({
   },
   aiBubble: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     ...Platform.select({
       web: {
-        backdropFilter: 'blur(10px)',
+     backdropFilter: 'blur(10px)',
       },
     }),
   },
@@ -570,7 +523,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     padding: 20,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderWidth: 1,
     borderColor: '#FFFFFF',
     ...Platform.select({
@@ -580,7 +533,7 @@ const styles = StyleSheet.create({
       },
       default: {
         shadowColor: '#897AB9',
-        shadowOffset: { width: 0, height: 8 },
+      shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.16,
         shadowRadius: 14,
         elevation: 5,
@@ -651,7 +604,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderWidth: 1,
     borderColor: '#FFFFFF',
     ...Platform.select({
@@ -673,6 +626,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#494A64',
     paddingRight: 12,
+  },
+  micButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  micButtonText: {
+    fontSize: 18,
   },
   sendButton: {
     width: 36,
