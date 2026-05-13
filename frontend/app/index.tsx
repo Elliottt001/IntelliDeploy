@@ -84,14 +84,14 @@ function WebHome() {
         <Navbar theme={theme} onToggleTheme={handleToggleTheme} />
 
         {/* Chatbot Quick Access Button */}
-        <Pressable
+     {/* <Pressable
           onPress={() => router.push('/chatbot-new')}
-          style={webStyles.chatbotButton}
+       style={webStyles.chatbotButton}
         >
           <Text style={webStyles.chatbotButtonText}>
             🤖 体验 Mibo AI Chatbot (新版)
           </Text>
-        </Pressable>
+      </Pressable> */}
 
         <HeroSection theme={theme} />
         <StatsSection theme={theme} />
@@ -392,7 +392,7 @@ function MobileHome() {
                   },
                 ]}
               >
-                {'<<< 点击此处与Mibo^^ AI对话 (新版)'}
+                {'<<< 点击此处与Mibo^^ AI对话'}
               </Animated.Text>
             </Pressable>
           </View>
