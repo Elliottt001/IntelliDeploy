@@ -13,7 +13,6 @@ import {
   Easing,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAPI } from '../../services/api';
 
 const SOCIAL_GOOGLE =
@@ -30,7 +29,6 @@ export default function Login() {
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
   const [agreePrivacy, setAgreePrivacy] = useState(true);
-  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
 
   const fadeIn = useRef(new Animated.Value(0)).current;
@@ -174,10 +172,7 @@ export default function Login() {
     try {
       const response = await authAPI.login(account, password);
       const { access_token } = response.data;
-      await AsyncStorage.setItem('token', access_token);
-      if (!rememberMe) {
-        await AsyncStorage.removeItem('token');
-      }
+      await authAPI.setToken(access_token);
       Alert.alert('成功', '登录成功！', [{ text: '确定', onPress: () => router.replace('/') }]);
     } catch (error: any) {
       const message = error.response?.data?.detail || '登录失败，请检查账号和密码';
@@ -341,10 +336,6 @@ export default function Login() {
               <Pressable style={styles.checkRow} onPress={() => setAgreePrivacy((v) => !v)}>
                 <View style={[styles.checkbox, agreePrivacy && styles.checkboxOn]} />
                 <Text style={styles.checkText}>点击即表示同意《隐私协议》</Text>
-              </Pressable>
-              <Pressable style={styles.checkRow} onPress={() => setRememberMe((v) => !v)}>
-                <View style={[styles.checkbox, rememberMe && styles.checkboxOn]} />
-                <Text style={styles.checkText}>记住我</Text>
               </Pressable>
             </View>
 

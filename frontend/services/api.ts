@@ -8,6 +8,7 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+export const AUTH_TOKEN_STORAGE_KEY = 'token';
 export const RAG_RESULT_STORAGE_KEY = 'intellideploy:last-rag-search';
 export const DEPLOYMENT_STATUS_STORAGE_KEY = 'intellideploy:active-deployment-id';
 
@@ -163,12 +164,22 @@ type RetrievalSearchResponse = {
 
 // 请求拦截器：自动添加 token
 api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem('token');
+  const token = await AsyncStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      await AsyncStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const authAPI = {
   register: (username: string, email: string, password: string) =>
@@ -176,6 +187,9 @@ export const authAPI = {
   login: (username: string, password: string) =>
     api.post('/auth/login', { username, password }),
   getMe: () => api.get('/auth/me'),
+  clearToken: () => AsyncStorage.removeItem(AUTH_TOKEN_STORAGE_KEY),
+  getToken: () => AsyncStorage.getItem(AUTH_TOKEN_STORAGE_KEY),
+  setToken: (token: string) => AsyncStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token),
 };
 
 export const ragAPI = {
