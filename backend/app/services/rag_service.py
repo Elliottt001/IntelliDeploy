@@ -7,6 +7,7 @@ from uuid import uuid4
 from sqlalchemy.orm import Session
 
 from app.schemas.fallback import Constraints, PreferredStack, RepoProfile, StartFallbackTaskRequest
+from app.schemas.fallback import GenerationMode, TriggerReason
 from app.schemas.rag import (
     RagCandidate,
     RagSearchRequest,
@@ -104,6 +105,34 @@ class RagService:
         )
         generation = await MultiAgentDeploymentService(self.db).start_generation_with_consensus(generation_request)
         return search_response, generation
+
+    async def start_generation_for_candidate(
+        self,
+        *,
+        search_response: RagSearchResponse,
+        candidate: RagCandidate,
+        project_id: str,
+        deployment_id: str,
+        raw_query: str,
+        request_id: str | None = None,
+        generation_mode: GenerationMode = GenerationMode.AUTO,
+        trigger_reason: TriggerReason = TriggerReason.LOW_SCORE_ALL,
+        constraints: Constraints | None = None,
+    ):
+        generation_request = StartFallbackTaskRequest(
+            project_id=project_id,
+            deployment_id=deployment_id,
+            request_id=request_id or search_response.request_id,
+            trigger_reason=trigger_reason,
+            original_prompt=raw_query,
+            generation_mode=generation_mode,
+            evaluation_score=round(candidate.final_score),
+            missing_components=candidate.missing_components,
+            preferred_stack=candidate.preferred_stack,
+            repo_profile=candidate.repo_profile,
+            constraints=constraints or Constraints(),
+        )
+        return await MultiAgentDeploymentService(self.db).start_generation_with_consensus(generation_request)
 
     def _intent_from_retrieval(self, response: RepoSearchResponse) -> RepoIntent:
         intent = response.intent

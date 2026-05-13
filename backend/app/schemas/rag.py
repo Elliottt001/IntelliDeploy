@@ -99,3 +99,20 @@ class RagStartGenerationRequest(BaseModel):
 class RagStartGenerationResponse(BaseModel):
     search: RagSearchResponse
     generation: StartFallbackTaskResponse
+
+
+class RagChatRequest(BaseModel):
+    raw_query: str = Field(min_length=1)
+    selected_repo_url: Optional[str] = None
+    preferred_stack: Optional[PreferredStack] = None
+    constraints: Optional[Constraints] = None
+    generation_mode: GenerationMode = GenerationMode.AUTO
+    trigger_reason: TriggerReason = TriggerReason.LOW_SCORE_ALL
+    top_k: int = Field(default=3, ge=1, le=10)
+
+
+class RagChatResponse(BaseModel):
+    search: RagSearchResponse
+    generation: StartFallbackTaskResponse
+    project_id: str
+    deployment_id: str
