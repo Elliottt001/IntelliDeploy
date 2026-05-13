@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -19,6 +20,8 @@ from app.schemas.rag import (
 from app.services.multi_agent_deployment_service import MultiAgentDeploymentService
 from app.schemas.retrieval import RepoSearchRequest, RepoSearchResponse
 from app.services.retrieval_service import RetrievalService, get_retrieval_service
+from app.services.repo_skeleton_extractor import RemoteRepoSkeletonExtractor
+from app.config import settings
 
 
 _STACK_ALIASES: dict[str, str] = {
@@ -52,7 +55,23 @@ class RagService:
                 top_n=request.top_k,
             )
         )
-        return self.search_response_from_retrieval(request_id, retrieval_response)
+        return await self.search_response_from_retrieval_async(request_id, retrieval_response)
+
+    async def search_response_from_retrieval_async(
+        self,
+        request_id: str,
+        retrieval_response: RepoSearchResponse,
+    ) -> RagSearchResponse:
+        intent = self._intent_from_retrieval(retrieval_response)
+        candidates, warnings = await self._candidates_from_retrieval_async(retrieval_response, intent)
+        return RagSearchResponse(
+            request_id=request_id,
+            intent=intent,
+            candidates=candidates,
+            selected=candidates[0] if candidates else None,
+            generated_at=datetime.now(UTC),
+            warnings=warnings,
+        )
 
     def search_response_from_retrieval(
         self,
@@ -67,7 +86,7 @@ class RagService:
             candidates=candidates,
             selected=candidates[0] if candidates else None,
             generated_at=datetime.now(UTC),
-            warnings=[],
+            warnings=["Deep repository evaluation was skipped by synchronous adapter."],
         )
 
     async def start_generation(
@@ -148,16 +167,58 @@ class RagService:
             constraints=dict(intent.constraints),
         )
 
-    def _candidates_from_retrieval(self, response: RepoSearchResponse) -> list[RagCandidate]:
+    async def _candidates_from_retrieval_async(
+        self,
+        response: RepoSearchResponse,
+        intent: RepoIntent,
+    ) -> tuple[list[RagCandidate], list[str]]:
+        raw_profiles = await asyncio.gather(
+            *(self._deep_profile_for_candidate(candidate) for candidate in response.candidates),
+            return_exceptions=True,
+        )
+        warnings: list[str] = []
+        profile_by_index: dict[int, RepoProfile] = {}
+        for index, result in enumerate(raw_profiles):
+            if isinstance(result, Exception):
+                candidate = response.candidates[index]
+                warnings.append(f"Deep evaluation failed for {candidate.full_name}: {result}")
+                continue
+            if result is not None:
+                profile_by_index[index] = result
+
+        return (
+            self._candidates_from_retrieval(
+                response,
+                intent=intent,
+                profile_by_index=profile_by_index,
+            ),
+            warnings,
+        )
+
+    def _candidates_from_retrieval(
+        self,
+        response: RepoSearchResponse,
+        *,
+        intent: RepoIntent | None = None,
+        profile_by_index: dict[int, RepoProfile] | None = None,
+    ) -> list[RagCandidate]:
+        intent = intent or self._intent_from_retrieval(response)
+        profile_by_index = profile_by_index or {}
         candidates: list[RagCandidate] = []
         for index, candidate in enumerate(response.candidates, start=1):
             profile = (
-                response.repository_profile
-                if index == 1 and response.repository_profile is not None
-                else self._profile_from_retrieval_candidate(candidate)
+                profile_by_index.get(index - 1)
+                or (
+                    response.repository_profile
+                    if index == 1 and response.repository_profile is not None
+                    else None
+                )
+                or self._profile_from_retrieval_candidate(candidate)
             )
-            preferred_stack = self._build_preferred_stack(profile, self._intent_from_retrieval(response))
-            final_score = min(float(candidate.score or candidate.retrieval_score or 0), 100.0)
+            preferred_stack = self._build_preferred_stack(profile, intent)
+            deployability_score = self._deployability_score_from_profile(candidate, profile)
+            retrieval_score = min(float(candidate.score or candidate.retrieval_score or 0), 100.0)
+            final_score = self._blend_final_score(retrieval_score, deployability_score)
             candidates.append(
                 RagCandidate(
                     rank=candidate.rank or index,
@@ -174,10 +235,10 @@ class RagService:
                     is_archived=candidate.is_archived,
                     last_commit_at=candidate.last_commit_at or candidate.pushed_at,
                     retrieval_sources=list(candidate.source_scores.keys()),
-                    retrieval_score=final_score,
-                    deployability_score=self._deployability_score_from_breakdown(candidate.score_breakdown),
+                    retrieval_score=retrieval_score,
+                    deployability_score=deployability_score,
                     final_score=final_score,
-                    rerank_stage=RerankStage.LLM if candidate.score_breakdown else RerankStage.COARSE,
+                    rerank_stage=RerankStage.LLM if profile_by_index.get(index - 1) else RerankStage.COARSE,
                     match_reasons=self._match_reasons_from_candidate(candidate),
                     readme_summary=profile.readme_summary,
                     repo_profile=profile,
@@ -186,6 +247,37 @@ class RagService:
                 )
             )
         return candidates
+
+    async def _deep_profile_for_candidate(self, candidate: Any) -> RepoProfile | None:
+        token = getattr(settings, "GITHUB_TOKEN", "") or self._token_from_retrieval_service()
+        if not token:
+            return None
+        owner, repo = self._owner_repo_from_candidate(candidate)
+        if not owner or not repo:
+            return None
+
+        extractor = RemoteRepoSkeletonExtractor(
+            token=token,
+            owner=owner,
+            repo=repo,
+            ref=candidate.default_branch,
+        )
+        skeleton = await asyncio.to_thread(extractor.extract)
+        return skeleton.repo_profile
+
+    def _token_from_retrieval_service(self) -> str | None:
+        github_client = getattr(self.retrieval_service, "github_client", None)
+        token_pool = getattr(github_client, "token_pool", None)
+        tokens = getattr(token_pool, "_tokens", None) or []
+        return tokens[0] if tokens else None
+
+    @staticmethod
+    def _owner_repo_from_candidate(candidate: Any) -> tuple[str | None, str | None]:
+        full_name = getattr(candidate, "full_name", "") or ""
+        if "/" in full_name:
+            owner, repo = full_name.split("/", 1)
+            return owner or None, repo or None
+        return None, None
 
     def _profile_from_retrieval_candidate(self, candidate: Any) -> RepoProfile:
         frameworks = self._frameworks_from_repo(
@@ -217,6 +309,27 @@ class RagService:
             + breakdown.get("package_structure", 0),
             100.0,
         )
+
+    def _deployability_score_from_profile(self, candidate: Any, profile: RepoProfile) -> float:
+        score = self._deployability_score_from_breakdown(candidate.score_breakdown)
+        if profile.has_valid_dockerfile:
+            score += 25
+        if profile.dependency_files:
+            score += 20
+        if profile.entrypoints:
+            score += 20
+        if profile.detected_frameworks:
+            score += 15
+        if profile.package_manager:
+            score += 10
+        if profile.readme_summary:
+            score += 5
+        missing_penalty = min(len(self._missing_components(profile)) * 8, 35)
+        return max(0.0, min(score - missing_penalty, 100.0))
+
+    @staticmethod
+    def _blend_final_score(retrieval_score: float, deployability_score: float) -> float:
+        return round(min((retrieval_score * 0.65) + (deployability_score * 0.35), 100.0), 2)
 
     def _match_reasons_from_candidate(self, candidate: Any) -> list[str]:
         reasons = [f"source:{source}" for source in candidate.source_scores]
@@ -268,7 +381,11 @@ class RagService:
         }.get(package_manager or "", [])
 
     def _missing_components(self, profile: RepoProfile) -> list[str]:
-        missing = ["Dockerfile", "healthcheck"]
+        missing: list[str] = []
+        if not profile.has_valid_dockerfile:
+            missing.append("Dockerfile")
+        if not profile.healthcheck_path:
+            missing.append("healthcheck")
         if not profile.dependency_files:
             missing.append("dependency_file")
         if not profile.entrypoints:

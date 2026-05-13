@@ -9,6 +9,7 @@ from typing import Any
 
 from app.schemas.fallback import RepoProfile
 from app.services.intellideploy_github import GitHubApiError, github_request_json
+from fallback.validators.dockerfile_validator import validate_dockerfile
 
 
 IGNORE_DIRS = {
@@ -32,14 +33,23 @@ IGNORE_DIRS = {
 
 DEPENDENCY_PATTERNS = (
     r"(^|/)package\.json$",
+    r"(^|/)package-lock\.json$",
+    r"(^|/)npm-shrinkwrap\.json$",
+    r"(^|/)yarn\.lock$",
+    r"(^|/)pnpm-lock\.yaml$",
     r"(^|/)requirements\.txt$",
     r"(^|/)pyproject\.toml$",
     r"(^|/)Pipfile$",
+    r"(^|/)Pipfile\.lock$",
     r"(^|/)poetry\.lock$",
+    r"(^|/)uv\.lock$",
     r"(^|/)go\.mod$",
+    r"(^|/)go\.sum$",
     r"(^|/)pom\.xml$",
     r"(^|/)build\.gradle$",
+    r"(^|/)build\.gradle\.kts$",
     r"(^|/)Cargo\.toml$",
+    r"(^|/)Cargo\.lock$",
 )
 
 BUILD_PATTERNS = (
@@ -234,6 +244,15 @@ class RemoteRepoSkeletonExtractor:
         frameworks = self._detect_frameworks(key_files)
         languages = self._detect_languages(file_paths)
         package_manager = self._detect_package_manager(dependency_files)
+        dockerfile = next((file for file in key_files if PurePosixPath(file.path).name == "Dockerfile"), None)
+        dockerfile_valid = False
+        if dockerfile:
+            validation = validate_dockerfile(
+                dockerfile.content,
+                expected_language=languages[0] if languages else None,
+                entry_candidates=entrypoints,
+            )
+            dockerfile_valid = bool(validation["is_valid"])
 
         return RepoProfile(
             source_repo_url=f"https://github.com/{self.owner}/{self.repo}",
@@ -242,7 +261,7 @@ class RemoteRepoSkeletonExtractor:
             package_manager=package_manager,
             entrypoints=entrypoints,
             dependency_files=dependency_files,
-            has_valid_dockerfile=any(PurePosixPath(path).name == "Dockerfile" for path in build_files),
+            has_valid_dockerfile=dockerfile_valid,
             readme_summary=self._summarize_readme(readme) if readme else None,
         )
 
@@ -297,7 +316,7 @@ class RemoteRepoSkeletonExtractor:
         return frameworks
 
     def _detect_package_manager(self, dependency_files: list[str]) -> str | None:
-        names = {PurePosixPath(path).name for path in dependency_files}
+        names = {PurePosixPath(path).name.lower() for path in dependency_files}
         if "pnpm-lock.yaml" in names:
             return "pnpm"
         if "yarn.lock" in names:
