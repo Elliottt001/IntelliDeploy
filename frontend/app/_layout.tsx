@@ -21,6 +21,7 @@ export default function RootLayout() {
       <Stack.Screen name="register" options={{ title: '注册' }} />
       <Stack.Screen name="app-gallery" options={{ title: 'App Gallery' }} />
       <Stack.Screen name="chatbot" options={{ title: 'Mibo ChatBot' }} />
+      <Stack.Screen name="chatbot-new" options={{ title: 'Mibo AI Chatbot', headerShown: false }} />
     </Stack>
   );
 }

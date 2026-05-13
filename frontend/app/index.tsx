@@ -37,6 +37,7 @@ const navUserIcon =
   'https://www.figma.com/api/mcp/asset/2f36f385-98cf-41db-9a3a-bc7a7318e801';
 
 function WebHome() {
+  const router = useRouter();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [hasManualTheme, setHasManualTheme] = useState(false);
 
@@ -81,6 +82,17 @@ function WebHome() {
     >
       <View style={[webStyles.page, isDark && webStyles.pageDark]}>
         <Navbar theme={theme} onToggleTheme={handleToggleTheme} />
+
+        {/* Chatbot Quick Access Button */}
+     {/* <Pressable
+          onPress={() => router.push('/chatbot-new')}
+       style={webStyles.chatbotButton}
+        >
+          <Text style={webStyles.chatbotButtonText}>
+            🤖 体验 Mibo AI Chatbot (新版)
+          </Text>
+      </Pressable> */}
+
         <HeroSection theme={theme} />
         <StatsSection theme={theme} />
 
@@ -362,7 +374,7 @@ function MobileHome() {
               onPress={() => {
                 setMiboActive(true);
                 setTimeout(() => setMiboActive(false), 620);
-                router.push('/chatbot');
+                router.push('/chatbot-new');
               }}
             >
               <Animated.Text
@@ -759,6 +771,31 @@ const webStyles = StyleSheet.create({
     gap: 60,
     paddingVertical: 60,
     alignSelf: 'center' as any,
+  },
+  chatbotButton: {
+    marginTop: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 999,
+    backgroundColor: '#7C62FF',
+    alignSelf: 'center',
+    shadowColor: '#7C62FF',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+    ...(Platform.OS === 'web'
+      ? ({
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+        } as any)
+      : {}),
+  },
+  chatbotButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });
 
