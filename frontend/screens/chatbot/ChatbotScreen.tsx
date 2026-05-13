@@ -73,6 +73,7 @@ export default function Chatbot() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedRepo, setSelectedRepo] = useState<RagCandidate | null>(null);
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
+  const [generationTaskId, setGenerationTaskId] = useState<string | null>(null);
   const [pipelineMessage, setPipelineMessage] = useState('等待需求输入');
   const [pipelineProgress, setPipelineProgress] = useState(0);
   const [pipelineState, setPipelineState] = useState<Record<PipelineStage, PipelineStageStatus>>(
@@ -324,14 +325,19 @@ export default function Chatbot() {
     ]).start();
 
     try {
-      const result = await ragAPI.search(message.trim());
-      applyLocalStage('Building', 'success', '语义召回已完成，正在整理候选仓库', 0.38);
-      await AsyncStorage.setItem(RAG_RESULT_STORAGE_KEY, JSON.stringify(result.data));
-      if (result.data.selected) {
-        applyLocalStage('Generating', 'success', '已选出最匹配的可部署仓库', 0.58);
-        applyLocalStage('Packaging', 'success', '应用卡片和部署上下文已准备', 0.7);
-      }
-      setSelectedRepo(result.data.selected ?? result.data.candidates[0] ?? null);
+      const result = await ragAPI.chat(message.trim());
+      applyLocalStage('Packaging', 'success', '后端算法已接收需求，生成任务已创建', 0.68);
+      await AsyncStorage.setItem(RAG_RESULT_STORAGE_KEY, JSON.stringify(result.data.search));
+      await AsyncStorage.setItem(DEPLOYMENT_STATUS_STORAGE_KEY, result.data.deployment_id);
+      setDeploymentId(result.data.deployment_id);
+      setGenerationTaskId(result.data.generation.task_id);
+      setSelectedRepo(result.data.search.selected ?? result.data.search.candidates[0] ?? null);
+      applyLocalStage(
+        'Generating',
+        result.data.generation.accepted ? 'running' : 'failed',
+        result.data.generation.message || `生成任务状态：${result.data.generation.status}`,
+        result.data.generation.accepted ? 0.74 : 1
+      );
       setIsGenerating(false);
       Animated.spring(cardIntro, {
         toValue: 1,
@@ -700,7 +706,11 @@ export default function Chatbot() {
                     '领养列表、走失发布、志愿者协作和一键部署已生成。'}
                 </Text>
                 <Text style={styles.tapHint}>
-                  {selectedRepo ? '轻触查看候选仓库' : '轻触查看生成详情'}
+                  {selectedRepo
+                    ? generationTaskId
+                      ? `生成任务 ${generationTaskId.slice(0, 8)} · 轻触查看候选仓库`
+                      : '轻触查看候选仓库'
+                    : '轻触查看生成详情'}
                 </Text>
               </View>
             </Animated.View>

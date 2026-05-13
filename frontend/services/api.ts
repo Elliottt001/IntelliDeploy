@@ -119,6 +119,11 @@ export type RagStartGenerationResponse = {
   };
 };
 
+export type RagChatResponse = RagStartGenerationResponse & {
+  project_id: string;
+  deployment_id: string;
+};
+
 type RetrievalCandidate = {
   rank?: number | null;
   full_name: string;
@@ -175,14 +180,18 @@ export const authAPI = {
 
 export const ragAPI = {
   search: async (rawQuery: string) => {
-    const response = await api.post<RetrievalSearchResponse>('/api/retrieval/repos/search', {
-      natural_language_query: rawQuery,
-      top_n: 3,
+    const response = await api.post<RagSearchResponse>('/api/rag/search', {
+      raw_query: rawQuery,
+      top_k: 3,
     });
-    return {
-      ...response,
-      data: mapRetrievalToRagSearch(response.data),
-    };
+    return response;
+  },
+  chat: async (rawQuery: string) => {
+    const response = await api.post<RagChatResponse>('/api/rag/chat', {
+      raw_query: rawQuery,
+      top_k: 3,
+    });
+    return response;
   },
   startGeneration: async (payload: {
     project_id: string;

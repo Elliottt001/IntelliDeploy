@@ -161,7 +161,7 @@ function MobileHome() {
         toValue: 1,
         duration: 620,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(bottomIntro, {
         toValue: 1,
