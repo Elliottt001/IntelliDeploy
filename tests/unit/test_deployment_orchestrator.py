@@ -16,6 +16,7 @@ if str(BACKEND) not in sys.path:
 from app.schemas.fallback import (  # noqa: E402
     ArtifactType,
     GetArtifactResultResponse,
+    RequiredEnv,
     RuntimeInfo,
 )
 from app.services.deployment_orchestrator import DeploymentOrchestrator  # noqa: E402
@@ -41,6 +42,8 @@ class DeploymentStub:
     status = "pending"
     started_at = None
     finished_at = None
+    database_name = None
+    env_vars = None
 
 
 class QueryStub:
@@ -89,16 +92,31 @@ class BuilderStub:
 
 
 class SealosStub:
+    def __init__(self):
+        self.create_calls = []
+        self.health_calls = []
+
     async def create_app(self, **kwargs):
+        self.create_calls.append(kwargs)
         return {
             "app_id": "app-ok",
             "namespace": "default",
             "ingress_domain": "app.example.com",
             "access_url": "https://app.example.com",
+            "database_name": "app-1-db" if kwargs.get("needs_database") else None,
         }
 
-    async def health_check(self, url, timeout=30):
-        return True
+    async def health_check(self, url, timeout=30, expected_keywords=None):
+        self.health_calls.append(
+            {"url": url, "timeout": timeout, "expected_keywords": expected_keywords or []}
+        )
+        return {
+            "healthy": True,
+            "status_code": 200,
+            "response_snippet": '{"ok":true}',
+            "expected_keywords": expected_keywords or [],
+            "keyword_hits": ["ok"],
+        }
 
 
 class HealingStub:
@@ -130,6 +148,8 @@ def artifact_response(
     artifact_path: str | None = None,
     context_files: dict[str, str] | None = None,
     dockerfile: str = "FROM node:20-alpine",
+    runtime: RuntimeInfo | None = None,
+    required_envs: list[RequiredEnv] | None = None,
 ) -> GetArtifactResultResponse:
     return GetArtifactResultResponse(
         task_id="task-1",
@@ -137,8 +157,8 @@ def artifact_response(
         artifact_path=artifact_path,
         context_files=context_files,
         dockerfile_content=dockerfile,
-        runtime=RuntimeInfo(start_command="npm start", exposed_port=3000),
-        required_envs=[],
+        runtime=runtime or RuntimeInfo(start_command="npm start", exposed_port=3000),
+        required_envs=required_envs or [],
         deploy_ready=True,
     )
 
@@ -192,6 +212,65 @@ def test_start_deployment_passes_real_context_to_builder(tmp_path, monkeypatch):
 
         assert result["status"] in {"running", "success"}
         assert builder.calls[0]["context_files"]["package.json"].startswith("{")
+
+    asyncio.run(run())
+
+
+def test_start_deployment_detects_database_and_injects_env(monkeypatch):
+    async def run():
+        session = SessionStub()
+        orchestrator = build_orchestrator(session)
+        builder = BuilderStub()
+        monkeypatch.setattr(
+            "app.services.deployment_orchestrator.get_image_builder",
+            lambda method: builder,
+        )
+
+        artifact = artifact_response(
+            context_files={
+                "requirements.txt": "fastapi\npsycopg[binary]\nredis\n",
+                "main.py": "import psycopg\nimport redis\n",
+            },
+            runtime=RuntimeInfo(
+                start_command="uvicorn main:app --host 0.0.0.0 --port 8000",
+                exposed_port=8000,
+                healthcheck_path="/health",
+                package_manager="pip",
+                base_image="python:3.11-slim",
+            ),
+            required_envs=[
+                RequiredEnv(name="DATABASE_URL", required=True),
+                RequiredEnv(name="REDIS_URL", required=False),
+            ],
+        )
+
+        await orchestrator.start_deployment(1, artifact)
+
+        call = orchestrator.sealos_client.create_calls[0]
+        assert call["needs_database"] is True
+        assert call["database_type"] == "postgresql"
+        assert call["external_dependencies"] == ["redis"]
+        assert call["env_vars"]["DATABASE_URL"].startswith("postgresql://")
+        assert call["env_vars"]["REDIS_URL"].startswith("redis://")
+        assert session.deployment.database_name == "app-1-db"
+
+    asyncio.run(run())
+
+
+def test_health_check_uses_l7_keywords(monkeypatch):
+    async def run():
+        session = SessionStub()
+        orchestrator = build_orchestrator(session)
+        healthy = await orchestrator._perform_health_check(
+            1,
+            "https://app.example.com/health",
+            trigger_healing=False,
+            expected_keywords=["ok"],
+        )
+
+        assert healthy is True
+        assert orchestrator.sealos_client.health_calls[0]["expected_keywords"] == ["ok"]
+        assert session.deployment.status == "success"
 
     asyncio.run(run())
 

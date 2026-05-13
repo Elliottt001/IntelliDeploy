@@ -45,7 +45,7 @@ async function main() {
         if (input.needsDatabase) {
             dbRes = await skills.createDB({
                 name: `${input.name}-db`,
-                type: 'postgresql'
+                type: input.databaseType || 'postgresql'
             });
         }
 
@@ -118,6 +118,8 @@ def deploy_with_kubeconfig(
     domain: str,
     env_vars: Dict[str, str] | None,
     needs_database: bool,
+    database_type: str | None = None,
+    external_dependencies: List[str] | None = None,
 ):
     sdk_path = _skills_sdk_path()
     if os.path.exists(sdk_path):
@@ -134,6 +136,8 @@ def deploy_with_kubeconfig(
                     "domain": domain,
                     "envVars": env_vars,
                     "needsDatabase": needs_database,
+                    "databaseType": database_type or "postgresql",
+                    "externalDependencies": external_dependencies or [],
                 }
             )
             deploy_res = data.get("deployRes") or {}
@@ -168,6 +172,8 @@ def deploy_with_kubeconfig(
                 "runtimeName": name,
                 "ingressDomain": domain if enable_ingress else None,
                 "databaseName": database_name,
+                "databaseType": database_type or ("postgresql" if needs_database else None),
+                "externalDependencies": external_dependencies or [],
                 "results": results,
                 "log": json.dumps(results),
             }
@@ -278,7 +284,11 @@ def deploy_with_kubeconfig(
     database_name = None
     if needs_database:
         database_name = f"{name}-db"
-        results.append({"step": "database", "success": True, "message": "Database creation should be delegated to Sealos DB provider"})
+        results.append({
+            "step": "database",
+            "success": True,
+            "message": f"{database_type or 'postgresql'} dependency detected; connection env vars injected for cluster service binding",
+        })
 
     status = "applied" if all(r.get("success") for r in results) else "failed"
     return {
@@ -287,6 +297,8 @@ def deploy_with_kubeconfig(
         "runtimeName": name,
         "ingressDomain": domain if enable_ingress else None,
         "databaseName": database_name,
+        "databaseType": database_type or ("postgresql" if needs_database else None),
+        "externalDependencies": external_dependencies or [],
         "results": results,
         "log": json.dumps(results),
     }

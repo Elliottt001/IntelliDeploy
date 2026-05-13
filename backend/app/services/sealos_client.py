@@ -42,6 +42,8 @@ class SealosClient:
         enable_ingress: bool = True,
         domain: Optional[str] = None,
         needs_database: bool = False,
+        database_type: Optional[str] = None,
+        external_dependencies: Optional[List[str]] = None,
     ) -> Dict:
         """
         创建应用
@@ -75,6 +77,8 @@ class SealosClient:
                 domain=domain,
                 env_vars=env_vars,
                 needs_database=needs_database,
+                database_type=database_type,
+                external_dependencies=external_dependencies or [],
             )
 
             return {
@@ -84,6 +88,8 @@ class SealosClient:
                 "runtime_name": result.get("runtimeName"),
                 "ingress_domain": result.get("ingressDomain"),
                 "database_name": result.get("databaseName"),
+                "database_type": result.get("databaseType"),
+                "external_dependencies": result.get("externalDependencies", []),
                 "access_url": f"https://{domain}" if enable_ingress and domain else None,
                 "results": result.get("results", []),
                 "log": result.get("log", ""),
@@ -234,7 +240,12 @@ class SealosClient:
             "results": delete_results,
         }
 
-    async def health_check(self, url: str, timeout: int = 30) -> bool:
+    async def health_check(
+        self,
+        url: str,
+        timeout: int = 30,
+        expected_keywords: Optional[List[str]] = None,
+    ) -> Dict:
         """
         健康检查
 
@@ -247,11 +258,36 @@ class SealosClient:
         """
         try:
             import httpx
-            async with httpx.AsyncClient(timeout=timeout) as client:
+            async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
                 response = await client.get(url)
-                return response.status_code == 200
-        except Exception:
-            return False
+                body = response.text[:2000]
+                lowered = body.lower()
+                keyword_hits = [
+                    keyword
+                    for keyword in (expected_keywords or [])
+                    if keyword and keyword.lower() in lowered
+                ]
+                status_ok = response.status_code < 500
+                keyword_ok = not expected_keywords or bool(keyword_hits)
+                return {
+                    "healthy": bool(status_ok and keyword_ok),
+                    "status_code": response.status_code,
+                    "response_snippet": body[:500],
+                    "expected_keywords": expected_keywords or [],
+                    "keyword_hits": keyword_hits,
+                    "failure_reason": None if status_ok and keyword_ok else (
+                        "server_error_status" if not status_ok else "expected_keyword_missing"
+                    ),
+                }
+        except Exception as exc:
+            return {
+                "healthy": False,
+                "status_code": None,
+                "response_snippet": "",
+                "expected_keywords": expected_keywords or [],
+                "keyword_hits": [],
+                "failure_reason": str(exc),
+            }
 
     async def wait_for_ready(
         self,

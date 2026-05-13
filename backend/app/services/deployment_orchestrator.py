@@ -3,9 +3,11 @@
 协调整个部署流程: 生成产物 → 构建镜像 → 部署 → 健康检查 → 自愈
 """
 import asyncio
+import json
+import re
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from urllib.parse import urlparse
 import zipfile
 
@@ -25,6 +27,18 @@ from app.services.websocket_manager import get_ws_manager
 MAX_CONTEXT_BYTES = 5_000_000
 IGNORED_CONTEXT_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build"}
 IGNORED_CONTEXT_FILES = {".DS_Store"}
+DATABASE_ENV_HINTS = {
+    "postgresql": {"DATABASE_URL", "POSTGRES_URL", "POSTGRESQL_URL", "PGDATABASE", "PGHOST"},
+    "mysql": {"MYSQL_URL", "MYSQL_DATABASE", "MYSQL_HOST"},
+    "mongodb": {"MONGODB_URI", "MONGO_URL", "MONGO_URI"},
+    "redis": {"REDIS_URL", "REDIS_HOST"},
+}
+DATABASE_CODE_HINTS = {
+    "postgresql": ("postgres", "postgresql", "psycopg", "pgvector"),
+    "mysql": ("mysql", "mariadb"),
+    "mongodb": ("mongodb", "mongoose", "pymongo", "mongo"),
+    "redis": ("redis", "ioredis"),
+}
 
 
 class DeploymentOrchestrator:
@@ -216,11 +230,11 @@ class DeploymentOrchestrator:
                     self.db.add(event)
                     self.db.commit()
 
-            # 步骤3: 准备环境变量
-            env_vars = {}
-            for env in artifact.required_envs:
-                if env.example_value:
-                    env_vars[env.name] = env.example_value
+            # 步骤3: 准备环境变量与外部依赖
+            dependency_plan = self._infer_dependency_plan(artifact, context_files)
+            env_vars = self._env_vars_from_artifact(artifact, dependency_plan, deployment.runtime_name)
+            deployment.env_vars = json.dumps(env_vars, ensure_ascii=False)
+            self.db.commit()
 
             # 步骤4: 调用Sealos部署
             event = DeploymentEvent(
@@ -246,7 +260,9 @@ class DeploymentOrchestrator:
                 port=artifact.runtime.exposed_port,
                 env_vars=env_vars,
                 enable_ingress=True,
-                needs_database=False,
+                needs_database=dependency_plan["needs_database"],
+                database_type=dependency_plan["database_type"],
+                external_dependencies=dependency_plan["external_dependencies"],
             )
 
             # 更新部署信息
@@ -254,6 +270,7 @@ class DeploymentOrchestrator:
             deployment.namespace = result.get("namespace")
             deployment.ingress_domain = result.get("ingress_domain")
             deployment.access_url = result.get("access_url")
+            deployment.database_name = result.get("database_name")
             deployment.status = DeploymentStatus.RUNNING.value
             self.db.commit()
 
@@ -276,9 +293,13 @@ class DeploymentOrchestrator:
             )
 
             # 执行健康检查
-            if artifact.runtime.healthcheck_path and deployment.access_url:
-                health_url = f"{deployment.access_url}{artifact.runtime.healthcheck_path}"
-                await self._perform_health_check(deployment_id, health_url)
+            if deployment.access_url:
+                health_url = f"{deployment.access_url}{self._healthcheck_path(artifact)}"
+                await self._perform_health_check(
+                    deployment_id,
+                    health_url,
+                    expected_keywords=self._expected_health_keywords(artifact, context_files),
+                )
 
             return {
                 "deployment_id": deployment_id,
@@ -324,6 +345,7 @@ class DeploymentOrchestrator:
         deployment_id: int,
         health_url: str,
         trigger_healing: bool = True,
+        expected_keywords: Optional[list[str]] = None,
     ) -> bool:
         """
         执行健康检查
@@ -359,9 +381,12 @@ class DeploymentOrchestrator:
         # 重试健康检查
         for attempt in range(settings.HEALTHCHECK_RETRIES):
             try:
-                is_healthy = await self.sealos_client.health_check(
-                    health_url, timeout=settings.HEALTHCHECK_TIMEOUT
+                result = await self.sealos_client.health_check(
+                    health_url,
+                    timeout=settings.HEALTHCHECK_TIMEOUT,
+                    expected_keywords=expected_keywords,
                 )
+                is_healthy = bool(result.get("healthy"))
 
                 if is_healthy:
                     # 健康检查成功
@@ -383,7 +408,7 @@ class DeploymentOrchestrator:
                         "success",
                         "健康检查通过",
                         0.96,
-                        {"health_url": health_url},
+                        {"health_url": health_url, "result": result},
                     )
                     await self._broadcast_stage(
                         deployment_id,
@@ -396,6 +421,8 @@ class DeploymentOrchestrator:
 
                     return True
 
+                if attempt == settings.HEALTHCHECK_RETRIES - 1:
+                    raise RuntimeError(result.get("failure_reason") or f"L7 health check failed: {result}")
             except Exception as e:
                 if attempt == settings.HEALTHCHECK_RETRIES - 1:
                     # 最后一次重试失败
@@ -420,7 +447,7 @@ class DeploymentOrchestrator:
                         "failed",
                         f"健康检查失败: {str(e)}",
                         0.94,
-                        {"health_url": health_url},
+                        {"health_url": health_url, "expected_keywords": expected_keywords or []},
                     )
 
                     if trigger_healing:
@@ -653,20 +680,25 @@ class DeploymentOrchestrator:
                 if push_result["status"] == "success":
                     final_image = push_result["image"]
 
-            env_vars = self._env_vars_from_artifact(artifact)
+            dependency_plan = self._infer_dependency_plan(artifact, context_files)
+            env_vars = self._env_vars_from_artifact(artifact, dependency_plan, deployment.runtime_name)
             deploy_result = await self.sealos_client.create_app(
                 name=deployment.runtime_name,
                 image=final_image,
                 port=artifact.runtime.exposed_port,
                 env_vars=env_vars,
                 enable_ingress=True,
-                needs_database=False,
+                needs_database=dependency_plan["needs_database"],
+                database_type=dependency_plan["database_type"],
+                external_dependencies=dependency_plan["external_dependencies"],
             )
 
             deployment.sealos_app_id = deploy_result.get("app_id")
             deployment.namespace = deploy_result.get("namespace")
             deployment.ingress_domain = deploy_result.get("ingress_domain")
             deployment.access_url = deploy_result.get("access_url")
+            deployment.database_name = deploy_result.get("database_name")
+            deployment.env_vars = json.dumps(env_vars, ensure_ascii=False)
             deployment.dockerfile_content = artifact.dockerfile_content
             deployment.error_message = None
             deployment.error_type = None
@@ -681,11 +713,12 @@ class DeploymentOrchestrator:
                 {"task_id": task_id, "access_url": deployment.access_url},
             )
 
-            if artifact.runtime.healthcheck_path and deployment.access_url:
+            if deployment.access_url:
                 healthy = await self._perform_health_check(
                     deployment_id,
-                    f"{deployment.access_url}{artifact.runtime.healthcheck_path}",
+                    f"{deployment.access_url}{self._healthcheck_path(artifact)}",
                     trigger_healing=False,
+                    expected_keywords=self._expected_health_keywords(artifact, context_files),
                 )
                 if not healthy:
                     raise RuntimeError("Healing candidate failed health check.")
@@ -836,13 +869,118 @@ class DeploymentOrchestrator:
             total_bytes += encoded_size
         return sanitized
 
+    def _infer_dependency_plan(
+        self,
+        artifact: GetArtifactResultResponse,
+        context_files: Dict[str, str],
+    ) -> Dict[str, Any]:
+        env_names = {env.name.upper() for env in artifact.required_envs}
+        haystack = self._dependency_haystack(artifact, context_files)
+        detected: list[str] = []
+
+        for dependency, env_hints in DATABASE_ENV_HINTS.items():
+            if env_names & env_hints:
+                detected.append(dependency)
+
+        lowered = haystack.lower()
+        for dependency, tokens in DATABASE_CODE_HINTS.items():
+            if any(token in lowered for token in tokens):
+                detected.append(dependency)
+
+        detected = sorted(dict.fromkeys(detected))
+        database_types = [item for item in detected if item != "redis"]
+        database_type = database_types[0] if database_types else None
+        external_dependencies = [item for item in detected if item == "redis"]
+        return {
+            "needs_database": bool(database_type),
+            "database_type": database_type,
+            "external_dependencies": external_dependencies,
+            "detected_dependencies": detected,
+        }
+
     @staticmethod
-    def _env_vars_from_artifact(artifact: GetArtifactResultResponse) -> Dict[str, str]:
+    def _dependency_haystack(artifact: GetArtifactResultResponse, context_files: Dict[str, str]) -> str:
+        interesting_names = {
+            "package.json",
+            "requirements.txt",
+            "pyproject.toml",
+            "pom.xml",
+            "go.mod",
+            "docker-compose.yml",
+            "compose.yml",
+            ".env.example",
+        }
+        chunks = [
+            artifact.dockerfile_content,
+            artifact.summary or "",
+            artifact.runtime.start_command,
+            artifact.runtime.install_command or "",
+        ]
+        for path, content in context_files.items():
+            if Path(path).name.lower() in interesting_names:
+                chunks.append(content[:5000])
+        return "\n".join(chunks)
+
+    @staticmethod
+    def _env_vars_from_artifact(
+        artifact: GetArtifactResultResponse,
+        dependency_plan: Optional[Dict[str, Any]] = None,
+        runtime_name: str = "app",
+    ) -> Dict[str, str]:
         env_vars = {}
         for env in artifact.required_envs:
             if env.example_value:
                 env_vars[env.name] = env.example_value
+        dependency_plan = dependency_plan or {}
+        database_type = dependency_plan.get("database_type")
+        db_name = f"{runtime_name}-db"
+        if database_type == "postgresql":
+            env_vars.setdefault("DATABASE_URL", f"postgresql://postgres:postgres@{db_name}:5432/{runtime_name}")
+            env_vars.setdefault("POSTGRES_HOST", db_name)
+        elif database_type == "mysql":
+            env_vars.setdefault("DATABASE_URL", f"mysql://root:password@{db_name}:3306/{runtime_name}")
+            env_vars.setdefault("MYSQL_HOST", db_name)
+        elif database_type == "mongodb":
+            env_vars.setdefault("MONGODB_URI", f"mongodb://{db_name}:27017/{runtime_name}")
+
+        if "redis" in set(dependency_plan.get("external_dependencies") or []):
+            env_vars.setdefault("REDIS_URL", f"redis://{runtime_name}-redis:6379/0")
         return env_vars
+
+    @staticmethod
+    def _healthcheck_path(artifact: GetArtifactResultResponse) -> str:
+        path = artifact.runtime.healthcheck_path or "/"
+        return path if path.startswith("/") else f"/{path}"
+
+    @staticmethod
+    def _expected_health_keywords(
+        artifact: GetArtifactResultResponse,
+        context_files: Dict[str, str],
+    ) -> list[str]:
+        keywords: list[str] = []
+        path = (artifact.runtime.healthcheck_path or "").lower()
+        if "health" in path:
+            keywords.extend(["ok", "healthy", "health", "true", "up", "ready"])
+
+        runtime_blob = " ".join(
+            [
+                artifact.runtime.start_command,
+                artifact.runtime.base_image or "",
+                artifact.runtime.package_manager or "",
+                artifact.summary or "",
+            ]
+        ).lower()
+        if any(token in runtime_blob for token in ("nginx", "vite", "next", "react", "vue")):
+            keywords.extend(["<html", "<!doctype", "root", "__next", "app"])
+        if any(token in runtime_blob for token in ("fastapi", "flask", "django", "express", "spring", "gin")):
+            keywords.extend(["ok", "app", "healthy", "health", "true", "up", "ready"])
+
+        for path_name, content in context_files.items():
+            if Path(path_name).name.lower() in {"index.html", "app.py", "main.py", "server.js", "package.json"}:
+                title_match = re.search(r"<title>([^<]+)</title>", content, re.IGNORECASE)
+                if title_match:
+                    keywords.append(title_match.group(1).strip())
+        return sorted({keyword for keyword in keywords if keyword})
 
     def _record_event(
         self,
