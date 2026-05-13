@@ -178,6 +178,40 @@ def build_template_project(
             ("package.json", "package.json.template"),
             ("README.md", "README.md.template"),
         ],
+        "java_springboot": [
+            ("src/main/java/com/intellideploy/App.java", "src_main_java_com_intellideploy_App.java.template"),
+            ("pom.xml", "pom.xml.template"),
+            ("README.md", "README.md.template"),
+        ],
+        "go_gin": [
+            ("main.go", "main.go.template"),
+            ("go.mod", "go.mod.template"),
+            ("README.md", "README.md.template"),
+        ],
+        "python_django": [
+            ("manage.py", "manage.py.template"),
+            ("app/settings.py", "app_settings.py.template"),
+            ("app/urls.py", "app_urls.py.template"),
+            ("app/wsgi.py", "app_wsgi.py.template"),
+            ("requirements.txt", "requirements.txt.template"),
+            ("README.md", "README.md.template"),
+        ],
+        "vue_vite": [
+            ("src/App.vue", "src_App.vue.template"),
+            ("src/main.js", "src_main.js.template"),
+            ("index.html", "index.html.template"),
+            ("package.json", "package.json.template"),
+            ("README.md", "README.md.template"),
+        ],
+        "static_site": [
+            ("index.html", "index.html.template"),
+            ("README.md", "README.md.template"),
+        ],
+        "python_worker": [
+            ("worker.py", "worker.py.template"),
+            ("requirements.txt", "requirements.txt.template"),
+            ("README.md", "README.md.template"),
+        ],
     }
 
     variables = {
@@ -240,4 +274,3 @@ def scaffold_generate(request: FallbackRequest, classify_response: ClassifyRespo
         artifact_type="TEMPLATE_PROJECT",
         summary="Built a minimal runnable scaffold from the selected golden template.",
     )
-

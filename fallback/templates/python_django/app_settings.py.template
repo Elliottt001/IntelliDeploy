@@ -1,0 +1,8 @@
+SECRET_KEY = "replace-me"
+DEBUG = False
+ALLOWED_HOSTS = ["*"]
+ROOT_URLCONF = "app.urls"
+WSGI_APPLICATION = "app.wsgi.application"
+INSTALLED_APPS = ["django.contrib.contenttypes", "django.contrib.staticfiles"]
+MIDDLEWARE = []
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

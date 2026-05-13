@@ -1,0 +1,8 @@
+<template>
+  <main>
+    <h1>{{app_name}}</h1>
+    <ul>
+      {{feature_markup}}
+    </ul>
+  </main>
+</template>

@@ -1,7 +1,7 @@
 import re
 
 
-DOCKERFILE_REQUIRED_INSTRUCTIONS = ("FROM", "COPY", "RUN", "CMD")
+DOCKERFILE_REQUIRED_INSTRUCTIONS = ("FROM", "COPY", "CMD")
 
 
 def summarize_dockerfile(dockerfile_content: str) -> str | None:
@@ -48,6 +48,8 @@ def validate_dockerfile(
         warnings.append("missing_workdir")
     if "EXPOSE" not in instructions:
         warnings.append("missing_expose")
+    if "RUN" not in instructions:
+        warnings.append("missing_run")
     if missing:
         errors.extend(f"missing_{instruction.lower()}" for instruction in missing)
 
@@ -75,4 +77,3 @@ def validate_dockerfile(
         "exposed_ports": exposed_ports,
         "summary": summarize_dockerfile(dockerfile_content),
     }
-

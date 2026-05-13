@@ -1,0 +1,12 @@
+FROM {{base_image}} AS build
+WORKDIR /app
+COPY go.mod go.sum* ./
+RUN {{install_command}}
+COPY . .
+RUN go build -o /out/server .
+
+FROM alpine:3.20
+WORKDIR /app
+COPY --from=build /out/server ./server
+EXPOSE {{port}}
+CMD {{start_command}}

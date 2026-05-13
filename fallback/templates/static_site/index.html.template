@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>{{app_name}}</title></head>
+  <body><main><h1>{{app_name}}</h1><ul>{{feature_markup}}</ul></main></body>
+</html>

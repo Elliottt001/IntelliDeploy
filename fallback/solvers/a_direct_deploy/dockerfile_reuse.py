@@ -3,7 +3,6 @@ from __future__ import annotations
 from fallback.schemas.plan import DockerSpec
 from fallback.schemas.request import FallbackRequest
 from fallback.schemas.response import ClassifyResponse
-from fallback.validators.dockerfile_validator import validate_dockerfile
 
 from .command_resolver import (
     resolve_base_image,
@@ -12,6 +11,7 @@ from .command_resolver import (
     resolve_install_command,
     resolve_start_command,
 )
+from .dockerfile_linter import lint_existing_dockerfile_for_cloud
 
 
 def reuse_existing_dockerfile(
@@ -22,14 +22,18 @@ def reuse_existing_dockerfile(
     if not dockerfile_content:
         return None
 
-    report = validate_dockerfile(dockerfile_content)
+    normalized_content, report, _warnings = lint_existing_dockerfile_for_cloud(
+        dockerfile_content,
+        request,
+        classify_response,
+    )
     if not report["is_valid"]:
         return None
 
     port = report["exposed_ports"][0] if report["exposed_ports"] else resolve_container_port(request, classify_response)
     start_command = report["command"] or resolve_start_command(request, classify_response, port=port)
     return DockerSpec(
-        dockerfile_content=dockerfile_content,
+        dockerfile_content=normalized_content,
         start_command=start_command,
         exposed_port=port,
         base_image=report["base_image"] or resolve_base_image(classify_response),
@@ -37,4 +41,3 @@ def reuse_existing_dockerfile(
         install_command=resolve_install_command(classify_response),
         healthcheck_path=resolve_healthcheck_path(request, classify_response),
     )
-

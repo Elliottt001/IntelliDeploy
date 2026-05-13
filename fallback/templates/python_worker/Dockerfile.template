@@ -1,0 +1,7 @@
+FROM {{base_image}}
+WORKDIR /app
+COPY requirements.txt ./
+RUN {{install_command}}
+COPY . .
+EXPOSE {{port}}
+CMD {{start_command}}

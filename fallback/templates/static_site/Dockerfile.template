@@ -1,0 +1,4 @@
+FROM {{base_image}}
+COPY . /usr/share/nginx/html
+EXPOSE {{port}}
+CMD {{start_command}}

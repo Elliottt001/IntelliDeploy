@@ -20,10 +20,22 @@ def resolve_template_family(classify_response: ClassifyResponse) -> str:
     target_app_type = classify_response.user_intent_summary.target_app_type
 
     marker = " ".join([preferred_framework, detected_framework, preferred_language, target_app_type]).lower()
+    if "spring" in marker or "springboot" in marker or preferred_language == "java":
+        return "java_springboot"
+    if "django" in marker:
+        return "python_django"
+    if "go" in marker or "golang" in marker:
+        return "go_gin"
+    if "vue" in marker:
+        return "vue_vite"
+    if target_app_type == "static_site" and not any(item in marker for item in ("react", "vue", "vite", "next")):
+        return "static_site"
     if "next" in marker:
         return "nextjs"
-    if "react" in marker or "vite" in marker or target_app_type in {"frontend_web", "dashboard", "static_site"}:
+    if "react" in marker or "vite" in marker or target_app_type in {"frontend_web", "dashboard"}:
         return "react_vite"
+    if "worker" in marker or "automation" in marker or target_app_type in {"automation_tool", "worker"}:
+        return "python_worker" if preferred_language in {"python", ""} else "node_express"
     if "flask" in marker:
         return "python_flask"
     if "express" in marker or preferred_language in {"javascript", "typescript", "node"}:
@@ -69,6 +81,15 @@ def resolve_start_command(request: FallbackRequest, classify_response: ClassifyR
     if template_family == "node_express":
         entry = next((candidate for candidate in entry_candidates if candidate.endswith(".js")), "server.js")
         return f"node {entry}"
+    if template_family == "python_django":
+        return f"gunicorn app.wsgi:application --bind 0.0.0.0:{port}"
+    if template_family == "go_gin":
+        return "./server"
+    if template_family == "java_springboot":
+        return "java -jar app.jar"
+    if template_family == "python_worker":
+        entry = next((candidate for candidate in entry_candidates if candidate.endswith(".py")), "worker.py")
+        return f"python {entry}"
     if template_family == "nextjs":
         return "npm run start"
     return 'nginx -g "daemon off;"'
@@ -88,21 +109,35 @@ def resolve_install_command(classify_response: ClassifyResponse) -> str | None:
         return "uv sync --frozen"
     if package_manager == "pip":
         return "pip install --no-cache-dir -r requirements.txt"
+    if package_manager == "go":
+        return "go mod download"
+    if package_manager == "maven":
+        return "mvn -B -DskipTests package"
+    if package_manager == "gradle":
+        return "./gradlew bootJar --no-daemon"
 
     template_family = resolve_template_family(classify_response)
     if template_family.startswith("python_"):
         return "pip install --no-cache-dir -r requirements.txt"
-    if template_family in {"node_express", "nextjs", "react_vite"}:
+    if template_family in {"node_express", "nextjs", "react_vite", "vue_vite"}:
         return "npm ci"
+    if template_family == "go_gin":
+        return "go mod download"
+    if template_family == "java_springboot":
+        return "mvn -B -DskipTests package"
     return None
 
 
 def resolve_base_image(classify_response: ClassifyResponse) -> str:
     template_family = resolve_template_family(classify_response)
-    if template_family in {"python_fastapi", "python_flask"}:
+    if template_family in {"python_fastapi", "python_flask", "python_django", "python_worker"}:
         return "python:3.11-slim"
-    if template_family == "react_vite":
+    if template_family in {"react_vite", "vue_vite", "static_site"}:
         return "nginx:1.27-alpine"
+    if template_family == "go_gin":
+        return "golang:1.22-alpine"
+    if template_family == "java_springboot":
+        return "eclipse-temurin:21-jre-alpine"
     return "node:20-alpine"
 
 
@@ -110,7 +145,7 @@ def resolve_healthcheck_path(request: FallbackRequest, classify_response: Classi
     target_app_type = classify_response.user_intent_summary.target_app_type
     if target_app_type in {"backend_api", "chatbot", "automation_tool"}:
         return "/health"
-    if resolve_template_family(classify_response) == "react_vite":
+    if resolve_template_family(classify_response) in {"react_vite", "vue_vite", "static_site"}:
         return "/"
     return None
 
@@ -156,4 +191,3 @@ def infer_app_name(request: FallbackRequest, classify_response: ClassifyResponse
         return classify_response.repo_fact_summary.description.strip()
     query = re.sub(r"\s+", " ", request.raw_query or "").strip()
     return query[:60] if query else "Fallback App"
-
