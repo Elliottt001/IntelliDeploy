@@ -12,6 +12,7 @@ from uuid import uuid4
 from sqlalchemy.orm import Session
 
 from app.models.intellideploy.deployment_event import DeploymentEvent
+from app.models.intellideploy.deployment import Deployment
 from app.models.intellideploy.generation_task import GenerationTask
 from app.models.intellideploy.generation_task_agent_event import GenerationTaskAgentEvent
 from app.models.intellideploy.generation_task_artifact_version import GenerationTaskArtifactVersion
@@ -559,15 +560,21 @@ class GenerationTaskService:
         graph_state: dict[str, Any],
     ) -> None:
         manager = get_ws_manager()
+        final_phase = str(graph_state.get("stage") or "").upper()
+        final_status = "succeeded" if graph_state.get("is_approved") else "failed"
         for event in graph_state.get("event_stream", []):
             stage = str(event.get("stage") or graph_state.get("stage") or "").upper()
+            event_type = str(event.get("event_type") or "")
+            phase_status = "running"
+            if event_type in {"graph_error", "error"}:
+                phase_status = "failed"
             payload = {
-                "task_id": task_id,
-                "session_id": session_id,
-                "deployment_id": deployment_id,
-                "agent_name": self._infer_agent_name(event),
-                "iteration_count": event.get("iteration_count", 0),
-                "event_type": event.get("event_type"),
+                "taskId": task_id,
+                "sessionId": session_id,
+                "deploymentId": deployment_id,
+                "agentName": self._infer_agent_name(event),
+                "iterationCount": event.get("iteration_count", 0),
+                "eventType": event_type,
                 "payload": self._build_agent_event_payload(event, graph_state),
             }
             await manager.broadcast_agent_state(
@@ -576,33 +583,70 @@ class GenerationTaskService:
                 message=str(event.get("message") or ""),
                 data=payload,
             )
-            await manager.broadcast_agent_state_by_session(
+            await manager.broadcast_session_event(
                 session_id,
-                stage=stage,
-                message=str(event.get("message") or ""),
-                data=payload,
+                "phase_update",
+                {
+                    "taskId": task_id,
+                    "data": {
+                        "phase": stage,
+                        "status": phase_status,
+                        "progressMessage": str(event.get("message") or ""),
+                        "agentName": self._infer_agent_name(event),
+                        "iterationCount": event.get("iteration_count", 0),
+                        "eventType": event_type,
+                        "details": self._build_agent_event_payload(event, graph_state),
+                    },
+                },
             )
+            message_append = self._build_message_append_payload(
+                task_id=task_id,
+                stage=stage,
+                event=event,
+                graph_state=graph_state,
+            )
+            if message_append is not None:
+                await manager.broadcast_session_event(
+                    session_id,
+                    "message_append",
+                    {
+                        "taskId": task_id,
+                        "data": message_append,
+                    },
+                )
         await manager.broadcast_status(
             deployment_id,
-            str(graph_state.get("stage") or "").upper(),
+            final_phase,
             {
-                "task_id": task_id,
-                "session_id": session_id,
-                "is_approved": graph_state.get("is_approved", False),
-                "iteration_count": graph_state.get("iteration_count", 0),
-                "failure_reason": graph_state.get("failure_reason"),
+                "taskId": task_id,
+                "sessionId": session_id,
+                "phase": final_phase,
+                "status": final_status,
+                "progressMessage": graph_state.get("status_message"),
+                "isApproved": graph_state.get("is_approved", False),
+                "iterationCount": graph_state.get("iteration_count", 0),
+                "failureReason": graph_state.get("failure_reason"),
             },
         )
         await manager.broadcast_session_event(
             session_id,
-            "session_status",
+            "task_done" if graph_state.get("is_approved") else "task_error",
             {
-                "task_id": task_id,
-                "deployment_id": deployment_id,
-                "stage": str(graph_state.get("stage") or "").upper(),
-                "is_approved": graph_state.get("is_approved", False),
-                "iteration_count": graph_state.get("iteration_count", 0),
-                "failure_reason": graph_state.get("failure_reason"),
+                "taskId": task_id,
+                "data": {
+                    "phase": final_phase,
+                    "status": final_status,
+                    "progressMessage": graph_state.get("status_message"),
+                    "deploymentId": deployment_id,
+                    "isApproved": graph_state.get("is_approved", False),
+                    "iterationCount": graph_state.get("iteration_count", 0),
+                    "failureReason": graph_state.get("failure_reason"),
+                    "appCard": self._build_app_card(
+                        deployment_id=deployment_id,
+                        task_id=task_id,
+                        graph_state=graph_state,
+                    ),
+                },
             },
         )
 
@@ -630,9 +674,100 @@ class GenerationTaskService:
         payload = _model_to_dict(event.get("payload") or {})
         if not isinstance(payload, dict):
             payload = {"value": payload}
-        payload.setdefault("status_message", graph_state.get("status_message"))
-        payload.setdefault("failure_reason", graph_state.get("failure_reason"))
+        payload.setdefault("statusMessage", graph_state.get("status_message"))
+        payload.setdefault("failureReason", graph_state.get("failure_reason"))
         return payload
+
+    def _build_message_append_payload(
+        self,
+        *,
+        task_id: str,
+        stage: str,
+        event: dict[str, Any],
+        graph_state: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        message = str(event.get("message") or "").strip()
+        if not message:
+            return None
+
+        return {
+            "messageId": f"{task_id}:{event.get('event_type') or 'event'}:{event.get('iteration_count', 0)}:{self._infer_agent_name(event)}",
+            "role": "assistant",
+            "content": message,
+            "phase": stage,
+            "agentName": self._infer_agent_name(event),
+            "eventType": str(event.get("event_type") or ""),
+            "iterationCount": event.get("iteration_count", 0),
+            "details": self._build_agent_event_payload(event, graph_state),
+        }
+
+    def _build_app_card(
+        self,
+        *,
+        deployment_id: str,
+        task_id: str,
+        graph_state: dict[str, Any],
+    ) -> dict[str, Any]:
+        build_result = graph_state.get("build_result")
+        deployment = (
+            self.db.query(Deployment)
+            .filter(Deployment.id == int(deployment_id))
+            .first()
+        )
+        runtime_info = self._build_runtime_info(graph_state)
+        title = self._infer_app_title(graph_state)
+        summary = (
+            getattr(build_result, "build_summary", None)
+            or graph_state.get("status_message")
+            or "Multi-agent generation completed."
+        )
+
+        return {
+            "taskId": task_id,
+            "title": title,
+            "summary": summary,
+            "status": "ready" if graph_state.get("is_approved") else "needs_review",
+            "artifactVersion": getattr(build_result, "artifact_version", None),
+            "deployReady": bool(graph_state.get("is_approved")),
+            "accessUrl": getattr(deployment, "access_url", None),
+            "runtimeName": getattr(deployment, "runtime_name", None),
+            "ingressDomain": getattr(deployment, "ingress_domain", None),
+            "exposedPort": runtime_info.get("exposed_port"),
+            "warnings": getattr(build_result, "build_warnings", []) if build_result is not None else [],
+            "reviewPassed": self._latest_review_passed(graph_state),
+            "securityPassed": self._latest_security_passed(graph_state),
+        }
+
+    def _infer_app_title(self, graph_state: dict[str, Any]) -> str:
+        repo_context = graph_state.get("repo_context") or {}
+        repo_name = repo_context.get("repo_name")
+        if repo_name:
+            return str(repo_name)
+
+        prompt = str(graph_state.get("user_prompt") or "").strip()
+        if not prompt:
+            return "Generated App"
+
+        compact = " ".join(prompt.split())
+        return compact[:48] + ("..." if len(compact) > 48 else "")
+
+    def _latest_review_passed(self, graph_state: dict[str, Any]) -> bool | None:
+        review_history = graph_state.get("review_history") or []
+        if not review_history:
+            return None
+        latest = review_history[-1]
+        if isinstance(latest, dict):
+            return latest.get("passed")
+        return None
+
+    def _latest_security_passed(self, graph_state: dict[str, Any]) -> bool | None:
+        security_reports = graph_state.get("security_reports") or []
+        if not security_reports:
+            return None
+        latest = security_reports[-1]
+        if isinstance(latest, dict):
+            return latest.get("passed")
+        return None
 
     def _is_main_graph_task(self, task: GenerationTask) -> bool:
         if getattr(task, "execution_engine", None) == "main_graph":

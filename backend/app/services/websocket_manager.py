@@ -136,11 +136,12 @@ class ConnectionManager:
             status: 状态
             data: 额外数据
         """
+        payload = dict(data or {})
+        payload.setdefault("status", status)
         message = {
-            "type": "status",
-            "deployment_id": deployment_id,
-            "status": status,
-            "data": data or {},
+            "type": "phase_update",
+            "deploymentId": deployment_id,
+            "data": payload,
             "timestamp": self._get_timestamp(),
         }
         await self.send_message(deployment_id, message)
@@ -156,7 +157,7 @@ class ConnectionManager:
         """
         message = {
             "type": "log",
-            "deployment_id": deployment_id,
+            "deploymentId": deployment_id,
             "log": log_line,
             "level": level,
             "timestamp": self._get_timestamp(),
@@ -174,8 +175,8 @@ class ConnectionManager:
         """
         message = {
             "type": "event",
-            "deployment_id": deployment_id,
-            "event_type": event_type,
+            "deploymentId": deployment_id,
+            "eventType": event_type,
             "data": data,
             "timestamp": self._get_timestamp(),
         }
@@ -184,9 +185,8 @@ class ConnectionManager:
     async def broadcast_session_event(self, session_id: str, event_type: str, data: Dict):
         """广播session级事件。"""
         message = {
-            "type": "event",
-            "session_id": session_id,
-            "event_type": event_type,
+            "type": event_type,
+            "sessionId": session_id,
             "data": data,
             "timestamp": self._get_timestamp(),
         }
@@ -200,10 +200,10 @@ class ConnectionManager:
         message: str = "",
         data: Dict | None = None,
     ):
-        payload = {"stage": stage, "message": message}
+        payload = {"phase": stage, "progressMessage": message}
         if data:
             payload.update(data)
-        await self.broadcast_event(deployment_id, "agent_state", payload)
+        await self.broadcast_event(deployment_id, "phase_update", payload)
 
     async def broadcast_agent_state_by_session(
         self,
@@ -213,10 +213,10 @@ class ConnectionManager:
         message: str = "",
         data: Dict | None = None,
     ):
-        payload = {"stage": stage, "message": message}
+        payload = {"phase": stage, "progressMessage": message}
         if data:
             payload.update(data)
-        await self.broadcast_session_event(session_id, "agent_state", payload)
+        await self.broadcast_session_event(session_id, "phase_update", payload)
 
     async def broadcast_error(self, deployment_id: str, error_message: str, error_type: str = None):
         """
@@ -228,10 +228,12 @@ class ConnectionManager:
             error_type: 错误类型
         """
         message = {
-            "type": "error",
-            "deployment_id": deployment_id,
-            "error_message": error_message,
-            "error_type": error_type,
+            "type": "task_error",
+            "deploymentId": deployment_id,
+            "data": {
+                "error": error_message,
+                "errorType": error_type,
+            },
             "timestamp": self._get_timestamp(),
         }
         await self.send_message(deployment_id, message)

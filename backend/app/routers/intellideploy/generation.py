@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models.user import User
 from app.schemas.fallback import (
     AgentEventResponse,
     StartFallbackTaskRequest,
@@ -15,13 +16,26 @@ from app.schemas.fallback import (
     DeployFailureFeedbackResponse,
 )
 from app.services.generation_task_service import GenerationTaskService
+from app.utils.security import get_current_user
 
 router = APIRouter(prefix="/api/generation", tags=["generation"])
+
+
+def _internal_error(message: str, exc: Exception) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail={
+            "error": f"{message}: {str(exc)}",
+            "code": "INTERNAL_ERROR",
+            "details": None,
+        },
+    )
 
 
 @router.post("/start", response_model=StartFallbackTaskResponse)
 async def start_fallback_task(
     request: StartFallbackTaskRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
@@ -37,15 +51,13 @@ async def start_fallback_task(
         response = await service.start_fallback_task(request)
         return response
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to start fallback task: {str(e)}",
-        )
+        raise _internal_error("Failed to start fallback task", e)
 
 
 @router.get("/status/{task_id}", response_model=QueryTaskStatusResponse)
 async def query_task_status(
     task_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
@@ -58,15 +70,13 @@ async def query_task_status(
         response = await service.query_task_status(task_id)
         return response
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to query task status: {str(e)}",
-        )
+        raise _internal_error("Failed to query task status", e)
 
 
 @router.get("/artifact/{task_id}", response_model=GetArtifactResultResponse)
 async def get_artifact_result(
     task_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
@@ -79,15 +89,13 @@ async def get_artifact_result(
         response = await service.get_artifact_result(task_id)
         return response
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get artifact result: {str(e)}",
-        )
+        raise _internal_error("Failed to get artifact result", e)
 
 
 @router.post("/feedback", response_model=DeployFailureFeedbackResponse)
 async def send_deploy_failure_feedback(
     request: DeployFailureFeedbackRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
@@ -100,15 +108,13 @@ async def send_deploy_failure_feedback(
         response = await service.send_deploy_failure_feedback(request)
         return response
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to send deploy failure feedback: {str(e)}",
-        )
+        raise _internal_error("Failed to send deploy failure feedback", e)
 
 
 @router.get("/deployment/{deployment_id}/tasks")
 async def get_deployment_tasks(
     deployment_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
@@ -117,17 +123,17 @@ async def get_deployment_tasks(
     service = GenerationTaskService(db)
     tasks = service.get_tasks_by_deployment(deployment_id)
     return {
-        "deployment_id": deployment_id,
+        "deploymentId": deployment_id,
         "tasks": [
             {
-                "task_id": task.task_id,
+                "taskId": task.task_id,
                 "status": task.status,
-                "generation_mode": task.generation_mode,
-                "trigger_reason": task.trigger_reason,
-                "queued_at": task.queued_at,
-                "finished_at": task.finished_at,
-                "artifact_ready": task.artifact_ready,
-                "deploy_ready": task.deploy_ready,
+                "generationMode": task.generation_mode,
+                "triggerReason": task.trigger_reason,
+                "queuedAt": task.queued_at,
+                "finishedAt": task.finished_at,
+                "artifactReady": task.artifact_ready,
+                "deployReady": task.deploy_ready,
             }
             for task in tasks
         ],
@@ -137,6 +143,7 @@ async def get_deployment_tasks(
 @router.get("/deployment/{deployment_id}/events")
 async def get_deployment_events(
     deployment_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
@@ -145,15 +152,15 @@ async def get_deployment_events(
     service = GenerationTaskService(db)
     events = service.get_deployment_events(deployment_id)
     return {
-        "deployment_id": deployment_id,
+        "deploymentId": deployment_id,
         "events": [
             {
                 "id": event.id,
                 "phase": event.phase,
                 "level": event.level,
                 "message": event.message,
-                "error_type": event.error_type,
-                "created_at": event.created_at,
+                "errorType": event.error_type,
+                "createdAt": event.created_at,
             }
             for event in events
         ],
@@ -163,6 +170,7 @@ async def get_deployment_events(
 @router.get("/task/{task_id}/agent-events", response_model=list[AgentEventResponse])
 async def get_task_agent_events(
     task_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
@@ -175,6 +183,7 @@ async def get_task_agent_events(
 @router.get("/session/{session_id}/agent-events", response_model=list[AgentEventResponse])
 async def get_session_agent_events(
     session_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """

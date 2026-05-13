@@ -3,7 +3,7 @@
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 from app.database import get_db
@@ -17,9 +17,34 @@ from app.utils.security import get_current_user
 router = APIRouter(prefix="/api/deployments", tags=["deployments"])
 
 
+def _resource_not_found(message: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail={"error": message, "code": "RESOURCE_NOT_FOUND", "details": None},
+    )
+
+
+def _internal_error(message: str, exc: Exception) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail={
+            "error": f"{message}: {str(exc)}",
+            "code": "INTERNAL_ERROR",
+            "details": None,
+        },
+    )
+
+
+def to_camel(value: str) -> str:
+    parts = value.split("_")
+    return parts[0] + "".join(part.capitalize() for part in parts[1:])
+
+
 class StartDeploymentRequest(BaseModel):
     task_id: str  # 生成任务ID
     kubeconfig: Optional[str] = None  # K8s配置(可选)
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 class DeploymentResponse(BaseModel):
@@ -35,6 +60,8 @@ class DeploymentResponse(BaseModel):
     created_at: str
     started_at: Optional[str]
     finished_at: Optional[str]
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 @router.post("/start", response_model=dict)
@@ -58,7 +85,7 @@ async def start_deployment(
         if not artifact.deploy_ready:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Artifact is not ready for deployment",
+                detail={"error": "Artifact is not ready for deployment", "code": "DEPLOY_NOT_READY", "details": None},
             )
 
         # 获取生成任务信息
@@ -66,7 +93,7 @@ async def start_deployment(
         if not task:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Generation task not found",
+                detail={"error": "Generation task not found", "code": "RESOURCE_NOT_FOUND", "details": None},
             )
 
         # 创建部署记录
@@ -96,10 +123,7 @@ async def start_deployment(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to start deployment: {str(e)}",
-        )
+        raise _internal_error("Failed to start deployment", e)
 
 
 @router.get("/{deployment_id}", response_model=DeploymentResponse)
@@ -113,10 +137,7 @@ async def get_deployment(
     """
     deployment = db.query(Deployment).filter(Deployment.id == deployment_id).first()
     if not deployment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Deployment not found",
-        )
+        raise _resource_not_found("Deployment not found")
 
     return DeploymentResponse(
         id=deployment.id,
@@ -148,15 +169,9 @@ async def get_deployment_status(
         status_info = await orchestrator.poll_deployment_status(deployment_id)
         return status_info
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
+        raise _resource_not_found(str(e))
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get deployment status: {str(e)}",
-        )
+        raise _internal_error("Failed to get deployment status", e)
 
 
 @router.get("/{deployment_id}/logs")
@@ -172,17 +187,11 @@ async def get_deployment_logs(
     orchestrator = DeploymentOrchestrator(db)
     try:
         logs = await orchestrator.get_deployment_logs(deployment_id, tail_lines=tail_lines)
-        return {"deployment_id": deployment_id, "logs": logs}
+        return {"deploymentId": deployment_id, "logs": logs}
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
+        raise _resource_not_found(str(e))
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get deployment logs: {str(e)}",
-        )
+        raise _internal_error("Failed to get deployment logs", e)
 
 
 @router.post("/{deployment_id}/retry")
@@ -196,10 +205,7 @@ async def retry_deployment(
     """
     deployment = db.query(Deployment).filter(Deployment.id == deployment_id).first()
     if not deployment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Deployment not found",
-        )
+        raise _resource_not_found("Deployment not found")
 
     # 重置部署状态
     deployment.status = "pending"
@@ -211,7 +217,7 @@ async def retry_deployment(
     db.commit()
 
     return {
-        "deployment_id": deployment_id,
+        "deploymentId": deployment_id,
         "status": "pending",
         "message": "Deployment retry initiated",
     }
@@ -228,10 +234,7 @@ async def delete_deployment(
     """
     deployment = db.query(Deployment).filter(Deployment.id == deployment_id).first()
     if not deployment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Deployment not found",
-        )
+        raise _resource_not_found("Deployment not found")
 
     # 如果有Sealos应用,先删除
     if deployment.sealos_app_id:
@@ -265,15 +268,15 @@ async def list_project_deployments(
     )
 
     return {
-        "project_id": project_id,
+        "projectId": project_id,
         "deployments": [
             {
                 "id": d.id,
                 "status": d.status,
-                "runtime_name": d.runtime_name,
-                "access_url": d.access_url,
-                "created_at": d.created_at.isoformat(),
-                "finished_at": d.finished_at.isoformat() if d.finished_at else None,
+                "runtimeName": d.runtime_name,
+                "accessUrl": d.access_url,
+                "createdAt": d.created_at.isoformat(),
+                "finishedAt": d.finished_at.isoformat() if d.finished_at else None,
             }
             for d in deployments
         ],

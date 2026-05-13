@@ -28,12 +28,18 @@ def update_settings(
     db: Session = Depends(get_db),
 ):
     if not payload.kubeconfig or not isinstance(payload.kubeconfig, str):
-        return JSONResponse(status_code=400, content={"error": "kubeconfig is required"})
+        return JSONResponse(
+            status_code=400,
+            content={"error": "kubeconfig is required", "code": "KUBECONFIG_MISSING", "details": None},
+        )
 
     try:
         namespace = validate_kubeconfig(payload.kubeconfig)
     except K8sDeployError as e:
-        return JSONResponse(status_code=400, content={"error": f"Kubeconfig 格式无效: {e}"})
+        return JSONResponse(
+            status_code=400,
+            content={"error": f"Kubeconfig 格式无效: {e}", "code": "KUBECONFIG_INVALID", "details": None},
+        )
 
     try:
         current_user.kubeconfig = payload.kubeconfig
@@ -41,7 +47,10 @@ def update_settings(
         db.commit()
         return {"success": True, "namespace": namespace}
     except Exception:
-        return JSONResponse(status_code=500, content={"error": "Failed to update settings"})
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Failed to update settings", "code": "INTERNAL_ERROR", "details": None},
+        )
 
 
 @router.post("/github-token")
@@ -51,9 +60,20 @@ def update_github_token(
     db: Session = Depends(get_db),
 ):
     if not payload.githubToken or not isinstance(payload.githubToken, str):
-        raise HTTPException(status_code=400, detail="githubToken is required")
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "githubToken is required", "code": "GITHUB_TOKEN_MISSING", "details": None},
+        )
 
-    upsert_github_access_token(db, current_user.id, payload.githubToken)
+    try:
+        upsert_github_access_token(db, current_user.id, payload.githubToken)
 
-    account = db.query(GitHubAccount).filter(GitHubAccount.user_id == current_user.id).first()
-    return {"success": True, "hasGithubToken": bool(account and account.access_token)}
+        account = db.query(GitHubAccount).filter(GitHubAccount.user_id == current_user.id).first()
+        return {"success": True, "hasGithubToken": bool(account and account.access_token)}
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "Failed to update GitHub token", "code": "INTERNAL_ERROR", "details": None},
+        )

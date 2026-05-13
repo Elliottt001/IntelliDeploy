@@ -2,7 +2,20 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+
+def to_camel(value: str) -> str:
+    parts = value.split("_")
+    return parts[0] + "".join(part.capitalize() for part in parts[1:])
+
+
+class CamelModel(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        from_attributes=True,
+    )
 
 
 # ==================== 枚举定义 ====================
@@ -79,14 +92,14 @@ class RegenMode(str, Enum):
 
 # ==================== 子结构 ====================
 
-class PreferredStack(BaseModel):
+class PreferredStack(CamelModel):
     frontend: Optional[str] = None
     backend: Optional[str] = None
     database: Optional[str] = None
     runtime: Optional[str] = None
 
 
-class RepoProfile(BaseModel):
+class RepoProfile(CamelModel):
     source_repo_url: Optional[str] = None
     detected_languages: Optional[List[str]] = None
     detected_frameworks: Optional[List[str]] = None
@@ -97,14 +110,14 @@ class RepoProfile(BaseModel):
     readme_summary: Optional[str] = None
 
 
-class Constraints(BaseModel):
+class Constraints(CamelModel):
     timeout_seconds: Optional[int] = None
     target_port: Optional[int] = None
     must_provide_dockerfile: Optional[bool] = True
     must_provide_healthcheck: Optional[bool] = True
 
 
-class RuntimeInfo(BaseModel):
+class RuntimeInfo(CamelModel):
     base_image: Optional[str] = None
     package_manager: Optional[str] = None
     install_command: Optional[str] = None
@@ -113,7 +126,7 @@ class RuntimeInfo(BaseModel):
     healthcheck_path: Optional[str] = None
 
 
-class RequiredEnv(BaseModel):
+class RequiredEnv(CamelModel):
     name: str
     required: bool
     example_value: Optional[str] = None
@@ -121,14 +134,14 @@ class RequiredEnv(BaseModel):
     source: Optional[EnvSource] = None
 
 
-class HealthcheckResult(BaseModel):
+class HealthcheckResult(CamelModel):
     status_code: Optional[int] = None
     response_snippet: Optional[str] = None
 
 
 # ==================== 接口 A：启动降级生成任务 ====================
 
-class StartFallbackTaskRequest(BaseModel):
+class StartFallbackTaskRequest(CamelModel):
     project_id: str
     deployment_id: str
     request_id: Optional[str] = None
@@ -142,7 +155,7 @@ class StartFallbackTaskRequest(BaseModel):
     constraints: Optional[Constraints] = None
 
 
-class StartFallbackTaskResponse(BaseModel):
+class StartFallbackTaskResponse(CamelModel):
     accepted: bool
     task_id: str
     status: TaskStatus
@@ -152,11 +165,11 @@ class StartFallbackTaskResponse(BaseModel):
 
 # ==================== 接口 B：查询生成任务状态 ====================
 
-class QueryTaskStatusRequest(BaseModel):
+class QueryTaskStatusRequest(CamelModel):
     task_id: str
 
 
-class QueryTaskStatusResponse(BaseModel):
+class QueryTaskStatusResponse(CamelModel):
     task_id: str
     project_id: str
     deployment_id: str
@@ -177,11 +190,11 @@ class QueryTaskStatusResponse(BaseModel):
 
 # ==================== 接口 C：获取生成产物结果 ====================
 
-class GetArtifactResultRequest(BaseModel):
+class GetArtifactResultRequest(CamelModel):
     task_id: str
 
 
-class GetArtifactResultResponse(BaseModel):
+class GetArtifactResultResponse(CamelModel):
     task_id: str
     artifact_type: ArtifactType
     artifact_path: Optional[str] = None
@@ -202,7 +215,7 @@ class GetArtifactResultResponse(BaseModel):
     security_reports: Optional[List[Dict[str, Any]]] = None
 
 
-class AgentEventResponse(BaseModel):
+class AgentEventResponse(CamelModel):
     id: Optional[int] = None
     task_id: str
     session_id: str
@@ -218,7 +231,7 @@ class AgentEventResponse(BaseModel):
 
 # ==================== 接口 D：部署失败后回传修复/重生成请求 ====================
 
-class DeployFailureFeedbackRequest(BaseModel):
+class DeployFailureFeedbackRequest(CamelModel):
     project_id: str
     deployment_id: str
     source_task_id: str
@@ -232,7 +245,7 @@ class DeployFailureFeedbackRequest(BaseModel):
     constraints: Optional[Constraints] = None
 
 
-class DeployFailureFeedbackResponse(BaseModel):
+class DeployFailureFeedbackResponse(CamelModel):
     accepted: bool
     task_id: str
     status: TaskStatus
