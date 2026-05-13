@@ -1,1212 +1,709 @@
-import { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Easing,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Platform, Animated, Easing, Image, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import Svg, { Path, Rect } from 'react-native-svg';
 
-import {
-  DEPLOYMENT_STATUS_STORAGE_KEY,
-  deploymentWebSocketUrl,
-  ragAPI,
-  RAG_RESULT_STORAGE_KEY,
-  type DeploymentWebSocketMessage,
-  type PipelineStage,
-  type PipelineStageMessage,
-  type PipelineStageStatus,
-  type RagCandidate,
-} from '../../services/api';
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
 
-const catImage =
-  'https://www.figma.com/api/mcp/asset/be3df654-ec89-4c35-a63a-f7e408efb85c';
+const MicrophoneIcon = ({ size = 18, color = '#8B8FAF' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    {/* Microphone capsule */}
+    <Rect x="9" y="4" width="6" height="10" rx="3" stroke={color} strokeWidth="2" fill="none" />
+    {/* Microphone stand */}
+    <Path d="M12 14 L12 20" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    {/* Microphone base */}
+    <Path d="M9 20 L15 20" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    {/* Sound arc left */}
+    <Path d="M6 10 C6 13.5 8.5 16 12 16" stroke={color} strokeWidth="2" strokeLinecap="round" fill="none" />
+    {/* Sound arc right */}
+    <Path d="M18 10 C18 13.5 15.5 16 12 16" stroke={color} strokeWidth="2" strokeLinecap="round" fill="none" />
+  </Svg>
+);
 
-const PIPELINE_STAGES: PipelineStage[] = [
-  'Thinking',
-  'Building',
-  'Reviewing',
-  'SecurityCheck',
-  'Consensus',
-  'Generating',
-  'Packaging',
-  'Deploying',
-  'HealthCheck',
-  'Healing',
-  'Finalize',
-];
-
-const STAGE_LABELS: Record<PipelineStage, string> = {
-  Thinking: '理解',
-  Building: '构建',
-  Reviewing: '评审',
-  SecurityCheck: '安全',
-  Consensus: '共识',
-  Generating: '生成',
-  Packaging: '打包',
-  Deploying: '部署',
-  HealthCheck: '检查',
-  Healing: '自愈',
-  Finalize: '完成',
-};
-
-const initialPipelineState = (): Record<PipelineStage, PipelineStageStatus> =>
-  PIPELINE_STAGES.reduce((acc, stage) => {
-    acc[stage] = 'pending';
-    return acc;
-  }, {} as Record<PipelineStage, PipelineStageStatus>);
-
-export default function Chatbot() {
+export default function ChatbotScreen() {
   const router = useRouter();
-  const [inputMode, setInputMode] = useState<'keyboard' | 'voice'>('keyboard');
-  const [message, setMessage] = useState('');
-  const [sentMessage, setSentMessage] = useState('帮我生成一个可以部署到云上的宠物救助 App');
-  const [isGenerating, setIsGenerating] = useState(true);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [selectedRepo, setSelectedRepo] = useState<RagCandidate | null>(null);
-  const [deploymentId, setDeploymentId] = useState<string | null>(null);
-  const [generationTaskId, setGenerationTaskId] = useState<string | null>(null);
-  const [pipelineMessage, setPipelineMessage] = useState('等待需求输入');
-  const [pipelineProgress, setPipelineProgress] = useState(0);
-  const [pipelineState, setPipelineState] = useState<Record<PipelineStage, PipelineStageStatus>>(
-    initialPipelineState
-  );
-  const wsRef = useRef<WebSocket | null>(null);
-  const intro = useRef(new Animated.Value(0)).current;
-  const botIntro = useRef(new Animated.Value(0)).current;
-  const userIntro = useRef(new Animated.Value(0)).current;
-  const generateIntro = useRef(new Animated.Value(0)).current;
-  const generating = useRef(new Animated.Value(0)).current;
-  const cardIntro = useRef(new Animated.Value(0)).current;
-  const inputIntro = useRef(new Animated.Value(0)).current;
-  const dockMode = useRef(new Animated.Value(0)).current;
-  const voicePulse = useRef(new Animated.Value(0)).current;
-  const sendPulse = useRef(new Animated.Value(0)).current;
-  const cardPress = useRef(new Animated.Value(0)).current;
-  const detailIntro = useRef(new Animated.Value(0)).current;
-  const ambientFloat = useRef(new Animated.Value(0)).current;
-  const avatarBreath = useRef(new Animated.Value(0)).current;
-  const voiceLoop = useRef<Animated.CompositeAnimation | null>(null);
-  const generationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [showAICard, setShowAICard] = useState(false);
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const rippleAnim1 = useRef(new Animated.Value(0)).current;
+  const rippleAnim2 = useRef(new Animated.Value(0)).current;
+  const rippleAnim3 = useRef(new Animated.Value(0)).current;
+
+  // Entrance animation values
+  const robotEnterAnim = useRef(new Animated.Value(-300)).current; // Start from top
+  const underRobotScaleAnim = useRef(new Animated.Value(0)).current; // Start small
+  const contentFadeAnim = useRef(new Animated.Value(0)).current; // Other content fade in
 
   useEffect(() => {
+    // Entrance animation sequence
     Animated.sequence([
-      Animated.timing(intro, {
+      Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 420,
-        easing: Easing.out(Easing.cubic),
+        duration: 500,
         useNativeDriver: true,
       }),
-      Animated.stagger(170, [
-        Animated.timing(botIntro, {
-          toValue: 1,
-          duration: 520,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(userIntro, {
-          toValue: 1,
-          duration: 460,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(generateIntro, {
-          toValue: 1,
-          duration: 440,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.spring(cardIntro, {
-          toValue: 1,
-          speed: 12,
-          bounciness: 8,
-          useNativeDriver: true,
-        }),
-        Animated.timing(inputIntro, {
-          toValue: 1,
-          duration: 420,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start(() => setIsGenerating(false));
-
-    const generatingLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(generating, {
-          toValue: 1,
-          duration: 980,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(generating, {
-          toValue: 0,
-          duration: 980,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    generatingLoop.start();
-
-    const ambientLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(ambientFloat, {
-          toValue: 1,
-          duration: 2500,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(ambientFloat, {
-          toValue: 0,
-          duration: 2500,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    ambientLoop.start();
-
-    const avatarLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(avatarBreath, {
-          toValue: 1,
-          duration: 1700,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(avatarBreath, {
-          toValue: 0,
-          duration: 1700,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    avatarLoop.start();
-
-    return () => {
-      generatingLoop.stop();
-      ambientLoop.stop();
-      avatarLoop.stop();
-      voiceLoop.current?.stop();
-      if (generationTimer.current) {
-        clearTimeout(generationTimer.current);
-      }
-    };
-  }, [
-    ambientFloat,
-    avatarBreath,
-    botIntro,
-    cardIntro,
-    generateIntro,
-    generating,
-    inputIntro,
-    intro,
-    userIntro,
-  ]);
-
-  useEffect(() => {
-    AsyncStorage.getItem(DEPLOYMENT_STATUS_STORAGE_KEY).then((storedDeploymentId) => {
-      if (storedDeploymentId) {
-        setDeploymentId(storedDeploymentId);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!deploymentId) {
-      return;
-    }
-
-    const socket = new WebSocket(deploymentWebSocketUrl(deploymentId));
-    wsRef.current = socket;
-
-    socket.onopen = () => {
-      socket.send('ping');
-    };
-    socket.onmessage = (event) => {
-      if (event.data === 'pong') {
-        return;
-      }
-      try {
-        const payload = JSON.parse(event.data) as DeploymentWebSocketMessage;
-        if (payload.type === 'pipeline_stage') {
-          applyPipelineStage(payload);
-        }
-      } catch {
-        // Ignore non-JSON heartbeat frames.
-      }
-    };
-    socket.onerror = () => {
-      setPipelineMessage('实时状态连接异常，继续保留当前阶段');
-    };
-
-    return () => {
-      socket.close();
-      if (wsRef.current === socket) {
-        wsRef.current = null;
-      }
-    };
-  }, [deploymentId]);
-
-  useEffect(() => {
-    Animated.timing(dockMode, {
-      toValue: inputMode === 'keyboard' ? 0 : 1,
-      duration: 260,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [dockMode, inputMode]);
-
-  useEffect(() => {
-    Animated.timing(detailIntro, {
-      toValue: detailOpen ? 1 : 0,
-      duration: 260,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [detailIntro, detailOpen]);
-
-  const submit = async () => {
-    if (!message.trim()) {
-      return;
-    }
-    if (generationTimer.current) {
-      clearTimeout(generationTimer.current);
-    }
-    setSentMessage(message.trim());
-    setMessage('');
-    setDetailOpen(false);
-    setIsGenerating(true);
-    setSearchError(null);
-    setSelectedRepo(null);
-    setPipelineState(initialPipelineState());
-    applyLocalStage('Thinking', 'running', '正在理解需求并检索候选仓库', 0.12);
-    cardIntro.setValue(0);
-    sendPulse.setValue(0);
-
-    Animated.sequence([
-      Animated.timing(sendPulse, {
-        toValue: 1,
-        duration: 120,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(sendPulse, {
+      Animated.timing(robotEnterAnim, {
         toValue: 0,
-        duration: 160,
+        duration: 800,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
-    ]).start();
-
-    Animated.sequence([
-      Animated.timing(userIntro, {
-        toValue: 0.82,
-        duration: 90,
-        easing: Easing.out(Easing.cubic),
+      Animated.timing(underRobotScaleAnim, {
+        toValue: 1,
+        duration: 600,
+        easing: Easing.out(Easing.back(1.5)),
         useNativeDriver: true,
       }),
-      Animated.timing(userIntro, {
+      Animated.timing(contentFadeAnim, {
         toValue: 1,
-        duration: 260,
-        easing: Easing.out(Easing.cubic),
+        duration: 500,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]).start(() => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(floatAnim, {
+            toValue: 1,
+            duration: 3000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(floatAnim, {
+            toValue: 0,
+            duration: 3000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
 
-    try {
-      const result = await ragAPI.chat(message.trim());
-      applyLocalStage('Packaging', 'success', '后端算法已接收需求，生成任务已创建', 0.68);
-      await AsyncStorage.setItem(RAG_RESULT_STORAGE_KEY, JSON.stringify(result.data.search));
-      await AsyncStorage.setItem(DEPLOYMENT_STATUS_STORAGE_KEY, result.data.deployment_id);
-      setDeploymentId(result.data.deployment_id);
-      setGenerationTaskId(result.data.generation.task_id);
-      setSelectedRepo(result.data.search.selected ?? result.data.search.candidates[0] ?? null);
-      applyLocalStage(
-        'Generating',
-        result.data.generation.accepted ? 'running' : 'failed',
-        result.data.generation.message || `生成任务状态：${result.data.generation.status}`,
-        result.data.generation.accepted ? 0.74 : 1
-      );
-      setIsGenerating(false);
-      Animated.spring(cardIntro, {
-        toValue: 1,
-        speed: 11,
-        bounciness: 9,
-        useNativeDriver: true,
-      }).start();
-    } catch (error) {
-      setSearchError(error instanceof Error ? error.message : 'RAG 检索失败，请稍后重试');
-      applyLocalStage('Finalize', 'failed', '检索失败，请稍后重试', 1);
-      setIsGenerating(false);
-      Animated.spring(cardIntro, {
-        toValue: 1,
-        speed: 11,
-        bounciness: 9,
-        useNativeDriver: true,
-      }).start();
-    }
-  };
+      const createRipple = (anim: Animated.Value, delay: number) => {
+        Animated.loop(
+          Animated.sequence([
+            Animated.delay(delay),
+            Animated.timing(anim, {
+              toValue: 1,
+              duration: 2000,
+              easing: Easing.out(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(anim, {
+              toValue: 0,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+          ])
+        ).start();
+      };
 
-  const applyPipelineStage = (payload: PipelineStageMessage) => {
-    applyLocalStage(
-      payload.stage,
-      payload.status,
-      payload.message || `${STAGE_LABELS[payload.stage]}阶段已更新`,
-      payload.progress
-    );
-  };
-
-  const applyLocalStage = (
-    stage: PipelineStage,
-    status: PipelineStageStatus,
-    text: string,
-    progress?: number
-  ) => {
-    setPipelineState((current) => {
-      const next = { ...current };
-      const stageIndex = PIPELINE_STAGES.indexOf(stage);
-      if (stageIndex >= 0) {
-        PIPELINE_STAGES.slice(0, stageIndex).forEach((previousStage) => {
-          if (next[previousStage] === 'pending' || next[previousStage] === 'running') {
-            next[previousStage] = 'success';
-          }
-        });
-      }
-      next[stage] = status;
-      return next;
+      createRipple(rippleAnim1, 0);
+      createRipple(rippleAnim2, 666);
+      createRipple(rippleAnim3, 1333);
     });
-    setPipelineMessage(text);
-    if (typeof progress === 'number') {
-      setPipelineProgress(Math.max(0, Math.min(1, progress)));
-    }
+  }, [fadeAnim, floatAnim, rippleAnim1, rippleAnim2, rippleAnim3, robotEnterAnim, underRobotScaleAnim, contentFadeAnim]);
+
+  const suggestions = [
+    '推荐几款好用的开发工具',
+    '如何使用Docker部署项目？',
+    '帮我生成一个Python爬虫代码！',
+  ];
+
+  const handleSend = async (content: string) => {
+    if (!content.trim()) return;
+
+    setShowSuggestions(false);
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setInputText('');
+
+    setIsLoading(true);
+    setTimeout(() => {
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: '我已经理解了您的需求，正在为您生成应用方案...',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+      setIsLoading(false);
+
+      setTimeout(() => {
+        setShowAICard(true);
+      }, 500);
+    }, 1500);
   };
 
-  const startVoicePress = () => {
-    voiceLoop.current?.stop();
-    voicePulse.setValue(0);
-    voiceLoop.current = Animated.loop(
-      Animated.sequence([
-        Animated.timing(voicePulse, {
-          toValue: 1,
-          duration: 520,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
+  const floatY = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -12],
+  });
+
+  const createRippleStyle = (anim: Animated.Value, index: number) => ({
+    transform: [
+      {
+        scale: anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.9, 1.3 + index * 0.1],
         }),
-        Animated.timing(voicePulse, {
-          toValue: 0,
-          duration: 520,
-          easing: Easing.in(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    voiceLoop.current.start();
-  };
-
-  const stopVoicePress = () => {
-    voiceLoop.current?.stop();
-    voicePulse.stopAnimation(() => {
-      Animated.timing(voicePulse, {
-        toValue: 0,
-        duration: 180,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
-    });
-  };
-
-  const pressCardIn = () => {
-    Animated.spring(cardPress, {
-      toValue: 1,
-      speed: 22,
-      bounciness: 4,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const ambientY = ambientFloat.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -9],
+      },
+    ],
+    opacity: anim.interpolate({
+      inputRange: [0, 0.5, 1],
+      outputRange: [0.4, 0.2, 0],
+    }),
   });
-
-  const avatarY = avatarBreath.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -4],
-  });
-
-  const avatarScale = avatarBreath.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.04],
-  });
-
-  const pressCardOut = () => {
-    Animated.spring(cardPress, {
-      toValue: 0,
-      speed: 18,
-      bounciness: 7,
-      useNativeDriver: true,
-    }).start();
-  };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.shell}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.artboard}>
-        <View style={styles.bg} />
-        <Animated.View style={[styles.blobPink, { transform: [{ translateY: ambientY }] }]} />
-        <Animated.View
-          style={[
-            styles.blobPurple,
-            { transform: [{ translateY: Animated.multiply(ambientY, -0.65) }] },
-          ]}
-        />
+    <View style={styles.container}>
+      {/* Main Chat Container */}
+      <Animated.View style={[styles.chatContainer, { opacity: fadeAnim }]}>
+        {/* Background with gradient */}
+        <View style={styles.background} />
 
-        <Animated.View
-          style={[
-            styles.topBar,
-            {
-              opacity: intro,
-              transform: [
-                {
-                  translateY: intro.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-14, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backText}>←</Text>
-          </Pressable>
-          <View style={styles.titleWrap}>
-            <Text style={styles.title}>Mibo ChatBot</Text>
-            <Text style={styles.subtitle}>AI 产品生成助手</Text>
+
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable style={styles.headerButton} onPress={() => {
+            if (router.canGoBack()) {
+           router.back();
+            } else {
+              router.push('/');
+            }
+          }}>
+            <Text style={styles.headerButtonText}>←</Text>
+      </Pressable>
+          <View style={styles.headerTitle}>
+            <Text style={styles.titleText}>
+              <Text style={styles.titleHighlight}>Mibo</Text> AI Chatbot
+            </Text>
           </View>
-          <Animated.View
-            style={[
-              styles.avatarDot,
-              {
-                transform: [
-                  { translateY: avatarY },
-                  { scale: avatarScale },
-                ],
-              },
-            ]}
-          >
-            <Image source={{ uri: catImage }} style={styles.avatarCat} resizeMode="contain" />
-          </Animated.View>
-        </Animated.View>
-
-        <View style={styles.chatArea}>
-          <Animated.View
-            style={[
-              styles.messageBubble,
-              styles.botBubble,
-              styles.heroBubble,
-              {
-                opacity: botIntro,
-                transform: [
-                  {
-                    translateY: botIntro.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [22, 0],
-                    }),
-                  },
-                  {
-                    scale: botIntro.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.97, 1],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Text style={styles.botText}>
-              你好，我是 Mibo。告诉我你的产品想法，我会帮你拆解功能、生成应用卡片，并准备部署方案。
-            </Text>
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              styles.messageBubble,
-              styles.userBubble,
-              {
-                opacity: userIntro,
-                transform: [
-                  {
-                    translateX: userIntro.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [26, 0],
-                    }),
-                  },
-                  {
-                    scale: userIntro.interpolate({
-                      inputRange: [0, 0.82, 1],
-                      outputRange: [0.96, 0.985, 1],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Text style={styles.userText}>{sentMessage}</Text>
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              styles.messageBubble,
-              styles.botBubble,
-              styles.generateBubble,
-              {
-                opacity: Animated.multiply(
-                  generateIntro,
-                  generating.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.72, 1],
-                  })
-                ),
-                transform: [
-                  {
-                    translateX: generateIntro.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-18, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Text style={styles.generatingText}>
-              {isGenerating ? pipelineMessage : searchError ? '生成遇到问题' : '产品已生成'}
-            </Text>
-            <View style={styles.generatingDots}>
-              {[0, 1, 2].map((dot) => (
-                <Animated.View
-                  key={dot}
-                  style={[
-                    styles.generatingDot,
-                    {
-                      opacity: generating.interpolate({
-                        inputRange: [0, 0.35, 0.7, 1],
-                        outputRange: dot === 0 ? [1, 0.45, 0.45, 1] : dot === 1 ? [0.45, 1, 0.45, 0.45] : [0.45, 0.45, 1, 0.45],
-                      }),
-                    },
-                  ]}
-                />
-              ))}
-            </View>
-            <View style={styles.progressTrack}>
-              <Animated.View
-                style={[
-                  styles.progressFill,
-                  {
-                    transform: [
-                      {
-                        translateX: isGenerating
-                          ? generating.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [-86, 156],
-                            })
-                          : 156 * pipelineProgress - 86,
-                      },
-                    ],
-                  },
-                ]}
-              />
-            </View>
-            <View style={styles.stageRail}>
-              {PIPELINE_STAGES.map((stage) => (
-                <View key={stage} style={styles.stageItem}>
-                  <View
-                    style={[
-                      styles.stageDot,
-                      pipelineState[stage] === 'running' && styles.stageDotRunning,
-                      pipelineState[stage] === 'success' && styles.stageDotSuccess,
-                      pipelineState[stage] === 'failed' && styles.stageDotFailed,
-                    ]}
-                  />
-                  <Text style={styles.stageLabel}>{STAGE_LABELS[stage]}</Text>
-                </View>
-              ))}
-            </View>
-          </Animated.View>
-
-          <Pressable
-            onPress={() => {
-              if (selectedRepo) {
-                router.push('/app-gallery');
-                return;
-              }
-              setDetailOpen((open) => !open);
-            }}
-            onPressIn={pressCardIn}
-            onPressOut={pressCardOut}
-          >
-            <Animated.View
-              style={[
-                styles.appCard,
-                {
-                  opacity: cardIntro,
-                  transform: [
-                    {
-                      translateY: cardIntro.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [24, 0],
-                      }),
-                    },
-                    {
-                      scale: Animated.multiply(
-                        cardIntro.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.96, 1],
-                        }),
-                        cardPress.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [1, 0.975],
-                        })
-                      ),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <View style={styles.appIcon}>
-                <Image source={{ uri: catImage }} style={styles.appIconCat} resizeMode="contain" />
-              </View>
-              <View style={styles.appCardCopy}>
-                <Text style={styles.appCardTitle}>
-                  {searchError ? '检索暂时失败' : selectedRepo?.name || 'Pawzzle 寻爪'}
-                </Text>
-                <Text style={styles.appCardMeta}>
-                  {selectedRepo
-                    ? `${selectedRepo.language || 'GitHub'} · ${selectedRepo.stars} stars`
-                    : searchError
-                      ? 'RAG 检索 · 请重试'
-                      : '救助社区 · App 卡片'}
-                </Text>
-                <Text style={styles.appCardDesc}>
-                  {searchError ||
-                    selectedRepo?.description ||
-                    '领养列表、走失发布、志愿者协作和一键部署已生成。'}
-                </Text>
-                <Text style={styles.tapHint}>
-                  {selectedRepo
-                    ? generationTaskId
-                      ? `生成任务 ${generationTaskId.slice(0, 8)} · 轻触查看候选仓库`
-                      : '轻触查看候选仓库'
-                    : '轻触查看生成详情'}
-                </Text>
-              </View>
-            </Animated.View>
+          <Pressable style={styles.headerButton}>
+            <Text style={styles.headerButtonText}>⋯</Text>
           </Pressable>
-
-          <Animated.View
-            pointerEvents={detailOpen ? 'auto' : 'none'}
-            style={[
-              styles.detailPanel,
-              {
-                opacity: detailIntro,
-                transform: [
-                  {
-                    translateY: detailIntro.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-8, 0],
-                    }),
-                  },
-                  {
-                    scale: detailIntro.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.98, 1],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Text style={styles.detailTitle}>已拆解为 3 个阶段</Text>
-            <Text style={styles.detailLine}>1. 需求卡片 · 领养 / 走失 / 志愿者协作</Text>
-            <Text style={styles.detailLine}>2. 原型预览 · App Gallery 可继续查看</Text>
-            <Text style={styles.detailLine}>3. 部署方案 · 云端一键发布准备中</Text>
-          </Animated.View>
         </View>
 
-        <Animated.View
-          style={[
-            styles.inputDock,
-            {
-              opacity: inputIntro,
-              transform: [
-                {
-                  translateY: inputIntro.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [18, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
+        {/* Content Area */}
+        <ScrollView
+          style={styles.contentArea}
+          contentContainerStyle={styles.contentContainer}
         >
-          {inputMode === 'keyboard' ? (
-            <TextInput
-              style={styles.input}
-              placeholder="输入你的想法..."
-              placeholderTextColor="#8B8FAF"
-              value={message}
-              onChangeText={setMessage}
-              onSubmitEditing={submit}
-              returnKeyType="send"
-            />
-          ) : (
-            <Pressable
-              style={styles.voicePad}
-              onPressIn={startVoicePress}
-              onPressOut={stopVoicePress}
-            >
-              <Animated.View
-                style={[
-                  styles.voiceRipple,
+          {messages.length === 0 ? (
+       <>
+              {/* Hero Section */}
+              <View style={styles.hero}>
+                {/* Ripple Animations - 3 layers */}
+                <View style={styles.rippleContainer}>
+                  <Animated.View style={[styles.ripple, styles.ripple1, createRippleStyle(rippleAnim1, 0)]} />
+                  <Animated.View style={[styles.ripple, styles.ripple2, createRippleStyle(rippleAnim2, 1)]} />
+                  <Animated.View style={[styles.ripple, styles.ripple3, createRippleStyle(rippleAnim3, 2)]} />
+                </View>
+
+           {/* Robot Mascot with Image */}
+         <Animated.View style={[
+               styles.robotContainer,
                   {
-                    opacity: voicePulse.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 0.28],
-                    }),
-                    transform: [
-                      {
-                        scale: voicePulse.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.78, 1.2],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              />
-              <Text style={styles.voiceText}>按住说话</Text>
-            </Pressable>
+                  transform: [
+                  { translateY: Animated.add(robotEnterAnim, floatY) }
+               ]
+              }
+                ]}>
+        {/* Under Robot Ripple Platform - Using processed transparent image */}
+          <Animated.Image
+         source={require('../../assets/chatbot/underrobot.png')}
+            style={[
+              styles.underRobotImage,
+              {
+            transform: [{ scale: underRobotScaleAnim }]
+            }
+            ]}
+        resizeMode="contain"
+          />
+
+
+          {/* Robot Image */}
+          <Image
+          source={require('../../assets/chatbot/robot.png')}
+            style={styles.robotImage}
+            resizeMode="contain"
+          />
+           </Animated.View>
+
+                {/* Welcome Message */}
+                <Animated.View style={[styles.welcomeMessage, { opacity: contentFadeAnim }]}>
+                  <Text style={styles.welcomeTitle}>
+                  你好！我是 <Text style={styles.welcomeHighlight}>Mibo^^</Text>
+                  </Text>
+             <Text style={styles.welcomeSubtitle}>
+               有什么可以帮助您的吗？
+               </Text>
+                </Animated.View>
+          </View>
+
+            {/* Suggestion Buttons */}
+              {showSuggestions && (
+                <Animated.View style={[styles.suggestions, { opacity: contentFadeAnim }]}>
+                  {suggestions.map((suggestion, index) => (
+                <Pressable
+                    key={index}
+                      style={styles.suggestionButton}
+                  onPress={() => handleSend(suggestion)}
+                  >
+              <Text style={styles.suggestionText}>{suggestion}</Text>
+       </Pressable>
+                ))}
+           </Animated.View>
+              )}
+            </>
+      ) : (
+         <>
+          {/* Chat Messages */}
+              <View style={styles.messagesContainer}>
+                {messages.map((message) => (
+                  <View
+              key={message.id}
+                style={[
+                 styles.messageBubble,
+            message.role === 'user' ? styles.userBubble : styles.aiBubble,
+            ]}
+                  >
+                    <Text
+                   style={[
+                 styles.messageText,
+                   message.role === 'user' ? styles.userText : styles.aiText,
+                  ]}
+                    >
+                      {message.content}
+         </Text>
+                  </View>
+              ))}
+
+                {isLoading && (
+                  <View style={[styles.messageBubble, styles.aiBubble]}>
+                <Text style={styles.aiText}>正在思考中......</Text>
+             </View>
+                )}
+              </View>
+
+              {/* AI Card */}
+              {showAICard && (
+                <Pressable style={styles.aiCard}>
+              <View style={styles.aiCardHeader}>
+               <View style={styles.aiCardIcon}>
+                    <Text style={styles.aiCardIconText}>✨</Text>
+                    </View>
+          <View style={styles.aiCardTitleContainer}>
+              <Text style={styles.aiCardTitle}>智能开发助手</Text>
+                  <Text style={styles.aiCardMeta}>AI 生成卡片</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.aiCardDescription}>
+                    已为您生成完整的应用架构方案，包括前端界面、后端API和数据库设计。
+                  </Text>
+            <View style={styles.aiCardFooter}>
+               <Text style={styles.aiCardAction}>请帮我部署这个应用到云端</Text>
+                <Text style={styles.aiCardArrow}>→</Text>
+                  </View>
+                </Pressable>
+        )}
+            </>
           )}
+        </ScrollView>
+
+        {/* Input Bar */}
+        <View style={styles.inputContainer}>
+          <TextInput
+         style={styles.input}
+          placeholder="在这里输入你的问题......"
+            placeholderTextColor="#8B8FAF"
+            value={inputText}
+            onChangeText={setInputText}
+            onSubmitEditing={() => handleSend(inputText)}
+          />
+             <Pressable style={styles.micButton}>
+          <MicrophoneIcon size={18} color="#8B8FAF" />
+        </Pressable>
           <Pressable
-            style={styles.modeButton}
-            onPress={() => setInputMode((mode) => (mode === 'keyboard' ? 'voice' : 'keyboard'))}
+            style={styles.sendButton}
+        onPress={() => handleSend(inputText)}
           >
-            <Animated.Text
-              style={[
-                styles.modeButtonText,
-                {
-                  transform: [
-                    {
-                      translateY: dockMode.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, -1],
-                      }),
-                    },
-                  ],
-                },
-              ]}
+           <LinearGradient
+         colors={['#C05CF6', '#7C62FF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+        style={styles.sendButtonGradient}
             >
-              {inputMode === 'keyboard' ? '语音\n麦克风' : '打字\n键盘'}
-            </Animated.Text>
+                    <Ionicons name="send" size={16} color="#FFFFFF" style={{ transform: [{ rotate: '-45deg' }] }} />
+            </LinearGradient>
           </Pressable>
-          <Pressable style={styles.sendButton} onPress={submit}>
-            <Animated.View
-              style={[
-                styles.sendFlash,
-                {
-                  opacity: sendPulse.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 0.34],
-                  }),
-                  transform: [
-                    {
-                      scale: sendPulse.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.7, 1.35],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            />
-            <Text style={styles.sendText}>↑</Text>
-          </Pressable>
-        </Animated.View>
-      </View>
-    </KeyboardAvoidingView>
+        </View>
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  shell: {
+  container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#E8E8E8',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  artboard: {
-    width: 402,
-    height: 874,
-    backgroundColor: '#F7F9FF',
-    position: 'relative',
+  chatContainer: {
+    width: '100%',
+    maxWidth: 420,
+    height: 896,
+    borderRadius: 32,
     overflow: 'hidden',
+    backgroundColor: '#E8EBFF',
+    position: 'relative',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 20 },
+        shadowOpacity: 0.15,
+        shadowRadius: 60,
+      elevation: 20,
+      },
+    }),
   },
-  bg: {
+  background: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#F7F9FF',
+    backgroundColor: '#E8EBFF',
   },
-  blobPink: {
-    position: 'absolute',
-    right: -90,
-    bottom: 80,
-    width: 260,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: 'rgba(246,184,255,0.24)',
-  },
-  blobPurple: {
-    position: 'absolute',
-    left: -80,
-    top: 160,
-    width: 260,
-    height: 220,
-    borderRadius: 140,
-    backgroundColor: 'rgba(124,98,255,0.13)',
-  },
-  topBar: {
-    position: 'absolute',
+  header: {
+  position: 'absolute',
     top: 48,
     left: 28,
     right: 28,
     height: 52,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 10,
   },
-  backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(10px)',
+    },
+    }),
   },
-  backText: {
+  headerButtonText: {
+    fontSize: 20,
     color: '#494A64',
-    fontSize: 24,
-    lineHeight: 26,
   },
-  titleWrap: {
-    marginLeft: 14,
+  headerTitle: {
     flex: 1,
+    marginHorizontal: 16,
+    alignItems: 'center',
   },
-  title: {
-    color: '#161823',
+  titleText: {
     fontSize: 18,
     fontWeight: '700',
+    color: '#161823',
   },
-  subtitle: {
-    color: '#7F80A1',
-    fontSize: 10,
-    marginTop: 2,
+  titleHighlight: {
+    color: '#7C62FF',
   },
-  avatarDot: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#F1E8FF',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+  contentArea: {
+    flex: 1,
+    marginTop: 120,
+    marginBottom: 100,
+  },
+  contentContainer: {
+    paddingHorizontal: 28,
+  },
+  hero: {
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingTop: 20,
+    paddingBottom: 32,
+    position: 'relative',
   },
-  avatarCat: {
-    width: 34,
-    height: 32,
-  },
-  chatArea: {
+  rippleContainer: {
     position: 'absolute',
+    top: 20,
     left: 0,
     right: 0,
-    top: 120,
-    bottom: 106,
-  },
-  messageBubble: {
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    shadowColor: '#AFA7D7',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
-  },
-  botBubble: {
-    marginLeft: 36,
-    width: 265,
-    backgroundColor: 'rgba(255,255,255,0.76)',
-    padding: 18,
-  },
-  heroBubble: {
-    height: 174,
-    justifyContent: 'center',
-  },
-  userBubble: {
-    alignSelf: 'flex-end',
-    marginRight: 32,
-    marginTop: 40,
-    width: 265,
-    minHeight: 53,
-    backgroundColor: '#7C62FF',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-  },
-  botText: {
-    color: '#494A64',
-    fontSize: 15,
-    lineHeight: 24,
-  },
-  userText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    lineHeight: 22,
-  },
-  generatingText: {
-    color: '#161823',
-    fontSize: 15,
-    fontWeight: '600',
-    lineHeight: 21,
-    paddingRight: 46,
-  },
-  generateBubble: {
-    marginTop: 40,
-  },
-  generatingDots: {
-    position: 'absolute',
-    right: 18,
-    top: 22,
-    flexDirection: 'row',
-    gap: 5,
-  },
-  generatingDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#7C62FF',
-  },
-  progressTrack: {
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#ECEAF8',
-    overflow: 'hidden',
-    marginTop: 14,
-  },
-  progressFill: {
-    width: 86,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#7C62FF',
-  },
-  stageRail: {
-    marginTop: 12,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  stageItem: {
-    width: 45,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  stageDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#D9DCEF',
-    marginRight: 5,
-  },
-  stageDotRunning: {
-    backgroundColor: '#7C62FF',
-  },
-  stageDotSuccess: {
-    backgroundColor: '#36B37E',
-  },
-  stageDotFailed: {
-    backgroundColor: '#FF5A7A',
-  },
-  stageLabel: {
-    color: '#6C6E8E',
-    fontSize: 9,
-    lineHeight: 12,
-  },
-  appCard: {
-    marginLeft: 36,
-    marginTop: 22,
-    width: 265,
-    minHeight: 141,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    backgroundColor: 'rgba(255,255,255,0.82)',
-    flexDirection: 'row',
-    padding: 16,
-    shadowColor: '#897AB9',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
-  },
-  appIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: '#EAF6FF',
+    height: 280,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  appIconCat: {
-    width: 48,
-    height: 42,
-  },
-  appCardCopy: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  appCardTitle: {
-    color: '#161823',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  appCardMeta: {
-    color: '#7C62FF',
-    fontSize: 9,
-    marginTop: 4,
-  },
-  appCardDesc: {
-    color: '#7F80A1',
-    fontSize: 10,
-    lineHeight: 16,
-    marginTop: 8,
-  },
-  tapHint: {
-    color: '#7C62FF',
-    fontSize: 9,
-    fontWeight: '700',
-    marginTop: 10,
-  },
-  detailPanel: {
-    marginLeft: 36,
-    marginTop: 12,
-    width: 265,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    shadowColor: '#897AB9',
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-  },
-  detailTitle: {
-    color: '#161823',
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 7,
-  },
-  detailLine: {
-    color: '#6C6E8E',
-    fontSize: 10,
-    lineHeight: 16,
-  },
-  inputDock: {
+  ripple: {
     position: 'absolute',
-    left: 27,
-    top: 788,
-    width: 359,
-    height: 46,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    backgroundColor: 'rgba(255,255,255,0.82)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: 16,
-    paddingRight: 8,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
+    borderRadius: 9999,
+    borderWidth: 1.5,
   },
-  input: {
-    flex: 1,
-    color: '#494A64',
-    fontSize: 14,
-    padding: 0,
+  ripple1: {
+    width: 200,
+    height: 200,
+  borderColor: 'rgba(200, 190, 255, 0.3)',
   },
-  voicePad: {
-    flex: 1,
+  ripple2: {
+    width: 260,
+    height: 260,
+    borderColor: 'rgba(200, 190, 255, 0.25)',
+  },
+  ripple3: {
+    width: 320,
+    height: 320,
+    borderColor: 'rgba(200, 190, 255, 0.2)',
+  },
+  robotContainer: {
+    width: 240,
+    height: 240,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    zIndex: 10,
   },
-  voiceRipple: {
+  robotImage: {
+    width: 200,
+    height: 200,
+  },
+  underRobotImage: {
     position: 'absolute',
-    width: 138,
-    height: 30,
-    borderRadius: 15,
+    bottom: -40,
+  width: 360,
+    height: 180,
+    zIndex: -1,
+  },
+  welcomeMessage: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  welcomeTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#161823',
+    marginBottom: 8,
+  },
+  welcomeHighlight: {
+    color: '#7C62FF',
+  },
+  welcomeSubtitle: {
+    fontSize: 14,
+    color: '#7F80A1',
+  },
+  suggestions: {
+    marginTop: 24,
+    gap: 12,
+  },
+  suggestionButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    ...Platform.select({
+      web: {
+     backdropFilter: 'blur(10px)',
+        boxShadow: '0 4px 12px rgba(175, 167, 215, 0.15)',
+    },
+    default: {
+        shadowColor: '#AFA7D7',
+        shadowOffset: { width: 0, height: 4 },
+     shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 3,
+      },
+    }),
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: '#494A64',
+    textAlign: 'center',
+  },
+  messagesContainer: {
+    gap: 16,
+  },
+  messageBubble: {
+    maxWidth: '80%',
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  userBubble: {
+    alignSelf: 'flex-end',
     backgroundColor: '#7C62FF',
   },
-  voiceText: {
-    color: '#7C62FF',
+  aiBubble: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    ...Platform.select({
+      web: {
+     backdropFilter: 'blur(10px)',
+      },
+    }),
+  },
+  messageText: {
     fontSize: 14,
+    lineHeight: 22,
+  },
+  userText: {
+    color: '#FFFFFF',
+  },
+  aiText: {
+    color: '#494A64',
+  },
+  aiCard: {
+    marginTop: 24,
+    padding: 20,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(10px)',
+        boxShadow: '0 8px 14px rgba(137, 122, 185, 0.16)',
+      },
+      default: {
+        shadowColor: '#897AB9',
+      shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.16,
+        shadowRadius: 14,
+        elevation: 5,
+      },
+    }),
+  },
+  aiCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  aiCardIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: '#7C62FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  aiCardIconText: {
+    fontSize: 28,
+  },
+  aiCardTitleContainer: {
+    flex: 1,
+  },
+  aiCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#161823',
+    marginBottom: 4,
+  },
+  aiCardMeta: {
+    fontSize: 11,
+    color: '#7C62FF',
     fontWeight: '600',
   },
-  modeButton: {
-    width: 60,
-    height: 38,
+  aiCardDescription: {
+    fontSize: 13,
+    color: '#7F80A1',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  aiCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E8E4F8',
+  },
+  aiCardAction: {
+    fontSize: 12,
+    color: '#7C62FF',
+    fontWeight: '700',
+  },
+  aiCardArrow: {
+    fontSize: 16,
+    color: '#7C62FF',
+  },
+  inputContainer: {
+    position: 'absolute',
+    bottom: 32,
+    left: 28,
+    right: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(10px)',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.12)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+        elevation: 5,
+      },
+    }),
+  },
+  input: {
+    flex: 1,
+    fontSize: 14,
+    color: '#494A64',
+    paddingRight: 12,
+  },
+  micButton: {
+    width: 36,
+    height: 36,
     borderRadius: 18,
+    backgroundColor: '#E8E8E8',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  modeButtonText: {
-    color: '#494A64',
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 16,
+    marginRight: 8,
   },
   sendButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#7C62FF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     overflow: 'hidden',
   },
-  sendFlash: {
-    position: 'absolute',
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#FFFFFF',
-  },
-  sendText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    lineHeight: 22,
+  sendButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
