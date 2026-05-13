@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Platform, Animated, Easing, Image, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import Svg, { Path, Rect } from 'react-native-svg';
 
 interface Message {
   id: string;
@@ -8,6 +11,21 @@ interface Message {
   content: string;
   timestamp: Date;
 }
+
+const MicrophoneIcon = ({ size = 18, color = '#8B8FAF' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    {/* Microphone capsule */}
+    <Rect x="9" y="4" width="6" height="10" rx="3" stroke={color} strokeWidth="2" fill="none" />
+    {/* Microphone stand */}
+    <Path d="M12 14 L12 20" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    {/* Microphone base */}
+    <Path d="M9 20 L15 20" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    {/* Sound arc left */}
+    <Path d="M6 10 C6 13.5 8.5 16 12 16" stroke={color} strokeWidth="2" strokeLinecap="round" fill="none" />
+    {/* Sound arc right */}
+    <Path d="M18 10 C18 13.5 15.5 16 12 16" stroke={color} strokeWidth="2" strokeLinecap="round" fill="none" />
+  </Svg>
+);
 
 export default function ChatbotNewPage() {
   const router = useRouter();
@@ -24,58 +42,78 @@ export default function ChatbotNewPage() {
   const rippleAnim2 = useRef(new Animated.Value(0)).current;
   const rippleAnim3 = useRef(new Animated.Value(0)).current;
 
+  // Entrance animation values
+  const robotEnterAnim = useRef(new Animated.Value(-300)).current; // Start from top
+  const underRobotScaleAnim = useRef(new Animated.Value(0)).current; // Start small
+  const contentFadeAnim = useRef(new Animated.Value(0)).current; // Other content fade in
+
   useEffect(() => {
-    // Fade in animation
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-
-    // Float animation loop - 3 seconds up and down
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: 1,
-        duration: 3000,
-          easing: Easing.inOut(Easing.ease),
+    // Entrance animation sequence
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
         useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim, {
-          toValue: 0,
-          duration: 3000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    // Ripple animations - 3 layers with different delays
-    const createRipple = (anim: Animated.Value, delay: number) => {
+      }),
+      Animated.timing(robotEnterAnim, {
+        toValue: 0,
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(underRobotScaleAnim, {
+        toValue: 1,
+        duration: 600,
+        easing: Easing.out(Easing.back(1.5)),
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentFadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
       Animated.loop(
         Animated.sequence([
-          Animated.delay(delay),
-          Animated.parallel([
-            Animated.timing(anim, {
+          Animated.timing(floatAnim, {
             toValue: 1,
-              duration: 2000,
-              easing: Easing.out(Easing.ease),
-              useNativeDriver: true,
-            }),
-          ]),
-          Animated.timing(anim, {
+            duration: 3000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(floatAnim, {
             toValue: 0,
-        duration: 0,
+            duration: 3000,
+            easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
         ])
       ).start();
-    };
 
-    createRipple(rippleAnim1, 0);
-    createRipple(rippleAnim2, 666);
-    createRipple(rippleAnim3, 1333);
-  }, [fadeAnim, floatAnim, rippleAnim1, rippleAnim2, rippleAnim3]);
+      const createRipple = (anim: Animated.Value, delay: number) => {
+        Animated.loop(
+          Animated.sequence([
+            Animated.delay(delay),
+            Animated.timing(anim, {
+              toValue: 1,
+              duration: 2000,
+              easing: Easing.out(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(anim, {
+              toValue: 0,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+          ])
+        ).start();
+      };
+
+      createRipple(rippleAnim1, 0);
+      createRipple(rippleAnim2, 666);
+      createRipple(rippleAnim3, 1333);
+    });
+  }, [fadeAnim, floatAnim, rippleAnim1, rippleAnim2, rippleAnim3, robotEnterAnim, underRobotScaleAnim, contentFadeAnim]);
 
   const suggestions = [
     '推荐几款好用的开发工具',
@@ -180,12 +218,24 @@ export default function ChatbotNewPage() {
                 </View>
 
            {/* Robot Mascot with Image */}
-                <Animated.View style={[styles.robotContainer, { transform: [{ translateY: floatY }] }]}>
+         <Animated.View style={[
+               styles.robotContainer,
+                  {
+                  transform: [
+                  { translateY: Animated.add(robotEnterAnim, floatY) }
+               ]
+              }
+                ]}>
         {/* Under Robot Ripple Platform - Using processed transparent image */}
-          <Image
-            source={require('../assets/chatbot/underrobot.png')}
-        style={styles.underRobotImage}
-            resizeMode="contain"
+          <Animated.Image
+         source={require('../assets/chatbot/underrobot.png')}
+            style={[
+              styles.underRobotImage,
+              {
+            transform: [{ scale: underRobotScaleAnim }]
+            }
+            ]}
+        resizeMode="contain"
           />
 
 
@@ -198,19 +248,19 @@ export default function ChatbotNewPage() {
            </Animated.View>
 
                 {/* Welcome Message */}
-                <View style={styles.welcomeMessage}>
+                <Animated.View style={[styles.welcomeMessage, { opacity: contentFadeAnim }]}>
                   <Text style={styles.welcomeTitle}>
                   你好！我是 <Text style={styles.welcomeHighlight}>Mibo^^</Text>
                   </Text>
-               <Text style={styles.welcomeSubtitle}>
-                    有什么可以帮助您的吗？
+             <Text style={styles.welcomeSubtitle}>
+               有什么可以帮助您的吗？
                </Text>
-                </View>
+                </Animated.View>
           </View>
 
             {/* Suggestion Buttons */}
               {showSuggestions && (
-                <View style={styles.suggestions}>
+                <Animated.View style={[styles.suggestions, { opacity: contentFadeAnim }]}>
                   {suggestions.map((suggestion, index) => (
                 <Pressable
                     key={index}
@@ -218,9 +268,9 @@ export default function ChatbotNewPage() {
                   onPress={() => handleSend(suggestion)}
                   >
               <Text style={styles.suggestionText}>{suggestion}</Text>
-         </Pressable>
+       </Pressable>
                 ))}
-                </View>
+           </Animated.View>
               )}
             </>
       ) : (
@@ -288,14 +338,21 @@ export default function ChatbotNewPage() {
             onChangeText={setInputText}
             onSubmitEditing={() => handleSend(inputText)}
           />
-          <Pressable style={styles.micButton}>
-            <Text style={styles.micButtonText}>🎤</Text>
+             <Pressable style={styles.micButton}>
+          <MicrophoneIcon size={18} color="#8B8FAF" />
         </Pressable>
           <Pressable
             style={styles.sendButton}
         onPress={() => handleSend(inputText)}
           >
-            <Text style={styles.sendButtonText}>↑</Text>
+           <LinearGradient
+         colors={['#C05CF6', '#7C62FF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+        style={styles.sendButtonGradient}
+            >
+                    <Ionicons name="send" size={16} color="#FFFFFF" style={{ transform: [{ rotate: '-45deg' }] }} />
+            </LinearGradient>
           </Pressable>
         </View>
       </Animated.View>
@@ -631,23 +688,22 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+    backgroundColor: '#E8E8E8',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
   },
-  micButtonText: {
-    fontSize: 18,
-  },
   sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#7C62FF',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  sendButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  sendButtonText: {
-    fontSize: 20,
-    color: '#FFFFFF',
   },
 });
