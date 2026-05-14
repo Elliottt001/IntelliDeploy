@@ -7,6 +7,8 @@ type MainHomeHeroProps = {
   intro: Animated.Value;
   floatY: Animated.AnimatedInterpolation<number | string>;
   miboPulse: Animated.Value;
+  nickname: string;
+  bubbleText: string;
   onOpenMibo: () => void;
   onPressAvatar: () => void;
 };
@@ -15,6 +17,8 @@ export default function MainHomeHero({
   intro,
   floatY,
   miboPulse,
+  nickname,
+  bubbleText,
   onOpenMibo,
   onPressAvatar,
 }: MainHomeHeroProps) {
@@ -51,8 +55,14 @@ export default function MainHomeHero({
       </Pressable>
 
       <View style={styles.copy}>
-        <Text style={styles.greeting}>Hi！Oasis✨</Text>
-        <Text style={styles.question}>今天又有什么新想法？</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="打开 AI 对话" onPress={onOpenMibo}>
+          <Text style={styles.greeting} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+            Hi！{nickname}✨
+          </Text>
+        </Pressable>
+        <Text style={styles.question} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78}>
+          {bubbleText}
+        </Text>
         <Pressable accessibilityRole="button" onPress={onOpenMibo}>
           <Animated.Text
             style={[

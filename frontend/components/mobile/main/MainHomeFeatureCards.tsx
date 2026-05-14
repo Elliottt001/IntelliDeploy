@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import MainHomeFeatureCard from './MainHomeFeatureCard';
 import { lightLayout, lightTokens } from './mainHomeTokens';
 import { mainHomeMotion } from './mainHomeMotion';
-import type { FeatureCardData, MainHomeCardId } from './mainHomeTypes';
+import type { FeatureCardData, MainHomeCardId, MainHomeGalleryAppId } from './mainHomeTypes';
+import type { HomeFeedResponse } from '../../../services/api';
 
 const featureCards: FeatureCardData[] = [
   {
@@ -47,16 +48,18 @@ const featureCards: FeatureCardData[] = [
 
 type MainHomeFeatureCardsProps = {
   intro: Animated.Value;
+  navCards: HomeFeedResponse['navCards'];
   expandedCard: MainHomeCardId | null;
   onToggleCard: (id: MainHomeCardId) => void;
-  onOpenGallery: () => void;
+  onOpenGalleryApp: (id: MainHomeGalleryAppId) => void;
 };
 
 export default function MainHomeFeatureCards({
   intro,
+  navCards,
   expandedCard,
   onToggleCard,
-  onOpenGallery,
+  onOpenGalleryApp,
 }: MainHomeFeatureCardsProps) {
   const progresses = {
     gallery: useRef(new Animated.Value(0)).current,
@@ -64,20 +67,21 @@ export default function MainHomeFeatureCards({
     square: useRef(new Animated.Value(0)).current,
     profile: useRef(new Animated.Value(0)).current,
   };
+  const cards = useMemo(() => mergeNavCards(navCards), [navCards]);
   const orderedCards = useMemo(() => {
     if (!expandedCard) {
-      return featureCards;
+      return cards;
     }
 
     return [
-      ...featureCards.filter((card) => card.id !== expandedCard),
-      featureCards.find((card) => card.id === expandedCard)!,
+      ...cards.filter((card) => card.id !== expandedCard),
+      cards.find((card) => card.id === expandedCard)!,
     ];
-  }, [expandedCard]);
+  }, [cards, expandedCard]);
 
   useEffect(() => {
     Animated.parallel(
-      featureCards.map((card) =>
+      cards.map((card) =>
         Animated.timing(progresses[card.id], {
           toValue: expandedCard === card.id ? 1 : 0,
           duration: mainHomeMotion.cardExpand,
@@ -86,7 +90,7 @@ export default function MainHomeFeatureCards({
         })
       )
     ).start();
-  }, [expandedCard, progresses.gallery, progresses.products, progresses.profile, progresses.square]);
+  }, [cards, expandedCard, progresses.gallery, progresses.products, progresses.profile, progresses.square]);
 
   return (
     <>
@@ -137,12 +141,53 @@ export default function MainHomeFeatureCards({
             progress={progresses[card.id]}
             isExpanded={expandedCard === card.id}
             onPress={onToggleCard}
-            onOpenGallery={onOpenGallery}
+            onOpenGalleryApp={onOpenGalleryApp}
           />
         ))}
       </Animated.View>
     </>
   );
+}
+
+function mergeNavCards(navCards: HomeFeedResponse['navCards']): FeatureCardData[] {
+  const byId = new Map<MainHomeCardId, HomeFeedResponse['navCards'][number]>();
+
+  navCards.forEach((card) => {
+    const id = normalizeNavCardKey(card.key);
+    if (id) {
+      byId.set(id, card);
+    }
+  });
+
+  return featureCards.map((card) => {
+    const apiCard = byId.get(card.id);
+    if (!apiCard) {
+      return card;
+    }
+
+    return {
+      ...card,
+      title: apiCard.title,
+      iconUrl: apiCard.iconUrl,
+      route: apiCard.route,
+    };
+  });
+}
+
+function normalizeNavCardKey(key: string): MainHomeCardId | null {
+  if (key === 'gallery') {
+    return 'gallery';
+  }
+  if (key === 'myProducts' || key === 'products') {
+    return 'products';
+  }
+  if (key === 'plaza' || key === 'square') {
+    return 'square';
+  }
+  if (key === 'profile' || key === 'me') {
+    return 'profile';
+  }
+  return null;
 }
 
 const styles = StyleSheet.create({

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { mainHomeMotion } from './mainHomeMotion';
@@ -63,6 +63,7 @@ const altTags: WordCloudTag[] = [
 type MainHomeInspirationCloudProps = {
   intro: Animated.Value;
   cloudVariant: number;
+  keywords: string[];
   onShuffle: () => void;
   onPressCloud: () => void;
 };
@@ -70,10 +71,22 @@ type MainHomeInspirationCloudProps = {
 export default function MainHomeInspirationCloud({
   intro,
   cloudVariant,
+  keywords,
   onShuffle,
   onPressCloud,
 }: MainHomeInspirationCloudProps) {
-  const tags = cloudVariant % 2 === 0 ? baseTags : altTags;
+  const tags = useMemo(() => {
+    const template = cloudVariant % 2 === 0 ? baseTags : altTags;
+    if (keywords.length === 0) {
+      return template;
+    }
+
+    return template.map((tag, index) => ({
+      ...tag,
+      id: `${tag.id}-${keywords[index] ?? index}`,
+      label: keywords[index] ?? tag.label,
+    }));
+  }, [cloudVariant, keywords]);
   const cloudTransition = useRef(new Animated.Value(1)).current;
   const hasMounted = useRef(false);
 

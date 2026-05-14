@@ -6,6 +6,8 @@ export type MainHomeCardId = 'gallery' | 'products' | 'square' | 'profile';
 
 export type MainHomeNavId = 'home' | 'apps' | 'square' | 'profile';
 
+export type MainHomeGalleryAppId = 'fastgpt' | 'keystats' | 'pawzzle' | 'stolen-buttons' | 'fairyc';
+
 export type WordCloudTag = {
   id: string;
   label: string;
@@ -21,6 +23,8 @@ export type FeatureCardData = {
   id: MainHomeCardId;
   title: string;
   subtitle: string;
+  iconUrl?: string | null;
+  route?: string;
   collapsedTop: number;
   expandedTop: number;
   accent: string;

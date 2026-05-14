@@ -7,6 +7,7 @@ Render and coordinate the four light mode feature cards.
 ## Inputs
 
 - `expandedCard`
+- `navCards` from `GET /api/home/feed`
 - `onToggleCard`
 - `onOpenGallery`
 - Motion values
@@ -23,6 +24,7 @@ Render and coordinate the four light mode feature cards.
 ## Rules
 
 - Default state uses a 195px card body with roughly 68-70px visible step between cards, matching Figma's stacked-card composition.
+- Titles and route metadata should prefer `/api/home/feed` navCards when available, with local fallback for preview resilience.
 - Expanded target height is 195px.
 - Expanded card positions follow the Figma state frames:
   - gallery expanded: y 328

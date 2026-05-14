@@ -6,26 +6,58 @@ import {
   PanResponder,
   Platform,
   Pressable,
+  StatusBar as NativeStatusBar,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 
 const pawzzleIcon =
-  'https://www.figma.com/api/mcp/asset/63e6374b-b674-41ee-8d63-b7c980904e01';
+  'https://www.figma.com/api/mcp/asset/f036f1af-d83a-41a5-9a91-e1530060b2f0';
 const pawzzlePreview =
-  'https://www.figma.com/api/mcp/asset/73dd314d-194e-43ef-88d5-a9b700bdebef';
+  'https://www.figma.com/api/mcp/asset/830db541-d4e4-485a-9604-7a46681e892b';
 const stellarIcon =
-  'https://www.figma.com/api/mcp/asset/63e6374b-b674-41ee-8d63-b7c980904e01';
+  'https://www.figma.com/api/mcp/asset/877a9930-f34e-4431-a33e-95209798d3a0';
 const stellarPreview =
-  'https://www.figma.com/api/mcp/asset/742b060e-4dd6-4b4b-b578-67b2d5d02d18';
+  'https://www.figma.com/api/mcp/asset/bf98ad3b-7e2a-4c2c-9c23-b18f2756b317';
+const voraIcon =
+  'https://www.figma.com/api/mcp/asset/46df2bcc-95af-485f-a560-13cf609e8450';
 const voraPreview =
-  'https://www.figma.com/api/mcp/asset/c00c1b16-5a79-472e-a5da-4c7495cdd1d5';
+  'https://www.figma.com/api/mcp/asset/217ac8d7-4f3d-43f7-b5ed-5fb0b76894db';
 
-const apps = [
+type GalleryAppId =
+  | 'pawzzle'
+  | 'stellar'
+  | 'vora'
+  | 'fastgpt'
+  | 'keystats'
+  | 'stolen-buttons'
+  | 'fairyc';
+
+type GalleryPreviewKind = 'pawzzle' | 'stellar' | 'vora' | 'fastgpt' | 'keystats' | 'buttons' | 'fairyc';
+
+type GalleryApp = {
+  id: GalleryAppId;
+  name: string;
+  rating: string;
+  badge: string;
+  meta: string;
+  description: string;
+  iconBackground: string;
+  previewKind: GalleryPreviewKind;
+  rotation: string;
+  icon?: string;
+  iconLabel?: string;
+  iconAccent?: string;
+  preview?: string;
+};
+
+const apps: GalleryApp[] = [
   {
+    id: 'pawzzle',
     name: 'Pawzzle寻爪',
     rating: '4.8 · 1.2k 评价',
     badge: '金喵奖',
@@ -33,10 +65,13 @@ const apps = [
     description:
       'Pawzzle是一款专注于宠物救助与关爱的应用，旨在帮助迷路的宠物找到新家并提供爱与关怀。在这个应用中，你可以浏览待领养的宠物，了解它们的故事，并为它们提供一个温暖的家。',
     icon: pawzzleIcon,
+    iconBackground: '#FFEBD3',
     preview: pawzzlePreview,
+    previewKind: 'pawzzle',
     rotation: '0deg',
   },
   {
+    id: 'stellar',
     name: 'Stellar星耀',
     rating: '4.9 · 1.3k 评价',
     badge: '下载榜单Top10',
@@ -44,31 +79,104 @@ const apps = [
     description:
       'Stellar星耀是一款专注于天文探索与星空观测的应用，利用AR实时识别夜空中的星座，了解星体背后的科学信息，把整个浩瀚宇宙装进口袋。',
     icon: stellarIcon,
+    iconBackground: '#FFFFFF',
     preview: stellarPreview,
-    rotation: '10deg',
+    previewKind: 'stellar',
+    rotation: '0deg',
   },
   {
+    id: 'vora',
     name: 'Vora食光',
     rating: '3.9 · 2.4k 评价',
     badge: '免费',
     meta: '免费｜下载榜单Top3',
     description:
       'Vora食光专注于智能膳食与健康管理，提供AI个性化食谱、拍照识别食物卡路里，并轻松掌握每日营养摄入。',
-    icon: pawzzleIcon,
+    icon: voraIcon,
+    iconBackground: '#FFFFFF',
     preview: voraPreview,
-    rotation: '5deg',
+    previewKind: 'vora',
+    rotation: '0deg',
+  },
+  {
+    id: 'fastgpt',
+    name: 'FastGPT',
+    rating: '4.9 · 8.6k 评价',
+    badge: 'AI效率',
+    meta: '知识库问答｜自动化助手',
+    description:
+      'FastGPT 面向团队知识库与业务流程，支持多轮问答、文档检索和自动化编排，让常见问题、内部资料和工作流都能被快速调用。',
+    iconBackground: '#BDF8FF',
+    iconLabel: 'F',
+    iconAccent: '#5B7CFF',
+    previewKind: 'fastgpt',
+    rotation: '0deg',
+  },
+  {
+    id: 'keystats',
+    name: 'KeyStats',
+    rating: '4.7 · 980 评价',
+    badge: '数据看板',
+    meta: '指标追踪｜团队周报',
+    description:
+      'KeyStats 用轻量看板聚合核心指标，帮助团队追踪增长、留存和项目状态，并把关键变化自动整理成可分享的报告。',
+    iconBackground: '#E7D7FF',
+    iconLabel: 'K',
+    iconAccent: '#8B5CF6',
+    previewKind: 'keystats',
+    rotation: '0deg',
+  },
+  {
+    id: 'stolen-buttons',
+    name: 'STOLEN BUTTONS',
+    rating: '4.6 · 740 评价',
+    badge: '设计资源',
+    meta: '按钮灵感｜组件收藏',
+    description:
+      'STOLEN BUTTONS 收集高质量按钮样式、交互动效和前端实现片段，适合快速寻找产品界面的行动按钮灵感。',
+    iconBackground: '#C9FFC9',
+    iconLabel: 'B',
+    iconAccent: '#3F8F5B',
+    previewKind: 'buttons',
+    rotation: '0deg',
+  },
+  {
+    id: 'fairyc',
+    name: 'Fairyc',
+    rating: '4.8 · 1.1k 评价',
+    badge: '创作工具',
+    meta: '灵感生成｜内容编排',
+    description:
+      'Fairyc 是面向创作者的灵感与内容编排工具，支持快速生成草稿、整理素材关系，并把零散想法变成清晰的创作计划。',
+    iconBackground: '#FFD6DE',
+    iconLabel: 'F',
+    iconAccent: '#F0B44C',
+    previewKind: 'fairyc',
+    rotation: '0deg',
   },
 ];
 
 export default function AppGallery() {
   const router = useRouter();
-  const [activeIndex, setActiveIndex] = useState(0);
+  const params = useLocalSearchParams<{ app?: string | string[] }>();
+  const requestedAppId = Array.isArray(params.app) ? params.app[0] : params.app;
+  const [activeIndex, setActiveIndex] = useState(() => getAppIndex(requestedAppId));
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const intro = useRef(new Animated.Value(0)).current;
   const floatLoop = useRef(new Animated.Value(0)).current;
   const cardFlip = useRef(new Animated.Value(0)).current;
   const dragX = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      NativeStatusBar.setHidden(true, 'none');
+    }
+  }, []);
+
+  useEffect(() => {
+    setActiveIndex(getAppIndex(requestedAppId));
+  }, [requestedAppId]);
 
   useEffect(() => {
     Animated.timing(intro, {
@@ -180,6 +288,8 @@ export default function AppGallery() {
 
   return (
     <View style={styles.shell}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar style="dark" hidden translucent backgroundColor="transparent" />
       <View style={styles.artboard}>
         <View style={styles.bg} />
         <Animated.View style={[styles.blobPink, { transform: [{ translateY: floatY }] }]} />
@@ -205,7 +315,7 @@ export default function AppGallery() {
         >
           <Pressable style={styles.logoWrap} onPress={() => router.back()}>
             <View style={styles.logoDot}>
-              <Text style={styles.logoGlyph}>✎</Text>
+              <LogoMark />
             </View>
             <View>
               <Text style={styles.logoTitle}>INTELLIDEPLOY</Text>
@@ -286,14 +396,16 @@ export default function AppGallery() {
                 },
               ]}
             >
-              <View style={styles.appHeader}>
-                <View style={styles.appIconWrap}>
-                  <Image source={{ uri: activeApp.icon }} style={styles.appIcon} resizeMode="cover" />
+              <View style={[styles.appHeader, activeApp.previewKind === 'vora' && styles.voraAppHeader]}>
+                <View style={[styles.appIconWrap, { backgroundColor: activeApp.iconBackground }]}>
+                  <AppIcon app={activeApp} />
                 </View>
-                <View style={styles.titleBlock}>
-                  <View style={styles.titleLine}>
-                    <Text style={styles.appName}>{activeApp.name}</Text>
-                    <View style={styles.awardBadge}>
+                <View style={[styles.titleBlock, activeApp.previewKind === 'vora' && styles.voraTitleBlock]}>
+                  <View style={[styles.titleLine, activeApp.id === 'stolen-buttons' && styles.titleLineStacked]}>
+                    <Text style={styles.appName} numberOfLines={1}>
+                      {activeApp.name}
+                    </Text>
+                    <View style={[styles.awardBadge, activeApp.id === 'stolen-buttons' && styles.awardBadgeStacked]}>
                       <Text style={styles.awardText}>{activeApp.badge}</Text>
                     </View>
                   </View>
@@ -303,15 +415,20 @@ export default function AppGallery() {
                 </View>
               </View>
 
-              <Text style={styles.description}>{activeApp.description}</Text>
-              <Pressable style={styles.detailButton} onPress={nextCard}>
+              <Text
+                style={[styles.description, activeApp.previewKind === 'vora' && styles.voraDescription]}
+                numberOfLines={4}
+              >
+                {activeApp.description}
+              </Text>
+              <Pressable
+                style={[styles.detailButton, activeApp.previewKind === 'vora' && styles.voraDetailButton]}
+                onPress={nextCard}
+              >
                 <Text style={styles.detailButtonText}>查看详情</Text>
               </Pressable>
 
-              <View style={styles.previewRow}>
-                <Image source={{ uri: activeApp.preview }} style={styles.previewPhone} resizeMode="cover" />
-                <Image source={{ uri: activeApp.preview }} style={styles.previewPhone} resizeMode="cover" />
-              </View>
+              <AppPreview app={activeApp} />
 
               <Pressable style={styles.pageDots} onPress={nextCard}>
                 {apps.map((app, index) => (
@@ -331,6 +448,160 @@ export default function AppGallery() {
           <GalleryAction icon="☵" label="评论·267" onPress={nextCard} />
         </View>
       </View>
+    </View>
+  );
+}
+
+function getAppIndex(appId?: string) {
+  const index = apps.findIndex((app) => app.id === appId);
+  return index >= 0 ? index : 0;
+}
+
+function LogoMark() {
+  return (
+    <View style={styles.logoMark}>
+      <View style={[styles.logoNode, styles.logoNodeLeft]} />
+      <View style={[styles.logoNode, styles.logoNodeRight]} />
+      <View style={styles.logoBridge} />
+    </View>
+  );
+}
+
+function AppPreview({ app }: { app: GalleryApp }) {
+  if (app.previewKind === 'pawzzle' && app.preview) {
+    return (
+      <View style={styles.previewClip}>
+        <View style={styles.pawzzlePreviewCanvas}>
+          <Image source={{ uri: app.preview }} style={styles.pawzzlePreviewImage} resizeMode="cover" />
+        </View>
+      </View>
+    );
+  }
+
+  if (app.previewKind === 'vora' && app.preview) {
+    return (
+      <View style={[styles.previewClip, styles.voraPreviewClip]}>
+        <View style={[styles.voraPhoneCrop, styles.voraPhoneLeft]}>
+          <Image source={{ uri: app.preview }} style={styles.voraPhoneImageLeft} resizeMode="stretch" />
+        </View>
+        <View style={[styles.voraPhoneCrop, styles.voraPhoneRight]}>
+          <Image source={{ uri: app.preview }} style={styles.voraPhoneImageRight} resizeMode="stretch" />
+        </View>
+      </View>
+    );
+  }
+
+  if (app.previewKind === 'stellar' && app.preview) {
+    return (
+      <View style={styles.previewClip}>
+        <Image source={{ uri: app.preview }} style={styles.stellarPreviewImage} resizeMode="contain" />
+      </View>
+    );
+  }
+
+  return <GeneratedAppPreview app={app} />;
+}
+
+function GeneratedAppPreview({ app }: { app: GalleryApp }) {
+  if (app.previewKind === 'keystats') {
+    return (
+      <View style={[styles.previewClip, styles.generatedPreviewClip]}>
+        <View style={[styles.generatedPreviewPanel, styles.keystatsPanel]}>
+          <View style={styles.generatedPreviewHeader}>
+            <View style={[styles.generatedPreviewMark, { backgroundColor: app.iconAccent }]} />
+            <Text style={styles.generatedPreviewTitle}>Weekly metrics</Text>
+          </View>
+          <View style={styles.statsGrid}>
+            <View style={styles.statTile}>
+              <Text style={styles.statValue}>82%</Text>
+              <Text style={styles.statLabel}>Activation</Text>
+            </View>
+            <View style={styles.statTile}>
+              <Text style={styles.statValue}>+18</Text>
+              <Text style={styles.statLabel}>Launches</Text>
+            </View>
+          </View>
+          <View style={styles.chartRow}>
+            {[44, 72, 56, 96, 68].map((height) => (
+              <View key={height} style={[styles.chartBar, { height }]} />
+            ))}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (app.previewKind === 'buttons') {
+    return (
+      <View style={[styles.previewClip, styles.generatedPreviewClip]}>
+        <View style={[styles.generatedPreviewPanel, styles.buttonsPanel]}>
+          <View style={styles.buttonPreviewPrimary}>
+            <Text style={styles.buttonPreviewPrimaryText}>Deploy</Text>
+          </View>
+          <View style={styles.buttonPreviewRow}>
+            <View style={styles.buttonPreviewSecondary} />
+            <View style={styles.buttonPreviewGhost} />
+          </View>
+          <View style={styles.buttonPreviewCode}>
+            <Text style={styles.buttonPreviewCodeText}>STOLEN BUTTONS</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (app.previewKind === 'fairyc') {
+    return (
+      <View style={[styles.previewClip, styles.generatedPreviewClip]}>
+        <View style={[styles.generatedPreviewPanel, styles.fairycPanel]}>
+          <View style={styles.fairycOrb}>
+            <Text style={styles.fairycOrbText}>F</Text>
+          </View>
+          <View style={styles.fairycLineLong} />
+          <View style={styles.fairycLineShort} />
+          <View style={styles.fairycCard}>
+            <Text style={styles.fairycCardText}>Idea board</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.previewClip, styles.generatedPreviewClip]}>
+      <View style={[styles.generatedPreviewPanel, styles.fastgptPanel]}>
+        <View style={styles.fastgptBubble}>
+          <Text style={styles.fastgptBubbleText}>Ask your workspace</Text>
+        </View>
+        <View style={styles.fastgptAnswer}>
+          <View style={styles.fastgptAnswerLineLong} />
+          <View style={styles.fastgptAnswerLine} />
+          <View style={styles.fastgptAnswerLineShort} />
+        </View>
+        <View style={styles.fastgptAction}>
+          <Text style={styles.fastgptActionText}>Run</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function AppIcon({ app }: { app: GalleryApp }) {
+  if (app.previewKind === 'vora' && app.icon) {
+    return (
+      <View style={styles.voraIconMark}>
+        <Image source={{ uri: app.icon }} style={styles.voraIconImage} resizeMode="stretch" />
+      </View>
+    );
+  }
+
+  if (app.icon) {
+    return <Image source={{ uri: app.icon }} style={styles.appIcon} resizeMode="contain" />;
+  }
+
+  return (
+    <View style={[styles.generatedIcon, { backgroundColor: app.iconBackground }]}>
+      <Text style={[styles.generatedIconText, { color: app.iconAccent }]}>{app.iconLabel}</Text>
     </View>
   );
 }
@@ -401,7 +672,7 @@ const styles = StyleSheet.create({
   },
   topBar: {
     position: 'absolute',
-    top: 47,
+    top: 31,
     left: 14,
     right: 14,
     height: 38,
@@ -424,9 +695,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoGlyph: {
-    color: '#FFFFFF',
-    fontSize: 13,
+  logoMark: {
+    width: 19,
+    height: 14,
+    position: 'relative',
+  },
+  logoNode: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  logoNodeLeft: {
+    left: 1,
+    top: 3,
+  },
+  logoNodeRight: {
+    right: 1,
+    top: 3,
+  },
+  logoBridge: {
+    position: 'absolute',
+    left: 7,
+    top: 6,
+    width: 5,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#FFFFFF',
   },
   logoTitle: {
     color: '#4B4C67',
@@ -454,8 +751,8 @@ const styles = StyleSheet.create({
   },
   main: {
     position: 'absolute',
-    top: 105,
-    left: 14,
+    top: 110,
+    left: 19,
     width: 336,
     alignItems: 'center',
   },
@@ -486,7 +783,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   filterRow: {
-    width: 295,
+    width: 282,
     marginTop: 27,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -521,7 +818,7 @@ const styles = StyleSheet.create({
   deck: {
     width: 336,
     height: 440,
-    marginTop: 27,
+    marginTop: 7,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -569,23 +866,52 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   appIcon: {
     width: 57,
     height: 57,
   },
+  voraAppHeader: {
+    marginLeft: 5,
+    marginTop: -3,
+  },
+  voraIconMark: {
+    width: 39,
+    height: 25,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  voraIconImage: {
+    position: 'absolute',
+    left: -1,
+    top: -4,
+    width: 41,
+    height: 40,
+  },
   titleBlock: {
     marginLeft: 14,
     flex: 1,
+  },
+  voraTitleBlock: {
+    marginLeft: 12,
+    marginTop: 2,
   },
   titleLine: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  titleLineStacked: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 4,
+  },
   appName: {
     color: '#161823',
     fontSize: 14,
     fontWeight: '600',
+    flexShrink: 1,
   },
   awardBadge: {
     marginLeft: 8,
@@ -594,6 +920,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F59E0B',
     paddingHorizontal: 8,
     justifyContent: 'center',
+  },
+  awardBadgeStacked: {
+    marginLeft: 0,
   },
   awardText: {
     color: '#FFFFFF',
@@ -625,6 +954,12 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     marginTop: 24,
     width: 208,
+    height: 60,
+  },
+  voraDescription: {
+    marginTop: 14,
+    marginLeft: 5,
+    width: 202,
   },
   detailButton: {
     position: 'absolute',
@@ -641,21 +976,302 @@ const styles = StyleSheet.create({
     fontSize: 3,
     fontWeight: '700',
   },
-  previewRow: {
+  voraDetailButton: {
+    top: 138,
+    right: 27,
+  },
+  previewClip: {
     position: 'absolute',
     left: 26,
-    bottom: 42,
+    bottom: 41.5,
     width: 214,
     height: 184,
-    flexDirection: 'row',
-    gap: 16,
     overflow: 'hidden',
   },
-  previewPhone: {
-    width: 91,
+  voraPreviewClip: {
+    left: 31,
+    bottom: 53,
+    width: 209,
+    height: 170,
+  },
+  pawzzlePreviewCanvas: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 318,
     height: 184,
+  },
+  pawzzlePreviewImage: {
+    position: 'absolute',
+    left: -58,
+    top: -236,
+    width: 444,
+    height: 576,
+  },
+  voraPhoneCrop: {
+    position: 'absolute',
+    top: 1,
+    width: 81,
+    height: 168,
+    overflow: 'hidden',
+  },
+  voraPhoneLeft: {
+    left: 20,
+  },
+  voraPhoneRight: {
+    left: 115,
+  },
+  voraPhoneImageLeft: {
+    position: 'absolute',
+    left: -15,
+    top: -45,
+    width: 285,
+    height: 243,
+  },
+  voraPhoneImageRight: {
+    position: 'absolute',
+    left: -102,
+    top: -34,
+    width: 285,
+    height: 243,
+  },
+  stellarPreviewImage: {
+    position: 'absolute',
+    left: 13,
+    top: -15.5,
+    width: 299,
+    height: 206,
+  },
+  generatedPreviewClip: {
+    bottom: 48,
+    borderRadius: 22,
+  },
+  generatedPreviewPanel: {
+    width: 214,
+    height: 184,
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.74)',
+    padding: 18,
+  },
+  generatedPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  generatedPreviewMark: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  generatedPreviewTitle: {
+    color: '#4B4C67',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  fastgptPanel: {
+    backgroundColor: '#EEF9FF',
+  },
+  fastgptBubble: {
+    alignSelf: 'flex-start',
+    maxWidth: 150,
     borderRadius: 18,
-    backgroundColor: '#FFF5EA',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    shadowColor: '#8AA3FF',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+  },
+  fastgptBubbleText: {
+    color: '#4B4C67',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  fastgptAnswer: {
+    marginTop: 17,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    padding: 14,
+  },
+  fastgptAnswerLineLong: {
+    width: 135,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#A8DFFF',
+  },
+  fastgptAnswerLine: {
+    width: 105,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#C7C9FF',
+    marginTop: 9,
+  },
+  fastgptAnswerLineShort: {
+    width: 74,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#DDE5FF',
+    marginTop: 9,
+  },
+  fastgptAction: {
+    position: 'absolute',
+    right: 20,
+    bottom: 18,
+    height: 23,
+    borderRadius: 14,
+    backgroundColor: '#7C62FF',
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+  },
+  fastgptActionText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  keystatsPanel: {
+    backgroundColor: '#F7F1FF',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  statTile: {
+    width: 78,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.76)',
+    padding: 10,
+  },
+  statValue: {
+    color: '#4B4C67',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  statLabel: {
+    color: '#8B8FAF',
+    fontSize: 6,
+    marginTop: 2,
+  },
+  chartRow: {
+    height: 96,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 9,
+    marginTop: 10,
+    paddingLeft: 6,
+  },
+  chartBar: {
+    width: 18,
+    borderRadius: 9,
+    backgroundColor: '#A78BFA',
+  },
+  buttonsPanel: {
+    backgroundColor: '#F4FFF4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonPreviewPrimary: {
+    width: 128,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#161823',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonPreviewPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  buttonPreviewRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  buttonPreviewSecondary: {
+    width: 67,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#9BF3B2',
+  },
+  buttonPreviewGhost: {
+    width: 67,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#4B4C67',
+  },
+  buttonPreviewCode: {
+    marginTop: 18,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+  },
+  buttonPreviewCodeText: {
+    color: '#4B4C67',
+    fontSize: 8,
+    fontWeight: '800',
+  },
+  fairycPanel: {
+    backgroundColor: '#FFF2F9',
+    alignItems: 'center',
+  },
+  fairycOrb: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: '#FFE3A3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 3,
+  },
+  fairycOrbText: {
+    color: '#F0A83A',
+    fontSize: 30,
+    fontWeight: '800',
+  },
+  fairycLineLong: {
+    width: 132,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFC6D5',
+    marginTop: 18,
+  },
+  fairycLineShort: {
+    width: 94,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#F8D9FF',
+    marginTop: 9,
+  },
+  fairycCard: {
+    marginTop: 14,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+  },
+  fairycCardText: {
+    color: '#7F80A1',
+    fontSize: 8,
+    fontWeight: '700',
+  },
+  generatedIcon: {
+    width: 57,
+    height: 57,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  generatedIconText: {
+    fontSize: 29,
+    fontWeight: '900',
   },
   pageDots: {
     position: 'absolute',
@@ -677,9 +1293,9 @@ const styles = StyleSheet.create({
   },
   actionBar: {
     position: 'absolute',
-    left: 20,
-    top: 690,
-    width: 335,
+    left: 19,
+    top: 689,
+    width: 336,
     height: 54,
     borderRadius: 45,
     backgroundColor: 'rgba(255,255,255,0.72)',

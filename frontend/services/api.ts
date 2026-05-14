@@ -1,7 +1,13 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-const API_BASE_URL = 'http://localhost:9000';
+const configuredBaseUrl =
+  (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process?.env
+    ?.EXPO_PUBLIC_API_BASE_URL;
+
+const API_BASE_URL =
+  configuredBaseUrl ?? (Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -23,6 +29,35 @@ export const authAPI = {
   login: (username: string, password: string) =>
     api.post('/auth/login', { username, password }),
   getMe: () => api.get('/auth/me'),
+};
+
+export type HomeFeedResponse = {
+  greeting: {
+    userId: string;
+    nickname: string;
+    avatarUrl?: string | null;
+    mascotUrl?: string | null;
+    bubbleText: string;
+    dailyTipId?: string | null;
+  };
+  inspirationPool: {
+    title: string;
+    keywords: Array<{
+      keyword: string;
+      rank: number;
+      rankingId: string;
+    }>;
+  };
+  navCards: Array<{
+    key: string;
+    title: string;
+    iconUrl?: string | null;
+    route: string;
+  }>;
+};
+
+export const homeAPI = {
+  getFeed: () => api.get<HomeFeedResponse>('/api/home/feed'),
 };
 
 export default api;

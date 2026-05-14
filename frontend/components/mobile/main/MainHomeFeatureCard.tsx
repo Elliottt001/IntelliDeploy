@@ -2,14 +2,14 @@ import { Animated, Image, Pressable, StyleSheet, Text, View, type ImageStyle, ty
 
 import { mainHomeAssets } from './mainHomeAssets';
 import { lightLayout, lightTokens } from './mainHomeTokens';
-import type { FeatureCardData, MainHomeCardId } from './mainHomeTypes';
+import type { FeatureCardData, MainHomeCardId, MainHomeGalleryAppId } from './mainHomeTypes';
 
 type MainHomeFeatureCardProps = {
   card: FeatureCardData;
   progress: Animated.Value;
   isExpanded: boolean;
   onPress: (id: MainHomeCardId) => void;
-  onOpenGallery: () => void;
+  onOpenGalleryApp?: (id: MainHomeGalleryAppId) => void;
 };
 
 const cardSpeckles = [
@@ -23,12 +23,27 @@ const cardSpeckles = [
   { left: 278, top: 48, size: 1.1, opacity: 0.25 },
 ];
 
+const galleryAppHotspots: Array<{
+  id: MainHomeGalleryAppId;
+  label: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}> = [
+  { id: 'fastgpt', label: 'FastGPT', left: 110, top: 44, width: 92, height: 36 },
+  { id: 'keystats', label: 'KeyStats', left: 26, top: 88, width: 108, height: 45 },
+  { id: 'pawzzle', label: 'Pawzzle 寻爪', left: 174, top: 78, width: 117, height: 48 },
+  { id: 'stolen-buttons', label: 'STOLEN BUTTONS', left: 54, top: 140, width: 128, height: 44 },
+  { id: 'fairyc', label: 'Fairyc', left: 180, top: 136, width: 110, height: 44 },
+];
+
 export default function MainHomeFeatureCard({
   card,
   progress,
   isExpanded,
   onPress,
-  onOpenGallery,
+  onOpenGalleryApp,
 }: MainHomeFeatureCardProps) {
   const top = progress.interpolate({
     inputRange: [0, 1],
@@ -66,7 +81,9 @@ export default function MainHomeFeatureCard({
       <Pressable
         style={({ pressed }) => [
           styles.hitArea,
+          card.id === 'gallery' && styles.galleryHitArea,
           card.id === 'products' && styles.productsHitArea,
+          card.id === 'profile' && styles.profileHitArea,
           pressed && styles.hitAreaPressed,
         ]}
         onPress={() => onPress(card.id)}
@@ -97,11 +114,40 @@ export default function MainHomeFeatureCard({
       </Pressable>
 
       <Animated.View
-        pointerEvents={isExpanded ? 'auto' : 'none'}
-        style={[styles.detail, { opacity: detailOpacity, transform: [{ translateY: detailTranslateY }] }]}
+        pointerEvents="none"
+        style={[
+          styles.detail,
+          card.id === 'gallery' && styles.galleryDetailLayer,
+          card.id === 'profile' && styles.profileDetailLayer,
+          { opacity: detailOpacity, transform: [{ translateY: detailTranslateY }] },
+        ]}
       >
-        {renderDetail(card.id, onOpenGallery)}
+        {renderDetail(card.id)}
       </Animated.View>
+
+      {card.id === 'gallery' && isExpanded && onOpenGalleryApp ? (
+        <Animated.View pointerEvents="box-none" style={[styles.galleryHotspots, { opacity: detailOpacity }]}>
+          {galleryAppHotspots.map((hotspot) => (
+            <Pressable
+              key={hotspot.id}
+              accessibilityRole="button"
+              accessibilityLabel={`打开 ${hotspot.label}`}
+              hitSlop={4}
+              style={({ pressed }) => [
+                styles.galleryHotspot,
+                {
+                  left: hotspot.left,
+                  top: hotspot.top,
+                  width: hotspot.width,
+                  height: hotspot.height,
+                },
+                pressed && styles.galleryHotspotPressed,
+              ]}
+              onPress={() => onOpenGalleryApp(hotspot.id)}
+            />
+          ))}
+        </Animated.View>
+      ) : null}
     </Animated.View>
   );
 }
@@ -163,17 +209,11 @@ function renderLead(id: MainHomeCardId) {
   return null;
 }
 
-function renderDetail(id: MainHomeCardId, onOpenGallery: () => void) {
+function renderDetail(id: MainHomeCardId) {
   if (id === 'gallery') {
     return (
       <View style={styles.galleryDetail}>
-        <GalleryPill icon="✣" label="Slack" />
-        <GalleryPill icon="31" label="Calendar" />
-        <GalleryPill icon="△" label="Deploy" />
-        <GalleryPill icon="F" label="FairyGUI" />
-        <Pressable style={styles.detailCta} onPress={onOpenGallery}>
-          <Text style={styles.detailCtaText}>进入 App Gallery</Text>
-        </Pressable>
+        <Image source={mainHomeAssets.featureAppstore} resizeMode="stretch" style={styles.galleryImage} />
       </View>
     );
   }
@@ -181,24 +221,27 @@ function renderDetail(id: MainHomeCardId, onOpenGallery: () => void) {
   if (id === 'products') {
     return (
       <View style={styles.productsDetail}>
+        <View style={[styles.productRay, styles.productRayBlueA]} />
+        <View style={[styles.productRay, styles.productRayBlueB]} />
+        <View style={[styles.productRay, styles.productRayPinkA]} />
+        <View style={[styles.productRay, styles.productRayPinkB]} />
+        <View style={[styles.productRay, styles.productRayYellow]} />
+        <View style={[styles.productRay, styles.productRayPurple]} />
         <View style={styles.productBoxShadow} />
-        <View style={styles.productBoxBack} />
-        <View style={styles.productLid}>
-          <View style={styles.productLidGlow} />
-        </View>
+        <View style={styles.productHalo} />
+        <View style={[styles.productFlap, styles.productFlapLeft]} />
+        <View style={[styles.productFlap, styles.productFlapRight]} />
+        <View style={[styles.productFlap, styles.productFlapBack]} />
         <View style={styles.productBox}>
           <View style={styles.productBoxLeft} />
           <View style={styles.productBoxRight} />
           <View style={styles.productBoxRibbon} />
         </View>
-        <View style={[styles.productShard, styles.productShardA]} />
-        <View style={[styles.productShard, styles.productShardB]} />
-        <View style={[styles.productShard, styles.productShardC]} />
-        <View style={[styles.productShard, styles.productShardD]} />
-        <FloatingAppBadge label="D" style={styles.productBadgeDrive} />
-        <FloatingAppBadge label="Xd" style={styles.productBadgeDesign} />
-        <FloatingAppBadge label="N" style={styles.productBadgeNotion} />
-        <FloatingAppBadge label="T" style={styles.productBadgeTeams} />
+        <ProductSpriteIcon containerStyle={[styles.productFloatingIcon, styles.productBadgeDrive]} imageStyle={styles.productDriveImage} />
+        <ProductSpriteIcon containerStyle={[styles.productFloatingIcon, styles.productBadgeDesign]} imageStyle={styles.productDesignImage} />
+        <ProductSpriteIcon containerStyle={[styles.productFloatingIcon, styles.productBadgeNotion]} imageStyle={styles.productNotionImage} />
+        <ProductSpriteIcon containerStyle={[styles.productFloatingIcon, styles.productBadgeTeams]} imageStyle={styles.productTeamsImage} />
+        <ProductSpriteIcon containerStyle={[styles.productFloatingIcon, styles.productBadgeJira]} imageStyle={styles.productJiraImage} />
         <View style={styles.productSparkle}>
           <Text style={styles.productSparkleText}>+</Text>
         </View>
@@ -225,27 +268,11 @@ function renderDetail(id: MainHomeCardId, onOpenGallery: () => void) {
 
   return (
     <View style={styles.profileDetail}>
-      <Image source={mainHomeAssets.featureCommunity} resizeMode="cover" style={styles.profileImage} />
-      <View style={styles.profileFade} />
-      <Text style={styles.profileDetailTitle}>Oasis 的工作台</Text>
-      <Text style={styles.profileDetailMeta}>项目 12 · 应用 8 · 自动化 4</Text>
-    </View>
-  );
-}
-
-function GalleryPill({ icon, label }: { icon: string; label: string }) {
-  return (
-    <View style={styles.galleryPill}>
-      <Text style={styles.galleryIcon}>{icon}</Text>
-      <Text style={styles.galleryText}>{label}</Text>
-    </View>
-  );
-}
-
-function FloatingAppBadge({ label, style }: { label: string; style: StyleProp<ViewStyle> }) {
-  return (
-    <View style={[styles.productBadge, style]}>
-      <Text style={styles.productBadgeText}>{label}</Text>
+      <View style={styles.profileImageClip}>
+        <Image source={mainHomeAssets.featureCommunity} resizeMode="stretch" style={styles.profileImage} />
+        <View style={styles.profileImageLeftWash} />
+        <View style={styles.profileImageWash} />
+      </View>
     </View>
   );
 }
@@ -322,7 +349,7 @@ const styles = StyleSheet.create({
     backgroundColor: lightTokens.colors.cardBlue,
   },
   profileCard: {
-    backgroundColor: lightTokens.colors.cardProfile,
+    backgroundColor: lightTokens.colors.white,
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
@@ -349,6 +376,14 @@ const styles = StyleSheet.create({
   productsHitArea: {
     paddingLeft: 0,
     paddingRight: 0,
+  },
+  galleryHitArea: {
+    zIndex: 2,
+    elevation: 2,
+  },
+  profileHitArea: {
+    zIndex: 2,
+    elevation: 2,
   },
   productsTopRow: {
     ...StyleSheet.absoluteFillObject,
@@ -501,6 +536,13 @@ const styles = StyleSheet.create({
     right: 0,
     top: 70,
     bottom: 0,
+    zIndex: 1,
+  },
+  galleryDetailLayer: {
+    top: 0,
+  },
+  profileDetailLayer: {
+    top: 0,
   },
   profileProgress: {
     width: 112,
@@ -579,111 +621,142 @@ const styles = StyleSheet.create({
   galleryDetail: {
     position: 'absolute',
     left: 0,
-    right: 0,
     top: 0,
-    bottom: 0,
-    paddingLeft: 18,
-    paddingTop: 3,
+    width: lightLayout.card.width,
+    height: lightLayout.card.expandedHeight,
+    borderRadius: lightTokens.radii.card,
+    overflow: 'hidden',
   },
-  galleryPill: {
-    width: 122,
-    height: 30,
-    borderRadius: 16,
-    backgroundColor: lightTokens.colors.white,
-    marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  galleryIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#F5F2FF',
-    color: lightTokens.colors.primary,
-    fontSize: 10,
-    fontWeight: '800',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginRight: 8,
-  },
-  galleryText: {
-    color: lightTokens.colors.textSoft,
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  detailCta: {
+  galleryImage: {
     position: 'absolute',
-    right: 18,
-    bottom: 18,
-    height: 26,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    justifyContent: 'center',
-    backgroundColor: lightTokens.colors.primary,
-    zIndex: 2,
-    elevation: 9,
+    left: 0,
+    top: 0,
+    width: lightLayout.card.width,
+    height: 302,
   },
-  detailCtaText: {
-    color: lightTokens.colors.white,
-    fontSize: 10,
-    fontWeight: '700',
+  galleryHotspots: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: lightLayout.card.width,
+    height: lightLayout.card.expandedHeight,
+    zIndex: 4,
+    elevation: 10,
+  },
+  galleryHotspot: {
+    position: 'absolute',
+    borderRadius: lightTokens.radii.chip,
+  },
+  galleryHotspotPressed: {
+    backgroundColor: 'rgba(124,98,255,0.08)',
   },
   productsDetail: {
     position: 'absolute',
-    left: 58,
-    top: -18,
-    width: 240,
-    height: 142,
+    left: 0,
+    top: 0,
+    width: 321,
+    height: 125,
+  },
+  productRay: {
+    position: 'absolute',
+    width: 3,
+    height: 18,
+    borderRadius: 2,
+  },
+  productRayBlueA: {
+    left: 127,
+    top: 42,
+    height: 22,
+    backgroundColor: '#5B7CFF',
+    transform: [{ rotate: '-34deg' }],
+  },
+  productRayBlueB: {
+    left: 205,
+    top: 43,
+    height: 20,
+    backgroundColor: '#6B8BFF',
+    transform: [{ rotate: '34deg' }],
+  },
+  productRayPinkA: {
+    left: 119,
+    top: 60,
+    height: 10,
+    backgroundColor: '#FF5CAB',
+    transform: [{ rotate: '68deg' }],
+  },
+  productRayPinkB: {
+    left: 218,
+    top: 63,
+    height: 10,
+    backgroundColor: '#FF6BB3',
+    transform: [{ rotate: '-68deg' }],
+  },
+  productRayYellow: {
+    left: 111,
+    top: 72,
+    height: 12,
+    backgroundColor: '#F8C24E',
+    transform: [{ rotate: '-24deg' }],
+  },
+  productRayPurple: {
+    left: 221,
+    top: 81,
+    height: 13,
+    backgroundColor: '#7C62FF',
+    transform: [{ rotate: '50deg' }],
   },
   productBoxShadow: {
     position: 'absolute',
-    left: 45,
-    top: 92,
-    width: 108,
-    height: 26,
+    left: 117,
+    top: 104,
+    width: 96,
+    height: 18,
     borderRadius: 54,
-    backgroundColor: 'rgba(112,82,202,0.18)',
+    backgroundColor: 'rgba(108,77,198,0.18)',
   },
-  productBoxBack: {
+  productHalo: {
     position: 'absolute',
-    left: 52,
-    top: 62,
-    width: 114,
-    height: 54,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.58)',
+    left: 110,
+    top: 53,
+    width: 108,
+    height: 55,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.34)',
+  },
+  productFlap: {
+    position: 'absolute',
+    width: 66,
+    height: 35,
+    borderRadius: 10,
+    backgroundColor: '#F7F1FF',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.70)',
-    transform: [{ rotate: '-2deg' }],
+    borderColor: 'rgba(255,255,255,0.72)',
   },
-  productLid: {
-    position: 'absolute',
-    left: 57,
-    top: 62,
-    width: 98,
-    height: 29,
-    borderRadius: 14,
-    backgroundColor: '#B992FF',
-    overflow: 'hidden',
-    transform: [{ rotate: '-8deg' }],
+  productFlapLeft: {
+    left: 101,
+    top: 63,
+    transform: [{ rotate: '21deg' }],
   },
-  productLidGlow: {
-    position: 'absolute',
-    right: -10,
-    top: -14,
-    width: 62,
-    height: 42,
-    borderRadius: 31,
-    backgroundColor: 'rgba(255,255,255,0.35)',
+  productFlapRight: {
+    left: 164,
+    top: 63,
+    transform: [{ rotate: '-21deg' }],
+  },
+  productFlapBack: {
+    left: 132,
+    top: 53,
+    width: 66,
+    height: 31,
+    backgroundColor: '#FFFFFF',
+    transform: [{ rotate: '1deg' }],
   },
   productBox: {
     position: 'absolute',
-    left: 61,
-    top: 83,
-    width: 92,
-    height: 55,
-    borderRadius: 13,
+    left: 125,
+    top: 82,
+    width: 78,
+    height: 43,
+    borderRadius: 11,
     overflow: 'hidden',
     backgroundColor: '#8F65FF',
     borderWidth: 1,
@@ -694,7 +767,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: 46,
+    width: 39,
     backgroundColor: '#A985FF',
   },
   productBoxRight: {
@@ -702,99 +775,92 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    width: 46,
+    width: 39,
     backgroundColor: '#7C62FF',
   },
   productBoxRibbon: {
     position: 'absolute',
-    left: 40,
+    left: 34,
     top: -2,
     bottom: -2,
-    width: 13,
+    width: 10,
     backgroundColor: 'rgba(255,255,255,0.30)',
   },
-  productShard: {
-    position: 'absolute',
-    borderRadius: 6,
-    backgroundColor: 'rgba(124,98,255,0.44)',
-  },
-  productShardA: {
-    left: 14,
-    top: 46,
-    width: 55,
-    height: 78,
-    transform: [{ rotate: '-12deg' }],
-  },
-  productShardB: {
-    left: 94,
-    top: 38,
-    width: 20,
-    height: 78,
-    transform: [{ rotate: '8deg' }],
-  },
-  productShardC: {
-    left: 133,
-    top: 49,
-    width: 50,
-    height: 68,
-    transform: [{ rotate: '-8deg' }],
-  },
-  productShardD: {
-    left: 156,
-    top: 70,
-    width: 55,
-    height: 45,
-    backgroundColor: 'rgba(192,92,246,0.24)',
-    transform: [{ rotate: '16deg' }],
-  },
-  productBadge: {
-    position: 'absolute',
-    width: 22,
-    height: 22,
+  productFloatingIcon: {
+    width: 23,
+    height: 23,
     borderRadius: 7,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.70)',
     backgroundColor: lightTokens.colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
     ...lightTokens.shadow.soft,
   },
   productBadgeDrive: {
-    left: 36,
-    top: 69,
-    backgroundColor: '#34A853',
-    transform: [{ rotate: '-16deg' }],
+    left: 119,
+    top: 44,
+    transform: [{ rotate: '-17deg' }],
   },
   productBadgeDesign: {
-    left: 112,
-    top: 78,
-    backgroundColor: '#5B2DA3',
+    left: 187,
+    top: 46,
     transform: [{ rotate: '13deg' }],
   },
   productBadgeNotion: {
-    left: 96,
-    top: 101,
-    backgroundColor: '#171717',
-    transform: [{ rotate: '-11deg' }],
+    left: 157,
+    top: 67,
+    width: 19,
+    height: 19,
+    borderRadius: 6,
+    transform: [{ rotate: '-12deg' }],
   },
   productBadgeTeams: {
-    left: 147,
-    top: 88,
-    backgroundColor: '#5C7CFA',
+    left: 209,
+    top: 63,
     transform: [{ rotate: '8deg' }],
   },
-  productBadgeText: {
-    color: lightTokens.colors.white,
-    fontSize: 7,
-    fontWeight: '800',
+  productBadgeJira: {
+    left: 178,
+    top: 78,
+    width: 18,
+    height: 18,
+    borderRadius: 6,
+    transform: [{ rotate: '15deg' }],
+  },
+  productDriveImage: {
+    left: -8,
+    top: -119,
+    width: 230,
+    height: 153,
+  },
+  productDesignImage: {
+    left: -170,
+    top: -119,
+    width: 230,
+    height: 153,
+  },
+  productNotionImage: {
+    left: -6,
+    top: -6,
+    width: 230,
+    height: 153,
+  },
+  productTeamsImage: {
+    left: -203,
+    top: -83,
+    width: 230,
+    height: 153,
+  },
+  productJiraImage: {
+    left: -72,
+    top: -45,
+    width: 230,
+    height: 153,
   },
   productSparkle: {
     position: 'absolute',
-    left: 73,
-    top: 111,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    left: 151,
+    top: 105,
+    width: 25,
+    height: 25,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#B592FF',
@@ -803,15 +869,15 @@ const styles = StyleSheet.create({
   },
   productSparkleText: {
     color: lightTokens.colors.white,
-    fontSize: 18,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 18,
     fontWeight: '600',
   },
   productText: {
     position: 'absolute',
-    right: 0,
-    top: 84,
-    width: 88,
+    right: 29,
+    top: 56,
+    width: 74,
     color: lightTokens.colors.textMuted,
     fontSize: 7,
     lineHeight: 12,
@@ -819,9 +885,9 @@ const styles = StyleSheet.create({
   },
   productLink: {
     position: 'absolute',
-    right: 0,
-    top: 103,
-    width: 88,
+    right: 29,
+    top: 75,
+    width: 74,
     color: lightTokens.colors.primaryGradient,
     fontSize: 7,
     lineHeight: 12,
@@ -871,35 +937,40 @@ const styles = StyleSheet.create({
   },
   profileDetail: {
     position: 'absolute',
-    left: 3,
-    top: 2,
-    width: 315,
-    height: 118,
+    left: 0,
+    top: 0,
+    width: lightLayout.card.width,
+    height: lightLayout.card.expandedHeight,
     borderRadius: 30,
     overflow: 'hidden',
   },
+  profileImageClip: {
+    position: 'absolute',
+    left: 3,
+    top: 70,
+    width: 315,
+    height: 123,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    overflow: 'hidden',
+  },
   profileImage: {
-    ...StyleSheet.absoluteFillObject,
-    width: undefined,
-    height: undefined,
-  },
-  profileFade: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.42)',
-  },
-  profileDetailTitle: {
     position: 'absolute',
-    right: 24,
-    bottom: 38,
-    color: lightTokens.colors.text,
-    fontSize: 16,
-    fontWeight: '700',
+    left: -185,
+    top: -202,
+    width: 591,
+    height: 659,
   },
-  profileDetailMeta: {
+  profileImageWash: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+  },
+  profileImageLeftWash: {
     position: 'absolute',
-    right: 24,
-    bottom: 20,
-    color: lightTokens.colors.textMuted,
-    fontSize: 8,
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 95,
+    backgroundColor: lightTokens.colors.white,
   },
 });

@@ -34,7 +34,9 @@ export default function MainHomeHeader({ theme, intro, onToggleTheme }: MainHome
           <LogoMark />
         </View>
         <View style={styles.brandCopy}>
-          <Text style={styles.brandTitle}>INTELLIDEPLOY</Text>
+          <Text style={styles.brandTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>
+            INTELLIDEPLOY
+          </Text>
           <Text style={styles.brandSub}>Powered by Sealos | GitHub</Text>
         </View>
       </View>

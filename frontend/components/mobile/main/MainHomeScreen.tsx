@@ -12,7 +12,21 @@ import MainHomeHero from './MainHomeHero';
 import MainHomeInspirationCloud from './MainHomeInspirationCloud';
 import { mainHomeMotion, runPressPulse } from './mainHomeMotion';
 import { MAIN_HOME_FRAME, lightTokens } from './mainHomeTokens';
-import type { MainHomeCardId, MainHomeNavId, MainHomeTheme } from './mainHomeTypes';
+import type { MainHomeCardId, MainHomeGalleryAppId, MainHomeNavId, MainHomeTheme } from './mainHomeTypes';
+import { homeAPI, type HomeFeedResponse } from '../../../services/api';
+
+const fallbackHomeFeed: HomeFeedResponse = {
+  greeting: {
+    userId: 'local',
+    nickname: 'Oasis',
+    bubbleText: '今天又有什么新想法？',
+  },
+  inspirationPool: {
+    title: '灵感池',
+    keywords: [],
+  },
+  navCards: [],
+};
 
 export default function MainHomeScreen() {
   const router = useRouter();
@@ -21,6 +35,7 @@ export default function MainHomeScreen() {
   const [expandedCard, setExpandedCard] = useState<MainHomeCardId | null>(null);
   const [activeTab, setActiveTab] = useState<MainHomeNavId>('home');
   const [cloudVariant, setCloudVariant] = useState(0);
+  const [homeFeed, setHomeFeed] = useState<HomeFeedResponse | null>(null);
 
   const navIntro = useRef(new Animated.Value(0)).current;
   const heroIntro = useRef(new Animated.Value(0)).current;
@@ -28,6 +43,27 @@ export default function MainHomeScreen() {
   const cardsIntro = useRef(new Animated.Value(0)).current;
   const floatLoop = useRef(new Animated.Value(0)).current;
   const miboPulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    homeAPI
+      .getFeed()
+      .then((response) => {
+        if (isMounted) {
+          setHomeFeed(response.data);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setHomeFeed(null);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     Animated.stagger(120, [
@@ -100,6 +136,11 @@ export default function MainHomeScreen() {
     inputRange: [0, 1],
     outputRange: [0, 5],
   });
+  const displayFeed = homeFeed ?? fallbackHomeFeed;
+  const keywordLabels = useMemo(
+    () => displayFeed.inspirationPool.keywords.map((keyword) => keyword.keyword),
+    [displayFeed.inspirationPool.keywords]
+  );
 
   const handleToggleTheme = useCallback(() => {
     setTheme((current) => (current === 'light' ? 'dark' : 'light'));
@@ -111,13 +152,16 @@ export default function MainHomeScreen() {
     router.push('/chatbot');
   }, [miboPulse, router]);
 
-  const handleOpenGallery = useCallback(() => {
-    router.push('/app-gallery');
-  }, [router]);
-
   const handleToggleCard = useCallback((id: MainHomeCardId) => {
     setExpandedCard((current) => (current === id ? null : id));
   }, []);
+
+  const handleOpenGalleryApp = useCallback(
+    (appId: MainHomeGalleryAppId) => {
+      router.push({ pathname: '/app-gallery', params: { app: appId } });
+    },
+    [router]
+  );
 
   const handlePressAvatar = useCallback(() => {
     runPressPulse(miboPulse);
@@ -158,20 +202,24 @@ export default function MainHomeScreen() {
             intro={heroIntro}
             floatY={floatY}
             miboPulse={miboPulse}
+            nickname={displayFeed.greeting.nickname}
+            bubbleText={displayFeed.greeting.bubbleText}
             onOpenMibo={handleOpenMibo}
             onPressAvatar={handlePressAvatar}
           />
           <MainHomeInspirationCloud
             intro={cloudIntro}
             cloudVariant={cloudVariant}
+            keywords={keywordLabels}
             onShuffle={handlePressCloud}
             onPressCloud={handlePressCloud}
           />
           <MainHomeFeatureCards
             intro={cardsIntro}
+            navCards={displayFeed.navCards}
             expandedCard={expandedCard}
             onToggleCard={handleToggleCard}
-            onOpenGallery={handleOpenGallery}
+            onOpenGalleryApp={handleOpenGalleryApp}
           />
           <MainHomeBottomNav theme="light" activeTab={activeTab} onSelect={setActiveTab} />
         </View>

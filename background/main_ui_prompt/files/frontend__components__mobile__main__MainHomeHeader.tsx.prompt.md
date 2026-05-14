@@ -20,6 +20,7 @@ Render the mobile top header.
 
 - Match Figma header position: x 14, y 47, w 347, h 38.
 - Keep `Powered by Sealos | GitHub` visually centered under the IntelliDeploy word mark.
+- Keep `INTELLIDEPLOY` on a single line at Android device scale; shrink-to-fit is preferred over wrapping.
 - The right button can act as the light/dark switch until a dedicated settings route exists.
 - Do not render duplicate settings controls in the top header.
 - Do not add settings page navigation.

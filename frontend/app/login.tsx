@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,29 +8,39 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  StatusBar as NativeStatusBar,
   Image,
   Animated,
   Easing,
+  useWindowDimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAPI } from '../services/api';
 
-const SOCIAL_GOOGLE =
-  'https://www.figma.com/api/mcp/asset/664f86c3-8c00-40b7-af1e-5b9198ad89a9';
-const SOCIAL_GITHUB =
-  'https://www.figma.com/api/mcp/asset/1e5da9b1-3bb1-46c8-a346-7fc9128737c6';
-const SOCIAL_APPLE =
-  'https://www.figma.com/api/mcp/asset/d6c1a107-0bd8-4ecd-8d19-782d90b2e16a';
-const CAT_IMAGE =
-  'https://www.figma.com/api/mcp/asset/e0cafd76-650a-40f3-a09a-7db39b3d1cf5';
+const SOCIAL_GOOGLE = require('../assets/images/login-social-google.png');
+const SOCIAL_GITHUB = require('../assets/images/login-social-github.png');
+const SOCIAL_APPLE = require('../assets/images/login-social-apple.png');
+const CAT_IMAGE = require('../assets/images/login-cat.png');
+const ATMOSPHERE_IMAGE = require('../assets/images/login-atmosphere.png');
+const WAVE_IMAGE = require('../assets/images/login-wave.png');
+const DEPTH_LAYER_IMAGE = require('../assets/images/login-depth-layer.png');
+const LOGO_IMAGE = require('../assets/images/login-logo.png');
+const WORDMARK_IMAGE = require('../assets/images/login-wordmark.png');
+const SETTINGS_IMAGE = require('../assets/images/login-settings.png');
+const PURPLE_GLOW_IMAGE = require('../assets/images/login-purple-glow.png');
+
+const ARTBOARD_WIDTH = 375;
+const ARTBOARD_HEIGHT = 812;
 
 export default function Login() {
   const router = useRouter();
+  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
-  const [agreePrivacy, setAgreePrivacy] = useState(true);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const fadeIn = useRef(new Animated.Value(0)).current;
@@ -44,6 +54,18 @@ export default function Login() {
   const blobFloat = useRef(new Animated.Value(0)).current;
   const catFloat = useRef(new Animated.Value(0)).current;
   const glowSlide = useRef(new Animated.Value(0)).current;
+  const artboardScale =
+    Platform.OS === 'web'
+      ? 1
+      : Math.min(viewportWidth / ARTBOARD_WIDTH, viewportHeight / ARTBOARD_HEIGHT);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      NativeStatusBar.setHidden(true, 'none');
+      NativeStatusBar.setTranslucent(true);
+      NativeStatusBar.setBackgroundColor('transparent', false);
+    }
+  }, []);
 
   useEffect(() => {
     Animated.stagger(130, [
@@ -101,40 +123,6 @@ export default function Login() {
     ]).start();
 
     Animated.loop(
-      Animated.sequence([
-        Animated.timing(blobFloat, {
-          toValue: 1,
-          duration: 2600,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(blobFloat, {
-          toValue: 0,
-          duration: 2600,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(catFloat, {
-          toValue: 1,
-          duration: 1800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(catFloat, {
-          toValue: 0,
-          duration: 1800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    Animated.loop(
       Animated.timing(glowSlide, {
         toValue: 1,
         duration: 2300,
@@ -155,10 +143,6 @@ export default function Login() {
     socialIntro,
     titleIntro,
   ]);
-
-  const canSubmit = useMemo(() => {
-    return agreePrivacy && account.trim().length > 0 && password.trim().length > 0;
-  }, [agreePrivacy, account, password]);
 
   const handleLogin = async () => {
     if (!account.trim() || !password.trim()) {
@@ -189,17 +173,17 @@ export default function Login() {
 
   const blobTranslateY = blobFloat.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, -10],
+    outputRange: [0, 0],
   });
 
   const catTranslateY = catFloat.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, -8],
+    outputRange: [0, 0],
   });
 
   const catScale = catFloat.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 1.03],
+    outputRange: [1, 1],
   });
 
   const glowTranslateX = glowSlide.interpolate({
@@ -208,22 +192,37 @@ export default function Login() {
   });
 
   return (
-    <KeyboardAvoidingView
-      style={styles.page}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.artboard}>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar style="dark" hidden translucent backgroundColor="transparent" />
+      <KeyboardAvoidingView
+        style={styles.page}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+      <View
+        style={[
+          styles.artboardShell,
+          {
+            width: ARTBOARD_WIDTH * artboardScale,
+            height: ARTBOARD_HEIGHT * artboardScale,
+          },
+        ]}
+      >
+      <View style={[styles.artboard, { transform: [{ scale: artboardScale }] }]}>
         <View style={styles.bg} />
 
-        <Animated.View style={[styles.blob, styles.blobPink, { transform: [{ translateY: blobTranslateY }] }]} />
-        <Animated.View
+        <Animated.Image
+          source={ATMOSPHERE_IMAGE}
+          resizeMode="stretch"
           style={[
-            styles.blob,
-            styles.blobPurple,
+            styles.atmosphereLayer,
             { transform: [{ translateY: Animated.multiply(blobTranslateY, -0.6) }] },
           ]}
         />
-        <View style={[styles.blob, styles.blobWhite]} />
+        <Image source={WAVE_IMAGE} resizeMode="stretch" style={styles.waveLayer} />
+        <Image source={DEPTH_LAYER_IMAGE} resizeMode="stretch" style={styles.depthLayer} />
+        <Image source={PURPLE_GLOW_IMAGE} resizeMode="stretch" style={styles.purpleGlow} />
+        <View style={styles.whiteGlow} />
 
         <Animated.View
           style={[
@@ -243,15 +242,12 @@ export default function Login() {
         >
           <View style={styles.logoMark}>
             <View style={styles.logoSquare}>
-              <Text style={styles.logoGlyph}>✎</Text>
+              <Image source={LOGO_IMAGE} resizeMode="contain" style={styles.logoImage} />
             </View>
-            <View>
-              <Text style={styles.logoTitle}>INTELLIDEPLOY</Text>
-              <Text style={styles.logoSub}>Powered by Sealos | GitHub</Text>
-            </View>
+            <Image source={WORDMARK_IMAGE} resizeMode="contain" style={styles.wordmarkImage} />
           </View>
           <View style={styles.settingButton}>
-            <Text style={styles.settingGlyph}>⚙</Text>
+            <Image source={SETTINGS_IMAGE} resizeMode="contain" style={styles.settingImage} />
           </View>
         </Animated.View>
 
@@ -280,7 +276,7 @@ export default function Login() {
             },
           ]}
         >
-          <Image source={{ uri: CAT_IMAGE }} style={styles.catImage} resizeMode="contain" />
+          <Image source={CAT_IMAGE} style={styles.catImage} resizeMode="contain" />
         </Animated.View>
 
         <Animated.View
@@ -301,7 +297,9 @@ export default function Login() {
 
           <View style={styles.heroHint}>
             <Text style={styles.heroHintMain}>欢迎回来，开发者！</Text>
-            <Text style={styles.heroHintSub}>在这里，实现你的奇思妙想</Text>
+            <Text style={styles.heroHintSub} numberOfLines={1}>
+              在这里，实现你的奇思妙想
+            </Text>
           </View>
         </Animated.View>
 
@@ -340,7 +338,10 @@ export default function Login() {
             <View style={styles.agreeRow}>
               <Pressable style={styles.checkRow} onPress={() => setAgreePrivacy((v) => !v)}>
                 <View style={[styles.checkbox, agreePrivacy && styles.checkboxOn]} />
-                <Text style={styles.checkText}>点击即表示同意《隐私协议》</Text>
+                <Text style={styles.checkText}>
+                  点击即表示同意
+                  <Text style={styles.privacyLink}>《隐私协议》</Text>
+                </Text>
               </Pressable>
               <Pressable style={styles.checkRow} onPress={() => setRememberMe((v) => !v)}>
                 <View style={[styles.checkbox, rememberMe && styles.checkboxOn]} />
@@ -350,10 +351,12 @@ export default function Login() {
 
             <Pressable
               onPress={handleLogin}
-              disabled={!canSubmit || loading}
-              style={[styles.loginBtn, (!canSubmit || loading) && styles.loginBtnDisabled]}
+              disabled={loading}
+              style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
             >
               <Animated.View pointerEvents="none" style={styles.loginBtnSpots}>
+                <View style={styles.loginBtnLeftTint} />
+                <View style={styles.loginBtnRightTint} />
                 <Animated.View
                   style={[
                     styles.buttonSpot,
@@ -427,13 +430,17 @@ export default function Login() {
 
           <View style={styles.socialRow}>
             <Pressable style={({ pressed }) => [styles.socialCircle, pressed && styles.socialPressed]}>
-              <Image source={{ uri: SOCIAL_GOOGLE }} style={styles.socialGoogle} resizeMode="contain" />
+              <Image source={SOCIAL_GOOGLE} style={styles.socialGoogle} resizeMode="contain" />
             </Pressable>
             <Pressable style={({ pressed }) => [styles.socialCircle, pressed && styles.socialPressed]}>
-              <Image source={{ uri: SOCIAL_GITHUB }} style={styles.socialGithub} resizeMode="contain" />
+              <View style={styles.socialGithubClip}>
+                <Image source={SOCIAL_GITHUB} style={styles.socialGithub} resizeMode="contain" />
+              </View>
             </Pressable>
             <Pressable style={({ pressed }) => [styles.socialCircle, pressed && styles.socialPressed]}>
-              <Image source={{ uri: SOCIAL_APPLE }} style={styles.socialApple} resizeMode="contain" />
+              <View style={styles.socialAppleClip}>
+                <Image source={SOCIAL_APPLE} style={styles.socialApple} resizeMode="contain" />
+              </View>
             </Pressable>
           </View>
         </Animated.View>
@@ -460,7 +467,9 @@ export default function Login() {
           </Pressable>
         </Animated.View>
       </View>
-    </KeyboardAvoidingView>
+      </View>
+      </KeyboardAvoidingView>
+    </>
   );
 }
 
@@ -469,14 +478,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  artboardShell: {
+    alignItems: 'center',
     justifyContent: 'center',
   },
   artboard: {
-    width: 375,
-    height: 812,
+    width: ARTBOARD_WIDTH,
+    height: ARTBOARD_HEIGHT,
     borderRadius: 40,
     overflow: 'hidden',
-    borderWidth: 2,
+    borderWidth: 5,
     borderColor: '#FFFFFF',
     backgroundColor: '#EFF3FF',
     position: 'relative',
@@ -517,9 +530,56 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     backgroundColor: 'rgba(255,255,255,0.85)',
   },
+  atmosphereLayer: {
+    position: 'absolute',
+    left: -202.5,
+    top: -29.5,
+    width: 861,
+    height: 814,
+    opacity: 0.22,
+  },
+  waveLayer: {
+    position: 'absolute',
+    left: 18.4,
+    top: 58.9,
+    width: 353.6,
+    height: 258.5,
+    opacity: 0.5,
+  },
+  depthLayer: {
+    position: 'absolute',
+    left: 47,
+    top: 88,
+    width: 273,
+    height: 137,
+    opacity: 0.58,
+  },
+  purpleGlow: {
+    position: 'absolute',
+    left: -56.5,
+    top: 270,
+    width: 478,
+    height: 330,
+    opacity: 0.56,
+  },
+  whiteGlow: {
+    position: 'absolute',
+    left: 28,
+    top: 507,
+    width: 299,
+    height: 46,
+    borderRadius: 43,
+    backgroundColor: '#FFFFFF',
+    opacity: 0.5,
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 24,
+    elevation: 2,
+  },
   topBar: {
     position: 'absolute',
-    top: 47,
+    top: 42,
     left: 14,
     right: 14,
     height: 38,
@@ -533,30 +593,22 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   logoSquare: {
-    width: 31,
-    height: 31,
+    width: 31.3,
+    height: 31.3,
     borderRadius: 16,
     backgroundColor: '#7C62FF',
-    borderWidth: 1,
+    borderWidth: 1.565,
     borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoGlyph: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    marginTop: -1,
+  logoImage: {
+    width: 19,
+    height: 14,
   },
-  logoTitle: {
-    fontSize: 27 / 1.5,
-    fontWeight: '800',
-    color: '#4B4C67',
-    letterSpacing: 0.2,
-  },
-  logoSub: {
-    fontSize: 4.7,
-    color: '#9A9CB8',
-    marginTop: 1,
+  wordmarkImage: {
+    width: 120,
+    height: 20,
   },
   settingButton: {
     width: 38,
@@ -564,25 +616,23 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    borderWidth: 0.8,
-    borderColor: '#DADAEA',
   },
-  settingGlyph: {
-    color: '#595A74',
-    fontSize: 15,
+  settingImage: {
+    width: 44,
+    height: 44,
   },
   catWrap: {
     position: 'absolute',
-    left: 140,
-    top: 130,
-    width: 108,
-    height: 103,
+    left: 124,
+    top: 122,
+    width: 117,
+    height: 107,
   },
   catImage: {
     width: '100%',
     height: '100%',
-    opacity: 0.92,
+    opacity: 0.82,
+    transform: [{ rotate: '-6.64deg' }, { skewX: '-1.93deg' }],
   },
   heroTitleShadow: {
     position: 'absolute',
@@ -590,9 +640,13 @@ const styles = StyleSheet.create({
     left: 38,
     width: 299,
     textAlign: 'center',
-    color: 'rgba(124,98,255,0.25)',
+    color: 'rgba(124,98,255,0.06)',
     fontSize: 40,
     fontWeight: '800',
+    textShadowColor: 'rgba(200,200,200,0.25)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    transform: [{ scaleY: -1 }],
   },
   heroTitle: {
     position: 'absolute',
@@ -609,9 +663,9 @@ const styles = StyleSheet.create({
   },
   heroHint: {
     position: 'absolute',
-    top: 274,
-    left: 104,
-    width: 166,
+    top: 269,
+    left: 87.5,
+    width: 200,
     alignItems: 'center',
     gap: 8,
   },
@@ -623,31 +677,34 @@ const styles = StyleSheet.create({
   heroHintSub: {
     color: '#6D6E8D',
     fontSize: 14,
+    includeFontPadding: false,
   },
   formWrap: {
     position: 'absolute',
-    left: 47,
+    left: 32,
     top: 356,
-    width: 280,
+    width: 299,
     gap: 16,
   },
   input: {
     width: 280,
     height: 48,
+    marginLeft: 15,
     borderRadius: 12,
     borderWidth: 0.3,
     borderColor: '#A3B2FF',
     backgroundColor: '#FFFFFF',
     fontSize: 11,
     color: '#545454',
-    paddingHorizontal: 16,
+    paddingLeft: 28,
+    paddingRight: 16,
   },
   agreeRow: {
     width: 278,
+    marginLeft: 11.5,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 3,
   },
   checkRow: {
     flexDirection: 'row',
@@ -670,12 +727,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#545454',
   },
+  privacyLink: {
+    color: '#94ACF6',
+    textDecorationLine: 'underline',
+  },
   loginBtn: {
     width: 299,
     height: 46,
     borderRadius: 43,
-    alignSelf: 'center',
-    marginTop: 3,
+    marginTop: 4,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#7C62FF',
@@ -691,6 +751,26 @@ const styles = StyleSheet.create({
   loginBtnSpots: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
+  },
+  loginBtnLeftTint: {
+    position: 'absolute',
+    left: -18,
+    top: -8,
+    width: 178,
+    height: 62,
+    borderRadius: 44,
+    backgroundColor: '#D85CFF',
+    opacity: 0.5,
+  },
+  loginBtnRightTint: {
+    position: 'absolute',
+    right: -20,
+    top: -8,
+    width: 176,
+    height: 62,
+    borderRadius: 44,
+    backgroundColor: '#6A9BFF',
+    opacity: 0.58,
   },
   buttonSpot: {
     position: 'absolute',
@@ -759,7 +839,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     color: '#545454',
     fontSize: 10,
-    marginTop: 2,
+    marginTop: 4,
   },
   otherLoginRow: {
     position: 'absolute',
@@ -809,17 +889,34 @@ const styles = StyleSheet.create({
     width: 30,
     height: 22,
   },
+  socialGithubClip: {
+    width: 26,
+    height: 24,
+    overflow: 'hidden',
+  },
   socialGithub: {
+    position: 'absolute',
+    left: -18,
+    top: 0,
+    width: 63,
+    height: 35,
+  },
+  socialAppleClip: {
     width: 22,
     height: 22,
+    overflow: 'hidden',
   },
   socialApple: {
-    width: 18,
-    height: 18,
+    position: 'absolute',
+    left: -28,
+    top: -7,
+    width: 79,
+    height: 52,
   },
   bottomTip: {
     position: 'absolute',
-    top: 730,
+    top: 725,
+    left: -5,
     width: 375,
     height: 113,
     flexDirection: 'row',
