@@ -18,4 +18,3 @@ def solve_vibe_scaffold(request: FallbackRequest, classify_response: ClassifyRes
         plan = scaffold_generate(request, classify_response, template_family=route["template_family"])
     plan.artifact_type = route["artifact_type"]
     return postprocess_scaffold(plan)
-
