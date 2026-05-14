@@ -19,8 +19,8 @@ const assets = {
   hotPill: require('../assets/app-gallery/hot-ranking-pill.png'),
   categoryPill: require('../assets/app-gallery/category-pill.png'),
   filterPill: require('../assets/app-gallery/filter-pill.png'),
-  cardLeft: require('../assets/app-gallery/card-layer-left.png'),
-  cardRight: require('../assets/app-gallery/card-layer-right.png'),
+  cardLeft: require('../assets/app-gallery/stellar-card.png'),
+  cardRight: require('../assets/app-gallery/vora-food-card.png'),
   frontCard: require('../assets/app-gallery/card-layer-front.png'),
   pawzzleIcon: require('../assets/app-gallery/pawzzle-icon.png'),
   titleRating: require('../assets/app-gallery/pawzzle-title-rating.png'),
@@ -33,11 +33,38 @@ const assets = {
   actionBar: require('../assets/app-gallery/action-bar.png'),
 };
 
+const cardSlots = {
+  front: {
+    centerX: 173.5,
+    centerY: 225.5,
+    rotate: '0deg',
+  },
+  middle: {
+    centerX: 173.5,
+    centerY: 225.5,
+    rotate: '5deg',
+  },
+  back: {
+    centerX: 173.5,
+    centerY: 225.5,
+    rotate: '10deg',
+  },
+};
+
+const cardStack = [
+  { key: 'pawzzle', source: assets.frontCard, width: 291, height: 419 },
+  { key: 'vora', source: assets.cardRight, width: 305, height: 422 },
+  { key: 'stellar', source: assets.cardLeft, width: 305, height: 422 },
+];
+
 export default function AppGallery() {
   const router = useRouter();
   const [pressedAction, setPressedAction] = useState<string | null>(null);
+  const [cardOrder, setCardOrder] = useState([0, 1, 2]);
+  const [isCardFlying, setIsCardFlying] = useState(false);
   const intro = useRef(new Animated.Value(0)).current;
   const float = useRef(new Animated.Value(0)).current;
+  const flyOut = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(intro, {
@@ -73,6 +100,99 @@ export default function AppGallery() {
   const actionScale = (name: string) => ({
     transform: [{ scale: pressedAction === name ? 0.95 : 1 }],
   });
+
+  const handleFrontCardPress = () => {
+    if (isCardFlying) {
+      return;
+    }
+
+    setIsCardFlying(true);
+    flyOut.setValue(0);
+    Animated.timing(flyOut, {
+      toValue: 1,
+      duration: 520,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: false,
+    }).start(({ finished }) => {
+      if (finished) {
+        setCardOrder(([front, middle, back]) => [middle, back, front]);
+      }
+      flyOut.setValue(0);
+      setIsCardFlying(false);
+    });
+  };
+
+  const getSlotStyle = (
+    card: (typeof cardStack)[number],
+    slotName: keyof typeof cardSlots,
+    isFrontSlot: boolean,
+    zIndex: number
+  ) => {
+    const slot = cardSlots[slotName];
+    const left = slot.centerX - card.width / 2;
+    const top = slot.centerY - card.height / 2;
+
+    return {
+      left,
+      top: isFrontSlot
+        ? flyOut.interpolate({
+            inputRange: [0, 1],
+            outputRange: [top, -560],
+          })
+        : top,
+      width: card.width,
+      height: card.height,
+      zIndex,
+      opacity: isFrontSlot
+        ? flyOut.interpolate({
+            inputRange: [0, 0.86, 1],
+            outputRange: [1, 1, 0],
+          })
+        : 1,
+      transform: [
+        {
+          rotate: isFrontSlot
+            ? flyOut.interpolate({
+                inputRange: [0, 1],
+                outputRange: [slot.rotate, '-8deg'],
+              })
+            : slot.rotate,
+        },
+      ],
+    };
+  };
+
+  const renderCard = (slotName: keyof typeof cardSlots, orderIndex: number, zIndex: number) => {
+    const card = cardStack[cardOrder[orderIndex]];
+    const isFrontSlot = slotName === 'front';
+
+    return (
+      <Animated.View
+        key={card.key}
+        style={[styles.galleryCard, getSlotStyle(card, slotName, isFrontSlot, zIndex)]}
+      >
+        <Pressable
+          style={styles.cardPressable}
+          disabled={!isFrontSlot || isCardFlying}
+          onPress={handleFrontCardPress}
+        >
+          <Image source={card.source} style={styles.cardImage} resizeMode="stretch" />
+          {card.key === 'pawzzle' ? (
+            <View style={styles.cardContent}>
+              <Image source={assets.pawzzleIcon} style={styles.appIcon} resizeMode="contain" />
+              <Image source={assets.titleRating} style={styles.titleRating} resizeMode="contain" />
+              <Image source={assets.goldenBadge} style={styles.goldenBadge} resizeMode="contain" />
+              <Image source={assets.editorChoice} style={styles.editorChoice} resizeMode="contain" />
+              <Image source={assets.description} style={styles.description} resizeMode="contain" />
+              <Image source={assets.detailsLink} style={styles.detailsLink} resizeMode="contain" />
+              <Image source={assets.screenshots} style={styles.screenshots} resizeMode="contain" />
+              <Image source={assets.dots} style={styles.dots} resizeMode="contain" />
+            </View>
+          ) : null}
+        </Pressable>
+      </Animated.View>
+    );
+  };
 
   return (
     <ScrollView
@@ -127,20 +247,9 @@ export default function AppGallery() {
           </View>
 
           <Animated.View style={[styles.deck, { transform: [{ translateY: floatY }] }]}>
-            <Image source={assets.cardLeft} style={styles.cardLeft} resizeMode="stretch" />
-            <Image source={assets.cardRight} style={styles.cardRight} resizeMode="stretch" />
-            <Image source={assets.frontCard} style={styles.frontCard} resizeMode="stretch" />
-
-            <View style={styles.cardContent}>
-              <Image source={assets.pawzzleIcon} style={styles.appIcon} resizeMode="contain" />
-              <Image source={assets.titleRating} style={styles.titleRating} resizeMode="contain" />
-              <Image source={assets.goldenBadge} style={styles.goldenBadge} resizeMode="contain" />
-              <Image source={assets.editorChoice} style={styles.editorChoice} resizeMode="contain" />
-              <Image source={assets.description} style={styles.description} resizeMode="contain" />
-              <Image source={assets.detailsLink} style={styles.detailsLink} resizeMode="contain" />
-              <Image source={assets.screenshots} style={styles.screenshots} resizeMode="contain" />
-              <Image source={assets.dots} style={styles.dots} resizeMode="contain" />
-            </View>
+            {renderCard('back', 2, 1)}
+            {renderCard('middle', 1, 2)}
+            {renderCard('front', 0, 3)}
           </Animated.View>
 
           <View style={styles.actionDock}>
@@ -273,31 +382,45 @@ const styles = StyleSheet.create({
     width: 347,
     height: 451,
   },
+  galleryCard: {
+    position: 'absolute',
+  },
+  cardPressable: {
+    width: '100%',
+    height: '100%',
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+  },
   cardLeft: {
     position: 'absolute',
-    left: 0,
-    top: 0,
-    width: 347,
-    height: 451,
+    left: cardSlots.back.centerX - 305 / 2,
+    top: cardSlots.back.centerY - 422 / 2,
+    width: 305,
+    height: 422,
+    transform: [{ rotate: cardSlots.back.rotate }],
   },
   cardRight: {
     position: 'absolute',
-    left: 13.5,
-    top: 7,
-    width: 320,
-    height: 437,
+    left: cardSlots.middle.centerX - 305 / 2,
+    top: cardSlots.middle.centerY - 422 / 2,
+    width: 305,
+    height: 422,
+    transform: [{ rotate: cardSlots.middle.rotate }],
   },
   frontCard: {
     position: 'absolute',
-    left: 28,
-    top: 16,
-    width: 291,
-    height: 419,
+    left: cardSlots.front.centerX - 291 / 2,
+    top: cardSlots.front.centerY - 419 / 2,
+    width: 305,
+    height: 422,
   },
   cardContent: {
     position: 'absolute',
-    left: 28,
-    top: 16,
+    left: 0,
+    top: 0,
     width: 291,
     height: 419,
   },
