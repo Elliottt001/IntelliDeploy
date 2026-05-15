@@ -22,7 +22,8 @@ export default function RootLayout() {
       await authAPI.getMe();
       setIsAuthenticated(true);
       return true;
-    } catch {
+    } catch (error) {
+      console.warn('Auth check failed', error);
       await authAPI.clearToken();
       setIsAuthenticated(false);
       return false;
