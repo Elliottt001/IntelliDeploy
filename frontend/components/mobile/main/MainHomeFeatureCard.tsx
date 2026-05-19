@@ -2,7 +2,7 @@ import { Animated, Image, Pressable, StyleSheet, Text, View, type ImageStyle, ty
 
 import { mainHomeAssets } from './mainHomeAssets';
 import { lightLayout, lightTokens } from './mainHomeTokens';
-import type { FeatureCardData, MainHomeCardId, MainHomeGalleryAppId } from './mainHomeTypes';
+import type { FeatureCardData, MainHomeCardId, MainHomeGalleryAppId, MainHomeRouteId } from './mainHomeTypes';
 
 type MainHomeFeatureCardProps = {
   card: FeatureCardData;
@@ -10,6 +10,7 @@ type MainHomeFeatureCardProps = {
   isExpanded: boolean;
   onPress: (id: MainHomeCardId) => void;
   onOpenGalleryApp?: (id: MainHomeGalleryAppId) => void;
+  onOpenRoute?: (id: MainHomeRouteId) => void;
 };
 
 const cardSpeckles = [
@@ -44,6 +45,7 @@ export default function MainHomeFeatureCard({
   isExpanded,
   onPress,
   onOpenGalleryApp,
+  onOpenRoute,
 }: MainHomeFeatureCardProps) {
   const top = progress.interpolate({
     inputRange: [0, 1],
@@ -86,7 +88,13 @@ export default function MainHomeFeatureCard({
           card.id === 'profile' && styles.profileHitArea,
           pressed && styles.hitAreaPressed,
         ]}
-        onPress={() => onPress(card.id)}
+        onPress={() => {
+          if (isExpanded && card.id !== 'profile' && onOpenRoute) {
+            onOpenRoute(card.id);
+            return;
+          }
+          onPress(card.id);
+        }}
       >
         {card.id === 'products' ? <ProductsTopRow /> : renderLead(card.id)}
 
@@ -108,7 +116,7 @@ export default function MainHomeFeatureCard({
 
         {card.id !== 'products' && card.id !== 'profile' ? (
           <Animated.View style={[styles.arrow, { transform: [{ scale: arrowScale }] }]}>
-            <ArrowIcon direction={isExpanded ? 'down' : 'right'} />
+            <ArrowIcon />
           </Animated.View>
         ) : null}
       </Pressable>

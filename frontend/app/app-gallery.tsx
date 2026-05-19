@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -11,8 +11,9 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 const pawzzleIcon =
@@ -27,6 +28,8 @@ const voraIcon =
   'https://www.figma.com/api/mcp/asset/46df2bcc-95af-485f-a560-13cf609e8450';
 const voraPreview =
   'https://www.figma.com/api/mcp/asset/217ac8d7-4f3d-43f7-b5ed-5fb0b76894db';
+const ARTBOARD_WIDTH = 375;
+const ARTBOARD_HEIGHT = 812;
 
 type GalleryAppId =
   | 'pawzzle'
@@ -156,23 +159,52 @@ const apps: GalleryApp[] = [
   },
 ];
 
+const rankingApps = [
+  { name: 'Wonder Garden', meta: '你的随身植物养护管家', rating: '4.9', color: '#48D891', icon: '🌱' },
+  { name: 'TapTap', meta: '超好用的音频编辑工具', rating: '4.8', color: '#161823', icon: '♪' },
+  { name: 'Umi卡包', meta: '智能会员卡收纳助手', rating: '4.7', color: '#2F8DFF', icon: '▣' },
+  { name: '人生轨迹', meta: '查看你的旅行规划与足迹', rating: '4.6', color: '#FF8A2A', icon: '✈' },
+  { name: '妙颜', meta: '智能AI美妆助手', rating: '4.8', color: '#FF6FAE', icon: '◉' },
+  { name: 'Heart! 拯救计划', meta: '智能记忆健康项目', rating: '4.7', color: '#FF5D7C', icon: '♥' },
+  { name: '小账本', meta: '朋友上的生活管家', rating: '4.6', color: '#8E68FF', icon: '☁' },
+];
+
 export default function AppGallery() {
   const router = useRouter();
+  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const params = useLocalSearchParams<{ app?: string | string[] }>();
   const requestedAppId = Array.isArray(params.app) ? params.app[0] : params.app;
   const [activeIndex, setActiveIndex] = useState(() => getAppIndex(requestedAppId));
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [rankingOpen, setRankingOpen] = useState(false);
   const intro = useRef(new Animated.Value(0)).current;
   const floatLoop = useRef(new Animated.Value(0)).current;
   const cardFlip = useRef(new Animated.Value(0)).current;
   const dragX = useRef(new Animated.Value(0)).current;
+  const drawerProgress = useRef(new Animated.Value(0)).current;
+  const artboardScale =
+    Platform.OS === 'web'
+      ? 1
+      : Math.min(viewportWidth / ARTBOARD_WIDTH, viewportHeight / ARTBOARD_HEIGHT);
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
       NativeStatusBar.setHidden(true, 'none');
+      NativeStatusBar.setTranslucent(true);
+      NativeStatusBar.setBackgroundColor('transparent', false);
     }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== 'web') {
+        NativeStatusBar.setHidden(true, 'none');
+        NativeStatusBar.setTranslucent(true);
+        NativeStatusBar.setBackgroundColor('transparent', false);
+      }
+    }, [])
+  );
 
   useEffect(() => {
     setActiveIndex(getAppIndex(requestedAppId));
@@ -213,6 +245,15 @@ export default function AppGallery() {
       useNativeDriver: true,
     }).start();
   }, [activeIndex, cardFlip]);
+
+  useEffect(() => {
+    Animated.timing(drawerProgress, {
+      toValue: rankingOpen ? 1 : 0,
+      duration: 320,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [drawerProgress, rankingOpen]);
 
   const activeApp = apps[activeIndex];
   const floatY = floatLoop.interpolate({ inputRange: [0, 1], outputRange: [0, -8] });
@@ -290,7 +331,16 @@ export default function AppGallery() {
     <View style={styles.shell}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style="dark" hidden translucent backgroundColor="transparent" />
-      <View style={styles.artboard}>
+      <View
+        style={[
+          styles.artboardShell,
+          {
+            width: ARTBOARD_WIDTH * artboardScale,
+            height: ARTBOARD_HEIGHT * artboardScale,
+          },
+        ]}
+      >
+      <View style={[styles.artboard, { transform: [{ scale: artboardScale }] }]}>
         <View style={styles.bg} />
         <Animated.View style={[styles.blobPink, { transform: [{ translateY: floatY }] }]} />
         <Animated.View
@@ -313,17 +363,12 @@ export default function AppGallery() {
             },
           ]}
         >
-          <Pressable style={styles.logoWrap} onPress={() => router.back()}>
-            <View style={styles.logoDot}>
-              <LogoMark />
-            </View>
-            <View>
-              <Text style={styles.logoTitle}>INTELLIDEPLOY</Text>
-              <Text style={styles.logoSub}>Powered by Sealos | GitHub</Text>
-            </View>
+          <Pressable style={styles.circleButton} onPress={() => router.back()}>
+            <BackGlyph />
           </Pressable>
-          <Pressable style={styles.settings}>
-            <Text style={styles.settingsIcon}>⚙</Text>
+          <Text style={styles.pageTitle}>应用商店</Text>
+          <Pressable style={styles.circleButton}>
+            <ShareGlyph />
           </Pressable>
         </Animated.View>
 
@@ -353,7 +398,7 @@ export default function AppGallery() {
           </View>
 
           <View style={styles.filterRow}>
-            <Pressable style={[styles.filterPill, styles.filterHot]}>
+            <Pressable style={[styles.filterPill, styles.filterHot]} onPress={() => setRankingOpen(true)}>
               <Text style={styles.filterText}>🔥 热门榜单</Text>
             </Pressable>
             <Pressable style={[styles.filterPill, styles.filterCategory]}>
@@ -442,11 +487,104 @@ export default function AppGallery() {
           </View>
         </Animated.View>
 
+        <Animated.View
+          pointerEvents={rankingOpen ? 'auto' : 'none'}
+          style={[
+            styles.drawerDim,
+            {
+              opacity: drawerProgress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 1],
+              }),
+            },
+          ]}
+        >
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setRankingOpen(false)} />
+        </Animated.View>
+
+        <Animated.View
+          pointerEvents={rankingOpen ? 'auto' : 'none'}
+          style={[
+            styles.rankingDrawer,
+            {
+              transform: [
+                {
+                  translateX: drawerProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [ARTBOARD_WIDTH, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <View style={styles.drawerHeader}>
+            <Pressable style={styles.drawerBack} onPress={() => setRankingOpen(false)}>
+              <BackGlyph />
+            </Pressable>
+            <Text style={styles.drawerTitle}>应用商店</Text>
+            <Pressable style={styles.drawerShare}>
+              <ShareGlyph />
+            </Pressable>
+          </View>
+          <Text style={styles.drawerHeading}>热门榜单推荐</Text>
+          <Text style={styles.drawerSubheading}>挑选你的造梦工具</Text>
+          <View style={styles.drawerBanner}>
+            <View style={styles.drawerBannerCopy}>
+              <Text style={styles.drawerBannerSmall}>第13期</Text>
+              <Text style={styles.drawerBannerTitle}>金喵奖新鲜出炉</Text>
+              <Text style={styles.drawerBannerDesc}>发现优质应用 · 每季灵感上新</Text>
+              <View style={styles.drawerBannerPill}>
+                <Text style={styles.drawerBannerPillText}>立即查看</Text>
+              </View>
+            </View>
+            <View style={[styles.bannerBubble, styles.bannerBubbleA]} />
+            <View style={[styles.bannerBubble, styles.bannerBubbleB]} />
+            <View style={[styles.bannerBubble, styles.bannerBubbleC]} />
+            <View style={styles.goldCat}>
+              <View style={[styles.goldCatEar, styles.goldCatEarLeft]} />
+              <View style={[styles.goldCatEar, styles.goldCatEarRight]} />
+              <View style={styles.goldCatHead}>
+                <Text style={styles.goldCatFace}>⌯⌯</Text>
+              </View>
+              <View style={styles.goldCatBase} />
+            </View>
+            <Text style={styles.goldCatLabel}>金喵奖</Text>
+          </View>
+          <View style={styles.drawerSectionTitle}>
+            <Text style={styles.drawerSpark}>✦</Text>
+            <Text style={styles.drawerSectionText}>热门排行</Text>
+            <Text style={styles.drawerViewAll}>查看全部</Text>
+          </View>
+          <View style={styles.rankingList}>
+            {rankingApps.map((item, index) => (
+                <View key={item.name} style={styles.rankingRow}>
+                  <View style={styles.rankingRank}>
+                    <Text style={styles.rankingCrown}>{index < 3 ? '♕' : ''}</Text>
+                    <Text style={styles.rankingIndex}>{index + 1}</Text>
+                  </View>
+                  <View style={[styles.rankingAppIcon, { backgroundColor: item.color }]}>
+                    <Text style={styles.rankingIconText}>{item.icon}</Text>
+                  </View>
+                  <View style={styles.rankingCopy}>
+                    <Text style={styles.rankingName}>{item.name}</Text>
+                    <Text style={styles.rankingMeta}>{item.meta}</Text>
+                  </View>
+                  <Text style={styles.rankingScore}>★ {item.rating}</Text>
+                  <View style={styles.getButton}>
+                    <Text style={styles.getButtonText}>获取</Text>
+                  </View>
+                </View>
+              ))}
+          </View>
+        </Animated.View>
+
         <View style={styles.actionBar}>
           <GalleryAction active={liked} icon="♡" label={liked ? '已赞·2.1k' : '点赞·2.1k'} onPress={() => setLiked((value) => !value)} />
           <GalleryAction active={saved} icon="☆" label={saved ? '已收藏' : '收藏·1k'} onPress={() => setSaved((value) => !value)} />
           <GalleryAction icon="☵" label="评论·267" onPress={nextCard} />
         </View>
+      </View>
       </View>
     </View>
   );
@@ -455,16 +593,6 @@ export default function AppGallery() {
 function getAppIndex(appId?: string) {
   const index = apps.findIndex((app) => app.id === appId);
   return index >= 0 ? index : 0;
-}
-
-function LogoMark() {
-  return (
-    <View style={styles.logoMark}>
-      <View style={[styles.logoNode, styles.logoNodeLeft]} />
-      <View style={[styles.logoNode, styles.logoNodeRight]} />
-      <View style={styles.logoBridge} />
-    </View>
-  );
 }
 
 function AppPreview({ app }: { app: GalleryApp }) {
@@ -606,6 +734,28 @@ function AppIcon({ app }: { app: GalleryApp }) {
   );
 }
 
+function ShareGlyph() {
+  return (
+    <View style={styles.shareGlyph}>
+      <View style={[styles.shareNode, styles.shareNodeTop]} />
+      <View style={[styles.shareNode, styles.shareNodeLeft]} />
+      <View style={[styles.shareNode, styles.shareNodeRight]} />
+      <View style={[styles.shareLink, styles.shareLinkLeft]} />
+      <View style={[styles.shareLink, styles.shareLinkRight]} />
+    </View>
+  );
+}
+
+function BackGlyph() {
+  return (
+    <View style={styles.backGlyph}>
+      <View style={styles.backShaft} />
+      <View style={[styles.backWing, styles.backWingTop]} />
+      <View style={[styles.backWing, styles.backWingBottom]} />
+    </View>
+  );
+}
+
 function GalleryAction({
   icon,
   label,
@@ -632,9 +782,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  artboardShell: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   artboard: {
-    width: 375,
-    height: 812,
+    width: ARTBOARD_WIDTH,
+    height: ARTBOARD_HEIGHT,
     borderRadius: 40,
     borderWidth: 2,
     borderColor: '#FFFFFF',
@@ -647,7 +801,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFF3FF',
     ...(Platform.OS === 'web'
       ? ({
-          background:
+          backgroundImage:
             'linear-gradient(199.43deg, rgb(239, 243, 255) 10.309%, rgb(255, 255, 255) 100%)',
         } as any)
       : {}),
@@ -680,62 +834,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  logoWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  logoDot: {
-    width: 31,
-    height: 31,
-    borderRadius: 16,
-    backgroundColor: '#7C62FF',
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoMark: {
-    width: 19,
-    height: 14,
-    position: 'relative',
-  },
-  logoNode: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  logoNodeLeft: {
-    left: 1,
-    top: 3,
-  },
-  logoNodeRight: {
-    right: 1,
-    top: 3,
-  },
-  logoBridge: {
-    position: 'absolute',
-    left: 7,
-    top: 6,
-    width: 5,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  logoTitle: {
-    color: '#4B4C67',
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  logoSub: {
-    color: '#9A9CB8',
-    fontSize: 4.7,
-    marginTop: 1,
-  },
-  settings: {
+  circleButton: {
     width: 38,
     height: 38,
     borderRadius: 19,
@@ -745,9 +844,83 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  settingsIcon: {
-    color: '#595A74',
-    fontSize: 15,
+  backGlyph: {
+    width: 16,
+    height: 14,
+    position: 'relative',
+  },
+  backShaft: {
+    position: 'absolute',
+    left: 3,
+    top: 6,
+    width: 12,
+    height: 1.5,
+    borderRadius: 1,
+    backgroundColor: '#595A74',
+  },
+  backWing: {
+    position: 'absolute',
+    left: 2,
+    width: 8,
+    height: 1.5,
+    borderRadius: 1,
+    backgroundColor: '#595A74',
+  },
+  backWingTop: {
+    top: 3,
+    transform: [{ rotate: '-45deg' }],
+  },
+  backWingBottom: {
+    top: 9,
+    transform: [{ rotate: '45deg' }],
+  },
+  shareGlyph: {
+    width: 18,
+    height: 18,
+    position: 'relative',
+  },
+  shareNode: {
+    position: 'absolute',
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#595A74',
+    zIndex: 2,
+  },
+  shareNodeTop: {
+    top: 1,
+    left: 10,
+  },
+  shareNodeLeft: {
+    top: 10,
+    left: 1,
+  },
+  shareNodeRight: {
+    top: 12,
+    left: 12,
+  },
+  shareLink: {
+    position: 'absolute',
+    height: 1.6,
+    borderRadius: 1,
+    backgroundColor: '#595A74',
+  },
+  shareLinkLeft: {
+    top: 8,
+    left: 4,
+    width: 9,
+    transform: [{ rotate: '-34deg' }],
+  },
+  shareLinkRight: {
+    top: 10,
+    left: 10,
+    width: 7,
+    transform: [{ rotate: '45deg' }],
+  },
+  pageTitle: {
+    color: '#151623',
+    fontSize: 18,
+    fontWeight: '700',
   },
   main: {
     position: 'absolute',
@@ -1338,5 +1511,302 @@ const styles = StyleSheet.create({
   },
   actionLabelActive: {
     color: '#FFFFFF',
+  },
+  drawerDim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(25, 27, 42, 0.20)',
+    zIndex: 30,
+  },
+  rankingDrawer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: ARTBOARD_WIDTH,
+    height: 812,
+    backgroundColor: '#F3F5FF',
+    borderRadius: 40,
+    paddingTop: 45,
+    paddingHorizontal: 27,
+    zIndex: 31,
+  },
+  drawerHeader: {
+    height: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerBack: {
+    position: 'absolute',
+    left: 0,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerShare: {
+    position: 'absolute',
+    right: 0,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerTitle: {
+    color: '#161823',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  drawerHeading: {
+    color: '#26273D',
+    fontSize: 24,
+    fontWeight: '700',
+    marginTop: 28,
+  },
+  drawerSubheading: {
+    color: '#7F80A1',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  drawerBanner: {
+    height: 118,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    marginTop: 24,
+    overflow: 'hidden',
+    shadowColor: '#8B7CC4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 9,
+    elevation: 4,
+  },
+  drawerBannerCopy: {
+    position: 'absolute',
+    left: 18,
+    top: 18,
+    zIndex: 3,
+  },
+  drawerBannerSmall: {
+    color: '#7C62FF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  drawerBannerTitle: {
+    color: '#41435A',
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  drawerBannerDesc: {
+    color: '#8B8FAF',
+    fontSize: 8,
+    marginTop: 4,
+  },
+  drawerBannerPill: {
+    width: 58,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#8E68FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  drawerBannerPillText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: '700',
+  },
+  bannerBubble: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: 'rgba(142,104,255,0.18)',
+  },
+  bannerBubbleA: {
+    right: 18,
+    top: 18,
+    width: 22,
+    height: 22,
+  },
+  bannerBubbleB: {
+    right: 72,
+    bottom: 12,
+    width: 14,
+    height: 14,
+  },
+  bannerBubbleC: {
+    right: 5,
+    bottom: 32,
+    width: 34,
+    height: 34,
+  },
+  goldCat: {
+    position: 'absolute',
+    right: 28,
+    top: 11,
+    width: 88,
+    height: 92,
+    alignItems: 'center',
+  },
+  goldCatEar: {
+    position: 'absolute',
+    top: 5,
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: '#F6C566',
+    transform: [{ rotate: '45deg' }],
+  },
+  goldCatEarLeft: {
+    left: 17,
+  },
+  goldCatEarRight: {
+    right: 17,
+  },
+  goldCatHead: {
+    position: 'absolute',
+    top: 13,
+    width: 70,
+    height: 66,
+    borderRadius: 24,
+    backgroundColor: '#FFD780',
+    borderWidth: 2,
+    borderColor: '#FFE9B6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#C9973D',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+  },
+  goldCatFace: {
+    color: '#A56B25',
+    fontSize: 20,
+    fontWeight: '900',
+    marginTop: 4,
+  },
+  goldCatBase: {
+    position: 'absolute',
+    bottom: 0,
+    width: 76,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#D99B43',
+  },
+  goldCatLabel: {
+    position: 'absolute',
+    right: 36,
+    bottom: 9,
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  drawerSectionTitle: {
+    height: 24,
+    marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  drawerSpark: {
+    color: '#7C62FF',
+    fontSize: 12,
+    marginRight: 6,
+  },
+  drawerSectionText: {
+    color: '#44455A',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  drawerViewAll: {
+    color: '#8B8FAF',
+    fontSize: 12,
+    marginLeft: 'auto',
+  },
+  rankingList: {
+    marginTop: 10,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    shadowColor: '#8B7CC4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  rankingRow: {
+    height: 55,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E9EAF5',
+  },
+  rankingRank: {
+    width: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankingCrown: {
+    height: 11,
+    color: '#D6A04A',
+    fontSize: 9,
+    lineHeight: 11,
+  },
+  rankingIndex: {
+    color: '#7F80A1',
+    fontSize: 10,
+    lineHeight: 12,
+  },
+  rankingAppIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    marginLeft: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankingIconText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  rankingCopy: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  rankingName: {
+    color: '#41435A',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  rankingMeta: {
+    color: '#9A9CB8',
+    fontSize: 10,
+    marginTop: 2,
+  },
+  rankingScore: {
+    color: '#D69D2C',
+    fontSize: 10,
+    marginRight: 7,
+  },
+  getButton: {
+    width: 42,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#8B68FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  getButtonText: {
+    color: '#7C62FF',
+    fontSize: 11,
+    fontWeight: '600',
   },
 });

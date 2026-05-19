@@ -9,6 +9,7 @@ Define local TypeScript types for mobile main UI.
 - `MainHomeTheme`
 - `MainHomeCardId`
 - `MainHomeNavId`
+- `MainHomeRouteId`
 - Feature card data types
 - Dark market item types
 

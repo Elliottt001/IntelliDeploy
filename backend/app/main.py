@@ -16,12 +16,14 @@ from app.routers.intellideploy import (
     deployments_router,
     images_router,
 )
+from app.services.bootstrap_admin import ensure_builtin_admin_user
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     # Create all database tables on startup
     Base.metadata.create_all(bind=engine)
+    ensure_builtin_admin_user()
     yield
 
 

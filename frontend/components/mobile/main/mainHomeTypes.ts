@@ -6,6 +6,8 @@ export type MainHomeCardId = 'gallery' | 'products' | 'square' | 'profile';
 
 export type MainHomeNavId = 'home' | 'apps' | 'square' | 'profile';
 
+export type MainHomeRouteId = Exclude<MainHomeCardId, 'profile'>;
+
 export type MainHomeGalleryAppId = 'fastgpt' | 'keystats' | 'pawzzle' | 'stolen-buttons' | 'fairyc';
 
 export type WordCloudTag = {

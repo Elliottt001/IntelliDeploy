@@ -3,10 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
-    DATABASE_URL: str = (
-        "postgresql+psycopg://postgres:your_password@"
-        "127.0.0.1:5432/intellideploy"
-    )
+    DATABASE_URL: str = "sqlite:///./intellideploy.db"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ALGORITHM: str = "HS256"
     MODEL_API: str = ""
@@ -22,6 +19,12 @@ class Settings(BaseSettings):
     # Redis配置
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_ENABLED: bool = False  # 默认关闭,避免开发环境没有Redis时报错
+
+    # Local verification account. Disable or override these in non-local environments.
+    ENABLE_BUILTIN_ADMIN: bool = True
+    BUILTIN_ADMIN_USERNAME: str = "ycy"
+    BUILTIN_ADMIN_EMAIL: str = "ycy@intellideploy.local"
+    BUILTIN_ADMIN_PASSWORD: str = "123456"
 
     # Sealos配置
     SEALOS_API_URL: str = "https://cloud.sealos.io/api"

@@ -7,7 +7,7 @@
 明确不做：
 
 - 不改后端接口、数据库或认证流程。
-- 不重构登录、注册、Chatbot、App Gallery 的业务逻辑。
+- 不重构注册页与未出现在已批准参考视频中的业务逻辑。
 - 不改 Web 首页视觉和路由结构。
 - 不新增全局设计系统。
 
@@ -66,13 +66,34 @@ https://www.figma.com/design/w8o9pOMZKhCMWaRzc6s4gw/IntelliDeploy?node-id=88-178
 
 当前 `frontend/app/index.tsx` 已经通过 `Platform.OS === 'web'` 保留 Web 首页并进入移动端分支。移动端分支已有一版主界面雏形，但仍然把页面、组件、token、动效和资源写在同一个文件里。本轮需要拆出独立组件目录，保留 Web 分支不动。
 
+## 2.1 参考视频补充
+
+2026-05-15 新增批准参考视频后，移动端目标从“单一主界面还原”扩展为“整条轻量体验链还原”：
+
+- 启动页
+- 登录页
+- 主界面
+- 应用商店
+- 我的产品
+- 广场
+- Mibo 分阶段助手流
+
+因此，下列先前占位限制被视频目标覆盖：
+
+- `我的产品` 与 `广场` 需要从首页展开态升级为真实页面。
+- App Gallery 需要补充右侧热门榜单抽屉。
+- Chatbot 需要从普通聊天页重构为视频中的分阶段任务流。
+
 ## 3. 文件结构规划
 
 代码文件：
 
 ```text
 frontend/app/
+  splash.tsx
   index.tsx
+  my-products.tsx
+  square.tsx
 
 frontend/components/mobile/main/
   MainHomeScreen.tsx
@@ -122,6 +143,7 @@ background/main_ui_prompt/
 
 - `index.tsx`：只负责 Web/Mobile 平台分流。Web 仍渲染现有 `WebHome`；移动端渲染 `MainHomeScreen`。
 - `MainHomeScreen.tsx`：移动端主界面组合层，负责主题状态、首屏进入动画、卡片展开状态、导航动作。
+- `splash.tsx`：批准参考视频中的首段启动动画。
 - `MainHomeBackground.tsx`：浅色主界面的背景渐变、氛围弥散和暗色背景壳。
 - `MainHomeHeader.tsx`：品牌区、设置按钮、浅色/深色切换入口。
 - `MainHomeHero.tsx`：头像、问候语、Mibo 对话入口。
@@ -218,5 +240,5 @@ background/main_ui_prompt/
 ## 10. 待确认问题
 
 - 深色模式是否需要默认进入，还是由用户切换进入。本轮先提供顶部切换入口，默认跟随系统色彩。
-- 我的产品、广场、个人主页是否需要新增真实路由。本轮只做主界面入口和展开态，不新增业务页。
+- 个人主页是否需要新增真实路由。`我的产品` 与 `广场` 已由批准参考视频确认需要新增。
 - 是否允许后续新增 `expo-linear-gradient` / `expo-blur` / `react-native-svg` 追求更高还原度。本轮先不新增。

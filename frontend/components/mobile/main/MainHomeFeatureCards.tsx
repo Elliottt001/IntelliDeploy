@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import MainHomeFeatureCard from './MainHomeFeatureCard';
 import { lightLayout, lightTokens } from './mainHomeTokens';
 import { mainHomeMotion } from './mainHomeMotion';
-import type { FeatureCardData, MainHomeCardId, MainHomeGalleryAppId } from './mainHomeTypes';
+import type { FeatureCardData, MainHomeCardId, MainHomeGalleryAppId, MainHomeRouteId } from './mainHomeTypes';
 import type { HomeFeedResponse } from '../../../services/api';
 
 const featureCards: FeatureCardData[] = [
@@ -52,6 +52,7 @@ type MainHomeFeatureCardsProps = {
   expandedCard: MainHomeCardId | null;
   onToggleCard: (id: MainHomeCardId) => void;
   onOpenGalleryApp: (id: MainHomeGalleryAppId) => void;
+  onOpenRoute: (id: MainHomeRouteId) => void;
 };
 
 export default function MainHomeFeatureCards({
@@ -60,6 +61,7 @@ export default function MainHomeFeatureCards({
   expandedCard,
   onToggleCard,
   onOpenGalleryApp,
+  onOpenRoute,
 }: MainHomeFeatureCardsProps) {
   const progresses = {
     gallery: useRef(new Animated.Value(0)).current,
@@ -142,6 +144,7 @@ export default function MainHomeFeatureCards({
             isExpanded={expandedCard === card.id}
             onPress={onToggleCard}
             onOpenGalleryApp={onOpenGalleryApp}
+            onOpenRoute={onOpenRoute}
           />
         ))}
       </Animated.View>

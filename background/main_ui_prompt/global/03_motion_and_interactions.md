@@ -87,12 +87,11 @@ Allowed route pushes:
 /app-gallery
 ```
 
-Do not invent routes for:
+Video-approved route updates:
 
 ```text
-我的产品
-广场
-个人主页
+/my-products
+/square
 ```
 
-For these, keep local expanded states and active bottom tab states until the product owner confirms routes.
+Keep `个人主页` local until the product owner confirms a destination.

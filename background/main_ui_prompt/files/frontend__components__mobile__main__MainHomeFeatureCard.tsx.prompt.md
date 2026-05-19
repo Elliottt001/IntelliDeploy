@@ -10,7 +10,7 @@ Render one feature card and its expanded detail.
 - Title and subtitle
 - Collapsed y position
 - Expanded state
-- Press handlers
+- Press and route handlers
 - Theme tokens
 
 ## Output
@@ -29,3 +29,5 @@ Render one feature card and its expanded detail.
 - The `我的产品` expanded detail should match Figma's open-box illustration: small centered purple box, white/lavender flaps, app icons bursting upward, small colorful confetti rays, and right-aligned progress text/link.
 - Avoid large semi-transparent rectangular shards in the product detail; they read as placeholder panels and diverge from the design.
 - Press feedback should use the spring mapping from Figma settings arrows where possible.
+- My Products and Square must remain visually expandable on the homepage while still supporting the real page destinations shown in the video.
+- App Gallery and Square action arrows remain right-facing in both collapsed and expanded states; do not rotate them downward on expansion.

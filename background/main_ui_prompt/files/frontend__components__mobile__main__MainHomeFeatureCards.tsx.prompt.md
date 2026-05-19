@@ -10,6 +10,7 @@ Render and coordinate the four light mode feature cards.
 - `navCards` from `GET /api/home/feed`
 - `onToggleCard`
 - `onOpenGallery`
+- `onOpenRoute`
 - Motion values
 
 ## Output
@@ -36,4 +37,4 @@ Render and coordinate the four light mode feature cards.
   - products: y 517
   - square: y 587
   - profile: y 657
-- Only App Gallery may navigate to an existing route.
+- App Gallery, 我的产品, and 广场 may open the real routes confirmed by the approved video reference.

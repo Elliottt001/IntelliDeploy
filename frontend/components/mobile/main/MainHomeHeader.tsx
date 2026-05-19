@@ -1,17 +1,15 @@
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { lightLayout, lightTokens } from './mainHomeTokens';
-import type { MainHomeTheme } from './mainHomeTypes';
-
 type MainHomeHeaderProps = {
-  theme: MainHomeTheme;
   intro: Animated.Value;
-  onToggleTheme: () => void;
+  onPressSettings?: () => void;
 };
 
-export default function MainHomeHeader({ theme, intro, onToggleTheme }: MainHomeHeaderProps) {
-  const isDark = theme === 'dark';
+const LOGO_IMAGE = require('../../../assets/images/login-logo.png');
+const WORDMARK_IMAGE = require('../../../assets/images/login-wordmark.png');
 
+export default function MainHomeHeader({ intro, onPressSettings }: MainHomeHeaderProps) {
   return (
     <Animated.View
       style={[
@@ -31,51 +29,26 @@ export default function MainHomeHeader({ theme, intro, onToggleTheme }: MainHome
     >
       <View style={styles.brand}>
         <View style={styles.logoCircle}>
-          <LogoMark />
+          <Image source={LOGO_IMAGE} resizeMode="contain" style={styles.logoImage} />
         </View>
         <View style={styles.brandCopy}>
-          <Text style={styles.brandTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>
-            INTELLIDEPLOY
-          </Text>
-          <Text style={styles.brandSub}>Powered by Sealos | GitHub</Text>
+          <Image source={WORDMARK_IMAGE} resizeMode="contain" style={styles.wordmarkImage} />
         </View>
       </View>
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={theme === 'light' ? '切换深色模式' : '切换浅色模式'}
-        onPress={onToggleTheme}
+        accessibilityLabel="打开设置"
+        onPress={onPressSettings}
         style={({ pressed }) => [styles.settings, pressed && styles.settingsPressed]}
       >
-        <SettingsGlyph isDark={isDark} />
+        <SettingsGlyph />
       </Pressable>
     </Animated.View>
   );
 }
 
-function LogoMark() {
-  return (
-    <View style={styles.logoMark}>
-      <View style={[styles.logoNode, styles.logoNodeLeft]} />
-      <View style={[styles.logoNode, styles.logoNodeRight]} />
-      <View style={styles.logoBridge} />
-    </View>
-  );
-}
-
-function SettingsGlyph({ isDark }: { isDark: boolean }) {
-  if (isDark) {
-    return (
-      <View style={styles.sunGlyph}>
-        <View style={styles.sunCore} />
-        <View style={[styles.sunRay, styles.sunRayTop]} />
-        <View style={[styles.sunRay, styles.sunRayBottom]} />
-        <View style={[styles.sunRay, styles.sunRayLeft]} />
-        <View style={[styles.sunRay, styles.sunRayRight]} />
-      </View>
-    );
-  }
-
+function SettingsGlyph() {
   return (
     <View style={styles.gearGlyph}>
       <View style={styles.gearRing} />
@@ -151,18 +124,14 @@ const styles = StyleSheet.create({
     width: 120,
     alignItems: 'center',
   },
-  brandTitle: {
-    color: lightTokens.colors.textSoft,
-    fontSize: lightTokens.typography.brand,
-    fontWeight: '800',
-    letterSpacing: 0,
+  logoImage: {
+    width: 19,
+    height: 14,
+    tintColor: '#FFFFFF',
   },
-  brandSub: {
-    color: '#8E91AE',
-    fontSize: lightTokens.typography.brandSub,
-    marginTop: -1,
+  wordmarkImage: {
     width: 120,
-    textAlign: 'center',
+    height: 20,
   },
   settings: {
     width: 38,
@@ -225,46 +194,6 @@ const styles = StyleSheet.create({
   gearToothLeft: {
     left: 0,
     top: 6.5,
-    transform: [{ rotate: '90deg' }],
-  },
-  sunGlyph: {
-    width: 18,
-    height: 18,
-    position: 'relative',
-  },
-  sunCore: {
-    position: 'absolute',
-    left: 5,
-    top: 5,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 1.6,
-    borderColor: '#595A74',
-  },
-  sunRay: {
-    position: 'absolute',
-    width: 2,
-    height: 4,
-    borderRadius: 1,
-    backgroundColor: '#595A74',
-  },
-  sunRayTop: {
-    left: 8,
-    top: 0,
-  },
-  sunRayBottom: {
-    left: 8,
-    bottom: 0,
-  },
-  sunRayLeft: {
-    left: 0,
-    top: 7,
-    transform: [{ rotate: '90deg' }],
-  },
-  sunRayRight: {
-    right: 0,
-    top: 7,
     transform: [{ rotate: '90deg' }],
   },
 });

@@ -5,14 +5,13 @@ import { Animated, Easing, StyleSheet, View, useWindowDimensions } from 'react-n
 
 import MainHomeBackground from './MainHomeBackground';
 import MainHomeBottomNav from './MainHomeBottomNav';
-import MainHomeDarkMarket from './MainHomeDarkMarket';
 import MainHomeFeatureCards from './MainHomeFeatureCards';
 import MainHomeHeader from './MainHomeHeader';
 import MainHomeHero from './MainHomeHero';
 import MainHomeInspirationCloud from './MainHomeInspirationCloud';
 import { mainHomeMotion, runPressPulse } from './mainHomeMotion';
 import { MAIN_HOME_FRAME, lightTokens } from './mainHomeTokens';
-import type { MainHomeCardId, MainHomeGalleryAppId, MainHomeNavId, MainHomeTheme } from './mainHomeTypes';
+import type { MainHomeCardId, MainHomeGalleryAppId, MainHomeNavId, MainHomeRouteId } from './mainHomeTypes';
 import { homeAPI, type HomeFeedResponse } from '../../../services/api';
 
 const fallbackHomeFeed: HomeFeedResponse = {
@@ -31,7 +30,6 @@ const fallbackHomeFeed: HomeFeedResponse = {
 export default function MainHomeScreen() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
-  const [theme, setTheme] = useState<MainHomeTheme>('light');
   const [expandedCard, setExpandedCard] = useState<MainHomeCardId | null>(null);
   const [activeTab, setActiveTab] = useState<MainHomeNavId>('home');
   const [cloudVariant, setCloudVariant] = useState(0);
@@ -142,11 +140,6 @@ export default function MainHomeScreen() {
     [displayFeed.inspirationPool.keywords]
   );
 
-  const handleToggleTheme = useCallback(() => {
-    setTheme((current) => (current === 'light' ? 'dark' : 'light'));
-    setExpandedCard(null);
-  }, []);
-
   const handleOpenMibo = useCallback(() => {
     runPressPulse(miboPulse);
     router.push('/chatbot');
@@ -158,9 +151,62 @@ export default function MainHomeScreen() {
 
   const handleOpenGalleryApp = useCallback(
     (appId: MainHomeGalleryAppId) => {
+      setExpandedCard(null);
       router.push({ pathname: '/app-gallery', params: { app: appId } });
     },
     [router]
+  );
+
+  const handleOpenRoute = useCallback(
+    (id: MainHomeRouteId) => {
+      setExpandedCard(null);
+      if (id === 'gallery') {
+        router.push({ pathname: '/app-gallery', params: { app: 'pawzzle' } });
+        return;
+      }
+      if (id === 'products') {
+        router.push('/my-products');
+        return;
+      }
+      router.push('/square');
+    },
+    [router]
+  );
+
+  const handleSelectBottomNav = useCallback(
+    (id: MainHomeNavId) => {
+      if (id === 'home') {
+        setActiveTab('home');
+        setExpandedCard(null);
+        return;
+      }
+
+      if (id === 'apps') {
+        setActiveTab('home');
+        if (expandedCard === 'gallery') {
+          setExpandedCard(null);
+          router.push({ pathname: '/app-gallery', params: { app: 'pawzzle' } });
+          return;
+        }
+        setExpandedCard('gallery');
+        return;
+      }
+
+      if (id === 'square') {
+        setActiveTab('home');
+        if (expandedCard === 'square') {
+          setExpandedCard(null);
+          router.push('/square');
+          return;
+        }
+        setExpandedCard('square');
+        return;
+      }
+
+      setActiveTab(id);
+      setExpandedCard(id);
+    },
+    [expandedCard, router]
   );
 
   const handlePressAvatar = useCallback(() => {
@@ -170,16 +216,6 @@ export default function MainHomeScreen() {
   const handlePressCloud = useCallback(() => {
     setCloudVariant((current) => current + 1);
   }, []);
-
-  if (theme === 'dark') {
-    return (
-      <>
-        <Stack.Screen options={{ headerShown: false }} />
-        <StatusBar style="light" hidden translucent backgroundColor="transparent" />
-        <MainHomeDarkMarket activeTab={activeTab} onSelectTab={setActiveTab} onSwitchTheme={handleToggleTheme} />
-      </>
-    );
-  }
 
   return (
     <View style={styles.host}>
@@ -197,7 +233,7 @@ export default function MainHomeScreen() {
           ]}
         >
           <MainHomeBackground floatY={floatY} inverseFloatY={inverseFloatY} />
-          <MainHomeHeader theme={theme} intro={navIntro} onToggleTheme={handleToggleTheme} />
+          <MainHomeHeader intro={navIntro} />
           <MainHomeHero
             intro={heroIntro}
             floatY={floatY}
@@ -220,8 +256,9 @@ export default function MainHomeScreen() {
             expandedCard={expandedCard}
             onToggleCard={handleToggleCard}
             onOpenGalleryApp={handleOpenGalleryApp}
+            onOpenRoute={handleOpenRoute}
           />
-          <MainHomeBottomNav theme="light" activeTab={activeTab} onSelect={setActiveTab} />
+          <MainHomeBottomNav theme="light" activeTab={activeTab} onSelect={handleSelectBottomNav} />
         </View>
       </View>
     </View>

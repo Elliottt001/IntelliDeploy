@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
   Easing,
   useWindowDimensions,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAPI } from '../services/api';
@@ -28,7 +28,6 @@ const WAVE_IMAGE = require('../assets/images/login-wave.png');
 const DEPTH_LAYER_IMAGE = require('../assets/images/login-depth-layer.png');
 const LOGO_IMAGE = require('../assets/images/login-logo.png');
 const WORDMARK_IMAGE = require('../assets/images/login-wordmark.png');
-const SETTINGS_IMAGE = require('../assets/images/login-settings.png');
 const PURPLE_GLOW_IMAGE = require('../assets/images/login-purple-glow.png');
 
 const ARTBOARD_WIDTH = 375;
@@ -42,6 +41,8 @@ export default function Login() {
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
 
   const fadeIn = useRef(new Animated.Value(0)).current;
   const riseUp = useRef(new Animated.Value(20)).current;
@@ -54,6 +55,7 @@ export default function Login() {
   const blobFloat = useRef(new Animated.Value(0)).current;
   const catFloat = useRef(new Animated.Value(0)).current;
   const glowSlide = useRef(new Animated.Value(0)).current;
+  const menuIntro = useRef(new Animated.Value(0)).current;
   const artboardScale =
     Platform.OS === 'web'
       ? 1
@@ -66,6 +68,16 @@ export default function Login() {
       NativeStatusBar.setBackgroundColor('transparent', false);
     }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== 'web') {
+        NativeStatusBar.setHidden(true, 'none');
+        NativeStatusBar.setTranslucent(true);
+        NativeStatusBar.setBackgroundColor('transparent', false);
+      }
+    }, [])
+  );
 
   useEffect(() => {
     Animated.stagger(130, [
@@ -144,6 +156,15 @@ export default function Login() {
     titleIntro,
   ]);
 
+  useEffect(() => {
+    Animated.timing(menuIntro, {
+      toValue: settingsOpen ? 1 : 0,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [menuIntro, settingsOpen]);
+
   const handleLogin = async () => {
     if (!account.trim() || !password.trim()) {
       Alert.alert('提示', '请输入用户名/电话号码/邮箱和密码');
@@ -155,6 +176,8 @@ export default function Login() {
     }
 
     setLoading(true);
+    setSettingsOpen(false);
+    setTransitioning(true);
     try {
       const response = await authAPI.login(account, password);
       const { access_token } = response.data;
@@ -162,8 +185,11 @@ export default function Login() {
       if (!rememberMe) {
         await AsyncStorage.removeItem('token');
       }
-      Alert.alert('成功', '登录成功！', [{ text: '确定', onPress: () => router.replace('/') }]);
+      setTimeout(() => {
+        router.push('/');
+      }, 1100);
     } catch (error: any) {
+      setTransitioning(false);
       const message = error.response?.data?.detail || '登录失败，请检查账号和密码';
       Alert.alert('错误', message);
     } finally {
@@ -222,7 +248,7 @@ export default function Login() {
         <Image source={WAVE_IMAGE} resizeMode="stretch" style={styles.waveLayer} />
         <Image source={DEPTH_LAYER_IMAGE} resizeMode="stretch" style={styles.depthLayer} />
         <Image source={PURPLE_GLOW_IMAGE} resizeMode="stretch" style={styles.purpleGlow} />
-        <View style={styles.whiteGlow} />
+        <View style={[styles.whiteGlow, transitioning && styles.handoffHidden]} />
 
         <Animated.View
           style={[
@@ -246,9 +272,39 @@ export default function Login() {
             </View>
             <Image source={WORDMARK_IMAGE} resizeMode="contain" style={styles.wordmarkImage} />
           </View>
-          <View style={styles.settingButton}>
-            <Image source={SETTINGS_IMAGE} resizeMode="contain" style={styles.settingImage} />
-          </View>
+          <Pressable style={styles.settingButton} onPress={() => setSettingsOpen((open) => !open)}>
+            <GearGlyph />
+          </Pressable>
+        </Animated.View>
+
+        <Animated.View
+          pointerEvents={settingsOpen ? 'auto' : 'none'}
+          style={[
+            styles.settingsMenu,
+            {
+              opacity: menuIntro,
+              transform: [
+                {
+                  translateY: menuIntro.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-8, 0],
+                  }),
+                },
+                {
+                  scale: menuIntro.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.96, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          {['偏好设置', '语言与地区', '联系我们'].map((item) => (
+            <Pressable key={item} style={styles.settingsMenuItem}>
+              <Text style={styles.settingsMenuText}>{item}</Text>
+            </Pressable>
+          ))}
         </Animated.View>
 
         <Animated.View
@@ -296,16 +352,20 @@ export default function Login() {
           <Text style={styles.heroTitle}>IntelliDeploy</Text>
 
           <View style={styles.heroHint}>
-            <Text style={styles.heroHintMain}>欢迎回来，开发者！</Text>
-            <Text style={styles.heroHintSub} numberOfLines={1}>
-              在这里，实现你的奇思妙想
+            <Text style={[styles.heroHintMain, transitioning && styles.heroHintMainSubmitting]}>
+              {transitioning ? '正在登录，精彩即刻呈现...' : '欢迎回来，开发者！'}
             </Text>
+            {transitioning ? null : (
+              <Text style={styles.heroHintSub} numberOfLines={1}>
+                在这里，实现你的奇思妙想
+              </Text>
+            )}
           </View>
         </Animated.View>
 
         <Animated.View
           style={{
-            opacity: formIntro,
+            opacity: transitioning ? 0 : formIntro,
             transform: [
               {
                 translateY: formIntro.interpolate({
@@ -411,7 +471,7 @@ export default function Login() {
 
         <Animated.View
           style={{
-            opacity: socialIntro,
+            opacity: transitioning ? 0 : socialIntro,
             transform: [
               {
                 translateY: socialIntro.interpolate({
@@ -449,7 +509,7 @@ export default function Login() {
           style={[
             styles.bottomTip,
             {
-              opacity: bottomIntro,
+              opacity: transitioning ? 0 : bottomIntro,
               transform: [
                 {
                   translateY: bottomIntro.interpolate({
@@ -466,10 +526,28 @@ export default function Login() {
             <Text style={styles.bottomTipLink}>立即注册</Text>
           </Pressable>
         </Animated.View>
+
       </View>
       </View>
       </KeyboardAvoidingView>
     </>
+  );
+}
+
+function GearGlyph() {
+  return (
+    <View style={styles.gearGlyph}>
+      <View style={[styles.gearTooth, styles.gearToothTop]} />
+      <View style={[styles.gearTooth, styles.gearToothTopRight]} />
+      <View style={[styles.gearTooth, styles.gearToothRight]} />
+      <View style={[styles.gearTooth, styles.gearToothBottomRight]} />
+      <View style={[styles.gearTooth, styles.gearToothBottom]} />
+      <View style={[styles.gearTooth, styles.gearToothBottomLeft]} />
+      <View style={[styles.gearTooth, styles.gearToothLeft]} />
+      <View style={[styles.gearTooth, styles.gearToothTopLeft]} />
+      <View style={styles.gearOuter} />
+      <View style={styles.gearInner} />
+    </View>
   );
 }
 
@@ -499,7 +577,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFF3FF',
     ...(Platform.OS === 'web'
       ? ({
-          background:
+          backgroundImage:
             'linear-gradient(199.43deg, rgb(239, 243, 255) 10.309%, rgb(255, 255, 255) 100%)',
         } as any)
       : {}),
@@ -577,6 +655,9 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 2,
   },
+  handoffHidden: {
+    opacity: 0,
+  },
   topBar: {
     position: 'absolute',
     top: 42,
@@ -605,42 +686,142 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 19,
     height: 14,
+    tintColor: '#FFFFFF',
   },
   wordmarkImage: {
     width: 120,
     height: 20,
   },
   settingButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 29,
+    height: 29,
+    borderRadius: 14.5,
+    backgroundColor: 'rgba(255,255,255,0.86)',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#AEB3C9',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  gearGlyph: {
+    width: 17,
+    height: 17,
+    position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  settingImage: {
-    width: 44,
-    height: 44,
+  gearOuter: {
+    width: 13,
+    height: 13,
+    borderRadius: 6.5,
+    borderWidth: 2,
+    borderColor: '#515268',
+    backgroundColor: 'rgba(255,255,255,0.86)',
+  },
+  gearInner: {
+    position: 'absolute',
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    borderWidth: 2,
+    borderColor: '#515268',
+    backgroundColor: 'rgba(255,255,255,0.86)',
+  },
+  gearTooth: {
+    position: 'absolute',
+    width: 3,
+    height: 5,
+    borderRadius: 1.5,
+    backgroundColor: '#515268',
+  },
+  gearToothTop: {
+    top: -0.5,
+    left: 7,
+  },
+  gearToothTopRight: {
+    top: 1.8,
+    right: 2.2,
+    transform: [{ rotate: '45deg' }],
+  },
+  gearToothRight: {
+    right: -0.5,
+    top: 6,
+    transform: [{ rotate: '90deg' }],
+  },
+  gearToothBottomRight: {
+    right: 2.2,
+    bottom: 1.8,
+    transform: [{ rotate: '135deg' }],
+  },
+  gearToothBottom: {
+    bottom: -0.5,
+    left: 7,
+  },
+  gearToothBottomLeft: {
+    left: 2.2,
+    bottom: 1.8,
+    transform: [{ rotate: '45deg' }],
+  },
+  gearToothLeft: {
+    left: -0.5,
+    top: 6,
+    transform: [{ rotate: '90deg' }],
+  },
+  gearToothTopLeft: {
+    top: 1.8,
+    left: 2.2,
+    transform: [{ rotate: '135deg' }],
+  },
+  settingsMenu: {
+    position: 'absolute',
+    top: 82,
+    right: 19,
+    width: 126,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    paddingVertical: 7,
+    zIndex: 12,
+    shadowColor: '#8F8FB0',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+  },
+  settingsMenuItem: {
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsMenuText: {
+    color: '#3C3D53',
+    fontSize: 13,
+    fontWeight: '600',
   },
   catWrap: {
     position: 'absolute',
-    left: 124,
-    top: 122,
-    width: 117,
-    height: 107,
+    left: 128,
+    top: 124,
+    width: 112,
+    height: 102,
   },
   catImage: {
     width: '100%',
     height: '100%',
-    opacity: 0.82,
+    opacity: 0.68,
     transform: [{ rotate: '-6.64deg' }, { skewX: '-1.93deg' }],
   },
   heroTitleShadow: {
     position: 'absolute',
-    top: 245,
-    left: 38,
-    width: 299,
+    top: 249,
+    left: 30,
+    width: 315,
     textAlign: 'center',
-    color: 'rgba(124,98,255,0.06)',
+    color: 'rgba(124,98,255,0.04)',
     fontSize: 40,
     fontWeight: '800',
     textShadowColor: 'rgba(200,200,200,0.25)',
@@ -650,12 +831,12 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     position: 'absolute',
-    top: 203,
-    left: 38,
-    width: 299,
+    top: 214,
+    left: 30,
+    width: 315,
     textAlign: 'center',
     color: '#7C62FF',
-    fontSize: 50 / 1.25,
+    fontSize: 40,
     fontWeight: '800',
     textShadowColor: 'rgba(200,200,200,0.35)',
     textShadowOffset: { width: 0, height: 1 },
@@ -663,7 +844,7 @@ const styles = StyleSheet.create({
   },
   heroHint: {
     position: 'absolute',
-    top: 269,
+    top: 277,
     left: 87.5,
     width: 200,
     alignItems: 'center',
@@ -673,6 +854,11 @@ const styles = StyleSheet.create({
     color: '#494A64',
     fontSize: 18,
     fontWeight: '700',
+  },
+  heroHintMainSubmitting: {
+    color: '#626381',
+    fontSize: 14,
+    fontWeight: '500',
   },
   heroHintSub: {
     color: '#6D6E8D',
