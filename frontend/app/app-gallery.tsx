@@ -22,15 +22,25 @@ const assets = {
   cardLeft: require('../assets/app-gallery/stellar-card.png'),
   cardRight: require('../assets/app-gallery/vora-food-card.png'),
   frontCard: require('../assets/app-gallery/card-layer-front.png'),
+  pawzzleFullCard: require('../assets/app-gallery/pawzzle-card-primary.png'),
   pawzzleIcon: require('../assets/app-gallery/pawzzle-icon.png'),
   titleRating: require('../assets/app-gallery/pawzzle-title-rating.png'),
   goldenBadge: require('../assets/app-gallery/golden-meow-badge.png'),
   editorChoice: require('../assets/app-gallery/editor-choice-label.png'),
   description: require('../assets/app-gallery/pawzzle-description.png'),
   detailsLink: require('../assets/app-gallery/details-link.png'),
+  screenshotsAlt: require('../assets/app-gallery/pawzzle-screenshots-alt.png'),
   screenshots: require('../assets/app-gallery/pawzzle-screenshots.png'),
   dots: require('../assets/app-gallery/carousel-dots.png'),
+  dotsAlt: require('../assets/app-gallery/carousel-dots2.png'),
   actionBar: require('../assets/app-gallery/action-bar.png'),
+  heartFilledLarge: require('../assets/app-gallery/heart-filled-large.png'),
+  heartFilledSmall: require('../assets/app-gallery/heart-filled-small.png'),
+  rankingTitle: require('../assets/app-gallery/hot-ranking-title.png'),
+  rankingSubtitle: require('../assets/app-gallery/ranking-subtitle.png'),
+  rankingNavBar: require('../assets/app-gallery/ranking-nav-bar.png'),
+  goldAwardBanner: require('../assets/app-gallery/gold-award-banner.png'),
+  rankingList: require('../assets/app-gallery/ranking-list-panel.png'),
 };
 
 const cardSlots = {
@@ -52,7 +62,7 @@ const cardSlots = {
 };
 
 const cardStack = [
-  { key: 'pawzzle', source: assets.frontCard, width: 291, height: 419 },
+  { key: 'pawzzle', source: assets.pawzzleFullCard, width: 291, height: 419 },
   { key: 'vora', source: assets.cardRight, width: 305, height: 422 },
   { key: 'stellar', source: assets.cardLeft, width: 305, height: 422 },
 ];
@@ -62,9 +72,14 @@ export default function AppGallery() {
   const [pressedAction, setPressedAction] = useState<string | null>(null);
   const [cardOrder, setCardOrder] = useState([0, 1, 2]);
   const [isCardFlying, setIsCardFlying] = useState(false);
+  const [showRanking, setShowRanking] = useState(false);
+  const [hasSwappedScreenshots, setHasSwappedScreenshots] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
   const intro = useRef(new Animated.Value(0)).current;
   const float = useRef(new Animated.Value(0)).current;
   const flyOut = useRef(new Animated.Value(0)).current;
+  const likeAnim = useRef(new Animated.Value(0)).current;
+  const screenshotsSlide = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(intro, {
@@ -122,6 +137,58 @@ export default function AppGallery() {
     });
   };
 
+  const toggleLike = () => {
+    const nextLiked = !isLiked;
+    setIsLiked(nextLiked);
+
+    likeAnim.stopAnimation();
+    if (!nextLiked) {
+      likeAnim.setValue(0);
+      return;
+    }
+
+    likeAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(likeAnim, {
+        toValue: 0.42,
+        duration: 130,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(likeAnim, {
+        toValue: 1,
+        duration: 140,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const openRanking = () => {
+    setShowRanking(true);
+  };
+
+  const closeRanking = () => {
+    setShowRanking(false);
+  };
+
+  const swapPawzzleScreenshots = (event?: { stopPropagation?: () => void }) => {
+    event?.stopPropagation?.();
+
+    const nextValue = hasSwappedScreenshots ? 0 : 1;
+
+    Animated.timing(screenshotsSlide, {
+      toValue: nextValue,
+      duration: 460,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) {
+        setHasSwappedScreenshots(nextValue === 1);
+      }
+    });
+  };
+
   const getSlotStyle = (
     card: (typeof cardStack)[number],
     slotName: keyof typeof cardSlots,
@@ -133,13 +200,13 @@ export default function AppGallery() {
     const top = slot.centerY - card.height / 2;
 
     return {
-      left,
-      top: isFrontSlot
+      left: isFrontSlot
         ? flyOut.interpolate({
             inputRange: [0, 1],
-            outputRange: [top, -560],
+            outputRange: [left, -360],
           })
-        : top,
+        : left,
+      top,
       width: card.width,
       height: card.height,
       zIndex,
@@ -151,12 +218,7 @@ export default function AppGallery() {
         : 1,
       transform: [
         {
-          rotate: isFrontSlot
-            ? flyOut.interpolate({
-                inputRange: [0, 1],
-                outputRange: [slot.rotate, '-8deg'],
-              })
-            : slot.rotate,
+          rotate: slot.rotate,
         },
       ],
     };
@@ -178,21 +240,68 @@ export default function AppGallery() {
         >
           <Image source={card.source} style={styles.cardImage} resizeMode="stretch" />
           {card.key === 'pawzzle' ? (
-            <View style={styles.cardContent}>
-              <Image source={assets.pawzzleIcon} style={styles.appIcon} resizeMode="contain" />
-              <Image source={assets.titleRating} style={styles.titleRating} resizeMode="contain" />
-              <Image source={assets.goldenBadge} style={styles.goldenBadge} resizeMode="contain" />
-              <Image source={assets.editorChoice} style={styles.editorChoice} resizeMode="contain" />
-              <Image source={assets.description} style={styles.description} resizeMode="contain" />
-              <Image source={assets.detailsLink} style={styles.detailsLink} resizeMode="contain" />
-              <Image source={assets.screenshots} style={styles.screenshots} resizeMode="contain" />
-              <Image source={assets.dots} style={styles.dots} resizeMode="contain" />
-            </View>
+            <Pressable style={styles.pawzzleScreenshotHotspot} onPress={swapPawzzleScreenshots}>
+              <Animated.Image
+                source={assets.screenshotsAlt}
+                style={[
+                  styles.pawzzleScreenshotSwapImage,
+                  {
+                    transform: [
+                      {
+                        translateX: screenshotsSlide.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -212],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+                resizeMode="contain"
+              />
+              <Animated.Image
+                source={assets.screenshots}
+                style={[
+                  styles.pawzzleScreenshotSwapImage,
+                  {
+                    transform: [
+                      {
+                        translateX: screenshotsSlide.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [212, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+                resizeMode="contain"
+              />
+            </Pressable>
+          ) : null}
+          {card.key === 'pawzzle' ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.pawzzleDotsAltWrap, { opacity: screenshotsSlide }]}
+            >
+              <Image source={assets.dotsAlt} style={styles.pawzzleDotsAlt} resizeMode="contain" />
+            </Animated.View>
           ) : null}
         </Pressable>
       </Animated.View>
     );
   };
+
+  const renderRankingPage = () => (
+    <View style={styles.rankingPage}>
+      <View style={styles.rankingPageBackground} />
+      <Image source={assets.rankingNavBar} style={styles.rankingNavBar} resizeMode="stretch" />
+      <Pressable style={styles.rankingBackButton} onPress={closeRanking} hitSlop={10} />
+      <Pressable style={styles.rankingShareButton} hitSlop={10} />
+      <Image source={assets.rankingTitle} style={styles.rankingPageTitle} resizeMode="contain" />
+      <Image source={assets.rankingSubtitle} style={styles.rankingPageSubtitle} resizeMode="contain" />
+      <Image source={assets.goldAwardBanner} style={styles.rankingPageBanner} resizeMode="contain" />
+      <Image source={assets.rankingList} style={styles.rankingPageList} resizeMode="contain" />
+    </View>
+  );
 
   return (
     <ScrollView
@@ -203,24 +312,26 @@ export default function AppGallery() {
       <Text style={styles.stageTitle}>App Gallery</Text>
 
       <View style={styles.phone}>
-        <View style={styles.background} />
+        {showRanking ? renderRankingPage() : (
+          <>
+            <View style={styles.background} />
 
-        <Animated.View
-          style={[
-            styles.content,
-            {
-              opacity: intro,
-              transform: [
+            <Animated.View
+              style={[
+                styles.content,
                 {
-                  translateY: intro.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [22, 0],
-                  }),
+                  opacity: intro,
+                  transform: [
+                    {
+                      translateY: intro.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [22, 0],
+                      }),
+                    },
+                  ],
                 },
-              ],
-            },
-          ]}
-        >
+              ]}
+            >
           <View style={styles.header}>
             <Pressable onPress={() => router.back()} hitSlop={12}>
               <Image source={assets.logo} style={styles.logo} resizeMode="contain" />
@@ -235,7 +346,7 @@ export default function AppGallery() {
           </Pressable>
 
           <View style={styles.pills}>
-            <Pressable>
+            <Pressable onPress={openRanking}>
               <Image source={assets.hotPill} style={styles.hotPill} resizeMode="stretch" />
             </Pressable>
             <Pressable>
@@ -254,8 +365,57 @@ export default function AppGallery() {
 
           <View style={styles.actionDock}>
             <Image source={assets.actionBar} style={styles.actionBar} resizeMode="stretch" />
+            {isLiked ? (
+              <>
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.likeHeartLargeWrap,
+                    {
+                      opacity: likeAnim.interpolate({
+                        inputRange: [0, 0.04, 0.34, 0.48, 1],
+                        outputRange: [0, 1, 1, 0, 0],
+                      }),
+                      transform: [
+                        {
+                          scale: likeAnim.interpolate({
+                            inputRange: [0, 0.22, 0.48],
+                            outputRange: [0.84, 1.08, 0.96],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <Image
+                    source={assets.heartFilledLarge}
+                    style={styles.likeHeartLarge}
+                    resizeMode="contain"
+                  />
+                </Animated.View>
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.likeHeartSmallWrap,
+                    {
+                      opacity: likeAnim.interpolate({
+                        inputRange: [0, 0.38, 0.5, 1],
+                        outputRange: [0, 0, 1, 1],
+                      }),
+                    },
+                  ]}
+                >
+                  <Image
+                    source={assets.heartFilledSmall}
+                    style={styles.likeHeartSmall}
+                    resizeMode="contain"
+                  />
+                </Animated.View>
+              </>
+            ) : null}
             <Pressable
               style={[styles.actionButton, styles.likeButton, actionScale('like')]}
+              onPress={toggleLike}
               onPressIn={() => setPressedAction('like')}
               onPressOut={() => setPressedAction(null)}
             />
@@ -270,7 +430,10 @@ export default function AppGallery() {
               onPressOut={() => setPressedAction(null)}
             />
           </View>
-        </Animated.View>
+
+            </Animated.View>
+          </>
+        )}
       </View>
     </ScrollView>
   );
@@ -317,6 +480,65 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     position: 'relative',
+  },
+  rankingPage: {
+    flex: 1,
+    position: 'relative',
+  },
+  rankingPageBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#F6F8FF',
+  },
+  rankingNavBar: {
+    position: 'absolute',
+    left: 24,
+    top: 51,
+    width: 354,
+    height: 43,
+  },
+  rankingBackButton: {
+    position: 'absolute',
+    left: 35,
+    top: 50,
+    width: 54,
+    height: 54,
+    zIndex: 5,
+  },
+  rankingShareButton: {
+    position: 'absolute',
+    right: 26,
+    top: 50,
+    width: 54,
+    height: 54,
+    zIndex: 5,
+  },
+  rankingPageTitle: {
+    position: 'absolute',
+    left: 11,
+    top: 133,
+    width: 218,
+    height: 72,
+  },
+  rankingPageSubtitle: {
+    position: 'absolute',
+    left: 33,
+    top: 187,
+    width: 178,
+    height: 21,
+  },
+  rankingPageBanner: {
+    position: 'absolute',
+    left: 49,
+    top: 232,
+    width: 304,
+    height: 134,
+  },
+  rankingPageList: {
+    position: 'absolute',
+    left: 48,
+    top: 389,
+    width: 318,
+    height: 429,
   },
   header: {
     position: 'absolute',
@@ -393,6 +615,32 @@ const styles = StyleSheet.create({
   cardImage: {
     width: '100%',
     height: '100%',
+  },
+  pawzzleScreenshotHotspot: {
+    position: 'absolute',
+    left: 34,
+    top: 181,
+    width: 212,
+    height: 185,
+    overflow: 'hidden',
+  },
+  pawzzleScreenshotSwapImage: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 212,
+    height: 185,
+  },
+  pawzzleDotsAltWrap: {
+    position: 'absolute',
+    left: 123,
+    top: 385,
+    width: 40,
+    height: 4.25,
+  },
+  pawzzleDotsAlt: {
+    width: 40,
+    height: 4.25,
   },
   cardLeft: {
     position: 'absolute',
@@ -512,5 +760,97 @@ const styles = StyleSheet.create({
   },
   commentButton: {
     left: 287,
+  },
+  likeHeartLargeWrap: {
+    position: 'absolute',
+    left: 98.54,
+    top: 20.35,
+    width: 17.57,
+    height: 14.91,
+  },
+  likeHeartLarge: {
+    width: 17.57,
+    height: 14.91,
+  },
+  likeHeartSmallWrap: {
+    position: 'absolute',
+    left: 99.74,
+    top: 20.97,
+    width: 15.16,
+    height: 13.66,
+  },
+  likeHeartSmall: {
+    width: 15.16,
+    height: 13.66,
+  },
+  rankingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
+  },
+  rankingBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(54, 51, 75, 0.22)',
+  },
+  rankingPanel: {
+    position: 'absolute',
+    left: 36,
+    top: 168,
+    width: 330,
+    height: 558,
+    borderRadius: 34,
+    backgroundColor: 'rgba(246,248,255,0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.88)',
+    alignItems: 'center',
+    shadowColor: '#7C62FF',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.2,
+    shadowRadius: 28,
+    elevation: 12,
+  },
+  rankingSmallPill: {
+    position: 'absolute',
+    left: 22,
+    top: 19,
+    width: 102,
+    height: 23,
+  },
+  rankingSmallPillRight: {
+    position: 'absolute',
+    right: 25,
+    top: 19,
+    width: 68,
+    height: 23,
+    opacity: 0.72,
+  },
+  dreamToolsTitle: {
+    position: 'absolute',
+    top: 73,
+    width: 236,
+    height: 28,
+  },
+  rankingTinyPill: {
+    position: 'absolute',
+    top: 124,
+    width: 102,
+    height: 23,
+  },
+  goldAwardBanner: {
+    position: 'absolute',
+    top: 152,
+    width: 300,
+    height: 132,
+  },
+  rankingTitle: {
+    position: 'absolute',
+    top: 304,
+    width: 214,
+    height: 74,
+  },
+  rankingList: {
+    position: 'absolute',
+    top: 350,
+    width: 270,
+    height: 365,
   },
 });
