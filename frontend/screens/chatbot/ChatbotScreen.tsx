@@ -424,7 +424,7 @@ export default function ChatbotScreen() {
                 ]}>
         {/* Under Robot Ripple Platform - Using processed transparent image */}
           <Animated.Image
-         source={require('../../assets/chatbot/underrobot.png')}
+         source={require('../../assets/images/ui/underrobot.png')}
             style={[
               styles.underRobotImage,
               {
@@ -437,7 +437,7 @@ export default function ChatbotScreen() {
 
           {/* Robot Image */}
           <Image
-          source={require('../../assets/chatbot/robot.png')}
+          source={require('../../assets/images/ui/robot.png')}
             style={styles.robotImage}
             resizeMode="contain"
           />

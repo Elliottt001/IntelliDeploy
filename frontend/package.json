@@ -16,24 +16,31 @@
     "axios": "^1.13.6",
     "expo": "~55.0.23",
     "expo-constants": "~55.0.9",
+    "expo-font": "~55.0.7",
     "expo-linear-gradient": "^55.0.13",
     "expo-linking": "~55.0.15",
     "expo-router": "~55.0.14",
     "expo-status-bar": "~55.0.6",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.14.0",
+    "nativewind": "^4.2.4",
     "postcss": "^8.5.14",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.6",
+    "react-native-css-interop": "^0.2.4",
+    "react-native-reanimated": "4.2.1",
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.23.0",
     "react-native-svg": "^15.15.5",
-    "react-native-web": "^0.21.0",
-    "tailwindcss": "^4.3.0"
+    "react-native-web": "^0.21.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "babel-preset-expo": "^55.0.21",
+    "prettier-plugin-tailwindcss": "^0.5.14",
+    "react-native-svg-transformer": "^1.5.3",
+    "tailwindcss": "^3.4.19",
     "typescript": "~5.9.2"
   },
   "private": true

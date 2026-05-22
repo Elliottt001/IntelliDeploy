@@ -1,4 +1,6 @@
+import '../global.css';
 import { Stack, usePathname, useRouter } from 'expo-router';
+import { useFonts } from 'expo-font';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { authAPI } from '../services/api';
@@ -89,7 +91,32 @@ export default function RootLayout() {
 
   const isPublicRoute = PUBLIC_ROUTES.has(pathname);
   const isRedirectingToLogin = !isCheckingAuth && !isAuthenticated && !isPublicRoute;
-  const isRedirectingToHome = !isCheckingAuth && isAuthenticated && isPublicRoute;
+  const shouldShowAuthOverlay = !isPublicRoute && (isCheckingAuth || isRedirectingToLogin);
+
+
+  const [fontsLoaded] = useFonts({
+    ZiTiQuanWeiJunHei: require('../assets/fonts/ZiTiQuanWeiJunHei-W3.ttf'),
+    AlibabaPuHuiTiThin: require('../assets/fonts/Alibaba_PuHuiTi_2.0_35_Thin_35_Thin.ttf'),
+    AlibabaPuHuiTiLight: require('../assets/fonts/Alibaba_PuHuiTi_2.0_45_Light_45_Light.ttf'),
+    AlibabaPuHuiTiRegular: require('../assets/fonts/Alibaba_PuHuiTi_2.0_55_Regular_55_Regular.ttf'),
+    AlibabaPuHuiTiSemiBold: require('../assets/fonts/Alibaba_PuHuiTi_2.0_75_SemiBold_75_SemiBold.ttf'),
+    AlibabaPuHuiTiBold: require('../assets/fonts/Alibaba_PuHuiTi_2.0_55_Regular_85_Bold.ttf'),
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#EFF3FF',
+        }}
+      >
+        <ActivityIndicator color="#7C62FF" size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -113,7 +140,7 @@ export default function RootLayout() {
         <Stack.Screen name="chatbot" options={{ title: 'Mibo AI Chatbot', headerShown: false }} />
       </Stack>
 
-      {(isCheckingAuth || isRedirectingToLogin || isRedirectingToHome) && (
+      {shouldShowAuthOverlay && (
         <View
           style={{
             position: 'absolute',
