@@ -10,9 +10,14 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+
+const DESIGN_WIDTH = 375;
+const DESIGN_HEIGHT = 812;
 
 import { RAG_RESULT_STORAGE_KEY, type RagCandidate, type RagSearchResponse } from '../../services/api';
 
@@ -77,6 +82,10 @@ const fallbackApps: GalleryApp[] = [
 
 export default function AppGallery() {
   const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const scale = screenWidth / DESIGN_WIDTH;
+  const scaledHeight = DESIGN_HEIGHT * scale;
   const [activeIndex, setActiveIndex] = useState(0);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -221,8 +230,21 @@ export default function AppGallery() {
   });
 
   return (
-    <View style={styles.shell}>
-      <View style={styles.artboard}>
+    <View style={[styles.shell, { backgroundColor: '#EFF3FF', paddingTop: insets.top }]}>
+      <View
+        style={[
+          styles.artboard,
+          { width: screenWidth, height: scaledHeight, borderRadius: 0, borderWidth: 0 },
+        ]}
+      >
+        <View
+          style={{
+            width: DESIGN_WIDTH,
+            height: DESIGN_HEIGHT,
+            transform: [{ scale }],
+            transformOrigin: 'top left',
+          }}
+        >
         <View style={styles.bg} />
         <Animated.View style={[styles.blobPink, { transform: [{ translateY: floatY }] }]} />
         <Animated.View
@@ -371,6 +393,7 @@ export default function AppGallery() {
           <GalleryAction active={liked} icon="♡" label={liked ? '已赞·2.1k' : '点赞·2.1k'} onPress={() => setLiked((value) => !value)} />
           <GalleryAction active={saved} icon="☆" label={saved ? '已收藏' : '收藏·1k'} onPress={() => setSaved((value) => !value)} />
           <GalleryAction icon="☵" label="评论·267" onPress={nextCard} />
+        </View>
         </View>
       </View>
     </View>

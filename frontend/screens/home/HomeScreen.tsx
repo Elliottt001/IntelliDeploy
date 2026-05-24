@@ -9,7 +9,9 @@ import {
   ScrollView,
   Image,
   Pressable,
+  useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 // Web landing page components
@@ -24,6 +26,9 @@ import Footer from '../../components/web/Footer';
 const featureChatImage = require('../../assets/images/feature-chat.png');
 const featureAppstoreImage = require('../../assets/images/feature-appstore.png');
 const featureCommunity1Image = require('../../assets/images/feature-community1.png');
+
+const DESIGN_WIDTH = 375;
+const DESIGN_HEIGHT = 812;
 
 const mobileCatImage =
   'https://www.figma.com/api/mcp/asset/be3df654-ec89-4c35-a63a-f7e408efb85c';
@@ -119,6 +124,10 @@ function WebHome() {
 
 function MobileHome() {
   const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const scale = screenWidth / DESIGN_WIDTH;
+  const scaledHeight = DESIGN_HEIGHT * scale;
   const [expandedCard, setExpandedCard] = useState<
     'gallery' | 'products' | 'square' | 'profile' | null
   >(null);
@@ -284,8 +293,21 @@ function MobileHome() {
   };
 
   return (
-    <View style={styles.mobileShell}>
-      <View style={styles.mobileArtboard}>
+    <View style={[styles.mobileShell, { backgroundColor: '#EFF3FF', paddingTop: insets.top }]}>
+      <View
+        style={[
+          styles.mobileArtboard,
+          { width: screenWidth, height: scaledHeight, borderRadius: 0, borderWidth: 0 },
+        ]}
+      >
+        <View
+          style={{
+            width: DESIGN_WIDTH,
+            height: DESIGN_HEIGHT,
+            transform: [{ scale }],
+            transformOrigin: 'top left',
+          }}
+        >
         <View style={styles.mobileBg} />
         <Animated.View style={[styles.mobileBlobPink, { transform: [{ translateY: floatY }] }]} />
         <Animated.View
@@ -671,6 +693,7 @@ function MobileHome() {
           <NavItem icon={navSquareIcon} label="广场" active={activeTab === '广场'} onPress={setActiveTab} />
           <NavItem icon={navUserIcon} label="我的" active={activeTab === '我的'} onPress={setActiveTab} />
         </Animated.View>
+        </View>
       </View>
     </View>
   );

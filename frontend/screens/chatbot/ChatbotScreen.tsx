@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Platform, Animated, Easing, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Platform, Animated, Easing, Image, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -103,6 +104,8 @@ const MicrophoneIcon = ({ size = 18, color = '#8B8FAF' }) => (
 
 export default function ChatbotScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -367,7 +370,7 @@ export default function ChatbotScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, width: screenWidth }]}>
       {/* Main Chat Container */}
       <Animated.View style={[styles.chatContainer, { opacity: fadeAnim }]}>
         {/* Background with gradient */}
@@ -622,30 +625,14 @@ export default function ChatbotScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E8E8E8',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#E8EBFF',
   },
   chatContainer: {
+    flex: 1,
     width: '100%',
-    maxWidth: 420,
-    height: 896,
-    borderRadius: 32,
     overflow: 'hidden',
     backgroundColor: '#E8EBFF',
     position: 'relative',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 20 },
-        shadowOpacity: 0.15,
-        shadowRadius: 60,
-      elevation: 20,
-      },
-    }),
   },
   background: {
     ...StyleSheet.absoluteFillObject,
@@ -653,7 +640,7 @@ const styles = StyleSheet.create({
   },
   header: {
   position: 'absolute',
-    top: 48,
+    top: 12,
     left: 28,
     right: 28,
     height: 52,
