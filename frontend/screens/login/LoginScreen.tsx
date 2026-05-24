@@ -16,6 +16,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
   type ImageProps,
   type ImageSourcePropType,
   type PressableProps,
@@ -23,6 +24,7 @@ import {
   type TextProps,
   type ViewProps,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 import {
   atmosphereXml,
@@ -237,13 +239,22 @@ function getLoginErrorMessage(error: unknown): string {
   return maybeResponse.response?.data?.detail || '登录失败，请检查账号和密码';
 }
 
+const DESIGN_WIDTH = 375;
+const DESIGN_HEIGHT = 812;
+
 export default function LoginScreen() {
   const router = useRouter();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const scale = screenWidth / DESIGN_WIDTH;
+  const scaledHeight = DESIGN_HEIGHT * scale;
+  const availableHeight = Math.max(screenHeight, scaledHeight);
 
   const canSubmit = useMemo(
     () => agreePrivacy && account.trim().length > 0 && password.trim().length > 0 && !loading,
@@ -274,16 +285,36 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView className="flex-1 bg-white" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView className="flex-1" style={styles.screenBackground} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style="dark" />
 
-      <ScrollView className="flex-1" contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" bounces={false}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={[styles.scrollContent, { minHeight: availableHeight, paddingTop: insets.top, paddingBottom: insets.bottom }]}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+      >
         <TView
-          className="relative h-[812px] w-[375px] overflow-hidden rounded-[40px] border-[5px] border-white"
-          style={styles.artboardBackground}
+          style={[
+            styles.artboardBackground,
+            {
+              width: screenWidth,
+              height: scaledHeight,
+            },
+          ]}
+          className="relative overflow-hidden"
         >
-          <LocalSvg xml={atmosphereXml} className="absolute left-[-101px] top-[72px] h-[611.33px] w-[658.45px]" />
+          <TView
+            style={{
+              width: DESIGN_WIDTH,
+              height: DESIGN_HEIGHT,
+              transform: [{ scale }],
+              transformOrigin: 'top left',
+            }}
+            className="relative"
+          >
+            <LocalSvg xml={atmosphereXml} className="absolute left-[-101px] top-[72px] h-[611.33px] w-[658.45px]" />
 
           <TView className="absolute left-[28px] top-[93px] h-[195px] w-[344px]">
             <LocalSvg xml={rippleXml} className="absolute left-[5px] top-[55px] h-[139.74px] w-[339px]" />
@@ -402,11 +433,17 @@ export default function LoginScreen() {
               disabled={!canSubmit}
               onPress={handleLogin}
               className={[
-                'relative h-[46px] w-[299px] items-center justify-center overflow-hidden rounded-full border-[0.5px] border-[#FDE0FF] bg-[#7C62FF] active:scale-[0.98]',
+                'relative h-[46px] w-[299px] items-center justify-center overflow-hidden rounded-full border-[0.5px] border-[#FDE0FF] active:scale-[0.98]',
                 !canSubmit ? 'opacity-60' : 'opacity-100',
               ].join(' ')}
               style={styles.loginButtonShadow}
             >
+              <TLinearGradient
+                colors={['#8A6BFF', '#6E8DFF']}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                className="absolute inset-0"
+              />
               <LoginButtonOrnaments />
               <TText className="z-10 text-[16px] font-semibold text-white" style={styles.alibabaSemiBold}>
                 {loading ? '登录中...' : '立即登录'}
@@ -459,6 +496,7 @@ export default function LoginScreen() {
               </TPressable>
             </TView>
           </TLinearGradient>
+          </TView>
         </TView>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -466,11 +504,13 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  screenBackground: {
+    backgroundColor: '#EFF3FF',
+  },
   scrollContent: {
     flexGrow: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    justifyContent: 'flex-start',
   },
   artboardBackground: {
     backgroundColor: '#EFF3FF',

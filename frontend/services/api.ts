@@ -172,11 +172,18 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+type AuthListener = (token: string | null) => void;
+const authListeners = new Set<AuthListener>();
+function notifyAuthListeners(token: string | null) {
+  authListeners.forEach((listener) => listener(token));
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
       await AsyncStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+      notifyAuthListeners(null);
     }
     return Promise.reject(error);
   }
@@ -188,9 +195,21 @@ export const authAPI = {
   login: (username: string, password: string) =>
     api.post('/auth/login', { username, password }),
   getMe: () => api.get('/auth/me'),
-  clearToken: () => AsyncStorage.removeItem(AUTH_TOKEN_STORAGE_KEY),
+  clearToken: async () => {
+    await AsyncStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    notifyAuthListeners(null);
+  },
   getToken: () => AsyncStorage.getItem(AUTH_TOKEN_STORAGE_KEY),
-  setToken: (token: string) => AsyncStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token),
+  setToken: async (token: string) => {
+    await AsyncStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+    notifyAuthListeners(token);
+  },
+  subscribe: (listener: AuthListener) => {
+    authListeners.add(listener);
+    return () => {
+      authListeners.delete(listener);
+    };
+  },
 };
 
 export const ragAPI = {

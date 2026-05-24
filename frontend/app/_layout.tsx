@@ -1,11 +1,15 @@
 import '../global.css';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, LogBox, Platform, View } from 'react-native';
 import { authAPI } from '../services/api';
 
 const PUBLIC_ROUTES = new Set(['/login', '/register']);
+
+if (Platform.OS !== 'web') {
+  LogBox.ignoreLogs(['Some of the used filters are not yet supported on native platforms']);
+}
 
 export default function RootLayout() {
   const router = useRouter();
@@ -13,85 +17,62 @@ export default function RootLayout() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const checkAuth = useCallback(async () => {
-    try {
-      const token = await authAPI.getToken();
-      if (!token) {
-        setIsAuthenticated(false);
-        return false;
-      }
-
-      await authAPI.getMe();
-      setIsAuthenticated(true);
-      return true;
-    } catch (error) {
-      console.warn('Auth check failed', error);
-      await authAPI.clearToken();
-      setIsAuthenticated(false);
-      return false;
-    }
-  }, []);
-
   useEffect(() => {
     let isMounted = true;
 
     async function bootstrapAuth() {
-      await checkAuth();
-      if (isMounted) {
-        setIsCheckingAuth(false);
+      try {
+        const token = await authAPI.getToken();
+        if (isMounted) {
+          setIsAuthenticated(Boolean(token));
+        }
+      } catch (error) {
+        console.warn('Auth bootstrap failed', error);
+        if (isMounted) {
+          setIsAuthenticated(false);
+        }
+      } finally {
+        if (isMounted) {
+          setIsCheckingAuth(false);
+        }
       }
     }
 
     bootstrapAuth();
 
+    const unsubscribe = authAPI.subscribe((token) => {
+      if (isMounted) {
+        setIsAuthenticated(Boolean(token));
+      }
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
     };
-  }, [checkAuth]);
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function enforceAuth() {
-      if (isCheckingAuth) {
-        return;
-      }
-
-      const isPublicRoute = PUBLIC_ROUTES.has(pathname);
-
-      if (isPublicRoute) {
-        if (isAuthenticated) {
-          router.replace('/');
-        }
-        return;
-      }
-
-      if (isAuthenticated) {
-        return;
-      }
-
-      setIsCheckingAuth(true);
-      const hasValidSession = await checkAuth();
-      if (!isMounted) {
-        return;
-      }
-
-      setIsCheckingAuth(false);
-      if (!hasValidSession) {
-        router.replace('/login');
-      }
+    if (isCheckingAuth) {
+      return;
     }
 
-    enforceAuth();
+    const isPublicRoute = PUBLIC_ROUTES.has(pathname);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [checkAuth, isAuthenticated, isCheckingAuth, pathname, router]);
+    if (isPublicRoute) {
+      if (isAuthenticated) {
+        router.replace('/');
+      }
+      return;
+    }
+
+    if (!isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, isCheckingAuth, pathname, router]);
 
   const isPublicRoute = PUBLIC_ROUTES.has(pathname);
-  const isRedirectingToLogin = !isCheckingAuth && !isAuthenticated && !isPublicRoute;
-  const shouldShowAuthOverlay = !isPublicRoute && (isCheckingAuth || isRedirectingToLogin);
+  const shouldShowAuthOverlay = isCheckingAuth && !isPublicRoute;
 
 
   const [fontsLoaded] = useFonts({
