@@ -6,7 +6,7 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:9
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 10000,
+  timeout: 120000,
 });
 
 export const AUTH_TOKEN_STORAGE_KEY = 'token';
@@ -220,10 +220,11 @@ export const ragAPI = {
     });
     return response;
   },
-  chat: async (rawQuery: string) => {
+  chat: async (rawQuery: string, prefetchedSearch?: RagSearchResponse) => {
     const response = await api.post<RagChatResponse>('/api/rag/chat', {
       raw_query: rawQuery,
       top_k: 3,
+      prefetched_search: prefetchedSearch,
     });
     return response;
   },

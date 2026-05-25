@@ -225,7 +225,11 @@ export default function ChatbotScreen() {
 
     setIsLoading(true);
     try {
-      const response = await ragAPI.chat(trimmed);
+      // 拆成两阶段：先 search 把候选拿出来（这里才是 LLM/GitHub 慢的环节），
+      // 再用 prefetched_search 触发 chat 启动流水线 —— 后端跳过重复检索，
+      // chat 几乎即时返回，前端能在流水线真正开跑前先建好 WebSocket。
+      const searchResp = await ragAPI.search(trimmed);
+      const response = await ragAPI.chat(trimmed, searchResp.data);
       const result = response.data;
       setChatResult(result);
       await AsyncStorage.multiSet([
