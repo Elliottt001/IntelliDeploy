@@ -17,6 +17,10 @@ SCHEMA_REGISTRY: dict[str, type[BaseModel]] = {
 }
 
 
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_TEMPLATES_ROOT = _PROJECT_ROOT / "prompts" / "templates"
+
+
 @dataclass(frozen=True)
 class PromptSpec:
     prompt_id: str
@@ -32,10 +36,22 @@ class PromptSpec:
 class PromptManager:
     """Loads prompt templates and validates prompt input/output contracts."""
 
-    def __init__(self, templates_root: str | Path = "prompts/templates"):
-        self.templates_root = Path(templates_root)
+    def __init__(self, templates_root: str | Path | None = None):
+        self.templates_root = Path(templates_root) if templates_root is not None else DEFAULT_TEMPLATES_ROOT
+        if not self.templates_root.is_absolute():
+            self.templates_root = (_PROJECT_ROOT / self.templates_root).resolve()
+        if not self.templates_root.exists():
+            raise FileNotFoundError(
+                f"Prompt templates directory not found: {self.templates_root}. "
+                f"Expected absolute or repo-relative path with .md prompt files."
+            )
         self._registry: dict[tuple[str, str], PromptSpec] = {}
         self._load_all()
+        if not self._registry:
+            raise RuntimeError(
+                f"No prompts loaded from {self.templates_root}. "
+                f"Check that prompt .md files with JSON front-matter exist."
+            )
 
     def _load_all(self) -> None:
         for path in self.templates_root.rglob("*.md"):
