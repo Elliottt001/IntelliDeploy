@@ -188,10 +188,17 @@ class RouterAgent:
 
     def _build_github_query(self, keywords: Iterable[str], tech_stack: Iterable[str]) -> str:
         terms = list(keywords)[:4]
-        for stack in list(tech_stack)[:3]:
-            topic = self._stack_to_topic(stack)
+        # GitHub Search 不支持 `(topic:a OR topic:b)` 这种括号 OR 语法，
+        # 多个 `topic:` 串起来又是 AND（要求 repo 同时打了所有标签 —— 几乎不存在）。
+        # 所以只用 tech_stack[0] 作为 topic 过滤；其余技术栈作为关键词参与 BM25。
+        stacks = list(tech_stack)
+        if stacks:
+            topic = self._stack_to_topic(stacks[0])
             if topic:
                 terms.append(f"topic:{topic}")
+            for stack in stacks[1:3]:
+                if stack and stack.lower() not in {term.lower() for term in terms}:
+                    terms.append(stack)
         terms.append(f"stars:>{self.min_stars}")
         terms.append(f"pushed:>{self._cutoff_date()}")
         return " ".join(term for term in terms if term)

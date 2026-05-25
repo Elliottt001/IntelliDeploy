@@ -2,10 +2,14 @@
 WebSocket管理器
 用于实时推送部署状态和日志
 """
-from typing import Any, Dict, Set
+from collections import deque
+from typing import Any, Deque, Dict, Set
 from fastapi import WebSocket
-import json
 import asyncio
+
+
+# 每个 deployment 最多缓冲多少条事件，用于晚连接的客户端补发
+_EVENT_BUFFER_MAX = 500
 
 
 class ConnectionManager:
@@ -14,30 +18,27 @@ class ConnectionManager:
     def __init__(self):
         # deployment_id -> Set[WebSocket]
         self.active_connections: Dict[str, Set[WebSocket]] = {}
+        # deployment_id -> 历史事件缓冲（用于 late-connect replay）
+        self._event_buffer: Dict[str, Deque[Dict]] = {}
         self._lock = asyncio.Lock()
 
     async def connect(self, websocket: WebSocket, deployment_id: str):
-        """
-        连接WebSocket
-
-        Args:
-            websocket: WebSocket连接
-            deployment_id: 部署ID
-        """
+        """接受 WS 连接，并把缓存中的历史事件 replay 给它"""
         await websocket.accept()
         async with self._lock:
             if deployment_id not in self.active_connections:
                 self.active_connections[deployment_id] = set()
             self.active_connections[deployment_id].add(websocket)
+            buffered = list(self._event_buffer.get(deployment_id, ()))
+
+        # Replay 缓冲事件——让 HTTP 请求结束前就发的 stage 不丢
+        for message in buffered:
+            try:
+                await websocket.send_json(message)
+            except Exception:
+                break
 
     async def disconnect(self, websocket: WebSocket, deployment_id: str):
-        """
-        断开WebSocket连接
-
-        Args:
-            websocket: WebSocket连接
-            deployment_id: 部署ID
-        """
         async with self._lock:
             if deployment_id in self.active_connections:
                 self.active_connections[deployment_id].discard(websocket)
@@ -45,51 +46,35 @@ class ConnectionManager:
                     del self.active_connections[deployment_id]
 
     async def send_message(self, deployment_id: str, message: Dict):
-        """
-        发送消息给指定部署的所有连接
+        """广播消息给该部署的所有连接，同时把它放进 replay 缓冲"""
+        # 不论有没有连接，先把消息塞进缓冲（让后到的客户端能 replay）
+        async with self._lock:
+            buffer = self._event_buffer.setdefault(
+                deployment_id, deque(maxlen=_EVENT_BUFFER_MAX)
+            )
+            buffer.append(message)
+            connections = list(self.active_connections.get(deployment_id, ()))
 
-        Args:
-            deployment_id: 部署ID
-            message: 消息内容
-        """
-        if deployment_id not in self.active_connections:
+        if not connections:
             return
 
-        # 获取连接副本,避免在迭代时修改
-        connections = list(self.active_connections.get(deployment_id, []))
-
-        # 并发发送消息
-        tasks = []
-        for connection in connections:
-            tasks.append(self._send_to_connection(connection, deployment_id, message))
-
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+        tasks = [
+            self._send_to_connection(connection, deployment_id, message)
+            for connection in connections
+        ]
+        await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _send_to_connection(self, connection: WebSocket, deployment_id: str, message: Dict):
-        """
-        发送消息到单个连接
-
-        Args:
-            connection: WebSocket连接
-            deployment_id: 部署ID
-            message: 消息内容
-        """
         try:
             await connection.send_json(message)
         except Exception:
-            # 连接已断开,移除
             await self.disconnect(connection, deployment_id)
 
-    async def broadcast_status(self, deployment_id: str, status: str, data: Dict = None):
-        """
-        广播部署状态更新
+    def clear_buffer(self, deployment_id: str) -> None:
+        """部署彻底结束（或丢弃）后调用，回收 replay 缓冲，避免内存泄漏"""
+        self._event_buffer.pop(deployment_id, None)
 
-        Args:
-            deployment_id: 部署ID
-            status: 状态
-            data: 额外数据
-        """
+    async def broadcast_status(self, deployment_id: str, status: str, data: Dict = None):
         message = {
             "type": "status",
             "deployment_id": deployment_id,
@@ -100,14 +85,6 @@ class ConnectionManager:
         await self.send_message(deployment_id, message)
 
     async def broadcast_log(self, deployment_id: str, log_line: str, level: str = "info"):
-        """
-        广播日志行
-
-        Args:
-            deployment_id: 部署ID
-            log_line: 日志内容
-            level: 日志级别
-        """
         message = {
             "type": "log",
             "deployment_id": deployment_id,
@@ -118,14 +95,6 @@ class ConnectionManager:
         await self.send_message(deployment_id, message)
 
     async def broadcast_event(self, deployment_id: str, event_type: str, data: Dict):
-        """
-        广播事件
-
-        Args:
-            deployment_id: 部署ID
-            event_type: 事件类型
-            data: 事件数据
-        """
         message = {
             "type": "event",
             "deployment_id": deployment_id,
@@ -136,14 +105,6 @@ class ConnectionManager:
         await self.send_message(deployment_id, message)
 
     async def broadcast_error(self, deployment_id: str, error_message: str, error_type: str = None):
-        """
-        广播错误
-
-        Args:
-            deployment_id: 部署ID
-            error_message: 错误信息
-            error_type: 错误类型
-        """
         message = {
             "type": "error",
             "deployment_id": deployment_id,
@@ -181,19 +142,9 @@ class ConnectionManager:
         await self.send_message(deployment_id, payload)
 
     def get_connection_count(self, deployment_id: str) -> int:
-        """
-        获取指定部署的连接数
-
-        Args:
-            deployment_id: 部署ID
-
-        Returns:
-            int: 连接数
-        """
         return len(self.active_connections.get(deployment_id, set()))
 
     def _get_timestamp(self) -> str:
-        """获取当前时间戳"""
         from datetime import datetime
         return datetime.now().isoformat()
 

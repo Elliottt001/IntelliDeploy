@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import datetime, timedelta, timezone
 import math
 from typing import Any, Callable, Protocol
@@ -10,6 +11,8 @@ from pydantic import BaseModel, Field
 from app.agent_core.brains.router_agent import RepoIntent, RouterAgent
 from app.agent_core.memory.vector_store import BM25ReadmeStore, ReadmeSearchResult, clean_readme_text
 from app.schemas.fallback import PackageManager, RepoProfile
+
+logger = logging.getLogger(__name__)
 
 
 class RepositoryCandidate(BaseModel):
@@ -142,17 +145,93 @@ class NL2RepoRetrievalPipeline:
 
     async def _github_search(self, intent: RepoIntent) -> list[RepositoryCandidate]:
         if self.github_client is None:
-            return []
-        try:
-            candidates = await self.github_client.search_repositories(
-                intent.github_query, per_page=self.github_top_k
+            logger.warning(
+                "GitHub search skipped: github_client is None. Check RetrievalService init."
             )
-        except Exception:
             return []
 
-        for index, candidate in enumerate(candidates):
-            candidate.source_scores.setdefault("github_search", 1.0 - index * 0.02)
-        return candidates
+        # 渐进式降级：原始 query → 砍掉 pushed/stars 限制 → 砍掉次要关键词。
+        # GitHub Search 是严格 AND，关键词稍多就 0 结果，需要逐步放宽。
+        queries = self._relaxed_query_variants(intent.github_query)
+        last_error: Exception | None = None
+
+        for attempt, query in enumerate(queries):
+            try:
+                candidates = await self.github_client.search_repositories(
+                    query, per_page=self.github_top_k
+                )
+            except Exception as exc:
+                last_error = exc
+                logger.exception(
+                    "GitHub search attempt %d failed for query=%r: %s. "
+                    "Verify tokens with: curl -H 'Authorization: Bearer <TOKEN>' "
+                    "https://api.github.com/rate_limit",
+                    attempt,
+                    query,
+                    exc,
+                )
+                continue
+
+            if candidates:
+                if attempt > 0:
+                    logger.info(
+                        "GitHub search recovered with relaxed query (attempt %d): %r → %d candidates",
+                        attempt,
+                        query,
+                        len(candidates),
+                    )
+                else:
+                    logger.info(
+                        "GitHub search returned %d candidate(s) for query=%r.",
+                        len(candidates),
+                        query,
+                    )
+                for index, candidate in enumerate(candidates):
+                    candidate.source_scores.setdefault("github_search", 1.0 - index * 0.02)
+                return candidates
+
+            logger.warning(
+                "GitHub search returned 0 items for query=%r (attempt %d). Trying relaxed variant.",
+                query,
+                attempt,
+            )
+
+        if last_error is None:
+            logger.warning(
+                "GitHub search exhausted all relaxed variants with 0 results. "
+                "Original query: %r",
+                intent.github_query,
+            )
+        return []
+
+    @staticmethod
+    def _relaxed_query_variants(query: str) -> list[str]:
+        """
+        给一个 GitHub 查询生成 1~3 个递进放宽的版本：
+        0) 原始 query
+        1) 去掉 pushed:>... 限制
+        2) 只保留 topic: + stars:, 砍掉所有自由文本关键词
+        """
+        if not query:
+            return []
+        tokens = query.split()
+        variants: list[str] = [query]
+
+        no_pushed = [tok for tok in tokens if not tok.startswith("pushed:")]
+        if no_pushed != tokens:
+            variants.append(" ".join(no_pushed))
+
+        skeleton = [tok for tok in tokens if tok.startswith(("topic:", "stars:", "language:"))]
+        if skeleton and skeleton not in (tokens, no_pushed):
+            variants.append(" ".join(skeleton))
+
+        seen: set[str] = set()
+        deduped: list[str] = []
+        for variant in variants:
+            if variant and variant not in seen:
+                seen.add(variant)
+                deduped.append(variant)
+        return deduped
 
     async def _readme_search(self, intent: RepoIntent) -> list[RepositoryCandidate]:
         results = self.readme_store.search(intent.keywords, top_k=self.readme_top_k)

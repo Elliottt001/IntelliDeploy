@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     GITHUB_SEARCH_TOKENS: str = ""
     GITHUB_SEARCH_TIMEOUT_SECONDS: float = 10.0
 
-    # 杨钞越的降级生成服务地址
-    FALLBACK_SERVICE_URL: str = "http://localhost:8001"
+    # 降级生成服务地址（"inprocess" 走进程内直调，避免依赖独立 HTTP 服务）
+    FALLBACK_SERVICE_URL: str = "inprocess"
 
     # Redis配置
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -39,6 +39,12 @@ class Settings(BaseSettings):
     KANIKO_DOCKER_CONFIG_SECRET: str = ""
     KANIKO_JOB_TIMEOUT_SECONDS: int = 600
     KANIKO_CONTEXT_MAX_BYTES: int = 900_000
+    # Kaniko build 出来后 push 到的 registry 前缀。
+    # Sealos 集群内部 registry 是 sealos.hub:5000，
+    # 同集群的 Job 不需要外部凭证；留空则不加前缀（push 到 docker.io）。
+    KANIKO_DESTINATION_REGISTRY: str = "sealos.hub:5000"
+    # Kaniko push 到自签证书的内部 registry 时需要加 --insecure。
+    KANIKO_INSECURE_REGISTRY: bool = True
 
     # 部署配置
     DEPLOYMENT_TIMEOUT: int = 300  # 5分钟

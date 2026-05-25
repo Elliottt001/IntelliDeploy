@@ -4,6 +4,7 @@ import base64
 import hashlib
 import itertools
 import json
+import logging
 import time
 from typing import Sequence
 
@@ -13,6 +14,8 @@ from app.agent_core.brains.context_rag_agent import RepositoryCandidate
 from app.agent_core.memory.vector_store import clean_readme_text
 from app.config import settings
 from app.services.redis_client import RedisClient, get_redis_client
+
+logger = logging.getLogger(__name__)
 
 
 class GitHubSearchError(Exception):
@@ -47,8 +50,20 @@ class GitHubTokenPool:
         configured = getattr(settings, "GITHUB_SEARCH_TOKENS", "")
         tokens = [token.strip() for token in configured.split(",") if token.strip()]
         github_token = getattr(settings, "GITHUB_TOKEN", "")
-        if github_token:
+        if github_token and github_token not in tokens:
             tokens.append(github_token)
+
+        if not tokens:
+            logger.warning(
+                "GitHub token pool is empty. Set GITHUB_SEARCH_TOKENS "
+                "(comma-separated) or GITHUB_TOKEN in backend/.env. "
+                "Without tokens, GitHub Search is limited to ~10 req/min by IP "
+                "and RAG retrieval will return empty candidates."
+            )
+        else:
+            logger.info(
+                "GitHub token pool initialized with %d token(s).", len(tokens)
+            )
         return cls(tokens)
 
     def next_token(self) -> str | None:

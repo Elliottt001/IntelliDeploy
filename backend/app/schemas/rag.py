@@ -109,6 +109,7 @@ class RagChatRequest(BaseModel):
     generation_mode: GenerationMode = GenerationMode.AUTO
     trigger_reason: TriggerReason = TriggerReason.LOW_SCORE_ALL
     top_k: int = Field(default=3, ge=1, le=10)
+    prefetched_search: Optional[RagSearchResponse] = None
 
 
 class RagChatResponse(BaseModel):

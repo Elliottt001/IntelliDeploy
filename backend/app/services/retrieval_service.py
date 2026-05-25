@@ -88,7 +88,10 @@ class RetrievalService:
                         api_base=api_base,
                         api_key=api_key,
                         model=settings.MODEL_NAME,
-                    )
+                    ),
+                    # LLM 不可用（403/超时/网络）时走启发式 intent,
+                    # 不要因为意图模型挂掉就把整条检索链路 500 掉。
+                    fallback_on_model_error=True,
                 )
         except Exception:
             pass

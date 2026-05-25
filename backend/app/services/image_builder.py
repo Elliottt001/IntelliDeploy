@@ -500,6 +500,10 @@ class ImageBuilder:
             f"--destination={full_image_name}",
             "--snapshotMode=redo",
         ]
+        if settings.KANIKO_INSECURE_REGISTRY:
+            # Sealos 内置 registry (sealos.hub:5000) 用自签证书，必须 --insecure 才能 push
+            args.append("--insecure")
+            args.append("--skip-tls-verify")
         for key, value in build_args.items():
             args.append(f"--build-arg={key}={value}")
 

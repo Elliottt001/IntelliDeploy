@@ -24,6 +24,24 @@ from app.services.image_builder import get_image_builder, BuildMethod
 from app.services.websocket_manager import get_ws_manager
 
 
+def _preferred_build_method() -> BuildMethod:
+    """根据 .env 配置选构建后端：有 Kaniko kubeconfig 走 Kaniko，否则才回退 Docker API。"""
+    if settings.KANIKO_KUBECONFIG:
+        return BuildMethod.KANIKO
+    return BuildMethod.DOCKER_API
+
+
+def _prefixed_image_name(runtime_name: str) -> str:
+    """给镜像名加上 Sealos 集群内部 registry 前缀，不然 Kaniko 会 push 到 docker.io 失败。"""
+    registry = (settings.KANIKO_DESTINATION_REGISTRY or "").strip().strip("/")
+    if not registry:
+        return runtime_name
+    namespace = (settings.KANIKO_NAMESPACE or "").strip()
+    if namespace:
+        return f"{registry}/{namespace}/{runtime_name}"
+    return f"{registry}/{runtime_name}"
+
+
 MAX_CONTEXT_BYTES = 5_000_000
 IGNORED_CONTEXT_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build"}
 IGNORED_CONTEXT_FILES = {".DS_Store"}
@@ -103,7 +121,7 @@ class DeploymentOrchestrator:
 
         try:
             # 步骤1: 构建Docker镜像
-            image_name = f"{deployment.runtime_name}"
+            image_name = _prefixed_image_name(deployment.runtime_name)
             image_tag = f"deploy-{deployment_id}"
 
             # 记录构建开始
@@ -133,7 +151,7 @@ class DeploymentOrchestrator:
             )
 
             # 构建镜像
-            builder = get_image_builder(method=BuildMethod.DOCKER_API)
+            builder = get_image_builder(method=_preferred_build_method())
             build_result = await builder.build_image(
                 dockerfile_content=artifact.dockerfile_content,
                 context_files=context_files,
@@ -647,9 +665,9 @@ class DeploymentOrchestrator:
                 raise ValueError(f"Deployment {deployment_id} not found")
 
             context_files = self._extract_context_files(artifact)
-            image_name = f"{deployment.runtime_name}-heal-{index}"
+            image_name = _prefixed_image_name(f"{deployment.runtime_name}-heal-{index}")
             image_tag = f"deploy-{deployment_id}-{task_id[:8]}"
-            builder = get_image_builder(method=BuildMethod.DOCKER_API)
+            builder = get_image_builder(method=_preferred_build_method())
 
             self._record_event(
                 deployment_id,
