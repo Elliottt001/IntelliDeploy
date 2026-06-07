@@ -44,12 +44,42 @@ def resolve_template_family(classify_response: ClassifyResponse) -> str:
 
 
 def resolve_container_port(request: FallbackRequest, classify_response: ClassifyResponse) -> int:
+    """Canonical container-port resolution — IntelliDeploy 内部唯一的端口决策点。
+
+    优先级（高 → 低）——核心准则："仓库硬证据 > Agent 猜测 > 框架默认"：
+
+    1) `target_port_candidates[0]` —— 由 extract_facts 从**仓库自身**抽出的硬证据：
+       - 已有 Dockerfile 的 `EXPOSE` 指令
+       - 源码里出现的 listen/bind 端口字面量
+       这是唯一能确认 app 启动后真实绑定端口的来源，必须最高优先。
+       否则 Yacht 这种自带 Dockerfile（EXPOSE 8000）的项目会被 Builder Agent
+       的 8080 启发式猜测覆盖，导致 plan 内部自相矛盾（docker_spec.exposed_port
+       与 target_port_candidates[0] 不一致 → port_validator 报
+       `TARGET_PORT_MISMATCH` blocking → 整管线降级到 ARTIFACT_NOT_READY）。
+
+    2) `constraints.target_port` —— 当前由 Multi-Agent Builder Agent 写入，
+       属于"LLM 启发式猜测"。仅在 repo 没有任何硬证据时使用，作为比模板默认
+       值更智能的兜底。未来如果引入用户显式指定的端口字段，应单独建模为
+       `constraints.user_target_port` 并放在优先级 (1) 之上。
+
+    3) `detected_ports` —— 与 target_port_candidates 通常重合，分开存以兼容
+       未来 detector 拆分。
+
+    4) 框架默认值。
+
+    这道排序是 IntelliDeploy 端口合约的唯一权威来源。port_validator 比较的
+    `target_port_candidates[0]` 与 `docker_spec.exposed_port` 由它保证一致：
+    候选若存在则两边都用它；候选若不存在则 validator 那边也不会拉出
+    target_port 来比，自然不冲突。
+    """
+    if classify_response.repo_fact_summary.target_port_candidates:
+        return classify_response.repo_fact_summary.target_port_candidates[0]
+
     constraints = request.user_intent.constraints or {}
     target_port = constraints.get("target_port")
     if isinstance(target_port, int) and target_port > 0:
         return target_port
-    if classify_response.repo_fact_summary.target_port_candidates:
-        return classify_response.repo_fact_summary.target_port_candidates[0]
+
     if classify_response.repo_fact_summary.detected_ports:
         return classify_response.repo_fact_summary.detected_ports[0]
     if classify_response.user_intent_summary.target_app_type in {"frontend_web", "dashboard", "static_site"}:
@@ -95,18 +125,42 @@ def resolve_start_command(request: FallbackRequest, classify_response: ClassifyR
     return 'nginx -g "daemon off;"'
 
 
+def _has_lock_file(classify_response: ClassifyResponse, *names: str) -> bool:
+    """检查 classify 阶段是否在 repo 里发现指定 lockfile（按 basename 匹配）。
+
+    用来在没 lockfile 时把 `npm ci` / `--frozen-lockfile` / `uv sync --frozen`
+    自动降级成普通 install —— 否则 Kaniko build 会在 `npm ci` 这步直接报
+    EUSAGE: missing package-lock.json 而炸。
+    """
+    targets = {name.lower() for name in names}
+    for path in classify_response.repo_fact_summary.lock_files or []:
+        basename = path.rsplit("/", 1)[-1].lower()
+        if basename in targets:
+            return True
+    return False
+
+
 def resolve_install_command(classify_response: ClassifyResponse) -> str | None:
     package_manager = classify_response.repo_fact_summary.package_manager
     if package_manager == "npm":
-        return "npm ci"
+        # 无 package-lock.json 时 `npm ci` 必定失败，降级成 `npm install`。
+        return "npm ci" if _has_lock_file(classify_response, "package-lock.json") else "npm install"
     if package_manager == "pnpm":
-        return "pnpm install --frozen-lockfile"
+        return (
+            "pnpm install --frozen-lockfile"
+            if _has_lock_file(classify_response, "pnpm-lock.yaml")
+            else "pnpm install"
+        )
     if package_manager == "yarn":
-        return "yarn install --frozen-lockfile"
+        return (
+            "yarn install --frozen-lockfile"
+            if _has_lock_file(classify_response, "yarn.lock")
+            else "yarn install"
+        )
     if package_manager == "poetry":
         return "poetry install --no-interaction --no-root"
     if package_manager == "uv":
-        return "uv sync --frozen"
+        return "uv sync --frozen" if _has_lock_file(classify_response, "uv.lock") else "uv sync"
     if package_manager == "pip":
         return "pip install --no-cache-dir -r requirements.txt"
     if package_manager == "go":
@@ -120,7 +174,8 @@ def resolve_install_command(classify_response: ClassifyResponse) -> str | None:
     if template_family.startswith("python_"):
         return "pip install --no-cache-dir -r requirements.txt"
     if template_family in {"node_express", "nextjs", "react_vite", "vue_vite"}:
-        return "npm ci"
+        # 模板兜底分支 —— 同样要看是否真的有 package-lock.json。
+        return "npm ci" if _has_lock_file(classify_response, "package-lock.json") else "npm install"
     if template_family == "go_gin":
         return "go mod download"
     if template_family == "java_springboot":

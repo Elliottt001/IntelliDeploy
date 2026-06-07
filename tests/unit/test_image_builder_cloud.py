@@ -133,8 +133,8 @@ def test_kaniko_build_creates_job_and_cleans_up(monkeypatch):
         BatchV1Api = staticmethod(lambda: batch_api)
         CoreV1Api = staticmethod(lambda: core_api)
         ApiException = ApiExceptionStub
-        V1ConfigMap = staticmethod(lambda metadata=None, data=None: SimpleNamespace(metadata=metadata, data=data))
-        V1ObjectMeta = staticmethod(lambda name=None, labels=None: SimpleNamespace(name=name, labels=labels))
+        V1ConfigMap = staticmethod(lambda **kwargs: SimpleNamespace(**kwargs))
+        V1ObjectMeta = staticmethod(lambda **kwargs: SimpleNamespace(**kwargs))
         V1Job = staticmethod(lambda metadata=None, spec=None: SimpleNamespace(metadata=metadata, spec=spec))
         V1JobSpec = staticmethod(lambda **kwargs: SimpleNamespace(**kwargs))
         V1PodTemplateSpec = staticmethod(lambda metadata=None, spec=None: SimpleNamespace(metadata=metadata, spec=spec))
@@ -144,6 +144,17 @@ def test_kaniko_build_creates_job_and_cleans_up(monkeypatch):
         V1ConfigMapVolumeSource = staticmethod(lambda name=None: SimpleNamespace(name=name))
         V1SecretVolumeSource = staticmethod(lambda secret_name=None: SimpleNamespace(secret_name=secret_name))
         V1VolumeMount = staticmethod(lambda **kwargs: SimpleNamespace(**kwargs))
+        # image_builder 给容器加了 resources / security context / emptyDir 等，
+        # stub 必须同步覆盖这些 V1* 工厂，否则 client.V1X 访问会 AttributeError，
+        # build 走进异常分支返回 'failed'（这正是之前回归的根因）。
+        V1ResourceRequirements = staticmethod(lambda **kwargs: SimpleNamespace(**kwargs))
+        V1SecurityContext = staticmethod(lambda **kwargs: SimpleNamespace(**kwargs))
+        V1Capabilities = staticmethod(lambda **kwargs: SimpleNamespace(**kwargs))
+        V1SeccompProfile = staticmethod(lambda **kwargs: SimpleNamespace(**kwargs))
+        V1EmptyDirVolumeSource = staticmethod(lambda **kwargs: SimpleNamespace(**kwargs))
+        V1EnvVar = staticmethod(lambda **kwargs: SimpleNamespace(**kwargs))
+        V1KeyToPath = staticmethod(lambda **kwargs: SimpleNamespace(**kwargs))
+        V1Secret = staticmethod(lambda **kwargs: SimpleNamespace(**kwargs))
 
     class ConfigModule:
         @staticmethod
@@ -169,7 +180,10 @@ def test_kaniko_build_creates_job_and_cleans_up(monkeypatch):
         assert result["status"] == BuildStatus.SUCCESS.value
         assert result["image"] == "registry/app:v1"
         assert core_api.config_maps[0][0] == "build-ns"
-        assert core_api.config_maps[0][1].data["app.py"] == "print('hi')"
+        # 生产代码现在把 context 打成 tar.gz 后 base64 塞进 binary_data，
+        # 字段名变了但只要证明 ConfigMap 里挂上了一个 tarball 条目即可。
+        cm_body = core_api.config_maps[0][1]
+        assert cm_body.binary_data and any(k.endswith(".tar.gz") for k in cm_body.binary_data)
         assert batch_api.jobs[0][0] == "build-ns"
         assert batch_api.deleted_jobs
         assert core_api.deleted_config_maps

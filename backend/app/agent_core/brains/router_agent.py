@@ -187,20 +187,12 @@ class RouterAgent:
         return intent
 
     def _build_github_query(self, keywords: Iterable[str], tech_stack: Iterable[str]) -> str:
-        terms = list(keywords)[:4]
-        # GitHub Search 不支持 `(topic:a OR topic:b)` 这种括号 OR 语法，
-        # 多个 `topic:` 串起来又是 AND（要求 repo 同时打了所有标签 —— 几乎不存在）。
-        # 所以只用 tech_stack[0] 作为 topic 过滤；其余技术栈作为关键词参与 BM25。
-        stacks = list(tech_stack)
-        if stacks:
-            topic = self._stack_to_topic(stacks[0])
-            if topic:
-                terms.append(f"topic:{topic}")
-            for stack in stacks[1:3]:
-                if stack and stack.lower() not in {term.lower() for term in terms}:
-                    terms.append(stack)
+        # 面向小白用户：他们不关心技术栈，只描述需求。
+        # GitHub Search 是严格 AND，关键词越多命中越少 —— 经验上 3 个意图词 + stars
+        # 就能命中数十个高质量项目；加 minimalist/topic:nextjs 之类反而直接归零。
+        # 技术栈不进 query，留给后续打分和 LLM 重排。
+        terms = list(keywords)[:3]
         terms.append(f"stars:>{self.min_stars}")
-        terms.append(f"pushed:>{self._cutoff_date()}")
         return " ".join(term for term in terms if term)
 
     def _cutoff_date(self) -> str:

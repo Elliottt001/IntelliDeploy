@@ -3,6 +3,8 @@ import os
 import subprocess
 from typing import Any, Dict, List
 
+from app.config import settings
+
 
 class K8sDeployError(Exception):
     pass
@@ -208,6 +210,15 @@ def deploy_with_kubeconfig(
             template=client.V1PodTemplateSpec(
                 metadata=client.V1ObjectMeta(labels={"app": name}),
                 spec=client.V1PodSpec(
+                    # 镜像在 GHCR 上默认是 private —— Sealos K8s 拉的时候需要凭据。
+                    # 复用 image_builder 在同 namespace 里 upsert 的 docker-config Secret，
+                    # Secret 名空时用兜底名（和 image_builder 保持一致）。
+                    image_pull_secrets=[
+                        client.V1LocalObjectReference(
+                            name=(settings.KANIKO_DOCKER_CONFIG_SECRET or "").strip()
+                                 or "kaniko-registry-auth"
+                        )
+                    ],
                     containers=[
                         client.V1Container(
                             name=name,

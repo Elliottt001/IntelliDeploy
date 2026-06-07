@@ -1,0 +1,9 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+// 没有这个 config，esbuild 走 classic JSX transform 会引用未导入的全局 React，
+// App.jsx 没有 `import React` 就会运行/构建出错。
+// @vitejs/plugin-react 默认启用 automatic runtime（React 17+），无需手动 import。
+export default defineConfig({
+  plugins: [react()],
+});

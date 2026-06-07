@@ -77,11 +77,15 @@ async def chat_from_prompt(
     candidate = _select_candidate(search.candidates, request.selected_repo_url)
     if candidate is None:
         if not search.candidates:
+            # 0 候选可能是限流、超时、或 query 太严。前两种 .env 修不了,
+            # 后端需要先看清 GitHub 实际返回了什么，所以这里把多种可能都列出来。
             detail = (
-                "RAG retrieval returned no candidates. This usually means "
-                "GitHub Search is rate-limited because no token is configured. "
-                "Please set GITHUB_SEARCH_TOKENS (comma-separated list) in "
-                "backend/.env and restart the backend."
+                "RAG retrieval returned no candidates. Possible causes: "
+                "(1) GitHub Search rate-limited — verify GITHUB_SEARCH_TOKENS in "
+                "backend/.env are still valid; "
+                "(2) GitHub API timeout — bump GITHUB_SEARCH_TIMEOUT_SECONDS; "
+                "(3) query is too restrictive after relaxed variants. "
+                "Check backend logs for the exact failure mode."
             )
         else:
             detail = (

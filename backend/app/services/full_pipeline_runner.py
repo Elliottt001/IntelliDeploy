@@ -56,6 +56,7 @@ async def run_full_pipeline_background(
     missing_components: list[str],
     generation_mode: GenerationMode,
     trigger_reason: TriggerReason,
+    kubeconfig: Optional[str] = None,
 ) -> None:
     """
     后台执行完整流水线。该函数应该用 asyncio.create_task 启动。
@@ -117,8 +118,11 @@ async def run_full_pipeline_background(
 
         # 3) 部署：有真实基础设施就跑 orchestrator，否则进 demo 模式模拟
         if _sealos_configured():
+            # 部署用的 kubeconfig：优先用调用方传入的（用户在控制台配的），
+            # 否则回退到 KANIKO_KUBECONFIG（通常和构建用的是同一个 Sealos 集群）。
+            deploy_kubeconfig = kubeconfig or settings.KANIKO_KUBECONFIG or None
             try:
-                await DeploymentOrchestrator(db).start_deployment(
+                await DeploymentOrchestrator(db, kubeconfig=deploy_kubeconfig).start_deployment(
                     deployment_id=deployment_id,
                     artifact=artifact,
                 )

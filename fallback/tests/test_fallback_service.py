@@ -27,7 +27,10 @@ def test_service_runs_patch_repo_flow() -> None:
     assert result["classification"].evaluation_result.decision == "B"
     assert result["plan"].decision == "B"
     assert any(file.path == "Dockerfile" for file in result["plan"].generated_files)
-    assert result["plan"].next_action == "MANUAL_REVIEW"
+    # Decision B 成功修补 Dockerfile + 启动配置后,docker_compose / healthcheck
+    # 这类 OPTIONAL_OR_INFORMATIONAL 缺失不再阻塞部署 —— next_action 应为 DEPLOY。
+    assert result["plan"].next_action == "DEPLOY"
+    assert result["plan"].deploy_ready is True
     assert result["validation"].passed is True
 
 

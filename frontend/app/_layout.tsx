@@ -118,7 +118,7 @@ export default function RootLayout() {
         <Stack.Screen name="login" options={{ title: '登录' }} />
         <Stack.Screen name="register" options={{ title: '注册' }} />
         <Stack.Screen name="app-gallery" options={{ title: 'App Gallery' }} />
-        <Stack.Screen name="chatbot" options={{ title: 'Mibo AI Chatbot', headerShown: false }} />
+        <Stack.Screen name="chatbot" options={{ title: 'Mibo', headerShown: false }} />
       </Stack>
 
       {shouldShowAuthOverlay && (

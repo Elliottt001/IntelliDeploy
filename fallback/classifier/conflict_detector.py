@@ -105,6 +105,44 @@ def detect_script_path_conflicts(repo_fact_summary: dict, key_files: dict[str, s
     return conflicts
 
 
+def detect_framework_config_conflicts(repo_fact_summary: dict, key_files: dict[str, str]) -> list[str]:
+    """分类阶段就发现「声明了前端框架插件却缺对应 vite/build 配置」这类问题。
+
+    这是和 validators.framework_config_validator 同源的规则（复用同一份
+    FRAMEWORK_CONFIG_RULES，避免双写漂移）。把信号塞进 conflict_items 让
+    classifier 的 scoring 看见 —— 一个真实仓库如果有这类问题会被减分，
+    更可能被打回 Decision C 让我们重生成完整脚手架，而不是硬走 Decision A
+    白白浪费一次 Kaniko 构建。
+    """
+    from fallback.validators.framework_config_validator import (
+        FRAMEWORK_CONFIG_RULES,
+        _collect_declared_deps,
+    )
+
+    pkg = _read_first_matching(key_files, "package.json")
+    if not pkg:
+        return []
+
+    declared = _collect_declared_deps(pkg)
+    if not declared:
+        return []
+
+    conflicts: list[str] = []
+    for rule in FRAMEWORK_CONFIG_RULES:
+        if not rule["requires_deps"].issubset(declared):
+            continue
+        config_texts = [
+            _read_first_matching(key_files, name).lower() for name in rule["config_files"]
+        ]
+        mentions = tuple(token.lower() for token in rule["config_must_mention"])
+        satisfied = any(
+            text and any(token in text for token in mentions) for text in config_texts
+        )
+        if not satisfied:
+            conflicts.append(rule["error_code"].lower())
+    return conflicts
+
+
 def detect_all_conflicts(repo_fact_summary: dict, key_files: dict[str, str]) -> dict:
     conflict_items = (
         detect_readme_script_conflicts(repo_fact_summary, key_files)
@@ -112,6 +150,7 @@ def detect_all_conflicts(repo_fact_summary: dict, key_files: dict[str, str]) -> 
         + detect_framework_entry_conflicts(repo_fact_summary, key_files)
         + detect_port_conflicts(repo_fact_summary, key_files)
         + detect_script_path_conflicts(repo_fact_summary, key_files)
+        + detect_framework_config_conflicts(repo_fact_summary, key_files)
     )
     return {
         "conflict_items": sorted(dict.fromkeys(conflict_items)),

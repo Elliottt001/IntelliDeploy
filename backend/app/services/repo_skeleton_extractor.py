@@ -263,6 +263,11 @@ class RemoteRepoSkeletonExtractor:
             dependency_files=dependency_files,
             has_valid_dockerfile=dockerfile_valid,
             readme_summary=self._summarize_readme(readme) if readme else None,
+            # skeleton 已经知道全部 file_paths 和 key_files 原文，沿同一约定
+            # 透传给 fallback —— 让 classifier 也能在这条直接 import skeleton
+            # 的路径下区分真实仓库 vs. 空仓。
+            file_tree=list(file_paths),
+            key_files={kf.path: kf.content for kf in key_files if kf.content},
         )
 
     def _detect_languages(self, file_paths: list[str]) -> list[str]:

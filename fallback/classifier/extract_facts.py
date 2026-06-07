@@ -281,6 +281,25 @@ def extract_repository_facts(
     risk_result = detect_all_risks(request.repo_info.model_dump(mode="json"), summary.model_dump(mode="json"), request.key_files, request.file_tree)
     summary.risk_items = risk_result["risk_items"]
 
+    # 用户给了 repo_url 但 paths 完全空 —— 真正的"空仓库"远比上游
+    # GitHub 抓取失败（404/限流/timeout/默认分支没拿到）罕见得多。
+    # 之前这种场景被静默判成 repo_empty_or_near_empty=True → 走 Decision C
+    # 生成与原仓库无关的脚手架，日志里也找不到任何线索。这里塞一条 risk +
+    # warning，让 scoring 减分（更可能选 Decision A 用真实仓库 / 或交给用户）、
+    # 让 backend 日志能 grep、让前端能感知"我们其实没真正分析你的仓库"。
+    upstream_repo_url = (request.repo_info.repo_url or "") if request.repo_info else ""
+    fetch_failure_suspected = bool(upstream_repo_url) and not paths
+    extra_warnings: list[str] = []
+    if fetch_failure_suspected:
+        marker = "file_tree_unavailable_possible_fetch_failure"
+        if marker not in summary.risk_items:
+            summary.risk_items = list(summary.risk_items) + [marker]
+        extra_warnings.append(
+            f"Repo URL provided ({upstream_repo_url}) but file_tree is empty; "
+            "likely upstream GitHub enrichment failure (rate-limit/404/timeout/default-branch). "
+            "Check backend logs for `github enrichment failed` warnings."
+        )
+
     warnings = (
         package_result["warnings"]
         + framework_result["warnings"]
@@ -288,6 +307,7 @@ def extract_repository_facts(
         + env_result["env_warnings"]
         + conflict_result["warnings"]
         + risk_result["warnings"]
+        + extra_warnings
     )
     uncertain_points = framework_result["uncertain_points"] + entry_result["uncertain_points"]
     summary.warnings = sorted(dict.fromkeys(warnings))

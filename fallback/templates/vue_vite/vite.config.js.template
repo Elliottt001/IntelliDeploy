@@ -1,0 +1,8 @@
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+
+// Vite 不会自动注册框架插件：没有这个 config，vite build 会把 .vue 的
+// <template> 当成 JSX 解析，直接报 [PARSE_ERROR] JSX syntax is disabled。
+export default defineConfig({
+  plugins: [vue()],
+});

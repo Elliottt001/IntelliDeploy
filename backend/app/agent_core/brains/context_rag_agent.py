@@ -207,10 +207,11 @@ class NL2RepoRetrievalPipeline:
     @staticmethod
     def _relaxed_query_variants(query: str) -> list[str]:
         """
-        给一个 GitHub 查询生成 1~3 个递进放宽的版本：
+        给一个 GitHub 查询生成 1~4 个递进放宽的版本：
         0) 原始 query
         1) 去掉 pushed:>... 限制
-        2) 只保留 topic: + stars:, 砍掉所有自由文本关键词
+        2) 只保留 topic: + stars: + language:, 砍掉所有自由文本关键词
+        3) 只保留 stars:, 连 topic 也砍掉 —— 兜底确保有结果
         """
         if not query:
             return []
@@ -224,6 +225,11 @@ class NL2RepoRetrievalPipeline:
         skeleton = [tok for tok in tokens if tok.startswith(("topic:", "stars:", "language:"))]
         if skeleton and skeleton not in (tokens, no_pushed):
             variants.append(" ".join(skeleton))
+
+        # 兜底：纯 stars 过滤。topic 太窄或者 GitHub Search 抖时,这一档保命。
+        stars_only = [tok for tok in tokens if tok.startswith("stars:")]
+        if stars_only:
+            variants.append(" ".join(stars_only))
 
         seen: set[str] = set()
         deduped: list[str] = []
@@ -279,7 +285,18 @@ class NL2RepoRetrievalPipeline:
         async def enrich(candidate: RepositoryCandidate) -> RepositoryCandidate:
             try:
                 return await self.github_client.enrich_repository(candidate)
-            except Exception:
+            except Exception as exc:
+                # 静默吞掉 enrichment 异常会让下游拿到空 file_tree，
+                # 进而被 fallback classifier 错判成「仓库本身是空的」，
+                # 然后默默走 Decision C 生成与原仓库无关的脚手架 —— 而日志里
+                # 没有任何线索说明 GitHub 调用其实失败了。这里必须发声，
+                # 同时保留容错行为（返回原 candidate）让上层重试 / 评分链路继续跑。
+                logger.warning(
+                    "github enrichment failed for %s (%s): %s",
+                    getattr(candidate, "repo_url", "<unknown>"),
+                    type(exc).__name__,
+                    exc,
+                )
                 return candidate
 
         return list(await asyncio.gather(*(enrich(candidate) for candidate in candidates)))
@@ -416,6 +433,11 @@ class NL2RepoRetrievalPipeline:
             dependency_files=dependency_files or None,
             has_valid_dockerfile=self._has_docker(self._candidate_paths(candidate)),
             readme_summary=(candidate.readme_snippet or candidate.description)[:500] or None,
+            # 同 rag_service._profile_from_retrieval_candidate：必须把 GitHub
+            # 抓到的 file_tree / key_files 一并塞进 RepoProfile，否则 fallback
+            # 拿不到任何源码原料，必然走 Decision C。
+            file_tree=list(getattr(candidate, "file_tree", None) or []),
+            key_files=dict(getattr(candidate, "key_files", None) or {}),
         )
 
     def _recency_score(self, pushed_at: str | None) -> float:

@@ -8,6 +8,7 @@ from fallback.schemas.workspace import WorkspaceContext
 from .dockerfile_validator import validate_dockerfile
 from .entrypoint_validator import validate_entrypoint
 from .env_validator import validate_env_vars
+from .framework_config_validator import validate_framework_config
 from .output_validator import validate_output_plan
 from .package_manager_validator import validate_package_manager
 from .port_validator import validate_port_alignment
@@ -30,6 +31,17 @@ def validate_fallback_plan(
     package_check, package_errors = validate_package_manager(plan, classify_response)
     checks.append(package_check)
     errors.extend(package_errors)
+
+    framework_workspace_path = (
+        workspace_context.paths.workspace_path if workspace_context else None
+    )
+    framework_check, framework_errors = validate_framework_config(
+        plan,
+        workspace_path=framework_workspace_path,
+        classify_response=classify_response,
+    )
+    checks.append(framework_check)
+    errors.extend(framework_errors)
 
     env_check, env_errors = validate_env_vars(plan, classify_response)
     checks.append(env_check)

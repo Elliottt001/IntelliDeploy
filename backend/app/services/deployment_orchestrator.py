@@ -32,14 +32,32 @@ def _preferred_build_method() -> BuildMethod:
 
 
 def _prefixed_image_name(runtime_name: str) -> str:
-    """给镜像名加上 Sealos 集群内部 registry 前缀，不然 Kaniko 会 push 到 docker.io 失败。"""
+    """给镜像名加上 push 目标 registry 的前缀。
+
+    优先级：
+      1) 显式设置 KANIKO_DESTINATION_REGISTRY；
+      2) 否则用 GHCR_SERVER / (GHCR_NAMESPACE or GHCR_USERNAME) 推算。
+    若最终前缀本身已含路径段（出现 "/"），就不再注入 KANIKO_NAMESPACE
+    —— 这是 GHCR / DockerHub / ACR 的形态（registry/owner/image）；
+    只有当前缀是裸 host:port（如 sealos.hub:5000）时才追加 namespace 段。
+    GHCR 要求镜像路径全小写，这里统一小写化。
+    """
     registry = (settings.KANIKO_DESTINATION_REGISTRY or "").strip().strip("/")
     if not registry:
-        return runtime_name
+        ghcr_ns = (settings.GHCR_NAMESPACE or settings.GHCR_USERNAME or "").strip().lower()
+        ghcr_server = (settings.GHCR_SERVER or "ghcr.io").strip().strip("/")
+        if ghcr_ns:
+            registry = f"{ghcr_server}/{ghcr_ns}"
+
+    if not registry:
+        return runtime_name.lower()
+
+    has_path = "/" in registry
     namespace = (settings.KANIKO_NAMESPACE or "").strip()
-    if namespace:
-        return f"{registry}/{namespace}/{runtime_name}"
-    return f"{registry}/{runtime_name}"
+    runtime = runtime_name.lower()
+    if has_path or not namespace:
+        return f"{registry}/{runtime}".lower()
+    return f"{registry}/{namespace}/{runtime}".lower()
 
 
 MAX_CONTEXT_BYTES = 5_000_000
@@ -167,6 +185,24 @@ class DeploymentOrchestrator:
                 deployment.finished_at = datetime.now()
                 self.db.commit()
 
+                # 把 Kaniko 的全部诊断输出到后端日志，方便定位真实失败原因
+                diagnostics_blob = "\n".join(
+                    section
+                    for section in (
+                        f"error: {build_result.get('error')}",
+                        f"pod_status:\n{build_result.get('pod_status', '')}".rstrip(),
+                        f"events:\n{build_result.get('events', '')}".rstrip(),
+                        f"logs:\n{build_result.get('logs', '')}".rstrip(),
+                    )
+                    if section
+                )
+                import logging as _logging
+                _logging.getLogger(__name__).error(
+                    "Kaniko build failed for deployment %s:\n%s",
+                    deployment_id,
+                    diagnostics_blob,
+                )
+
                 # 记录失败事件
                 event = DeploymentEvent(
                     deployment_id=deployment_id,
@@ -183,7 +219,11 @@ class DeploymentOrchestrator:
                     "failed",
                     build_result.get("error", "镜像构建失败"),
                     0.68,
-                    {"logs": build_result.get("logs")},
+                    {
+                        "logs": build_result.get("logs"),
+                        "events": build_result.get("events"),
+                        "pod_status": build_result.get("pod_status"),
+                    },
                 )
 
                 # 触发自愈

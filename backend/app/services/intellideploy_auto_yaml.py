@@ -26,7 +26,9 @@ def _detect_package_manager(files: List[str], pkg: Optional[Dict[str, Any]] = No
         return {"install": "pnpm install --frozen-lockfile", "start": "pnpm start", "build": "pnpm build"}
     if _has_file(files, "yarn.lock") or package_manager.startswith("yarn"):
         return {"install": "yarn install --frozen-lockfile", "start": "yarn start", "build": "yarn build"}
-    return {"install": "npm ci", "start": "npm start", "build": "npm run build"}
+    # 没 package-lock.json 时 `npm ci` 会 EUSAGE 失败，降级成 `npm install`。
+    install_cmd = "npm ci" if _has_file(files, "package-lock.json") else "npm install"
+    return {"install": install_cmd, "start": "npm start", "build": "npm run build"}
 
 
 def _smart_config(

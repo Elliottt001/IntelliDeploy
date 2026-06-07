@@ -182,6 +182,17 @@ class GitHubRepositorySearchClient:
         owner_repo = candidate.full_name
         branch = candidate.default_branch
 
+        # 来自 GitHub Search 的 candidate 通常带 default_branch；但当候选来自
+        # README BM25 / 用户手动指定时常常是 None，下面 `if branch:` 守卫会
+        # 静默跳过 tree 抓取，最终 file_tree=[] → fallback 误判为空仓。
+        # 主动调一次 /repos/{owner_repo} 把 default_branch 取回来。
+        if not branch:
+            repo_meta = await self._request_json(f"/repos/{owner_repo}", allow_404=True)
+            if isinstance(repo_meta, dict):
+                branch = repo_meta.get("default_branch") or None
+                if branch:
+                    candidate.default_branch = branch
+
         # Root contents are cheap and give the hard-rule scorer quick evidence
         # for package managers, Dockerfiles, and common framework files.
         contents_path = f"/repos/{owner_repo}/contents"
@@ -207,6 +218,24 @@ class GitHubRepositorySearchClient:
                     for item in tree["tree"][:500]
                     if item.get("type") == "blob" and item.get("path")
                 ]
+                # GitHub 在仓库特别大时会切断响应并标 truncated=true。
+                # 我们的 classifier 只看前 500 条已经够用，但要 warn 一声，
+                # 否则上层把"部分 tree"误当作"全 tree"，分类决策会偏。
+                if tree.get("truncated"):
+                    logger.warning(
+                        "github tree truncated for %s (branch=%s); only first %d blobs analyzed",
+                        owner_repo,
+                        branch,
+                        len(candidate.file_tree),
+                    )
+        else:
+            # 走到这里说明 candidate.full_name 都查不到 default_branch ——
+            # 八成是仓库不存在 / 私有无权限 / GitHub 返回非 dict（罕见）。
+            # 不要假装没事发生，下游会拿到空 file_tree 然后误判。
+            logger.warning(
+                "github enrichment skipped tree fetch for %s: no default branch resolved",
+                owner_repo,
+            )
 
         await self._attach_readme(owner_repo, branch, candidate)
         await self._attach_key_files(owner_repo, branch, candidate)

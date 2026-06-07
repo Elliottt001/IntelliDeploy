@@ -23,7 +23,20 @@ def solve_direct_deploy(request: FallbackRequest, classify_response: ClassifyRes
     if env_vars and ".env.example" not in request.key_files:
         generated_files.append(GeneratedFile(path=".env.example", content=render_env_example(env_vars)))
 
-    deploy_ready = not any(env_var.source == "ASSUMED" and env_var.required for env_var in env_vars)
+    # ASSUMED + required env 仅作软提示,不阻塞 deploy_ready。
+    # 设计原则: plan.deploy_ready 只表达 "plan 本身能生成可部署 artifact"
+    # (docker_spec 齐 + 必要补丁齐),其它部署期行为由 validator + HealthCheck +
+    # healing 负责。"猜测出的必填 env" 属于运行期判定,如果硬阻塞会:
+    #   (1) 违反 Zero-Trust 用户代码原则——逼用户在部署前手动补 env
+    #   (2) 与 validator 形成两套真理源——validator 放行了 solver 又秘密否决
+    # 真正缺关键 env 时 Sealos 创建后 readinessProbe 会失败,自然进入 healing。
+    assumed_required_envs = [ev.name for ev in env_vars if ev.source == "ASSUMED" and ev.required]
+    if assumed_required_envs:
+        warnings.append(
+            "Inferred required env vars (verify before deploy, will not block): "
+            + ", ".join(sorted(dict.fromkeys(assumed_required_envs)))
+        )
+
     return FallbackPlan(
         decision="A",
         generated_files=generated_files,
@@ -33,8 +46,8 @@ def solve_direct_deploy(request: FallbackRequest, classify_response: ClassifyRes
         artifact_type="STITCHED_PROJECT",
         warnings=warnings,
         summary="Original repository can be deployed directly after packaging normalization.",
-        deploy_ready=deploy_ready,
-        next_action="DEPLOY" if deploy_ready else "MANUAL_REVIEW",
+        deploy_ready=True,
+        next_action="DEPLOY",
         source_repo_url=classify_response.repo_fact_summary.repo_url,
     )
 

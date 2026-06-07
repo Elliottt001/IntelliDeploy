@@ -169,7 +169,11 @@ def build_template_project(
             ("README.md", "README.md.template"),
         ],
         "react_vite": [
+            ("index.html", "index.html.template"),
+            ("src/main.jsx", "src_main.jsx.template"),
             ("src/App.jsx", "src_App.jsx.template"),
+            ("vite.config.js", "vite.config.js.template"),
+            ("nginx.conf", "nginx.conf.template"),
             ("package.json", "package.json.template"),
             ("README.md", "README.md.template"),
         ],
@@ -200,6 +204,8 @@ def build_template_project(
             ("src/App.vue", "src_App.vue.template"),
             ("src/main.js", "src_main.js.template"),
             ("index.html", "index.html.template"),
+            ("vite.config.js", "vite.config.js.template"),
+            ("nginx.conf", "nginx.conf.template"),
             ("package.json", "package.json.template"),
             ("README.md", "README.md.template"),
         ],
@@ -260,7 +266,9 @@ def build_template_project(
         artifact_type=artifact_type,
         warnings=[],
         summary=summary,
-        deploy_ready=not any(env_var.source == "ASSUMED" and env_var.required for env_var in env_vars),
+        # 见 a_direct_deploy/solve.py 同名注释:plan.deploy_ready 不再叠加
+        # solver 内的 ASSUMED env 启发式,统一由 validator 裁决。
+        deploy_ready=True,
         next_action="DEPLOY",
         source_repo_url=classify_response.repo_fact_summary.repo_url,
     )

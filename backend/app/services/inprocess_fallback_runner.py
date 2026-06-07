@@ -116,15 +116,54 @@ class InProcessFallbackRunner:
             rec.pipeline_result = pipeline_result
             rec.updated_at = datetime.now()
             rec.artifact_ready = artifact_ready
-            if decision_is_d or (not artifact_ready and validation_failed):
-                rec.status = TaskStatus.FAILED
-                rec.current_stage = "validation" if validation_failed else "classification"
-                rec.progress_message = (
+            if decision_is_d:
+                # Decision D 不是崩溃，是"探针/信号还不够，需要用户或上游补信息"
+                # 的优雅降级出口。solve_manual_required 已经构造了带
+                # missing_information 的 FallbackPlan（deploy_ready=False,
+                # next_action=MANUAL_REVIEW）。这里把它当作"SUCCEEDED 但产物
+                # 未就绪"对外提供，让 full_pipeline_runner 的 ARTIFACT_NOT_READY
+                # 分支处理"需要用户确认"UI——绝不再向上抛 RuntimeError 把整条
+                # 流水线炸掉（Zero-Trust 用户代码：让 IntelliDeploy 变聪明，
+                # 而不是要求用户把仓库改"标准"）。
+                missing_info = list(getattr(plan, "missing_information", []) or [])
+                summary = (
                     getattr(plan, "summary", None)
-                    or ("Validation did not pass" if validation_failed else "Insufficient information to generate artifact")
+                    or "Need additional user or repository information before generation can proceed."
                 )
-                rec.error_code = ErrorCode.MISSING_RUNTIME_INFO if decision_is_d else ErrorCode.UNKNOWN
-                rec.error_message = rec.progress_message
+                rec.status = TaskStatus.SUCCEEDED
+                rec.current_stage = "needs_user_input"
+                rec.progress_message = summary
+                rec.error_code = ErrorCode.MISSING_RUNTIME_INFO
+                rec.error_message = "; ".join(missing_info) if missing_info else summary
+                rec.recoverable = True
+            elif not artifact_ready and validation_failed:
+                # validator 命中 blocking 错误 ≠ pipeline 崩溃。FallbackPlan +
+                # DeployArtifact 都已经被 run_pipeline 完整产出（plan.deploy_ready
+                # / artifact.ready_for_deploy 已被置 False，validation.errors 里
+                # 携带了具体 blocking 原因，如 FRAMEWORK_CONFIG_MISSING_VUE_PLUGIN
+                # / DOCKERFILE_INVALID 等）。这就是上游 full_pipeline_runner
+                # ARTIFACT_NOT_READY 分支的标准输入：让它通过结构化 artifact
+                # 把可读的 summary + warnings 推给前端，引导用户审阅/补丁，
+                # 而不是再用 RuntimeError 把同一份信息以崩溃形式吞回去。
+                # 这是 Decision D 优雅降级的同构推广：FAILED 仅保留给"pipeline
+                # 抛异常导致没有任何 plan/artifact"这一种真崩溃场景（已由
+                # 上方 try/except 兜底）。
+                blocking_messages: list[str] = []
+                for err in getattr(validation, "errors", []) or []:
+                    if getattr(err, "severity", None) == "blocking":
+                        blocking_messages.append(
+                            f"{getattr(err, 'code', 'BLOCKING')}: {getattr(err, 'message', '')}".strip(": ")
+                        )
+                summary = (
+                    getattr(plan, "summary", None)
+                    or getattr(validation, "summary", None)
+                    or "Validation did not pass; artifact is not deploy-ready."
+                )
+                rec.status = TaskStatus.SUCCEEDED
+                rec.current_stage = "validation"
+                rec.progress_message = summary
+                rec.error_code = ErrorCode.MISSING_RUNTIME_INFO
+                rec.error_message = "; ".join(blocking_messages) if blocking_messages else summary
                 rec.recoverable = True
             else:
                 rec.status = TaskStatus.SUCCEEDED
@@ -161,7 +200,11 @@ class InProcessFallbackRunner:
 
     async def get_artifact_result(self, task_id: str) -> GetArtifactResultResponse:
         rec = self._get_record(task_id)
-        if rec.status != TaskStatus.SUCCEEDED or not rec.pipeline_result:
+        # 只有 FAILED 或完全没有 pipeline_result 时才向上抛。
+        # SUCCEEDED 包括 Decision D（deploy_ready=False, next_action=MANUAL_REVIEW）：
+        # 这种"产物已就绪但未达到部署条件"的情况要把 artifact 正常吐出去，
+        # 让上游 full_pipeline_runner 经 artifact.deploy_ready 分支引导用户补信息。
+        if rec.status == TaskStatus.FAILED or not rec.pipeline_result:
             raise RuntimeError(
                 f"Artifact for task {task_id} is not available (status={rec.status.value})."
             )
@@ -272,8 +315,11 @@ def _to_fallback_request(
         raw_query=req.original_prompt,
         user_intent=user_intent,
         repo_info=repo_info,
-        file_tree=[],
-        key_files={},
+        # 真正接通：从 repo_profile 拿 enrichment 抓到的 file_tree / key_files。
+        # 之前这两行硬编码为空 → 任何真实仓库都被 extract_facts 判成
+        # repo_empty_or_near_empty=True → 必走 Decision C 凭空生成脚手架。
+        file_tree=list(repo_profile.file_tree) if repo_profile and repo_profile.file_tree else [],
+        key_files=dict(repo_profile.key_files) if repo_profile and repo_profile.key_files else {},
         project_id=req.project_id,
         deployment_id=req.deployment_id,
         request_id=task_id,
@@ -342,12 +388,40 @@ def _build_artifact_response(
             if w not in warnings_list:
                 warnings_list.append(w)
 
+    # 把 validation 的 blocking/warning 错误透出来。原本这部分信息留在
+    # FallbackPlan 内部、对外只通过 plan.summary 露一句泛泛的
+    # "Validation did not pass"——前端/用户根本不知道为什么不能部署。
+    # 现在把每条 ValidationError 拼成可读串塞进 warnings，让 WebSocket
+    # 事件和 deployment.error_message 都能携带具体修复指引。
+    validation = pipeline_result.get("validation")
+    validation_blocking: list[str] = []
+    if validation is not None:
+        for err in getattr(validation, "errors", []) or []:
+            severity = getattr(err, "severity", "warning")
+            code = getattr(err, "code", "VALIDATION_ERROR")
+            message = getattr(err, "message", "") or ""
+            entry = f"[{severity}] {code}: {message}".rstrip(": ")
+            if entry not in warnings_list:
+                warnings_list.append(entry)
+            if severity == "blocking":
+                validation_blocking.append(f"{code}: {message}".rstrip(": "))
+
     deploy_ready = bool(
         plan
         and getattr(plan, "deploy_ready", False)
         and artifact is not None
         and getattr(artifact, "ready_for_deploy", False)
     )
+
+    summary = getattr(plan, "summary", None) if plan else None
+    if not deploy_ready and validation_blocking:
+        # 用第一条 blocking 错的可读信息替换 plan 的泛泛 summary，
+        # 这样 full_pipeline_runner 的 ARTIFACT_NOT_READY 分支 _mark_deployment_failed
+        # 写库的 error_message 就直接是"package.json declares vue + vite but ..."
+        # 这种可执行的修复指引，而不是"生成产物未达到部署条件"。
+        summary = f"{validation_blocking[0]}"
+        if len(validation_blocking) > 1:
+            summary += f" (+{len(validation_blocking) - 1} more blocking issue(s))"
 
     return GetArtifactResultResponse(
         task_id=task_id,
@@ -360,7 +434,7 @@ def _build_artifact_response(
         runtime=runtime,
         required_envs=required_envs,
         warnings=warnings_list or None,
-        summary=getattr(plan, "summary", None) if plan else None,
+        summary=summary,
         deploy_ready=deploy_ready,
         next_action=next_action,
     )

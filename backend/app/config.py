@@ -36,15 +36,39 @@ class Settings(BaseSettings):
     KANIKO_KUBECONFIG: str = ""
     KANIKO_NAMESPACE: str = "default"
     KANIKO_IMAGE: str = "gcr.io/kaniko-project/executor:latest"
-    KANIKO_DOCKER_CONFIG_SECRET: str = ""
+    # 留空时镜像构建器会自动用 GHCR_* / KANIKO_DESTINATION_REGISTRY 生成并 upsert
+    # 一个 kubernetes.io/dockerconfigjson 类型的 Secret。
+    KANIKO_DOCKER_CONFIG_SECRET: str = "kaniko-registry-auth"
     KANIKO_JOB_TIMEOUT_SECONDS: int = 600
     KANIKO_CONTEXT_MAX_BYTES: int = 900_000
     # Kaniko build 出来后 push 到的 registry 前缀。
-    # Sealos 集群内部 registry 是 sealos.hub:5000，
-    # 同集群的 Job 不需要外部凭证；留空则不加前缀（push 到 docker.io）。
-    KANIKO_DESTINATION_REGISTRY: str = "sealos.hub:5000"
-    # Kaniko push 到自签证书的内部 registry 时需要加 --insecure。
-    KANIKO_INSECURE_REGISTRY: bool = True
+    # 留空（默认）→ 用 GHCR_SERVER/GHCR_NAMESPACE 推算（ghcr.io/<namespace>）。
+    # 显式写明完整前缀（如 "registry.cn-hangzhou.aliyuncs.com/myns"）会优先生效。
+    # 历史值 "sealos.hub:5000" 在 Sealos 用户命名空间内不可达，已废弃。
+    KANIKO_DESTINATION_REGISTRY: str = ""
+    # 仅当 push 到自签证书的内部 registry 时才打开；外部 registry（GHCR / DockerHub / ACR）必须关闭。
+    KANIKO_INSECURE_REGISTRY: bool = False
+    # Kaniko 拉 docker.io base image 用的镜像源（用户 Dockerfile `FROM alpine:3.20` 走这里）。
+    # Sealos 杭州集群对 docker.io 直连不可达，但 docker.m.daocloud.io 可达。
+    # 设为空字符串关闭此功能（让 Kaniko 走默认 docker.io）。
+    KANIKO_REGISTRY_MIRROR: str = "docker.m.daocloud.io"
+    # Sealos 用户命名空间默认 LimitRange 的 ephemeral-storage default 是 100Mi，
+    # Kaniko 解 base image rootfs 直接超限会被 kubelet Evict。
+    # 这里显式给两个容器写 requests/limits，覆盖默认值。
+    # max 一般 >= 60Gi（Sealos 公有云常态），所以 4Gi 安全。
+    KANIKO_EPHEMERAL_STORAGE_REQUEST: str = "512Mi"
+    KANIKO_EPHEMERAL_STORAGE_LIMIT: str = "4Gi"
+    # Kaniko 主容器内存上限（busybox initContainer 用不了多少，单独写就行）
+    KANIKO_MEMORY_REQUEST: str = "512Mi"
+    KANIKO_MEMORY_LIMIT: str = "4Gi"
+    KANIKO_CPU_REQUEST: str = "200m"
+    KANIKO_CPU_LIMIT: str = "2"
+
+    # GitHub Container Registry（默认 Kaniko push 目标）
+    GHCR_SERVER: str = "ghcr.io"
+    GHCR_USERNAME: str = ""
+    GHCR_TOKEN: str = ""
+    GHCR_NAMESPACE: str = ""  # 留空则等同于 GHCR_USERNAME（小写）
 
     # 部署配置
     DEPLOYMENT_TIMEOUT: int = 300  # 5分钟

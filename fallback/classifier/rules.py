@@ -2,6 +2,28 @@ from __future__ import annotations
 
 from fallback.schemas.enums import Decision
 
+# 只有这些条目代表"真正让自动化部署不可能"——必须 D 等用户补信息。
+# 其它软不确定（多入口候选、子框架未知、runtime_chain 部分 unknown、
+# 上游 GitHub enrichment 失败、缺 .env.example 等）应当让候选决策（A/B/C）
+# 继续走下去，由 solver + validator 拼图块补齐；不能一刀切 D 把真实仓库
+# 直接判死刑。Yacht-sh/Yacht（vue+go 多模块单仓，score=72）就是被这种
+# 软信号误杀的典型案例。
+_HARD_MISSING_INFO_BLOCKERS = frozenset({
+    "user_intent_clarification_required",
+    "repository_material_insufficient",
+    "repo_purpose_unknown",
+    "uses_original_repo_as_base_unknown",
+    "runtime_chain_closed_unknown",
+    "requires_repo_code_modification_unknown",
+    "dependency_file_missing",
+    "entry_or_start_missing",
+    "decision_not_stable",
+})
+
+
+def _hard_blockers(missing_information: list[str]) -> list[str]:
+    return [item for item in missing_information if item in _HARD_MISSING_INFO_BLOCKERS]
+
 
 def _result(
     decision: str,
@@ -94,12 +116,13 @@ def apply_final_rules(
             missing_information=missing_information or ["runtime_chain_closed_unknown", "requires_repo_code_modification_unknown"],
         )
 
-    if missing_information:
+    hard_blockers = _hard_blockers(missing_information)
+    if hard_blockers:
         return _result(
             Decision.D.value,
             "missing_information_blocks_reliable_decision",
             why_not_a=why_not_a,
-            missing_information=missing_information,
+            missing_information=hard_blockers,
         )
 
     if not uses_original_repo_as_base and user_intent_clear:

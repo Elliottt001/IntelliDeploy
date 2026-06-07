@@ -298,6 +298,10 @@ class RagService:
             dependency_files=self._dependency_files(package_manager),
             has_valid_dockerfile=bool(candidate.score_breakdown.get("docker_bonus")),
             readme_summary=(candidate.readme_snippet or candidate.description)[:500] or None,
+            # 透传 GitHub enrichment 抓到的 file_tree / key_files 给 fallback；
+            # 没这两行，下游 inprocess_fallback_runner 拿不到原料、必走 Decision C。
+            file_tree=list(getattr(candidate, "file_tree", None) or []),
+            key_files=dict(getattr(candidate, "key_files", None) or {}),
         )
 
     def _deployability_score_from_breakdown(self, breakdown: dict[str, float]) -> float:

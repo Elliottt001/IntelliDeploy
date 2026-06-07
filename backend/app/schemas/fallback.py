@@ -101,6 +101,12 @@ class RepoProfile(BaseModel):
     agent_consensus: Optional[Dict] = None
     agent_trace: Optional[List[str]] = None
     agent_proposed_files: Optional[List[str]] = None
+    # 这两个字段是给 fallback classifier 用的原料：
+    # file_tree 决定 repo_empty_or_near_empty / has_real_code，
+    # key_files 决定 detect_framework_config_conflicts 等真实仓库自洽性检查。
+    # 没有它们，fallback 会把任何真实仓库都判成空，走 Decision C 凭空生成脚手架。
+    file_tree: List[str] = Field(default_factory=list)
+    key_files: Dict[str, str] = Field(default_factory=dict)
 
 
 class Constraints(BaseModel):

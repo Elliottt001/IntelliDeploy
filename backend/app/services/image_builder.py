@@ -4,7 +4,9 @@
 """
 import asyncio
 import base64
+import io
 import json
+import tarfile
 import tempfile
 import time
 import uuid
@@ -484,13 +486,36 @@ class ImageBuilder:
         suffix = uuid.uuid4().hex[:10]
         job_name = f"intellideploy-kaniko-{suffix}"
         context_mount = "/workspace"
+        tarball_mount = "/context-tarball"
+        tarball_name = "context.tar.gz"
 
         batch_api = client.BatchV1Api()
         core_api = client.CoreV1Api()
 
+        # 如果配了 GHCR_* 凭据，就在 namespace 里 upsert 一个 dockerconfigjson Secret，
+        # Kaniko 挂到 /kaniko/.docker 后就能 push 到 GHCR（或任何外部 registry）。
+        registry_secret_name = self._ensure_registry_secret(
+            core_api=core_api,
+            namespace=namespace,
+            api_exception=api_exception,
+        )
+
+        # K8s ConfigMap data keys 必须匹配 [-._a-zA-Z0-9]+，不允许包含 "/"。
+        # 上下文里有 "app/page.tsx" 这种嵌套路径就会被 k8s API 拒绝(422)。
+        # 解法：所有文件 tar.gz 成一个 blob 放 binaryData，再用 initContainer 解压。
+        tar_buf = io.BytesIO()
+        with tarfile.open(fileobj=tar_buf, mode="w:gz") as tar:
+            for file_path, content in files.items():
+                data = content.encode("utf-8")
+                info = tarfile.TarInfo(name=file_path)
+                info.size = len(data)
+                info.mode = 0o644
+                tar.addfile(info, io.BytesIO(data))
+        tarball_bytes = tar_buf.getvalue()
+
         config_map = client.V1ConfigMap(
             metadata=client.V1ObjectMeta(name=f"{job_name}-context"),
-            data=files,
+            binary_data={tarball_name: base64.b64encode(tarball_bytes).decode("ascii")},
         )
         core_api.create_namespaced_config_map(namespace=namespace, body=config_map)
 
@@ -499,7 +524,16 @@ class ImageBuilder:
             f"--context=dir://{context_mount}",
             f"--destination={full_image_name}",
             "--snapshotMode=redo",
+            # Sealos 用户命名空间 ephemeral-storage 紧，single-snapshot 只输出一次
+            # 最终快照而不是每个 RUN 都打一份，能显著省盘。
+            "--single-snapshot",
+            "--verbosity=debug",
         ]
+        if settings.KANIKO_REGISTRY_MIRROR:
+            # 用户 Dockerfile 写 `FROM alpine:3.20` 默认走 docker.io，Sealos 集群拉不到。
+            # 给 Kaniko 配 mirror 后，所有 docker.io 拉取会自动重定向到 mirror（如 daocloud），
+            # 完全不需要改用户的 Dockerfile。
+            args.append(f"--registry-mirror={settings.KANIKO_REGISTRY_MIRROR}")
         if settings.KANIKO_INSECURE_REGISTRY:
             # Sealos 内置 registry (sealos.hub:5000) 用自签证书，必须 --insecure 才能 push
             args.append("--insecure")
@@ -509,20 +543,81 @@ class ImageBuilder:
 
         volumes = [
             client.V1Volume(
-                name="build-context",
+                name="context-tarball",
                 config_map=client.V1ConfigMapVolumeSource(name=f"{job_name}-context"),
-            )
+            ),
+            client.V1Volume(
+                name="build-context",
+                empty_dir=client.V1EmptyDirVolumeSource(),
+            ),
         ]
-        mounts = [client.V1VolumeMount(name="build-context", mount_path=context_mount)]
+        kaniko_mounts = [
+            client.V1VolumeMount(name="build-context", mount_path=context_mount),
+        ]
+        init_mounts = [
+            client.V1VolumeMount(name="context-tarball", mount_path=tarball_mount, read_only=True),
+            client.V1VolumeMount(name="build-context", mount_path=context_mount),
+        ]
 
-        if settings.KANIKO_DOCKER_CONFIG_SECRET:
+        if registry_secret_name:
+            # kubernetes.io/dockerconfigjson 类型 Secret 的 key 固定叫 .dockerconfigjson，
+            # 但 Kaniko 读的是 /kaniko/.docker/config.json —— 必须用 items 把文件名投影改对，
+            # 否则挂载后 Kaniko 找不到凭据会匿名请求 registry，被 GHCR 直接 DENIED。
             volumes.append(
                 client.V1Volume(
                     name="docker-config",
-                    secret=client.V1SecretVolumeSource(secret_name=settings.KANIKO_DOCKER_CONFIG_SECRET),
+                    secret=client.V1SecretVolumeSource(
+                        secret_name=registry_secret_name,
+                        items=[
+                            client.V1KeyToPath(
+                                key=".dockerconfigjson", path="config.json"
+                            )
+                        ],
+                    ),
                 )
             )
-            mounts.append(client.V1VolumeMount(name="docker-config", mount_path="/kaniko/.docker"))
+            kaniko_mounts.append(client.V1VolumeMount(name="docker-config", mount_path="/kaniko/.docker"))
+
+        # Sealos 用户命名空间默认 PodSecurity=restricted（当前是 warn，未来可能升级到 enforce）。
+        # 这三项 Kaniko 都支持，提前合规可避免将来集群升级把构建炸掉。
+        # runAsNonRoot 没设：Kaniko 官方 executor 镜像默认以 root 跑，需要写 /workspace、
+        # /kaniko/.docker 等路径；改非 root 要换成 rootless 变体，本次暂不动。
+        init_sc = client.V1SecurityContext(
+            allow_privilege_escalation=False,
+            capabilities=client.V1Capabilities(drop=["ALL"]),
+            seccomp_profile=client.V1SeccompProfile(type="RuntimeDefault"),
+        )
+        # Kaniko 容器不能丢 capabilities —— 它解压 rootfs 时 chown 各种文件
+        # （/etc/shadow 等），如果丢了 CAP_CHOWN 会 "operation not permitted"。
+        # 这里只关 privilege-escalation + 上 seccomp，cap 集让 image 自带的默认生效。
+        kaniko_sc = client.V1SecurityContext(
+            allow_privilege_escalation=False,
+            seccomp_profile=client.V1SeccompProfile(type="RuntimeDefault"),
+        )
+
+        # initContainer 把 ConfigMap 里的 tar.gz 解压到共享 emptyDir，让 Kaniko 看到正常目录结构
+        init_container = client.V1Container(
+            name="extract-context",
+            image="busybox:1.36",
+            command=["sh", "-c"],
+            args=[f"tar -xzf {tarball_mount}/{tarball_name} -C {context_mount}"],
+            volume_mounts=init_mounts,
+            security_context=init_sc,
+            # initContainer 只解一个 <1MB 的 tar.gz，显式给个小限额，
+            # 避免被 LimitRange 默认值 (100Mi) 套上后影响 Pod 总额。
+            resources=client.V1ResourceRequirements(
+                requests={
+                    "cpu": "50m",
+                    "memory": "64Mi",
+                    "ephemeral-storage": "64Mi",
+                },
+                limits={
+                    "cpu": "200m",
+                    "memory": "128Mi",
+                    "ephemeral-storage": "128Mi",
+                },
+            ),
+        )
 
         job = client.V1Job(
             metadata=client.V1ObjectMeta(name=job_name),
@@ -533,12 +628,38 @@ class ImageBuilder:
                     metadata=client.V1ObjectMeta(labels={"job-name": job_name}),
                     spec=client.V1PodSpec(
                         restart_policy="Never",
+                        init_containers=[init_container],
                         containers=[
                             client.V1Container(
                                 name="kaniko",
                                 image=settings.KANIKO_IMAGE,
                                 args=args,
-                                volume_mounts=mounts,
+                                # Kaniko 的 distroless 镜像没有 /etc/passwd，$HOME 为空，
+                                # containers/image 库找不到 ~/.docker/config.json fallback。
+                                # 必须显式指定 DOCKER_CONFIG，否则即使 Secret 投影到
+                                # /kaniko/.docker/config.json，凭据也读不到，push 会被 registry 当匿名请求拒掉。
+                                env=[
+                                    client.V1EnvVar(
+                                        name="DOCKER_CONFIG", value="/kaniko/.docker"
+                                    ),
+                                ],
+                                volume_mounts=kaniko_mounts,
+                                security_context=kaniko_sc,
+                                # Sealos 默认 LimitRange ephemeral-storage default = 100Mi，
+                                # Kaniko 解 base image rootfs 直接超限 → Evicted。
+                                # 显式覆盖到 4Gi (默认) 足够大多数 build。
+                                resources=client.V1ResourceRequirements(
+                                    requests={
+                                        "cpu": settings.KANIKO_CPU_REQUEST,
+                                        "memory": settings.KANIKO_MEMORY_REQUEST,
+                                        "ephemeral-storage": settings.KANIKO_EPHEMERAL_STORAGE_REQUEST,
+                                    },
+                                    limits={
+                                        "cpu": settings.KANIKO_CPU_LIMIT,
+                                        "memory": settings.KANIKO_MEMORY_LIMIT,
+                                        "ephemeral-storage": settings.KANIKO_EPHEMERAL_STORAGE_LIMIT,
+                                    },
+                                ),
                             )
                         ],
                         volumes=volumes,
@@ -565,18 +686,32 @@ class ImageBuilder:
                         "job_name": job_name,
                     }
                 if failed > 0:
+                    # 把失败原因尽量挖出来：pod phase / 容器 reason / events / 镜像拉取错
+                    diagnostics = self._collect_kaniko_failure_diagnostics(
+                        core_api, namespace, job_name
+                    )
                     return {
                         "status": BuildStatus.FAILED.value,
-                        "error": "Kaniko job failed",
-                        "logs": logs,
+                        "error": diagnostics["summary"] or "Kaniko job failed",
+                        "logs": diagnostics["logs"] or logs,
+                        "events": diagnostics["events"],
+                        "pod_status": diagnostics["pod_status"],
                         "job_name": job_name,
                     }
                 time.sleep(3)
 
+            diagnostics = self._collect_kaniko_failure_diagnostics(
+                core_api, namespace, job_name
+            )
             return {
                 "status": BuildStatus.FAILED.value,
-                "error": f"Kaniko job timed out after {settings.KANIKO_JOB_TIMEOUT_SECONDS}s",
-                "logs": logs,
+                "error": (
+                    f"Kaniko job timed out after {settings.KANIKO_JOB_TIMEOUT_SECONDS}s. "
+                    f"{diagnostics['summary']}"
+                ).strip(),
+                "logs": diagnostics["logs"] or logs,
+                "events": diagnostics["events"],
+                "pod_status": diagnostics["pod_status"],
                 "job_name": job_name,
             }
         finally:
@@ -594,18 +729,169 @@ class ImageBuilder:
         chunks: list[str] = []
         for pod in list(getattr(pods, "items", []) or []):
             pod_name = pod.metadata.name
-            try:
-                chunks.append(
-                    core_api.read_namespaced_pod_log(
+            for container_name in ("extract-context", "kaniko"):
+                try:
+                    log = core_api.read_namespaced_pod_log(
                         name=pod_name,
                         namespace=namespace,
-                        container="kaniko",
+                        container=container_name,
                         tail_lines=200,
                     )
-                )
-            except Exception as exc:
-                chunks.append(f"<failed to read {pod_name} logs: {exc}>")
+                    if log:
+                        chunks.append(f"--- {pod_name}/{container_name} ---\n{log}")
+                except Exception as exc:
+                    chunks.append(
+                        f"<failed to read {pod_name}/{container_name} logs: {exc}>"
+                    )
         return "\n".join(chunks)
+
+    @staticmethod
+    def _collect_kaniko_failure_diagnostics(
+        core_api, namespace: str, job_name: str
+    ) -> Dict:
+        """汇总 Pod phase / 容器状态 / events，定位 Kaniko Job 失败的真实原因。"""
+        pods = core_api.list_namespaced_pod(
+            namespace=namespace, label_selector=f"job-name={job_name}"
+        )
+        pod_items = list(getattr(pods, "items", []) or [])
+
+        pod_status_lines: list[str] = []
+        summary_reasons: list[str] = []
+        log_chunks: list[str] = []
+
+        for pod in pod_items:
+            pod_name = pod.metadata.name
+            phase = getattr(pod.status, "phase", "Unknown")
+            pod_status_lines.append(f"{pod_name} phase={phase}")
+
+            for cs in (pod.status.init_container_statuses or []) + (pod.status.container_statuses or []):
+                state = cs.state
+                terminated = getattr(state, "terminated", None)
+                waiting = getattr(state, "waiting", None)
+                if terminated and terminated.exit_code not in (0, None):
+                    reason = terminated.reason or "Error"
+                    msg = (terminated.message or "").strip()
+                    line = (
+                        f"  container={cs.name} exit={terminated.exit_code} "
+                        f"reason={reason}"
+                        + (f" message={msg}" if msg else "")
+                    )
+                    pod_status_lines.append(line)
+                    summary_reasons.append(f"{cs.name}: {reason}" + (f" — {msg}" if msg else ""))
+                elif waiting and waiting.reason and waiting.reason not in ("ContainerCreating", "PodInitializing"):
+                    msg = (waiting.message or "").strip()
+                    line = (
+                        f"  container={cs.name} waiting reason={waiting.reason}"
+                        + (f" message={msg}" if msg else "")
+                    )
+                    pod_status_lines.append(line)
+                    summary_reasons.append(
+                        f"{cs.name} waiting: {waiting.reason}" + (f" — {msg}" if msg else "")
+                    )
+
+            for container_name in ("extract-context", "kaniko"):
+                try:
+                    log = core_api.read_namespaced_pod_log(
+                        name=pod_name,
+                        namespace=namespace,
+                        container=container_name,
+                        tail_lines=200,
+                    )
+                    if log:
+                        log_chunks.append(f"--- {pod_name}/{container_name} ---\n{log}")
+                except Exception as exc:
+                    log_chunks.append(
+                        f"<no logs for {pod_name}/{container_name}: {exc}>"
+                    )
+
+        events_text = ""
+        try:
+            field_selectors = []
+            for pod in pod_items:
+                field_selectors.append(f"involvedObject.name={pod.metadata.name}")
+            field_selectors.append(f"involvedObject.name={job_name}")
+            event_lines: list[str] = []
+            seen: set[str] = set()
+            for selector in field_selectors:
+                evts = core_api.list_namespaced_event(
+                    namespace=namespace, field_selector=selector
+                )
+                for evt in getattr(evts, "items", []) or []:
+                    key = f"{evt.involved_object.name}:{evt.reason}:{evt.message}"
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    event_lines.append(
+                        f"[{evt.type}] {evt.involved_object.name} {evt.reason}: {evt.message}"
+                    )
+                    if evt.type == "Warning" and evt.reason in (
+                        "Failed", "FailedScheduling", "FailedCreatePodSandBox", "ErrImagePull", "ImagePullBackOff",
+                    ):
+                        summary_reasons.append(f"event {evt.reason}: {evt.message}")
+            events_text = "\n".join(event_lines)
+        except Exception as exc:
+            events_text = f"<failed to fetch events: {exc}>"
+
+        summary = "; ".join(dict.fromkeys(summary_reasons))
+        return {
+            "summary": summary,
+            "logs": "\n".join(log_chunks),
+            "events": events_text,
+            "pod_status": "\n".join(pod_status_lines),
+        }
+
+    @staticmethod
+    def _ensure_registry_secret(core_api, namespace: str, api_exception) -> str | None:
+        """根据 GHCR_* 配置在 namespace 里 upsert 一个 dockerconfigjson Secret，
+        返回 Secret 名；如果凭据不全则返回 None（Kaniko 将不挂载 docker config，
+        push 公共镜像可以，push 私有 registry 会失败）。"""
+        # KANIKO_DOCKER_CONFIG_SECRET 显式给名字最好；空字符串时用兜底名，
+        # 这样 .env 即使没补这一行，只要 GHCR_TOKEN 在，链路也能走通。
+        secret_name = (settings.KANIKO_DOCKER_CONFIG_SECRET or "").strip() or "kaniko-registry-auth"
+        username = (settings.GHCR_USERNAME or "").strip()
+        token = (settings.GHCR_TOKEN or "").strip()
+        server = (settings.GHCR_SERVER or "ghcr.io").strip()
+        if not (username and token):
+            return None
+
+        auth_b64 = base64.b64encode(f"{username}:{token}".encode("utf-8")).decode("ascii")
+        entry = {
+            "username": username,
+            "password": token,
+            "auth": auth_b64,
+        }
+        # go-containerregistry / Kaniko 在不同版本里对 auths 字典的 key 形态有差异。
+        # 同时塞裸 host、https URL 和 v1/v2 端点形态，覆盖 keychain 的所有匹配分支。
+        dockerconfig = {
+            "auths": {
+                server: entry,
+                f"https://{server}": entry,
+                f"https://{server}/": entry,
+                f"https://{server}/v1/": entry,
+                f"https://{server}/v2/": entry,
+            }
+        }
+        config_b64 = base64.b64encode(
+            json.dumps(dockerconfig).encode("utf-8")
+        ).decode("ascii")
+
+        from kubernetes import client as _client  # 局部导入避免顶层依赖
+
+        body = _client.V1Secret(
+            metadata=_client.V1ObjectMeta(name=secret_name),
+            type="kubernetes.io/dockerconfigjson",
+            data={".dockerconfigjson": config_b64},
+        )
+        try:
+            core_api.create_namespaced_secret(namespace=namespace, body=body)
+        except api_exception as exc:
+            if getattr(exc, "status", None) == 409:
+                core_api.replace_namespaced_secret(
+                    name=secret_name, namespace=namespace, body=body
+                )
+            else:
+                raise
+        return secret_name
 
     @staticmethod
     def _cleanup_kaniko_resources(batch_api, core_api, namespace: str, job_name: str, api_exception) -> None:
