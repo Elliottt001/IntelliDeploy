@@ -173,10 +173,15 @@ class ImageBuilder:
                 dockerfile_content, context_files, image_name, image_tag, build_args
             )
         except Exception as e:
-            return {
-                "status": BuildStatus.FAILED.value,
-                "error": f"Unexpected error: {str(e)}",
-            }
+            cli_result = await self._build_with_docker_cli(
+                dockerfile_content, context_files, image_name, image_tag, build_args
+            )
+            if cli_result.get("status") == BuildStatus.FAILED.value:
+                cli_result["error"] = (
+                    f"Docker SDK error: {str(e)}; "
+                    f"{cli_result.get('error', 'Docker CLI build failed')}"
+                )
+            return cli_result
 
     async def _build_with_docker_cli(
         self,
@@ -233,7 +238,24 @@ class ImageBuilder:
                     stderr=asyncio.subprocess.STDOUT,
                 )
 
-                stdout, _ = await process.communicate()
+                try:
+                    stdout, _ = await asyncio.wait_for(
+                        process.communicate(),
+                        timeout=settings.DEPLOYMENT_TIMEOUT,
+                    )
+                except asyncio.TimeoutError:
+                    process.kill()
+                    try:
+                        await process.wait()
+                    except Exception:
+                        pass
+                    return {
+                        "status": BuildStatus.FAILED.value,
+                        "error": (
+                            "Docker build timed out after "
+                            f"{settings.DEPLOYMENT_TIMEOUT} seconds"
+                        ),
+                    }
                 logs = stdout.decode("utf-8", errors="ignore")
 
                 if process.returncode == 0:

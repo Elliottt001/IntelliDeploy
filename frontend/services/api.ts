@@ -25,4 +25,39 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
 };
 
+export type NaturalLanguageDeployResponse = {
+  status: string;
+  message: string;
+  selected_repository?: {
+    full_name: string;
+    repo_url?: string;
+    description?: string;
+  } | null;
+  project_id?: number | null;
+  deployment_id?: number | null;
+  task_id?: string | null;
+  artifact?: {
+    deploy_ready: boolean;
+    artifact_path?: string | null;
+    summary?: string | null;
+    runtime: {
+      start_command: string;
+      exposed_port: number;
+      healthcheck_path?: string | null;
+    };
+  } | null;
+  deployment_result?: {
+    access_url?: string | null;
+    status?: string;
+  } | null;
+};
+
+export const nlDeployAPI = {
+  start: (natural_language_query: string, deploy = true) =>
+    api.post<NaturalLanguageDeployResponse>('/api/nl-deploy/start', {
+      natural_language_query,
+      deploy,
+    }),
+};
+
 export default api;

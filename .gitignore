@@ -53,6 +53,9 @@ frontend/*.tsbuildinfo
 
 # 通用日志与运行时文件
 *.log
+*.db
+*.sqlite
+*.sqlite3
 logs/
 npm-debug.log*
 yarn-debug.log*

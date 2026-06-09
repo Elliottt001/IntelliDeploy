@@ -5,6 +5,7 @@ from app.routers.intellideploy.generation import router as generation_router
 from app.routers.intellideploy.deployments import router as deployments_router
 from app.routers.intellideploy.images import router as images_router
 from app.routers.intellideploy.retrieval import router as retrieval_router
+from app.routers.intellideploy.natural_language import router as natural_language_router
 
 __all__ = [
     "github_router",
@@ -14,4 +15,5 @@ __all__ = [
     "deployments_router",
     "images_router",
     "retrieval_router",
+    "natural_language_router",
 ]

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -140,6 +140,8 @@ class StartFallbackTaskRequest(BaseModel):
     preferred_stack: Optional[PreferredStack] = None
     repo_profile: Optional[RepoProfile] = None
     constraints: Optional[Constraints] = None
+    file_tree: Optional[List[Any]] = None
+    key_files: Optional[dict[str, str]] = None
 
 
 class StartFallbackTaskResponse(BaseModel):

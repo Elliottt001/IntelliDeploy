@@ -96,7 +96,7 @@ class NL2RepoRetrievalPipeline:
         github_client: GitHubSearchClient | None = None,
         readme_store: BM25ReadmeStore | None = None,
         llm_reranker: Callable[[RepoIntent, list[RepositoryCandidate]], list[str]] | None = None,
-        github_top_k: int = 20,
+        github_top_k: int = 5,
         readme_top_k: int = 20,
     ):
         self.router = router or RouterAgent()
@@ -143,16 +143,23 @@ class NL2RepoRetrievalPipeline:
     async def _github_search(self, intent: RepoIntent) -> list[RepositoryCandidate]:
         if self.github_client is None:
             return []
-        try:
-            candidates = await self.github_client.search_repositories(
-                intent.github_query, per_page=self.github_top_k
-            )
-        except Exception:
-            return []
 
-        for index, candidate in enumerate(candidates):
-            candidate.source_scores.setdefault("github", 1.0 - index * 0.02)
-        return candidates
+        all_candidates: list[RepositoryCandidate] = []
+        for query_index, query in enumerate(self._github_queries(intent)):
+            try:
+                candidates = await self.github_client.search_repositories(
+                    query, per_page=self.github_top_k
+                )
+            except Exception:
+                continue
+
+            for index, candidate in enumerate(candidates):
+                candidate.source_scores["github"] = max(
+                    candidate.source_scores.get("github", 0.0),
+                    max(0.35, 1.0 - query_index * 0.12 - index * 0.04),
+                )
+                all_candidates.append(candidate)
+        return all_candidates
 
     async def _readme_search(self, intent: RepoIntent) -> list[RepositoryCandidate]:
         results = self.readme_store.search(intent.keywords, top_k=self.readme_top_k)
@@ -195,6 +202,8 @@ class NL2RepoRetrievalPipeline:
         self, candidates: list[RepositoryCandidate]
     ) -> list[RepositoryCandidate]:
         if self.github_client is None or not hasattr(self.github_client, "enrich_repository"):
+            return candidates
+        if getattr(self.github_client, "has_auth_token", True) is False:
             return candidates
 
         async def enrich(candidate: RepositoryCandidate) -> RepositoryCandidate:
@@ -289,22 +298,33 @@ class NL2RepoRetrievalPipeline:
         self, intent: RepoIntent, candidate: RepositoryCandidate
     ) -> dict[str, float]:
         source_score = max(candidate.source_scores.values(), default=0.0)
+        deployability = self._deployability_score(candidate)
         breakdown = {
-            "retrieval_relevance": 40.0 * source_score,
-            "stars": min(math.log(candidate.stars + 1, 10) * 5.0, 20.0),
+            "retrieval_relevance": 20.0 * source_score,
+            "intent_match": self._intent_match_score(intent, candidate),
+            "deployability": deployability,
+            "application_signal": self._application_signal_score(intent, candidate),
+            "stack_match": self._stack_match_score(intent, candidate),
+            "stars": min(math.log(candidate.stars + 1, 10) * 1.25, 5.0),
             "recency": self._recency_score(candidate.pushed_at),
-            "docker_bonus": 50.0
-            if self._has_docker(self._candidate_paths(candidate))
+            "docker_bonus": 8.0
+            if self._has_docker_signal(candidate)
             else 0.0,
-            "template_stack_bonus": 30.0
-            if self._matches_preferred_stack(intent, candidate)
+            "template_stack_bonus": 5.0
+            if self._has_template_signal(candidate)
+            and self._matches_preferred_stack(intent, candidate)
             else 0.0,
-            "package_structure": 10.0
+            "package_structure": min(deployability, 10.0)
             if self._has_engineering_structure(self._candidate_paths(candidate))
             else 0.0,
-            "dual_track_bonus": 10.0
+            "dual_track_bonus": 4.0
             if {"github", "bm25"}.issubset(candidate.source_scores)
             else 0.0,
+            "complexity_fit": self._complexity_fit_score(candidate),
+            "framework_library_penalty": self._framework_library_penalty(candidate),
+            "tutorial_penalty": self._tutorial_penalty(candidate),
+            "no_deploy_evidence_penalty": self._no_deploy_evidence_penalty(candidate),
+            "intent_mismatch_penalty": self._intent_mismatch_penalty(intent, candidate),
         }
         return breakdown
 
@@ -342,13 +362,227 @@ class NL2RepoRetrievalPipeline:
     def _recency_score(self, pushed_at: str | None) -> float:
         pushed = self._parse_timestamp(pushed_at)
         if pushed is None:
-            return 5.0
+            return 3.0
         age_days = (datetime.now(timezone.utc) - pushed).days
         if age_days <= 365:
-            return 15.0
+            return 8.0
         if age_days <= 730:
-            return 7.0
+            return 4.0
         return 0.0
+
+    def _github_queries(self, intent: RepoIntent) -> list[str]:
+        guards = self._query_guards(intent.github_query)
+        stack_terms = self._stack_query_terms(intent)
+        primary_stack = stack_terms[0] if stack_terms else None
+        queries = [intent.github_query]
+
+        def add(parts: list[str]) -> None:
+            query = " ".join([part for part in parts if part]).strip()
+            if query and query not in queries:
+                queries.append(query)
+
+        if intent.target_app_type == "admin_dashboard":
+            add([primary_stack, "admin", "dashboard", "template", "docker", guards])
+            add([primary_stack, "auth", "database", "postgresql", "starter", guards])
+            add([primary_stack, "full", "stack", "template", "docker", guards])
+        elif intent.has_database:
+            add([primary_stack, "auth", "database", "starter", "docker", guards])
+            add([primary_stack, "full", "stack", "template", "docker", guards])
+        elif intent.is_frontend_only:
+            add([primary_stack, "template", "starter", "portfolio", guards])
+        else:
+            app_terms = self._high_value_terms(intent.keywords + intent.expected_features)[:3]
+            add([primary_stack, *app_terms, "template", "starter", "docker", guards])
+
+        return queries[:4]
+
+    @staticmethod
+    def _query_guards(query: str) -> str:
+        guards = [
+            term
+            for term in query.split()
+            if term.startswith("stars:>") or term.startswith("pushed:>")
+        ]
+        return " ".join(guards)
+
+    @staticmethod
+    def _stack_query_terms(intent: RepoIntent) -> list[str]:
+        terms: list[str] = []
+        for stack in intent.tech_stack:
+            normalized = stack.lower().replace(".", "").replace(" ", "")
+            if normalized in {"python", "javascript", "typescript"}:
+                continue
+            if normalized == "nextjs":
+                normalized = "nextjs"
+            if normalized and normalized not in terms:
+                terms.append(normalized)
+        if not terms:
+            for keyword in intent.keywords:
+                normalized = keyword.lower().replace(".", "").replace(" ", "")
+                if normalized in {"fastapi", "nextjs", "react", "vue", "django", "flask"}:
+                    terms.append(normalized)
+                    break
+        return terms
+
+    def _intent_match_score(self, intent: RepoIntent, candidate: RepositoryCandidate) -> float:
+        haystack = self._candidate_text(candidate)
+        terms = self._high_value_terms(
+            intent.keywords + intent.expected_features + intent.tech_stack
+        )
+        if not terms:
+            return 10.0
+        matched = sum(1 for term in terms if self._term_matches(term, haystack))
+        return min(30.0, 30.0 * matched / max(len(terms), 1))
+
+    def _deployability_score(self, candidate: RepositoryCandidate) -> float:
+        files = self._candidate_paths(candidate)
+        names = {self._path_name(file_name) for file_name in files}
+        score = 0.0
+        if "dockerfile" in names:
+            score += 9.0
+        if "docker-compose.yml" in names:
+            score += 4.0
+        if names & {"package.json", "requirements.txt", "pyproject.toml", "go.mod", "pom.xml"}:
+            score += 5.0
+        if self._detect_entrypoints(files):
+            score += 3.0
+        if any(name in names for name in {"package-lock.json", "pnpm-lock.yaml", "poetry.lock"}):
+            score += 2.0
+        if self._has_docker_signal(candidate) and "dockerfile" not in names:
+            score += 2.0
+        return min(score, 25.0)
+
+    def _application_signal_score(
+        self, intent: RepoIntent, candidate: RepositoryCandidate
+    ) -> float:
+        haystack = self._candidate_text(candidate)
+        score = 0.0
+        if self._has_template_signal(candidate):
+            score += 6.0
+        if any(
+            term in haystack
+            for term in [
+                "app",
+                "application",
+                "dashboard",
+                "admin",
+                "starter",
+                "boilerplate",
+                "full stack",
+                "full-stack",
+            ]
+        ):
+            score += 4.0
+        if intent.target_app_type == "admin_dashboard" and any(
+            term in haystack for term in ["admin", "dashboard", "backoffice"]
+        ):
+            score += 8.0
+        if intent.has_database and any(
+            term in haystack for term in ["postgres", "postgresql", "database", "sqlmodel"]
+        ):
+            score += 2.0
+        return min(score, 15.0)
+
+    def _stack_match_score(self, intent: RepoIntent, candidate: RepositoryCandidate) -> float:
+        score = 0.0
+        if self._matches_preferred_stack(intent, candidate):
+            score += 8.0
+        if intent.preferred_language and candidate.language:
+            if intent.preferred_language.lower() == candidate.language.lower():
+                score += 4.0
+        return min(score, 12.0)
+
+    def _complexity_fit_score(self, candidate: RepositoryCandidate) -> float:
+        file_count = len(self._candidate_paths(candidate))
+        if file_count == 0:
+            return 0.0
+        if file_count <= 250:
+            return 5.0
+        if file_count <= 500:
+            return 2.0
+        return -5.0
+
+    def _framework_library_penalty(self, candidate: RepositoryCandidate) -> float:
+        haystack = self._candidate_text(candidate)
+        repo_name = candidate.full_name.lower()
+        if self._has_template_signal(candidate):
+            return 0.0
+        if repo_name in {"fastapi/fastapi", "django/django", "pallets/flask"}:
+            return -35.0
+        if any(term in haystack for term in ["framework", "library", "sdk"]):
+            return -35.0
+        return 0.0
+
+    def _tutorial_penalty(self, candidate: RepositoryCandidate) -> float:
+        haystack = self._candidate_text(candidate)
+        if any(
+            term in haystack
+            for term in [
+                "tutorial",
+                "course",
+                "learn",
+                "awesome",
+                "examples collection",
+                "hello-python",
+                "beginner",
+            ]
+        ):
+            return -30.0
+        return 0.0
+
+    def _no_deploy_evidence_penalty(self, candidate: RepositoryCandidate) -> float:
+        if self._deployability_score(candidate) <= 2.0 and not self._has_docker_signal(
+            candidate
+        ):
+            return -25.0
+        return 0.0
+
+    def _intent_mismatch_penalty(
+        self, intent: RepoIntent, candidate: RepositoryCandidate
+    ) -> float:
+        haystack = self._candidate_text(candidate)
+        if intent.target_app_type == "admin_dashboard":
+            if not any(
+                term in haystack
+                for term in ["admin", "dashboard", "backoffice", "management ui"]
+            ):
+                return -45.0
+            if any(term in haystack for term in ["photo", "image", "machine-learning", "compress"]):
+                return -15.0
+        return 0.0
+
+    @staticmethod
+    def _high_value_terms(values: list[str]) -> list[str]:
+        generic = {
+            "api",
+            "app",
+            "application",
+            "backend",
+            "deploy",
+            "deployable",
+            "repository",
+            "service",
+            "template",
+            "web",
+        }
+        terms: list[str] = []
+        for value in values:
+            clean = value.lower().strip()
+            if not clean or clean in generic:
+                continue
+            if clean not in terms:
+                terms.append(clean)
+        return terms
+
+    @staticmethod
+    def _term_matches(term: str, haystack: str) -> bool:
+        normalized = term.lower().replace(".", "").strip()
+        compact_haystack = haystack.replace(".", "")
+        if normalized in compact_haystack:
+            return True
+        if normalized == "admin dashboard":
+            return "admin" in compact_haystack and "dashboard" in compact_haystack
+        return False
 
     def _matches_preferred_stack(
         self, intent: RepoIntent, candidate: RepositoryCandidate
@@ -436,6 +670,44 @@ class NL2RepoRetrievalPipeline:
     def _has_docker(files: list[str]) -> bool:
         names = {NL2RepoRetrievalPipeline._path_name(file_name) for file_name in files}
         return "dockerfile" in names or "docker-compose.yml" in names
+
+    def _has_docker_signal(self, candidate: RepositoryCandidate) -> bool:
+        if self._has_docker(self._candidate_paths(candidate)):
+            return True
+        haystack = " ".join(
+            [candidate.description, candidate.readme_snippet, *candidate.topics]
+        ).lower()
+        return any(term in haystack for term in {"docker", "container", "compose"})
+
+    def _has_template_signal(self, candidate: RepositoryCandidate) -> bool:
+        haystack = self._candidate_text(candidate)
+        return any(
+            term in haystack
+            for term in {
+                "template",
+                "starter",
+                "boilerplate",
+                "full-stack",
+                "full stack",
+                "scaffold",
+            }
+        )
+
+    @staticmethod
+    def _candidate_text(candidate: RepositoryCandidate) -> str:
+        return " ".join(
+            [
+                candidate.full_name,
+                candidate.description,
+                candidate.language or "",
+                " ".join(candidate.topics),
+                " ".join(candidate.files),
+                " ".join(candidate.file_tree),
+                " ".join(candidate.key_files.keys()),
+                " ".join(candidate.key_files.values()),
+                candidate.readme_snippet,
+            ]
+        ).lower()
 
     @staticmethod
     def _has_engineering_structure(files: list[str]) -> bool:

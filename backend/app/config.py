@@ -3,10 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
-    DATABASE_URL: str = (
-        "postgresql+psycopg://postgres:your_password@"
-        "127.0.0.1:5432/intellideploy"
-    )
+    DATABASE_URL: str = "sqlite:///./intellideploy.db"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ALGORITHM: str = "HS256"
     MODEL_API: str = ""
@@ -20,7 +17,7 @@ class Settings(BaseSettings):
     GITHUB_SEARCH_TIMEOUT_SECONDS: float = 10.0
 
     # 杨钞越的降级生成服务地址
-    FALLBACK_SERVICE_URL: str = "http://localhost:8001"
+    FALLBACK_SERVICE_URL: str = "local"
 
     # Redis配置
     REDIS_URL: str = "redis://localhost:6379/0"

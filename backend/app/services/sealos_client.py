@@ -8,7 +8,12 @@ from typing import Dict, Optional, List
 from enum import Enum
 
 from app.config import settings
-from app.services.intellideploy_k8s import deploy_with_kubeconfig, K8sDeployError
+from app.services.intellideploy_k8s import (
+    K8sDeployError,
+    deploy_source_with_kubeconfig,
+    deploy_with_kubeconfig,
+    validate_deploy_permissions as validate_kube_deploy_permissions,
+)
 
 
 class DeploymentStatus(str, Enum):
@@ -19,6 +24,26 @@ class DeploymentStatus(str, Enum):
     FAILED = "failed"
     SUCCESS = "success"
     CRASH_LOOP = "crash_loop_backoff"
+
+
+def _failed_result_summary(result: Dict) -> str:
+    failed_steps = [
+        entry for entry in result.get("results", []) if not entry.get("success")
+    ]
+    if not failed_steps:
+        return result.get("log") or result.get("status") or "unknown failure"
+
+    parts = []
+    for entry in failed_steps:
+        step = entry.get("step", "unknown")
+        message = str(entry.get("message") or "failed").replace("\n", " ")
+        parts.append(f"{step}: {message[:500]}")
+    return "; ".join(parts)
+
+
+def _raise_for_failed_result(result: Dict, operation: str) -> None:
+    if result.get("status") == "failed":
+        raise K8sDeployError(f"{operation} failed: {_failed_result_summary(result)}")
 
 
 class SealosClient:
@@ -32,6 +57,11 @@ class SealosClient:
             kubeconfig: K8s配置内容
         """
         self.kubeconfig = kubeconfig
+
+    def validate_deploy_permissions(self) -> str:
+        if not self.kubeconfig:
+            raise ValueError("Kubeconfig is required")
+        return validate_kube_deploy_permissions(self.kubeconfig)
 
     async def create_app(
         self,
@@ -76,6 +106,7 @@ class SealosClient:
                 env_vars=env_vars,
                 needs_database=needs_database,
             )
+            _raise_for_failed_result(result, "Deployment")
 
             return {
                 "app_id": name,  # 使用name作为app_id
@@ -93,6 +124,55 @@ class SealosClient:
             raise Exception(f"Sealos deployment failed: {str(e)}")
         except Exception as e:
             raise Exception(f"Unexpected error during deployment: {str(e)}")
+
+    async def create_source_app(
+        self,
+        name: str,
+        runtime_image: str,
+        source_files: Dict[str, str],
+        install_command: Optional[str],
+        start_command: str,
+        port: int,
+        env_vars: Optional[Dict[str, str]] = None,
+        enable_ingress: bool = True,
+        domain: Optional[str] = None,
+    ) -> Dict:
+        if not self.kubeconfig:
+            raise ValueError("Kubeconfig is required")
+
+        if enable_ingress and not domain:
+            domain = f"{name}.{settings.SEALOS_DOMAIN_SUFFIX}"
+
+        try:
+            result = deploy_source_with_kubeconfig(
+                kubeconfig_content=self.kubeconfig,
+                name=name,
+                runtime_image=runtime_image,
+                source_files=source_files,
+                install_command=install_command,
+                start_command=start_command,
+                port=port,
+                enable_ingress=enable_ingress,
+                domain=domain,
+                env_vars=env_vars,
+            )
+            _raise_for_failed_result(result, "Source deployment")
+
+            return {
+                "app_id": name,
+                "status": result.get("status", "unknown"),
+                "namespace": result.get("namespace"),
+                "runtime_name": result.get("runtimeName"),
+                "ingress_domain": result.get("ingressDomain"),
+                "access_url": f"https://{domain}" if enable_ingress and domain else None,
+                "runtime_image": runtime_image,
+                "results": result.get("results", []),
+                "log": result.get("log", ""),
+            }
+        except K8sDeployError as e:
+            raise Exception(f"Sealos source deployment failed: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Unexpected error during source deployment: {str(e)}")
 
     async def get_app_status(self, app_id: str) -> Dict:
         """

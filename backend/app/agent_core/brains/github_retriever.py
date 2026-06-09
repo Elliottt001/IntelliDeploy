@@ -37,6 +37,10 @@ class GitHubTokenPool:
             return None
         return next(self._cycle)
 
+    @property
+    def has_tokens(self) -> bool:
+        return bool(self._tokens)
+
 
 class GitHubRepositorySearchClient:
     def __init__(
@@ -61,6 +65,10 @@ class GitHubRepositorySearchClient:
         data = await self._request_json("/search/repositories", params=params)
         items = data.get("items", []) if isinstance(data, dict) else []
         return [self._candidate_from_search_item(item) for item in items]
+
+    @property
+    def has_auth_token(self) -> bool:
+        return self.token_pool.has_tokens
 
     async def enrich_repository(
         self, candidate: RepositoryCandidate

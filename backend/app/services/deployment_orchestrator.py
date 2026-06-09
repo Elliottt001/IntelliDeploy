@@ -5,6 +5,7 @@
 import asyncio
 from typing import Optional, Dict
 from datetime import datetime
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -16,6 +17,25 @@ from app.services.sealos_client import SealosClient, DeploymentStatus, get_sealo
 from app.services.healing_engine import HealingEngine
 from app.services.generation_task_service import GenerationTaskService
 from app.services.image_builder import get_image_builder, BuildMethod
+
+
+def collect_artifact_context_files(artifact_path: str | None) -> Dict[str, str] | None:
+    if not artifact_path:
+        return None
+
+    root = Path(artifact_path)
+    if not root.exists() or not root.is_dir():
+        return None
+
+    context_files: Dict[str, str] = {}
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        relative_path = path.relative_to(root).as_posix()
+        if relative_path == "Dockerfile":
+            continue
+        context_files[relative_path] = path.read_text(encoding="utf-8", errors="ignore")
+    return context_files
 
 
 class DeploymentOrchestrator:
@@ -57,21 +77,41 @@ class DeploymentOrchestrator:
         deployment.dockerfile_content = artifact.dockerfile_content
         self.db.commit()
 
-        # 记录事件
-        event = DeploymentEvent(
-            deployment_id=deployment_id,
-            phase="build",
-            level="info",
-            message="Starting image build",
-        )
-        self.db.add(event)
-        self.db.commit()
-
         # 如果提供了kubeconfig,使用新的客户端
         if kubeconfig:
             self.sealos_client = get_sealos_client(kubeconfig)
 
         try:
+            if kubeconfig and hasattr(self.sealos_client, "validate_deploy_permissions"):
+                try:
+                    self.sealos_client.validate_deploy_permissions()
+                except Exception as exc:
+                    deployment.status = DeploymentStatus.FAILED.value
+                    deployment.error_type = "KUBECONFIG_PERMISSION_DENIED"
+                    deployment.error_message = str(exc)
+                    deployment.finished_at = datetime.now()
+                    self.db.commit()
+                    event = DeploymentEvent(
+                        deployment_id=deployment_id,
+                        phase="deploy",
+                        level="error",
+                        message=f"Kubeconfig preflight failed: {exc}",
+                        error_type="KUBECONFIG_PERMISSION_DENIED",
+                    )
+                    self.db.add(event)
+                    self.db.commit()
+                    raise Exception(f"Kubeconfig preflight failed: {exc}") from exc
+
+            # 记录事件
+            event = DeploymentEvent(
+                deployment_id=deployment_id,
+                phase="build",
+                level="info",
+                message="Starting image build",
+            )
+            self.db.add(event)
+            self.db.commit()
+
             # 步骤1: 构建Docker镜像
             image_name = f"{deployment.runtime_name}"
             image_tag = f"deploy-{deployment_id}"
@@ -90,12 +130,21 @@ class DeploymentOrchestrator:
             builder = get_image_builder(method=BuildMethod.DOCKER_API)
             build_result = await builder.build_image(
                 dockerfile_content=artifact.dockerfile_content,
-                context_files=None,  # TODO: 如果有代码文件需要传入
+                context_files=collect_artifact_context_files(artifact.artifact_path),
                 image_name=image_name,
                 image_tag=image_tag,
             )
 
             if build_result["status"] != "success":
+                source_result = await self._try_source_deployment_fallback(
+                    deployment=deployment,
+                    deployment_id=deployment_id,
+                    artifact=artifact,
+                    build_result=build_result,
+                )
+                if source_result is not None:
+                    return source_result
+
                 # 构建失败
                 deployment.status = DeploymentStatus.FAILED.value
                 deployment.error_message = build_result.get("error", "Image build failed")
@@ -243,9 +292,116 @@ class DeploymentOrchestrator:
             self.db.commit()
 
             # 触发自愈
-            await self._trigger_healing_if_needed(deployment_id, str(e), "BUILD")
+            if deployment.error_type != "KUBECONFIG_PERMISSION_DENIED":
+                await self._trigger_healing_if_needed(deployment_id, str(e), "BUILD")
 
             raise
+
+    async def _try_source_deployment_fallback(
+        self,
+        *,
+        deployment: Deployment,
+        deployment_id: int,
+        artifact: GetArtifactResultResponse,
+        build_result: Dict,
+    ) -> Dict | None:
+        source_files = collect_artifact_context_files(artifact.artifact_path) or {}
+        if not source_files or not hasattr(self.sealos_client, "create_source_app"):
+            return None
+
+        event = DeploymentEvent(
+            deployment_id=deployment_id,
+            phase="deploy",
+            level="warning",
+            message=(
+                "Image build failed, falling back to source-mounted deployment: "
+                f"{build_result.get('error')}"
+            ),
+        )
+        self.db.add(event)
+        self.db.commit()
+
+        env_vars = {}
+        for env in artifact.required_envs:
+            if env.example_value:
+                env_vars[env.name] = env.example_value
+
+        try:
+            result = await self.sealos_client.create_source_app(
+                name=deployment.runtime_name,
+                runtime_image=self._source_runtime_image(artifact),
+                source_files=source_files,
+                install_command=self._source_install_command(artifact, source_files),
+                start_command=artifact.runtime.start_command,
+                port=artifact.runtime.exposed_port,
+                env_vars=env_vars,
+                enable_ingress=True,
+            )
+        except Exception as exc:
+            event = DeploymentEvent(
+                deployment_id=deployment_id,
+                phase="deploy",
+                level="error",
+                message=f"Source deployment fallback failed: {exc}",
+                error_type="SOURCE_DEPLOY_FAILED",
+            )
+            self.db.add(event)
+            self.db.commit()
+            raise Exception(
+                "Image build failed: "
+                f"{build_result.get('error')}; "
+                f"source deployment fallback failed: {exc}"
+            ) from exc
+
+        deployment.sealos_app_id = result.get("app_id")
+        deployment.namespace = result.get("namespace")
+        deployment.ingress_domain = result.get("ingress_domain")
+        deployment.access_url = result.get("access_url")
+        deployment.status = DeploymentStatus.RUNNING.value
+        self.db.commit()
+
+        event = DeploymentEvent(
+            deployment_id=deployment_id,
+            phase="deploy",
+            level="info",
+            message=f"Source deployment created successfully: {result.get('app_id')}",
+        )
+        self.db.add(event)
+        self.db.commit()
+
+        return {
+            "deployment_id": deployment_id,
+            "status": deployment.status,
+            "access_url": deployment.access_url,
+            "app_id": deployment.sealos_app_id,
+            "image": result.get("runtime_image"),
+            "source_deploy": True,
+        }
+
+    @staticmethod
+    def _source_runtime_image(artifact: GetArtifactResultResponse) -> str:
+        if artifact.runtime.base_image:
+            return artifact.runtime.base_image
+        command = artifact.runtime.start_command.lower()
+        if "uvicorn" in command or "python" in command:
+            return "python:3.11-slim"
+        return "node:20-alpine"
+
+    @staticmethod
+    def _source_install_command(
+        artifact: GetArtifactResultResponse, source_files: Dict[str, str]
+    ) -> str | None:
+        install_command = artifact.runtime.install_command
+        names = {Path(path).name.lower() for path in source_files}
+        if install_command == "npm ci" and "package-lock.json" not in names:
+            return "npm install --omit=dev"
+        if install_command:
+            return install_command
+        if "requirements.txt" in names:
+            return "pip install --no-cache-dir -r requirements.txt"
+        if "package.json" in names:
+            return "npm install --omit=dev"
+        return None
 
     async def _perform_health_check(self, deployment_id: int, health_url: str) -> bool:
         """

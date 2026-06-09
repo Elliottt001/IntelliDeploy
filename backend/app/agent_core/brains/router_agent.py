@@ -7,6 +7,30 @@ from typing import Callable, Iterable
 from pydantic import BaseModel, Field
 
 
+_GENERIC_GITHUB_TERMS = {
+    "api",
+    "app",
+    "application",
+    "backend",
+    "cloud",
+    "deploy",
+    "deployable",
+    "deployment",
+    "from",
+    "github",
+    "project",
+    "repo",
+    "repository",
+    "service",
+    "services",
+    "template",
+    "tool",
+    "web",
+}
+
+_LANGUAGE_ONLY_TOPICS = {"javascript", "python", "typescript"}
+
+
 class RepoIntent(BaseModel):
     """Structured query intent consumed by retrieval agents."""
 
@@ -119,8 +143,41 @@ class RouterAgent:
             target_app_type = "api_service"
             has_database = True
 
-        if not keywords:
-            keywords.extend(self._extract_ascii_terms(normalized))
+        if self._contains_any(
+            normalized,
+            [
+                "admin",
+                "dashboard",
+                "backoffice",
+                "\u540e\u53f0",
+                "\u7ba1\u7406\u7cfb\u7edf",
+            ],
+        ):
+            keywords.extend(["admin dashboard", "backoffice"])
+            expected_features.extend(["admin dashboard", "management UI"])
+            target_app_type = "admin_dashboard"
+            has_database = True
+            if "fastapi" in normalized or self._contains_any(
+                normalized, ["api", "backend", "\u540e\u7aef"]
+            ):
+                tech_stack.extend(["Python", "FastAPI"])
+
+        if self._contains_any(
+            normalized,
+            ["login", "auth", "authentication", "\u767b\u5f55", "\u767b\u9304", "\u7528\u6237"],
+        ):
+            keywords.append("auth")
+            expected_features.append("user authentication")
+
+        if self._contains_any(
+            normalized,
+            ["database", "postgres", "postgresql", "mysql", "sqlite", "\u6570\u636e\u5e93"],
+        ):
+            keywords.append("database")
+            expected_features.append("database")
+            has_database = True
+
+        keywords.extend(self._extract_ascii_terms(normalized))
 
         if not keywords:
             keywords.extend(["web app", "deployable", "template"])
@@ -177,11 +234,10 @@ class RouterAgent:
         return intent
 
     def _build_github_query(self, keywords: Iterable[str], tech_stack: Iterable[str]) -> str:
-        terms = list(keywords)[:4]
-        for stack in list(tech_stack)[:3]:
-            topic = self._stack_to_topic(stack)
-            if topic:
-                terms.append(f"topic:{topic}")
+        stack_topics = self._stack_topics(tech_stack)
+        plain_limit = 1 if stack_topics else 2
+        terms = self._high_signal_github_terms(keywords, limit=plain_limit)
+        terms.extend(f"topic:{topic}" for topic in stack_topics[:1])
         terms.append(f"stars:>{self.min_stars}")
         terms.append(f"pushed:>{self._cutoff_date()}")
         return " ".join(term for term in terms if term)
@@ -209,8 +265,49 @@ class RouterAgent:
     @staticmethod
     def _extract_ascii_terms(text: str) -> list[str]:
         words = re.findall(r"[a-zA-Z][a-zA-Z0-9_.+-]{2,}", text)
-        stop_words = {"please", "help", "make", "build", "create", "with", "for"}
+        stop_words = {
+            "please",
+            "help",
+            "make",
+            "build",
+            "create",
+            "with",
+            "for",
+            "from",
+        }
         return [word for word in words if word not in stop_words]
+
+    @classmethod
+    def _high_signal_github_terms(
+        cls, keywords: Iterable[str], *, limit: int
+    ) -> list[str]:
+        terms: list[str] = []
+        for keyword in keywords:
+            clean = keyword.strip()
+            if not clean:
+                continue
+
+            tokens = re.findall(r"[a-zA-Z][a-zA-Z0-9_.+-]*", clean.lower())
+            if tokens and all(token in _GENERIC_GITHUB_TERMS for token in tokens):
+                continue
+            if clean.lower() in _GENERIC_GITHUB_TERMS:
+                continue
+
+            terms.append(clean)
+            if len(terms) >= limit:
+                break
+        return terms
+
+    @classmethod
+    def _stack_topics(cls, tech_stack: Iterable[str]) -> list[str]:
+        topics: list[str] = []
+        for stack in tech_stack:
+            topic = cls._stack_to_topic(stack)
+            if not topic or topic in _LANGUAGE_ONLY_TOPICS:
+                continue
+            if topic not in topics:
+                topics.append(topic)
+        return topics
 
     @staticmethod
     def _stack_to_topic(stack: str) -> str | None:

@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { nlDeployAPI, type NaturalLanguageDeployResponse } from '../services/api';
 
 const catImage =
   'https://www.figma.com/api/mcp/asset/be3df654-ec89-4c35-a63a-f7e408efb85c';
@@ -21,6 +22,8 @@ export default function Chatbot() {
   const [inputMode, setInputMode] = useState<'keyboard' | 'voice'>('keyboard');
   const [message, setMessage] = useState('');
   const [sentMessage, setSentMessage] = useState('帮我生成一个可以部署到云上的宠物救助 App');
+  const [deployResult, setDeployResult] = useState<NaturalLanguageDeployResponse | null>(null);
+  const [deployError, setDeployError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(true);
   const [detailOpen, setDetailOpen] = useState(false);
   const intro = useRef(new Animated.Value(0)).current;
@@ -175,17 +178,20 @@ export default function Chatbot() {
     }).start();
   }, [detailIntro, detailOpen]);
 
-  const submit = () => {
-    if (!message.trim()) {
+  const submit = async () => {
+    const trimmed = message.trim();
+    if (!trimmed) {
       return;
     }
     if (generationTimer.current) {
       clearTimeout(generationTimer.current);
     }
-    setSentMessage(message.trim());
+    setSentMessage(trimmed);
     setMessage('');
     setDetailOpen(false);
     setIsGenerating(true);
+    setDeployResult(null);
+    setDeployError(null);
     cardIntro.setValue(0);
     sendPulse.setValue(0);
 
@@ -219,7 +225,14 @@ export default function Chatbot() {
       }),
     ]).start();
 
-    generationTimer.current = setTimeout(() => {
+    try {
+      const response = await nlDeployAPI.start(trimmed, true);
+      setDeployResult(response.data);
+    } catch (error: any) {
+      const backendMessage =
+        error?.response?.data?.error || error?.response?.data?.detail || error?.message;
+      setDeployError(backendMessage || '生成部署链路失败，请稍后重试');
+    } finally {
       setIsGenerating(false);
       Animated.spring(cardIntro, {
         toValue: 1,
@@ -227,7 +240,7 @@ export default function Chatbot() {
         bounciness: 9,
         useNativeDriver: true,
       }).start();
-    }, 1380);
+    }
   };
 
   const startVoicePress = () => {
@@ -296,6 +309,21 @@ export default function Chatbot() {
       useNativeDriver: true,
     }).start();
   };
+
+  const selectedRepo = deployResult?.selected_repository;
+  const artifact = deployResult?.artifact;
+  const resultTitle = deployError
+    ? '生成失败'
+    : selectedRepo?.full_name || 'Pawzzle 寻爪';
+  const resultMeta = deployResult
+    ? `${deployResult.status} · ${artifact?.runtime?.exposed_port ? `port ${artifact.runtime.exposed_port}` : 'artifact'}`
+    : '救助社区 · App 卡片';
+  const resultDescription =
+    deployError ||
+    deployResult?.message ||
+    artifact?.summary ||
+    '领养列表、走失发布、志愿者协作和一键部署已生成。';
+  const deploymentAccessUrl = deployResult?.deployment_result?.access_url;
 
   return (
     <KeyboardAvoidingView
@@ -431,7 +459,7 @@ export default function Chatbot() {
             ]}
           >
             <Text style={styles.generatingText}>
-              {isGenerating ? '产品生成中……' : '产品已生成'}
+              {isGenerating ? '产品生成中……' : deployError ? '生成遇到问题' : '部署链路已生成'}
             </Text>
             <View style={styles.generatingDots}>
               {[0, 1, 2].map((dot) => (
@@ -505,10 +533,10 @@ export default function Chatbot() {
                 <Image source={{ uri: catImage }} style={styles.appIconCat} resizeMode="contain" />
               </View>
               <View style={styles.appCardCopy}>
-                <Text style={styles.appCardTitle}>Pawzzle 寻爪</Text>
-                <Text style={styles.appCardMeta}>救助社区 · App 卡片</Text>
+                <Text style={styles.appCardTitle}>{resultTitle}</Text>
+                <Text style={styles.appCardMeta}>{resultMeta}</Text>
                 <Text style={styles.appCardDesc}>
-                  领养列表、走失发布、志愿者协作和一键部署已生成。
+                  {resultDescription}
                 </Text>
                 <Text style={styles.tapHint}>轻触查看生成详情</Text>
               </View>
@@ -538,10 +566,14 @@ export default function Chatbot() {
               },
             ]}
           >
-            <Text style={styles.detailTitle}>已拆解为 3 个阶段</Text>
-            <Text style={styles.detailLine}>1. 需求卡片 · 领养 / 走失 / 志愿者协作</Text>
-            <Text style={styles.detailLine}>2. 原型预览 · App Gallery 可继续查看</Text>
-            <Text style={styles.detailLine}>3. 部署方案 · 云端一键发布准备中</Text>
+            <Text style={styles.detailTitle}>链路执行详情</Text>
+            <Text style={styles.detailLine}>1. 需求解析 · {sentMessage}</Text>
+            <Text style={styles.detailLine}>
+              2. 仓库召回 · {selectedRepo?.full_name || '未命中仓库，已走生成兜底'}
+            </Text>
+            <Text style={styles.detailLine}>
+              3. 部署状态 · {deploymentAccessUrl || deployResult?.message || deployError || '等待提交'}
+            </Text>
           </Animated.View>
         </View>
 

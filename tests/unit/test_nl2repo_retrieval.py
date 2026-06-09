@@ -25,6 +25,7 @@ class FakeGitHubSearchClient:
     def __init__(self, candidates: list[RepositoryCandidate]):
         self.candidates = candidates
         self.seen_queries: list[str] = []
+        self.enrich_calls = 0
 
     async def search_repositories(
         self, query: str, per_page: int = 20
@@ -35,8 +36,29 @@ class FakeGitHubSearchClient:
     async def enrich_repository(
         self, candidate: RepositoryCandidate
     ) -> RepositoryCandidate:
+        self.enrich_calls += 1
         candidate.files = candidate.files or []
         return candidate
+
+
+class NoTokenGitHubSearchClient(FakeGitHubSearchClient):
+    has_auth_token = False
+
+
+class QueryAwareGitHubSearchClient(FakeGitHubSearchClient):
+    def __init__(self, query_candidates: list[tuple[str, list[RepositoryCandidate]]]):
+        super().__init__([])
+        self.query_candidates = query_candidates
+
+    async def search_repositories(
+        self, query: str, per_page: int = 20
+    ) -> list[RepositoryCandidate]:
+        self.seen_queries.append(query)
+        normalized = query.lower()
+        for marker, candidates in self.query_candidates:
+            if marker in normalized:
+                return [candidate.model_copy(deep=True) for candidate in candidates[:per_page]]
+        return []
 
 
 def test_router_agent_structures_vague_portfolio_intent():
@@ -54,6 +76,38 @@ def test_router_agent_structures_vague_portfolio_intent():
     assert "portfolio" in intent.expected_features
     assert intent.preferred_framework in {"Next.js", "React", "Vue"}
     assert intent.constraints["frontend_only"] is True
+
+
+def test_router_agent_extracts_admin_auth_database_intent_from_chinese_fastapi_query():
+    intent = RouterAgent().structure_intent(
+        "我想部署一个 FastAPI 后台管理系统，带用户登录和数据库"
+    )
+
+    assert intent.target_app_type == "admin_dashboard"
+    assert intent.has_database is True
+    assert intent.constraints["has_database"] is True
+    assert "admin dashboard" in intent.keywords
+    assert "auth" in intent.keywords
+    assert "database" in intent.keywords
+    assert "FastAPI" in intent.tech_stack
+    assert intent.preferred_language == "Python"
+
+
+def test_router_agent_keeps_fastapi_github_query_broad_enough():
+    intent = RouterAgent().structure_intent("Deploy a FastAPI API service from GitHub")
+
+    terms = intent.github_query.split()
+    plain_terms = [
+        term
+        for term in terms
+        if ":" not in term and not term.startswith(("stars:>", "pushed:>"))
+    ]
+
+    assert plain_terms == ["fastapi"]
+    assert "topic:fastapi" in terms
+    assert "topic:python" not in terms
+    assert "stars:>50" in terms
+    assert any(term.startswith("pushed:>") for term in terms)
 
 
 def test_bm25_readme_store_ranks_long_tail_semantic_match_first():
@@ -169,6 +223,161 @@ async def test_pipeline_merges_dual_track_results_and_reranks_for_deployability(
     assert result.repository_profile is not None
     assert result.repository_profile.source_repo_url == "https://github.com/dream/dreamlog"
     assert result.repository_profile.has_valid_dockerfile is True
+
+
+@pytest.mark.asyncio
+async def test_pipeline_uses_multi_query_recall_and_penalizes_frameworks_tutorials_and_tools():
+    github_client = QueryAwareGitHubSearchClient(
+        [
+            (
+                "admin",
+                [
+                    RepositoryCandidate(
+                        full_name="acme/fastapi-admin-template",
+                        html_url="https://github.com/acme/fastapi-admin-template",
+                        description=(
+                            "FastAPI admin dashboard starter with auth, PostgreSQL, "
+                            "Docker, and React UI"
+                        ),
+                        stars=420,
+                        pushed_at="2026-04-01T00:00:00Z",
+                        language="Python",
+                        topics=["fastapi", "admin", "dashboard", "template", "docker"],
+                        files=["Dockerfile", "docker-compose.yml", "requirements.txt"],
+                        file_tree=[
+                            "Dockerfile",
+                            "docker-compose.yml",
+                            "requirements.txt",
+                            "app/main.py",
+                        ],
+                        key_files={
+                            "README.md": "FastAPI admin dashboard template with login and database.",
+                            "Dockerfile": "FROM python:3.11-slim",
+                            "requirements.txt": "fastapi\nuvicorn\nsqlmodel\n",
+                        },
+                    )
+                ],
+            ),
+            (
+                "fastapi",
+                [
+                    RepositoryCandidate(
+                        full_name="fastapi/fastapi",
+                        html_url="https://github.com/fastapi/fastapi",
+                        description="FastAPI framework, high performance, easy to learn",
+                        stars=99_000,
+                        pushed_at="2026-04-01T00:00:00Z",
+                        language="Python",
+                        topics=["fastapi", "framework", "library"],
+                        files=["pyproject.toml"],
+                        file_tree=["pyproject.toml", "fastapi/applications.py"],
+                    ),
+                    RepositoryCandidate(
+                        full_name="mouredev/Hello-Python",
+                        html_url="https://github.com/mouredev/Hello-Python",
+                        description="Python course tutorial with backend and FastAPI lessons",
+                        stars=35_000,
+                        pushed_at="2026-04-01T00:00:00Z",
+                        language="Python",
+                        topics=["python", "tutorial", "fastapi"],
+                        files=["README.md", "requirements.txt"],
+                        file_tree=["README.md", "requirements.txt"],
+                    ),
+                    RepositoryCandidate(
+                        full_name="tools/photo-fastapi",
+                        html_url="https://github.com/tools/photo-fastapi",
+                        description="AI photo utility API built with FastAPI",
+                        stars=20_000,
+                        pushed_at="2026-04-01T00:00:00Z",
+                        language="Python",
+                        topics=["fastapi", "tools", "machine-learning"],
+                        files=["Dockerfile", "requirements.txt"],
+                        file_tree=["Dockerfile", "requirements.txt", "main.py"],
+                    ),
+                    RepositoryCandidate(
+                        full_name="generic/full-stack-ai-fastapi",
+                        html_url="https://github.com/generic/full-stack-ai-fastapi",
+                        description=(
+                            "Full-stack AI app generator with FastAPI, auth, "
+                            "PostgreSQL, and Docker"
+                        ),
+                        stars=1400,
+                        pushed_at="2026-04-01T00:00:00Z",
+                        language="Python",
+                        topics=["fastapi", "auth", "postgresql", "docker"],
+                    ),
+                ],
+            ),
+        ]
+    )
+    pipeline = NL2RepoRetrievalPipeline(
+        router=RouterAgent(),
+        github_client=github_client,
+        readme_store=BM25ReadmeStore(),
+    )
+
+    result = await pipeline.retrieve(
+        "我想部署一个 FastAPI 后台管理系统，带用户登录和数据库",
+        top_n=5,
+    )
+
+    assert len(github_client.seen_queries) > 1
+    assert any("admin" in query.lower() for query in github_client.seen_queries)
+    assert result.candidates[0].full_name == "acme/fastapi-admin-template"
+    assert result.candidates[0].score_breakdown["application_signal"] > 0
+    assert result.candidates[0].score_breakdown["deployability"] > 0
+    framework = next(
+        candidate for candidate in result.candidates if candidate.full_name == "fastapi/fastapi"
+    )
+    assert framework.score_breakdown["framework_library_penalty"] < 0
+    ai_template = next(
+        candidate
+        for candidate in result.candidates
+        if candidate.full_name == "generic/full-stack-ai-fastapi"
+    )
+    assert ai_template.score_breakdown["intent_mismatch_penalty"] < 0
+    assert ai_template.score_breakdown["intent_mismatch_penalty"] <= -45
+    assert ai_template.score_breakdown["no_deploy_evidence_penalty"] == 0
+
+
+@pytest.mark.asyncio
+async def test_pipeline_skips_github_enrichment_without_auth_token():
+    github_client = NoTokenGitHubSearchClient(
+        [
+            RepositoryCandidate(
+                full_name="fastapi/framework",
+                html_url="https://github.com/fastapi/framework",
+                description="FastAPI framework",
+                stars=100,
+                pushed_at="2026-04-01T00:00:00Z",
+                language="Python",
+                topics=["fastapi"],
+                source_scores={"github": 1.0},
+            ),
+            RepositoryCandidate(
+                full_name="fastapi/template",
+                html_url="https://github.com/fastapi/template",
+                description="FastAPI service template",
+                stars=100,
+                pushed_at="2026-04-01T00:00:00Z",
+                language="Python",
+                topics=["fastapi", "docker"],
+                source_scores={"github": 0.98},
+            )
+        ]
+    )
+    pipeline = NL2RepoRetrievalPipeline(
+        router=RouterAgent(),
+        github_client=github_client,
+        readme_store=BM25ReadmeStore(),
+    )
+
+    result = await pipeline.retrieve("Deploy a FastAPI API service", top_n=1)
+
+    assert github_client.seen_queries
+    assert github_client.enrich_calls == 0
+    assert result.candidates[0].full_name == "fastapi/template"
+    assert result.candidates[0].score_breakdown["docker_bonus"] > 0
 
 
 @pytest.mark.asyncio
