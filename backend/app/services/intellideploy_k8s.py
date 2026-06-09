@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import uuid
 from typing import Any, Dict, List
 
 from app.config import settings
@@ -8,6 +9,69 @@ from app.config import settings
 
 class K8sDeployError(Exception):
     pass
+
+
+def _load_kubeconfig_dict(kubeconfig_content: str) -> Dict[str, Any]:
+    try:
+        import yaml
+
+        cfg = yaml.safe_load(kubeconfig_content)
+    except Exception as exc:
+        raise K8sDeployError(f"Invalid kubeconfig YAML: {exc}") from exc
+
+    if not isinstance(cfg, dict):
+        raise K8sDeployError("Invalid kubeconfig: expected a YAML object")
+    return cfg
+
+
+def _namespace_from_kubeconfig_dict(cfg: Dict[str, Any]) -> str:
+    current_context = cfg.get("current-context")
+    if not current_context:
+        raise K8sDeployError("No current context in kubeconfig")
+
+    for entry in cfg.get("contexts") or []:
+        if entry.get("name") == current_context:
+            context = entry.get("context") or {}
+            return context.get("namespace") or "default"
+
+    raise K8sDeployError(f"Current context {current_context!r} not found in kubeconfig")
+
+
+def _api_exception_message(exc: Exception) -> str:
+    body = getattr(exc, "body", None)
+    if body:
+        try:
+            payload = json.loads(body)
+            message = payload.get("message")
+            if message:
+                return str(message)
+        except Exception:
+            pass
+        return str(body)
+
+    status = getattr(exc, "status", None)
+    reason = getattr(exc, "reason", None)
+    if status or reason:
+        return " ".join(str(part) for part in (status, reason) if part)
+    return str(exc)
+
+
+def _restricted_pod_security_context(client):
+    return client.V1PodSecurityContext(
+        run_as_non_root=True,
+        run_as_user=1000,
+        run_as_group=1000,
+        fs_group=1000,
+        seccomp_profile=client.V1SeccompProfile(type="RuntimeDefault"),
+    )
+
+
+def _restricted_container_security_context(client):
+    return client.V1SecurityContext(
+        allow_privilege_escalation=False,
+        capabilities=client.V1Capabilities(drop=["ALL"]),
+        seccomp_profile=client.V1SeccompProfile(type="RuntimeDefault"),
+    )
 
 
 def _skills_sdk_path() -> str:
@@ -101,14 +165,105 @@ def validate_kubeconfig(kubeconfig_content: str) -> str:
     try:
         from kubernetes import config
 
-        config.load_kube_config_from_dict(__import__("yaml").safe_load(kubeconfig_content))
-        contexts, current = config.list_kube_config_contexts()
-        if not current:
-            raise K8sDeployError("No current context in kubeconfig")
-        namespace = current.get("context", {}).get("namespace") or "default"
-        return namespace
+        cfg = _load_kubeconfig_dict(kubeconfig_content)
+        config.load_kube_config_from_dict(cfg)
+        return _namespace_from_kubeconfig_dict(cfg)
     except Exception as e:
+        if isinstance(e, K8sDeployError):
+            raise
         raise K8sDeployError(str(e))
+
+
+def validate_deploy_permissions(kubeconfig_content: str) -> str:
+    from kubernetes import client, config
+    from kubernetes.client import ApiException
+
+    cfg = _load_kubeconfig_dict(kubeconfig_content)
+    config.load_kube_config_from_dict(cfg)
+    namespace = _namespace_from_kubeconfig_dict(cfg)
+
+    auth_api = client.AuthorizationV1Api()
+    checks = [
+        ("", "configmaps"),
+        ("apps", "deployments"),
+        ("", "services"),
+        ("networking.k8s.io", "ingresses"),
+    ]
+    denied: list[str] = []
+
+    for group, resource in checks:
+        review = client.V1SelfSubjectAccessReview(
+            spec=client.V1SelfSubjectAccessReviewSpec(
+                resource_attributes=client.V1ResourceAttributes(
+                    group=group or None,
+                    namespace=namespace,
+                    resource=resource,
+                    verb="create",
+                )
+            )
+        )
+        try:
+            response = auth_api.create_self_subject_access_review(review)
+        except ApiException as exc:
+            raise K8sDeployError(
+                "Kubeconfig permission check failed in namespace "
+                f"{namespace}: {_api_exception_message(exc)}"
+            ) from exc
+
+        if not getattr(response.status, "allowed", False):
+            denied.append(f"{resource}{'.' + group if group else ''}")
+
+    if denied:
+        raise K8sDeployError(
+            "Kubeconfig lacks create permissions in namespace "
+            f"{namespace}: {', '.join(denied)}"
+        )
+
+    name = f"intellideploy-preflight-{uuid.uuid4().hex[:8]}"
+    core_api = client.CoreV1Api()
+    apps_api = client.AppsV1Api()
+
+    try:
+        core_api.create_namespaced_config_map(
+            namespace=namespace,
+            body=client.V1ConfigMap(
+                metadata=client.V1ObjectMeta(name=name),
+                data={"preflight": "true"},
+            ),
+            dry_run="All",
+        )
+        apps_api.create_namespaced_deployment(
+            namespace=namespace,
+            body=client.V1Deployment(
+                metadata=client.V1ObjectMeta(name=name),
+                spec=client.V1DeploymentSpec(
+                    replicas=1,
+                    selector=client.V1LabelSelector(match_labels={"app": name}),
+                    template=client.V1PodTemplateSpec(
+                        metadata=client.V1ObjectMeta(labels={"app": name}),
+                        spec=client.V1PodSpec(
+                            security_context=_restricted_pod_security_context(client),
+                            containers=[
+                                client.V1Container(
+                                    name=name,
+                                    image="busybox:1.36",
+                                    command=["sh", "-c", "sleep 1"],
+                                    security_context=_restricted_container_security_context(client),
+                                )
+                            ],
+                        ),
+                    ),
+                ),
+            ),
+            dry_run="All",
+        )
+    except ApiException as exc:
+        raise K8sDeployError(
+            "Kubeconfig create admission denied in namespace "
+            f"{namespace}: {_api_exception_message(exc)}"
+        ) from exc
+
+    return namespace
 
 
 def deploy_with_kubeconfig(
@@ -185,11 +340,10 @@ def deploy_with_kubeconfig(
     from kubernetes import client, config
     from kubernetes.client import ApiException
 
-    cfg = __import__("yaml").safe_load(kubeconfig_content)
+    cfg = _load_kubeconfig_dict(kubeconfig_content)
     config.load_kube_config_from_dict(cfg)
 
-    contexts, current = config.list_kube_config_contexts()
-    namespace = current.get("context", {}).get("namespace") or "default"
+    namespace = _namespace_from_kubeconfig_dict(cfg)
 
     apps_api = client.AppsV1Api()
     core_api = client.CoreV1Api()
@@ -210,6 +364,7 @@ def deploy_with_kubeconfig(
             template=client.V1PodTemplateSpec(
                 metadata=client.V1ObjectMeta(labels={"app": name}),
                 spec=client.V1PodSpec(
+                    security_context=_restricted_pod_security_context(client),
                     # 镜像在 GHCR 上默认是 private —— Sealos K8s 拉的时候需要凭据。
                     # 复用 image_builder 在同 namespace 里 upsert 的 docker-config Secret，
                     # Secret 名空时用兜底名（和 image_builder 保持一致）。
@@ -225,6 +380,7 @@ def deploy_with_kubeconfig(
                             image=image,
                             ports=[client.V1ContainerPort(container_port=port)],
                             env=env_items,
+                            security_context=_restricted_container_security_context(client),
                         )
                     ]
                 ),
@@ -247,13 +403,13 @@ def deploy_with_kubeconfig(
         if e.status == 409:
             results.append({"step": "deploy", "success": True, "message": "Deployment already exists"})
         else:
-            results.append({"step": "deploy", "success": False, "message": str(e)})
+            results.append({"step": "deploy", "success": False, "message": _api_exception_message(e)})
 
     try:
         core_api.create_namespaced_service(namespace=namespace, body=service)
     except ApiException as e:
         if e.status != 409:
-            results.append({"step": "service", "success": False, "message": str(e)})
+            results.append({"step": "service", "success": False, "message": _api_exception_message(e)})
 
     if enable_ingress:
         ingress = client.V1Ingress(
@@ -290,7 +446,7 @@ def deploy_with_kubeconfig(
             if e.status == 409:
                 results.append({"step": "ingress", "success": True, "message": "Ingress already exists"})
             else:
-                results.append({"step": "ingress", "success": False, "message": str(e)})
+                results.append({"step": "ingress", "success": False, "message": _api_exception_message(e)})
 
     database_name = None
     if needs_database:

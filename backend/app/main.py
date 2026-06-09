@@ -17,6 +17,7 @@ from app.routers.intellideploy import (
     images_router,
     rag_router,
     retrieval_router,
+    natural_language_router,
 )
 
 
@@ -49,6 +50,7 @@ app.include_router(deployments_router)
 app.include_router(images_router)
 app.include_router(rag_router)
 app.include_router(retrieval_router)
+app.include_router(natural_language_router)
 
 
 @app.exception_handler(HTTPException)

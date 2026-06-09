@@ -118,13 +118,18 @@ const API_BASE_URL = 'http://localhost:9000';
 - `SECRET_KEY`
 - `DATABASE_URL`
 - `ACCESS_TOKEN_EXPIRE_MINUTES`
+- `FALLBACK_SERVICE_URL`
 
-默认数据库为 PostgreSQL（全局统一）：
+本地开发默认使用 SQLite，并在后端进程内运行 fallback 生成：
 ```text
-postgresql+psycopg://postgres:your_password@127.0.0.1:5432/intellideploy
+DATABASE_URL=sqlite:///./intellideploy.db
+FALLBACK_SERVICE_URL=local
 ```
 
-请修改 `backend/.env` 里的 `DATABASE_URL` 为你本机 PostgreSQL 的真实账号密码与库名。
+共享环境仍可使用 PostgreSQL：
+```text
+DATABASE_URL=postgresql+psycopg://postgres:your_password@127.0.0.1:5432/intellideploy
+```
 
 后端首次启动时会自动创建数据库表。
 

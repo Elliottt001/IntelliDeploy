@@ -94,6 +94,15 @@ class FallbackGenerationClient:
             return DeployFailureFeedbackResponse(**response.json())
 
 
+class LocalFallbackGenerationClient(FallbackGenerationClient):
+    """Explicit in-process fallback client used by tests and local deployments."""
+
+    def __init__(self, store=None):
+        super().__init__(base_url="inprocess")
+        self.store = store
+        self._runner = InProcessFallbackRunner()
+
+
 # 全局客户端实例
 _fallback_client: Optional[FallbackGenerationClient] = None
 

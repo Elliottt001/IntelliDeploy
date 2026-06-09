@@ -1,36 +1,53 @@
 import json
 import logging
+
 from pydantic import ValidationError
+
 from src.agents.schemas import DiagnosisResult
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 class ErrorParser:
     def __init__(self, llm_client):
         self.llm = llm_client
 
     async def parse_log(self, raw_log: str) -> DiagnosisResult:
-        # 确保 Prompt 要求 AI 输出所有 5 个字段
         prompt = f"""
-        你是一名 DevOps 专家。请分析以下报错日志，并严格按照 JSON 格式输出。
-        JSON 必须包含字段: "error_type", "root_cause", "suggested_components", "key_component", "confidence"。
-        
-        日志内容: 
+        You are a DevOps diagnostic expert. Analyze the following logs and
+        return JSON with: error_type, root_cause, suggested_components,
+        key_component, confidence.
+
+        Logs:
         {raw_log}
         """
-        
+
         response = await self.llm.chat("You are a diagnostic expert.", prompt)
-        
+
         try:
-            # 清洗 Markdown 标记
             cleaned_json = response.replace("```json", "").replace("```", "").strip()
-            # 校验数据
-            result = DiagnosisResult.model_validate_json(cleaned_json)
-            logger.info("日志解析成功，已通过校验。")
+            payload = json.loads(cleaned_json)
+            payload.setdefault("suggested_components", [])
+            if not payload["suggested_components"] and payload.get("key_component"):
+                payload["suggested_components"] = [payload["key_component"]]
+            result = DiagnosisResult.model_validate(payload)
+            logger.info("Log diagnosis parsed successfully.")
             return result
-            
-        except (ValidationError, json.JSONDecodeError) as e:
-            logger.error(f"日志解析失败: {e}, 原始响应: {response}")
-            # 抛出异常或返回兜底默认值
-            raise ValueError("LLM 输出格式错误，无法解析为 DiagnosisResult")
+        except (ValidationError, json.JSONDecodeError) as exc:
+            logger.error("Log diagnosis parse failed: %s, raw response: %s", exc, response)
+            raise ValueError("LLM output could not be parsed as DiagnosisResult") from exc
+
+    async def diagnose(self, raw_log: str) -> DiagnosisResult:
+        try:
+            return await self.parse_log(raw_log)
+        except Exception as exc:
+            logger.error("diagnose fallback after parse failure: %s", exc)
+            return DiagnosisResult(
+                error_type="Unknown",
+                root_cause=f"解析失败: {exc}",
+                suggested_components=[],
+                key_component="unknown",
+                confidence=0.0,
+            )

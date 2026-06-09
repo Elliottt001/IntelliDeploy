@@ -123,10 +123,48 @@ class RouterAgent:
             has_database = True
 
         if self._contains_any(normalized, ["api", "backend", "\u540e\u7aef"]):
+            if "fastapi" in normalized:
+                keywords.append("fastapi")
+                tech_stack.extend(["FastAPI", "Python"])
             keywords.extend(["api", "backend"])
             expected_features.extend(["api service", "backend"])
-            tech_stack.extend(["Python", "FastAPI"])
+            if "fastapi" not in normalized:
+                tech_stack.extend(["Python", "FastAPI"])
             target_app_type = "api_service"
+            has_database = True
+
+        if self._contains_any(
+            normalized,
+            [
+                "admin",
+                "dashboard",
+                "backoffice",
+                "\u540e\u53f0",
+                "\u7ba1\u7406\u7cfb\u7edf",
+            ],
+        ):
+            keywords.extend(["admin dashboard", "backoffice"])
+            expected_features.extend(["admin dashboard", "management UI"])
+            target_app_type = "admin_dashboard"
+            has_database = True
+            if "fastapi" in normalized or self._contains_any(
+                normalized, ["api", "backend", "\u540e\u7aef"]
+            ):
+                tech_stack.extend(["FastAPI", "Python"])
+
+        if self._contains_any(
+            normalized,
+            ["login", "auth", "authentication", "\u767b\u5f55", "\u767b\u9304", "\u7528\u6237"],
+        ):
+            keywords.append("auth")
+            expected_features.append("user authentication")
+
+        if self._contains_any(
+            normalized,
+            ["database", "postgres", "postgresql", "mysql", "sqlite", "\u6570\u636e\u5e93"],
+        ):
+            keywords.append("database")
+            expected_features.append("database")
             has_database = True
 
         if not keywords:
@@ -160,7 +198,7 @@ class RouterAgent:
             has_database=has_database,
             github_query=self._build_github_query(keywords, tech_stack),
         )
-        return intent
+        return self._with_guarded_github_query(intent)
 
     def _with_guarded_github_query(self, intent: RepoIntent) -> RepoIntent:
         guarded = intent.github_query or self._build_github_query(

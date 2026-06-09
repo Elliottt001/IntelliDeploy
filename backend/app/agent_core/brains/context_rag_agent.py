@@ -150,6 +150,8 @@ class NL2RepoRetrievalPipeline:
             )
             return []
 
+        return await self._github_search_multi(intent)
+
         # 渐进式降级：原始 query → 砍掉 pushed/stars 限制 → 砍掉次要关键词。
         # GitHub Search 是严格 AND，关键词稍多就 0 结果，需要逐步放宽。
         queries = self._relaxed_query_variants(intent.github_query)
@@ -203,6 +205,142 @@ class NL2RepoRetrievalPipeline:
                 intent.github_query,
             )
         return []
+
+    async def _github_search_multi(self, intent: RepoIntent) -> list[RepositoryCandidate]:
+        last_error: Exception | None = None
+        aggregated: dict[str, RepositoryCandidate] = {}
+
+        for query_index, base_query in enumerate(self._github_queries(intent)):
+            for variant_index, query in enumerate(self._relaxed_query_variants(base_query)):
+                try:
+                    candidates = await self.github_client.search_repositories(
+                        query, per_page=self.github_top_k
+                    )
+                except Exception as exc:
+                    last_error = exc
+                    logger.exception(
+                        "GitHub search failed for query=%r: %s. "
+                        "Verify tokens with: curl -H 'Authorization: Bearer <TOKEN>' "
+                        "https://api.github.com/rate_limit",
+                        query,
+                        exc,
+                    )
+                    continue
+
+                if not candidates:
+                    logger.warning(
+                        "GitHub search returned 0 items for query=%r. Trying next variant.",
+                        query,
+                    )
+                    continue
+
+                logger.info(
+                    "GitHub search returned %d candidate(s) for query=%r.",
+                    len(candidates),
+                    query,
+                )
+                for index, candidate in enumerate(candidates):
+                    source_score = max(
+                        0.35,
+                        1.0
+                        - query_index * 0.12
+                        - variant_index * 0.04
+                        - index * 0.04,
+                    )
+                    existing = aggregated.get(candidate.repo_key)
+                    if existing is None:
+                        candidate.source_scores["github_search"] = max(
+                            candidate.source_scores.get("github_search", 0.0),
+                            source_score,
+                        )
+                        aggregated[candidate.repo_key] = candidate
+                    else:
+                        existing.source_scores["github_search"] = max(
+                            existing.source_scores.get("github_search", 0.0),
+                            source_score,
+                        )
+
+        if not aggregated and last_error is None:
+            logger.warning(
+                "GitHub search exhausted all query variants with 0 results. "
+                "Original query: %r",
+                intent.github_query,
+            )
+        return list(aggregated.values())
+
+    def _github_queries(self, intent: RepoIntent) -> list[str]:
+        guards = self._query_guards(intent)
+        guard_suffix = " ".join(guards)
+        stack_terms = self._stack_query_terms(intent)
+        primary_stack = stack_terms[0] if stack_terms else ""
+        high_value = " ".join(self._high_value_terms(intent)[:3])
+        queries = [intent.github_query]
+
+        def add(query: str) -> None:
+            cleaned = " ".join(query.split())
+            if cleaned:
+                queries.append(cleaned)
+
+        if intent.target_app_type == "admin_dashboard":
+            add(f"{primary_stack} admin dashboard template docker {guard_suffix}")
+            add(f"{primary_stack} auth database postgresql starter {guard_suffix}")
+            add(f"{primary_stack} full stack template docker {guard_suffix}")
+        elif intent.has_database:
+            add(f"{primary_stack} auth database starter docker {guard_suffix}")
+            add(f"{primary_stack} full stack template docker {guard_suffix}")
+            add(f"{high_value} application template {guard_suffix}")
+        elif intent.is_frontend_only:
+            add(f"{primary_stack} template starter portfolio {guard_suffix}")
+            add(f"{primary_stack} personal website template {guard_suffix}")
+        else:
+            add(f"{primary_stack} {high_value} template starter docker {guard_suffix}")
+            add(f"{primary_stack} full stack template docker {guard_suffix}")
+
+        seen: set[str] = set()
+        deduped: list[str] = []
+        for query in queries:
+            cleaned = " ".join((query or "").split())
+            if cleaned and cleaned not in seen:
+                seen.add(cleaned)
+                deduped.append(cleaned)
+        return deduped[:4]
+
+    @staticmethod
+    def _query_guards(intent: RepoIntent) -> list[str]:
+        guards: list[str] = []
+        for token in (intent.github_query or "").split():
+            if token.startswith(("stars:", "pushed:", "language:", "topic:")):
+                guards.append(token)
+        return guards
+
+    @staticmethod
+    def _stack_query_terms(intent: RepoIntent) -> list[str]:
+        raw_terms = list(intent.tech_stack)
+        if intent.preferred_framework:
+            raw_terms.insert(0, intent.preferred_framework)
+        if intent.preferred_language:
+            raw_terms.append(intent.preferred_language)
+
+        mapping = {
+            "nextjs": "nextjs",
+            "react": "react",
+            "vue": "vue",
+            "typescript": "typescript",
+            "javascript": "javascript",
+            "python": "python",
+            "fastapi": "fastapi",
+            "django": "django",
+            "flask": "flask",
+        }
+        terms: list[str] = []
+        seen: set[str] = set()
+        for term in raw_terms:
+            normalized = term.lower().replace(".", "").replace(" ", "")
+            mapped = mapping.get(normalized)
+            if mapped and mapped not in seen:
+                seen.add(mapped)
+                terms.append(mapped)
+        return terms
 
     @staticmethod
     def _relaxed_query_variants(query: str) -> list[str]:
@@ -385,22 +523,33 @@ class NL2RepoRetrievalPipeline:
         self, intent: RepoIntent, candidate: RepositoryCandidate
     ) -> dict[str, float]:
         source_score = max(candidate.source_scores.values(), default=0.0)
+        deployability = self._deployability_score(candidate)
         breakdown = {
-            "retrieval_relevance": 40.0 * source_score,
-            "stars": min(math.log(candidate.stars + 1, 10) * 5.0, 20.0),
+            "retrieval_relevance": 20.0 * source_score,
+            "intent_match": self._intent_match_score(intent, candidate),
+            "deployability": deployability,
+            "application_signal": self._application_signal_score(candidate),
+            "stack_match": self._stack_match_score(intent, candidate),
+            "stars": min(math.log(candidate.stars + 1, 10) * 1.25, 5.0),
             "recency": self._recency_score(candidate.pushed_at),
-            "docker_bonus": 50.0
-            if self._has_docker(self._candidate_paths(candidate))
+            "docker_bonus": 8.0
+            if self._has_docker_signal(candidate)
             else 0.0,
-            "template_stack_bonus": 30.0
-            if self._matches_preferred_stack(intent, candidate)
+            "template_stack_bonus": 5.0
+            if self._has_template_signal(candidate)
+            and self._matches_preferred_stack(intent, candidate)
             else 0.0,
-            "package_structure": 10.0
+            "package_structure": min(deployability, 10.0)
             if self._has_engineering_structure(self._candidate_paths(candidate))
             else 0.0,
-            "dual_track_bonus": 10.0
+            "dual_track_bonus": 4.0
             if {"github_search", "readme_bm25"}.issubset(candidate.source_scores)
             else 0.0,
+            "complexity_fit": self._complexity_fit_score(candidate),
+            "framework_library_penalty": self._framework_library_penalty(candidate),
+            "tutorial_penalty": self._tutorial_penalty(candidate),
+            "no_deploy_evidence_penalty": self._no_deploy_evidence_penalty(candidate),
+            "intent_mismatch_penalty": self._intent_mismatch_penalty(intent, candidate),
         }
         return breakdown
 
@@ -443,13 +592,212 @@ class NL2RepoRetrievalPipeline:
     def _recency_score(self, pushed_at: str | None) -> float:
         pushed = self._parse_timestamp(pushed_at)
         if pushed is None:
-            return 5.0
+            return 3.0
         age_days = (datetime.now(timezone.utc) - pushed).days
         if age_days <= 365:
-            return 15.0
+            return 8.0
         if age_days <= 730:
-            return 7.0
+            return 4.0
         return 0.0
+
+    def _intent_match_score(self, intent: RepoIntent, candidate: RepositoryCandidate) -> float:
+        terms = self._high_value_terms(intent)
+        if not terms:
+            return 0.0
+
+        text = self._candidate_text(candidate)
+        matches = sum(1 for term in terms if self._term_matches(term, text))
+        return min(30.0, 30.0 * matches / max(len(terms), 1))
+
+    def _deployability_score(self, candidate: RepositoryCandidate) -> float:
+        paths = self._candidate_paths(candidate)
+        names = {self._path_name(path) for path in paths}
+        key_text = " ".join(candidate.key_files.values()).lower()
+        score = 0.0
+        if "dockerfile" in names:
+            score += 10.0
+        if "docker-compose.yml" in names or "compose.yml" in names:
+            score += 5.0
+        if names & {
+            "package.json",
+            "requirements.txt",
+            "pyproject.toml",
+            "go.mod",
+            "pom.xml",
+            "build.gradle",
+            "build.gradle.kts",
+        }:
+            score += 5.0
+        if names & {
+            "package-lock.json",
+            "pnpm-lock.yaml",
+            "yarn.lock",
+            "poetry.lock",
+            "uv.lock",
+        }:
+            score += 2.0
+        if self._detect_entrypoints(paths):
+            score += 3.0
+        if any(token in key_text for token in ("expose ", "cmd ", "entrypoint ", "npm start")):
+            score += 2.0
+        return min(score, 25.0)
+
+    def _application_signal_score(self, candidate: RepositoryCandidate) -> float:
+        text = self._candidate_text(candidate)
+        signals = [
+            "template",
+            "starter",
+            "boilerplate",
+            "full stack",
+            "fullstack",
+            "dashboard",
+            "admin",
+            "backoffice",
+            "app",
+            "application",
+        ]
+        hits = sum(1 for signal in signals if signal in text)
+        return min(15.0, hits * 3.0)
+
+    def _stack_match_score(self, intent: RepoIntent, candidate: RepositoryCandidate) -> float:
+        if not intent.tech_stack and not intent.preferred_language:
+            return 0.0
+        score = 0.0
+        if self._matches_preferred_stack(intent, candidate):
+            score += 9.0
+        if intent.preferred_language and candidate.language:
+            if intent.preferred_language.lower() == candidate.language.lower():
+                score += 3.0
+        return min(score, 12.0)
+
+    def _complexity_fit_score(self, candidate: RepositoryCandidate) -> float:
+        file_count = len(self._candidate_paths(candidate))
+        if file_count == 0:
+            return 1.0
+        if file_count <= 80:
+            return 5.0
+        if file_count <= 250:
+            return 3.0
+        return -3.0
+
+    def _framework_library_penalty(self, candidate: RepositoryCandidate) -> float:
+        text = self._candidate_text(candidate)
+        name = candidate.full_name.lower()
+        library_markers = [
+            "framework",
+            "library",
+            "sdk",
+            "toolkit",
+            "package",
+            "plugin",
+        ]
+        if name in {"fastapi/fastapi", "django/django", "pallets/flask", "expressjs/express"}:
+            return -35.0
+        if any(marker in text for marker in library_markers) and not self._has_template_signal(candidate):
+            return -20.0
+        return 0.0
+
+    def _tutorial_penalty(self, candidate: RepositoryCandidate) -> float:
+        text = self._candidate_text(candidate)
+        tutorial_markers = [
+            "tutorial",
+            "course",
+            "learn",
+            "awesome",
+            "examples",
+            "example collection",
+            "beginner",
+            "hello-python",
+        ]
+        return -30.0 if any(marker in text for marker in tutorial_markers) else 0.0
+
+    def _no_deploy_evidence_penalty(self, candidate: RepositoryCandidate) -> float:
+        deployability = self._deployability_score(candidate)
+        if self._has_docker_signal(candidate):
+            return 0.0
+        return -25.0 if deployability <= 2.0 else 0.0
+
+    def _intent_mismatch_penalty(self, intent: RepoIntent, candidate: RepositoryCandidate) -> float:
+        text = self._candidate_text(candidate)
+        penalty = 0.0
+        if intent.target_app_type == "admin_dashboard":
+            admin_terms = ["admin", "dashboard", "backoffice", "management ui"]
+            if not any(term in text for term in admin_terms):
+                penalty -= 45.0
+            off_target_terms = [
+                "photo",
+                "image",
+                "compress",
+                "compression",
+                "machine learning",
+                "deep learning",
+            ]
+            if any(term in text for term in off_target_terms):
+                penalty -= 15.0
+        return penalty
+
+    @staticmethod
+    def _high_value_terms(intent: RepoIntent) -> list[str]:
+        generic = {
+            "deployable",
+            "web app",
+            "app",
+            "application",
+            "tool",
+            "template",
+            "starter",
+        }
+        terms: list[str] = []
+        for term in [*intent.expected_features, *intent.keywords, *intent.tech_stack]:
+            cleaned = term.lower().strip()
+            if cleaned and cleaned not in generic and not cleaned.startswith(("stars:", "pushed:")):
+                terms.append(cleaned)
+        seen: set[str] = set()
+        deduped: list[str] = []
+        for term in terms:
+            if term not in seen:
+                seen.add(term)
+                deduped.append(term)
+        return deduped[:8]
+
+    @staticmethod
+    def _term_matches(term: str, text: str) -> bool:
+        normalized_term = term.lower().replace(".", "").replace("-", " ")
+        normalized_text = text.lower().replace(".", "").replace("-", " ")
+        if normalized_term in normalized_text:
+            return True
+        words = [word for word in normalized_term.split() if len(word) > 2]
+        return bool(words) and all(word in normalized_text for word in words)
+
+    def _has_docker_signal(self, candidate: RepositoryCandidate) -> bool:
+        if self._has_docker(self._candidate_paths(candidate)):
+            return True
+        return any(
+            token in self._candidate_text(candidate)
+            for token in ("docker", "container", "compose", "deployment")
+        )
+
+    def _has_template_signal(self, candidate: RepositoryCandidate) -> bool:
+        text = self._candidate_text(candidate)
+        return any(
+            token in text
+            for token in ("template", "starter", "boilerplate", "scaffold", "full stack", "fullstack")
+        )
+
+    @staticmethod
+    def _candidate_text(candidate: RepositoryCandidate) -> str:
+        return " ".join(
+            [
+                candidate.full_name,
+                candidate.description,
+                candidate.language or "",
+                " ".join(candidate.topics),
+                " ".join(candidate.files),
+                " ".join(candidate.file_tree),
+                candidate.readme_snippet,
+                " ".join(candidate.key_files.values()),
+            ]
+        ).lower()
 
     def _matches_preferred_stack(
         self, intent: RepoIntent, candidate: RepositoryCandidate
