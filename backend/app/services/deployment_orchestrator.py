@@ -138,6 +138,38 @@ class DeploymentOrchestrator:
             self.sealos_client = get_sealos_client(kubeconfig)
 
         try:
+            if kubeconfig and hasattr(self.sealos_client, "validate_deploy_permissions"):
+                try:
+                    namespace = self.sealos_client.validate_deploy_permissions()
+                except Exception as exc:
+                    deployment.status = DeploymentStatus.FAILED.value
+                    deployment.error_message = str(exc)
+                    deployment.error_type = "KUBECONFIG_PERMISSION_DENIED"
+                    deployment.finished_at = datetime.now()
+                    self.db.commit()
+                    self._record_event(
+                        deployment_id,
+                        "deploy",
+                        "error",
+                        f"Kubeconfig preflight failed: {str(exc)}",
+                        error_type="KUBECONFIG_PERMISSION_DENIED",
+                    )
+                    await self._broadcast_stage(
+                        deployment_id,
+                        "Deploying",
+                        "failed",
+                        f"Kubeconfig preflight failed: {str(exc)}",
+                        0.66,
+                        {"error_type": "KUBECONFIG_PERMISSION_DENIED"},
+                    )
+                    raise RuntimeError(f"Kubeconfig preflight failed: {exc}") from exc
+
+                self._record_event(
+                    deployment_id,
+                    "deploy",
+                    "info",
+                    f"Kubeconfig preflight passed for namespace {namespace}",
+                )
             # 步骤1: 构建Docker镜像
             image_name = _prefixed_image_name(deployment.runtime_name)
             image_tag = f"deploy-{deployment_id}"
@@ -380,13 +412,14 @@ class DeploymentOrchestrator:
                 phase="deploy",
                 level="error",
                 message=f"Deployment failed: {str(e)}",
-                error_type="DEPLOY_ERROR",
+                error_type=deployment.error_type or "DEPLOY_ERROR",
             )
             self.db.add(event)
             self.db.commit()
 
             # 触发自愈
-            await self._trigger_healing_if_needed(deployment_id, str(e), "BUILD")
+            if deployment.error_type != "KUBECONFIG_PERMISSION_DENIED":
+                await self._trigger_healing_if_needed(deployment_id, str(e), "BUILD")
             await self._broadcast_stage(
                 deployment_id,
                 "Finalize",
@@ -853,6 +886,14 @@ class DeploymentOrchestrator:
         }
 
     def _read_artifact_path_context(self, artifact_path: str) -> Dict[str, str]:
+        direct_path = Path(artifact_path)
+        if direct_path.exists():
+            if direct_path.is_dir():
+                return self._read_directory_context(direct_path)
+            if zipfile.is_zipfile(direct_path):
+                return self._read_zip_context(direct_path)
+            return {}
+
         parsed = urlparse(artifact_path)
         if parsed.scheme and parsed.scheme != "file":
             return {}

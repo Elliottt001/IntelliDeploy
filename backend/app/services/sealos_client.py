@@ -8,7 +8,13 @@ from typing import Dict, Optional, List
 from enum import Enum
 
 from app.config import settings
-from app.services.intellideploy_k8s import deploy_with_kubeconfig, K8sDeployError
+from app.services.intellideploy_k8s import (
+    K8sDeployError,
+    _load_kubeconfig_dict,
+    _namespace_from_kubeconfig_dict,
+    deploy_with_kubeconfig,
+    validate_deploy_permissions as validate_kube_deploy_permissions,
+)
 
 
 class DeploymentStatus(str, Enum):
@@ -19,6 +25,26 @@ class DeploymentStatus(str, Enum):
     FAILED = "failed"
     SUCCESS = "success"
     CRASH_LOOP = "crash_loop_backoff"
+
+
+def _failed_result_summary(result: Dict) -> str:
+    failed_steps = [
+        entry for entry in result.get("results", []) if not entry.get("success")
+    ]
+    if not failed_steps:
+        return result.get("log") or result.get("status") or "unknown failure"
+
+    parts = []
+    for entry in failed_steps:
+        step = entry.get("step", "unknown")
+        message = str(entry.get("message") or "failed").replace("\n", " ")
+        parts.append(f"{step}: {message[:500]}")
+    return "; ".join(parts)
+
+
+def _raise_for_failed_result(result: Dict, operation: str) -> None:
+    if result.get("status") == "failed":
+        raise K8sDeployError(f"{operation} failed: {_failed_result_summary(result)}")
 
 
 class SealosClient:
@@ -32,6 +58,11 @@ class SealosClient:
             kubeconfig: K8s配置内容
         """
         self.kubeconfig = kubeconfig
+
+    def validate_deploy_permissions(self) -> str:
+        if not self.kubeconfig:
+            raise ValueError("Kubeconfig is required")
+        return validate_kube_deploy_permissions(self.kubeconfig)
 
     async def create_app(
         self,
@@ -80,6 +111,7 @@ class SealosClient:
                 database_type=database_type,
                 external_dependencies=external_dependencies or [],
             )
+            _raise_for_failed_result(result, "Deployment")
 
             return {
                 "app_id": name,  # 使用name作为app_id
@@ -326,14 +358,12 @@ class SealosClient:
             raise ValueError("Kubeconfig is required")
 
         try:
-            import yaml
             from kubernetes import client, config
             from kubernetes.client import ApiException
 
-            cfg = yaml.safe_load(self.kubeconfig)
+            cfg = _load_kubeconfig_dict(self.kubeconfig)
             config.load_kube_config_from_dict(cfg)
-            contexts, current = config.list_kube_config_contexts()
-            namespace = (current or {}).get("context", {}).get("namespace") or "default"
+            namespace = _namespace_from_kubeconfig_dict(cfg)
             return (
                 client.AppsV1Api(),
                 client.CoreV1Api(),

@@ -101,10 +101,16 @@ class ImageBuilder:
     ) -> Dict[str, str]:
         files: Dict[str, str] = {}
         for file_path, content in (context_files or {}).items():
-            normalized = Path(file_path)
-            if normalized.is_absolute() or ".." in normalized.parts:
+            raw_path = str(file_path).replace("\\", "/")
+            first_part = raw_path.split("/", 1)[0]
+            if (
+                raw_path.startswith("/")
+                or raw_path.startswith("\\")
+                or ":" in first_part
+                or any(part == ".." for part in raw_path.split("/"))
+            ):
                 continue
-            path = normalized.as_posix()
+            path = Path(raw_path).as_posix()
             if Path(path).name.lower() == "dockerfile":
                 continue
             files[path] = content
@@ -197,10 +203,15 @@ class ImageBuilder:
                 dockerfile_content, context_files, image_name, image_tag, build_args
             )
         except Exception as e:
-            return {
-                "status": BuildStatus.FAILED.value,
-                "error": f"Unexpected error: {str(e)}",
-            }
+            cli_result = await self._build_with_docker_cli(
+                dockerfile_content, context_files, image_name, image_tag, build_args
+            )
+            if cli_result.get("status") == BuildStatus.FAILED.value:
+                cli_result["error"] = (
+                    f"Docker SDK error: {str(e)}; "
+                    f"{cli_result.get('error', 'Docker CLI build failed')}"
+                )
+            return cli_result
 
     async def _build_with_docker_cli(
         self,
@@ -257,7 +268,24 @@ class ImageBuilder:
                     stderr=asyncio.subprocess.STDOUT,
                 )
 
-                stdout, _ = await process.communicate()
+                try:
+                    stdout, _ = await asyncio.wait_for(
+                        process.communicate(),
+                        timeout=settings.DEPLOYMENT_TIMEOUT,
+                    )
+                except asyncio.TimeoutError:
+                    process.kill()
+                    try:
+                        await process.wait()
+                    except Exception:
+                        pass
+                    return {
+                        "status": BuildStatus.FAILED.value,
+                        "error": (
+                            "Docker build timed out after "
+                            f"{settings.DEPLOYMENT_TIMEOUT} seconds"
+                        ),
+                    }
                 logs = stdout.decode("utf-8", errors="ignore")
 
                 if process.returncode == 0:

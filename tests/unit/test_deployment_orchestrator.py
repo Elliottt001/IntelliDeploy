@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 import sys
 
+import pytest
 from pydantic import BaseModel
 
 
@@ -212,6 +213,40 @@ def test_start_deployment_passes_real_context_to_builder(tmp_path, monkeypatch):
 
         assert result["status"] in {"running", "success"}
         assert builder.calls[0]["context_files"]["package.json"].startswith("{")
+
+    asyncio.run(run())
+
+
+def test_start_deployment_preflights_kubeconfig_before_build(monkeypatch):
+    async def run():
+        session = SessionStub()
+        orchestrator = build_orchestrator(session)
+        builder = BuilderStub()
+
+        class PreflightSealos(SealosStub):
+            def validate_deploy_permissions(self):
+                raise Exception("subscription expired")
+
+        monkeypatch.setattr(
+            "app.services.deployment_orchestrator.get_sealos_client",
+            lambda kubeconfig=None: PreflightSealos(),
+        )
+        monkeypatch.setattr(
+            "app.services.deployment_orchestrator.get_image_builder",
+            lambda method: builder,
+        )
+
+        with pytest.raises(RuntimeError, match="Kubeconfig preflight failed"):
+            await orchestrator.start_deployment(
+                1,
+                artifact_response(),
+                kubeconfig="test-kubeconfig",
+            )
+
+        assert builder.calls == []
+        assert session.deployment.status == "failed"
+        assert session.deployment.error_type == "KUBECONFIG_PERMISSION_DENIED"
+        assert "subscription expired" in session.deployment.error_message
 
     asyncio.run(run())
 

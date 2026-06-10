@@ -3,10 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
-    DATABASE_URL: str = (
-        "postgresql+psycopg://postgres:your_password@"
-        "127.0.0.1:5432/intellideploy"
-    )
+    DATABASE_URL: str = "sqlite:///./intellideploy.db"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ALGORITHM: str = "HS256"
     MODEL_API: str = ""

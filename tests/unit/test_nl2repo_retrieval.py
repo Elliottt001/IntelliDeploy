@@ -46,6 +46,59 @@ class FakeGitHubSearchClient:
         return candidate
 
 
+class QueryAwareGitHubSearchClient:
+    def __init__(self):
+        self.seen_queries: list[str] = []
+
+    async def search_repositories(
+        self, query: str, per_page: int = 20
+    ) -> list[RepositoryCandidate]:
+        self.seen_queries.append(query)
+        if query.startswith("admin dashboard backoffice auth") or query.startswith(
+            "api backend admin dashboard"
+        ) or query.startswith(
+            "fastapi api backend"
+        ):
+            return [
+                RepositoryCandidate(
+                    full_name="fastapi/fastapi",
+                    html_url="https://github.com/fastapi/fastapi",
+                    description="FastAPI framework, high performance Python web framework",
+                    stars=90_000,
+                    pushed_at="2026-03-01T00:00:00Z",
+                    language="Python",
+                    topics=["fastapi", "framework"],
+                    files=["pyproject.toml"],
+                    file_tree=["pyproject.toml", "fastapi/applications.py"],
+                )
+            ]
+        if "admin dashboard template docker" in query:
+            return [
+                RepositoryCandidate(
+                    full_name="acme/fastapi-admin-template",
+                    html_url="https://github.com/acme/fastapi-admin-template",
+                    description="FastAPI admin dashboard starter with auth and PostgreSQL",
+                    stars=420,
+                    pushed_at="2026-05-01T00:00:00Z",
+                    language="Python",
+                    topics=["fastapi", "admin", "dashboard", "postgresql", "docker"],
+                    files=["Dockerfile", "pyproject.toml", "app/main.py"],
+                    file_tree=["Dockerfile", "pyproject.toml", "app/main.py"],
+                    key_files={
+                        "README.md": "# FastAPI Admin Dashboard Template",
+                        "Dockerfile": "FROM python:3.12-slim",
+                        "pyproject.toml": "[project]\ndependencies = ['fastapi']",
+                    },
+                )
+            ]
+        return []
+
+    async def enrich_repository(
+        self, candidate: RepositoryCandidate
+    ) -> RepositoryCandidate:
+        return candidate
+
+
 class FakeRedisClient:
     def __init__(self):
         self.values: dict[str, str] = {}
@@ -77,6 +130,22 @@ def test_router_agent_structures_vague_portfolio_intent():
     assert "portfolio" in intent.expected_features
     assert intent.preferred_framework in {"Next.js", "React", "Vue"}
     assert intent.constraints["frontend_only"] is True
+
+
+def test_router_agent_structures_fastapi_admin_auth_database_intent():
+    intent = RouterAgent().structure_intent(
+        "我想部署一个 FastAPI 后台管理系统，带用户登录和数据库"
+    )
+
+    assert intent.target_app_type == "admin_dashboard"
+    assert intent.has_database is True
+    assert "admin dashboard" in intent.keywords
+    assert "auth" in intent.keywords
+    assert "database" in intent.keywords
+    assert "Python" in intent.tech_stack
+    assert "FastAPI" in intent.tech_stack
+    assert "user authentication" in intent.expected_features
+    assert intent.preferred_language == "Python"
 
 
 def test_router_agent_raises_when_configured_model_returns_invalid_payload():
@@ -255,6 +324,28 @@ async def test_pipeline_merges_dual_track_results_and_reranks_for_deployability(
     assert result.repository_profile is not None
     assert result.repository_profile.source_repo_url == "https://github.com/dream/dreamlog"
     assert result.repository_profile.has_valid_dockerfile is True
+
+
+@pytest.mark.anyio
+async def test_pipeline_uses_multi_query_and_demotes_framework_repo_for_admin_intent():
+    github_client = QueryAwareGitHubSearchClient()
+    pipeline = NL2RepoRetrievalPipeline(
+        router=RouterAgent(),
+        github_client=github_client,
+        readme_store=BM25ReadmeStore(),
+    )
+
+    result = await pipeline.retrieve(
+        "我想部署一个 FastAPI 后台管理系统，带用户登录和数据库",
+        top_n=2,
+    )
+
+    assert any("admin dashboard template docker" in query for query in github_client.seen_queries)
+    assert result.candidates[0].full_name == "acme/fastapi-admin-template"
+    assert result.candidates[0].score_breakdown["deployability"] > 0
+    assert result.candidates[0].score_breakdown["intent_mismatch_penalty"] == 0
+    assert result.candidates[1].full_name == "fastapi/fastapi"
+    assert result.candidates[1].score_breakdown["framework_library_penalty"] < 0
 
 
 @pytest.mark.anyio
