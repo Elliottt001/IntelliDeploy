@@ -186,6 +186,8 @@ AI 和联网搜索通过平台能力模块调用，凭应用实例授权和用�
 
 PAUSED_QUOTA 状态保存检查点；补足额度后由用户选择继续。任务启动页告知用量规则，应用消费时按发布策略执行。未收到上游用量信息时不能编造数字，先记录待核对事件。
 
+用户在实施计划阶段补充确认：一期支持支付宝、微信支付和 Stripe，先实现额度/套餐/用量再接收款。三种渠道共用服务端订单与额度账本；校验供应商签名、订单、金额和币种，按支付或套餐周期唯一入账。浏览器成功页不能发放额度。此处平台收款与二期创作者变现分开。
+
 ## 10. 主要数据与接口
 
 核心数据：User、App、Conversation、Requirement、AcceptanceItem、AppVersion、Instance、Publication、Job、JobEvent、ToolCall、DeploymentAttempt、CapabilityCall、QuotaGrant、UsageEntry、QuotaReservation。均由同一产品后端管理；模型字段必须携带实际来源或证据引用。
@@ -275,3 +277,7 @@ PAUSED_QUOTA 状态保存检查点；补足额度后由用户选择继续。任�
 - [Responses 兼容详情](https://api-docs.deepseek.com/guides/responses_api/)
 
 官方接口能力已核对，真实项目接入和验收尚未执行。模型名称、价格和限额应作为配置并在接入时复核。
+
+## 16. 实施入口
+
+设计已确认：[一期实施总计划](../plans/2026-11-09-phase1-00-roadmap.md)。生成、交付、平台能力、社区及支付按独立任务验收。
