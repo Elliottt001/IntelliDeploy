@@ -191,6 +191,42 @@ class CapabilityContext(BaseModel):
     instance_id: str
     user_id: int | None
     payer_id: int
+    publication_id: str | None = None
+
+
+class PublishRequest(BaseModel):
+    version_id: str
+    payer_policy: Literal['SPONSOR', 'VISITOR']
+    sponsor_period: Literal['DAY', 'MONTH'] = 'DAY'
+    sponsor_limit_units: int = Field(default=100, gt=0)
+
+
+class PublicationResponse(BaseModel):
+    id: str
+    app_id: str
+    instance_id: str
+    version_id: str
+    name: str
+    summary: str
+    features: list[str]
+    creator: str
+    preview_url: str | None = None
+    url: str | None
+    available: bool
+    payer_policy: Literal['SPONSOR', 'VISITOR']
+    sponsor_period: Literal['DAY', 'MONTH']
+    sponsor_limit_units: int
+    copy_url: str
+    updated_at: datetime
+
+
+class PublicationPage(BaseModel):
+    items: list[PublicationResponse]
+    next_cursor: str | None = None
+
+
+class CopyRequest(BaseModel):
+    budget_units: int | None = Field(default=None, gt=0)
 
 class UsageInput(BaseModel):
     operation_id: str
@@ -362,6 +398,7 @@ class AppSummary(BaseModel):
     updated_at: datetime
     active_job_id: str | None = None
     instance_status: Literal['PENDING', 'RUNNING', 'STOPPED', 'FAILED', 'DELETED'] | None = None
+    source_version_id: str | None = None
 
 
 class AppDetail(AppSummary):
@@ -372,6 +409,7 @@ class AppDetail(AppSummary):
     delivery: DeliveryResult | None = None
     candidate_version_id: str | None = None
     instance: InstanceSnapshot | None = None
+    publication: PublicationResponse | None = None
 
 
 class AppPage(BaseModel):

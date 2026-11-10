@@ -36,6 +36,24 @@ def passing_report(manifest: AppManifest, *, evidence="evidence/save") -> Valida
     )
 
 
+@pytest.mark.asyncio
+async def test_successful_adjustment_updates_publication_in_same_release(release_context,session_factory):
+    from app.community.models import Publication
+    c=release_context
+    with session_factory() as session:
+        from app.apps.models import Instance
+        instance=session.get(Instance,c['instance_id'])
+        publication=Publication(app_id=c['app_id'],instance_id=c['instance_id'],version_id=c['old_id'],owner_id=instance.owner_id,payer_policy='VISITOR')
+        session.add(publication);session.commit()
+        async def deployer(**kwargs):
+            return DeploymentResult(operation_id=kwargs['operation_id'],instance_id=c['instance_id'],url='https://new.example.test',report=passing_report(c['manifest']))
+        await publish_candidate(session,c['job_id'],c['candidate_id'],deployer=deployer)
+        session.refresh(publication)
+        assert publication.version_id==c['candidate_id']
+        from app.apps.models import AppVersion
+        assert session.get(AppVersion,c['candidate_id']).delivery['browser_checks']==[]
+
+
 @pytest.fixture
 def release_context(session_factory, tmp_path):
     from app.apps.models import App, AppVersion, Instance, RequirementRecord

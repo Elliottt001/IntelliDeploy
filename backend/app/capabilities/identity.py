@@ -149,7 +149,8 @@ def validate_callback(instance_url: str | None, callback: str) -> str:
 
 def issue_login_code(session, instance_id: str, user_id: int, callback: str) -> str:
     instance = session.get(Instance, instance_id)
-    if instance is None or instance.owner_id != user_id:
+    from app.community.service import active_publication
+    if instance is None or (instance.owner_id != user_id and (instance.status != 'RUNNING' or active_publication(session, instance_id) is None)):
         raise IdentityError("实例不存在或无权访问")
     validate_callback(instance.url, callback)
     code = secrets.token_urlsafe(32)
@@ -185,6 +186,9 @@ def consume_login_code(
     instance = session.get(Instance, record.instance_id)
     if instance is None:
         raise IdentityError("实例不存在")
+    from app.community.service import active_publication
+    if instance.owner_id != record.user_id and active_publication(session, instance.id) is None:
+        raise IdentityError('应用已取消公开')
     record.consumed_at = now
     session.flush()
     return record.user_id, instance
@@ -225,16 +229,22 @@ def resolve_context(
     user_id = (
         verify_app_identity(user_token, instance.app_id, instance.id) if user_token else None
     )
+    from app.community.service import active_publication
+    publication = active_publication(session, instance.id)
+    if instance.status in {'STOPPED', 'FAILED', 'DELETED'}:
+        raise IdentityError('应用暂不可用')
+    policy = 'OWNER' if user_id == instance.owner_id or publication is None else publication.payer_policy
     payer_id = select_payer(
-        "OWNER",
+        policy,
         owner_id=instance.owner_id,
         user_id=user_id,
-        sponsor_remaining_units=0,
+        sponsor_remaining_units=publication.sponsor_limit_units if publication else 0,
     )
     return CapabilityContext(
         app_id=instance.app_id,
         instance_id=instance.id,
         user_id=user_id,
         payer_id=payer_id,
+        publication_id=publication.id if publication and policy=='SPONSOR' else None,
     )
 

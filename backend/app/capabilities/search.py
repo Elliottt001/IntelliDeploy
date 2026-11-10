@@ -145,6 +145,9 @@ def _reserve_operation(
             _reservation_id(operation_id),
             settings.CAPABILITY_RESERVATION_UNITS,
         )
+        if context.publication_id:
+            from app.community.service import reserve_sponsor
+            reserve_sponsor(session,context.publication_id,_reservation_id(operation_id),settings.CAPABILITY_RESERVATION_UNITS)
         session.commit()
     return _NO_REPLAY
 

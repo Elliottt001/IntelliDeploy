@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Protocol
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.apps.models import App, AppVersion, Instance, RequirementRecord
 from app.capabilities.models import InstanceCredential, InstanceDataSpace
@@ -337,6 +337,8 @@ async def publish_candidate(
     instance.observed_at = now
     instance.state_version += 1
     instance.url = deployment.url
+    from app.community.models import Publication
+    session.execute(update(Publication).where(Publication.instance_id==instance.id,Publication.visible.is_(True)).values(version_id=candidate.id,updated_at=now))
     storage = {}
     for service in manifest.services:
         for name in service.volumes:
@@ -355,7 +357,7 @@ async def publish_candidate(
     }
     instance.price_version = settings.PRICE_VERSION
     candidate.validation = deployment.report.model_dump(mode="json")
-    candidate.delivery = public_delivery.model_dump(mode="json")
+    candidate.delivery = {**public_delivery.model_dump(mode="json"), 'browser_checks':delivery_metadata.get('browser_checks',[])}
     job.status = "SUCCEEDED"
     job.phase = "completed"
     job.error = None

@@ -20,6 +20,29 @@ from app.utils.security import get_current_user
 router = APIRouter(tags=["capabilities"])
 
 
+@router.get('/api/instances/{instance_id}/access')
+def instance_access(instance_id:str,
+    instance_token:Annotated[str,Header(alias='X-Instance-Token')],
+    authorization:Annotated[str|None,Header()]=None,
+    db:Session=Depends(get_db)):
+    from app.capabilities.identity import _verify_instance_credential,verify_app_identity
+    from app.community.service import active_publication
+    from app.runtime.access import authorize_instance_access,AccessDenied
+    instance=db.get(Instance,instance_id)
+    if instance is None: abort('NOT_FOUND','实例不存在',404)
+    _verify_instance_credential(db,instance_id,instance_token)
+    user_id=None
+    if authorization:
+        scheme,_,token=authorization.partition(' ')
+        if scheme.lower()!='bearer' or not token: abort('IDENTITY_INVALID','应用身份格式无效',401)
+        user_id=verify_app_identity(token,instance.app_id,instance_id)
+    if instance.status!='RUNNING': abort('INSTANCE_UNAVAILABLE','应用暂不可用',403)
+    try:
+        user_id=authorize_instance_access(owner_id=instance.owner_id,public_visible=active_publication(db,instance_id) is not None,authenticated_user_id=user_id,forwarded_user_id=None,trusted_gateway=False)
+    except AccessDenied: abort('INSTANCE_FORBIDDEN','应用未公开或无权访问',403)
+    return Response(content=__import__('json').dumps({'allowed':True,'user_id':user_id}),media_type='application/json',headers={'Cache-Control':'no-store'})
+
+
 class LoginCodeRequest(BaseModel):
     callback: str = Field(min_length=1, max_length=2048)
 
@@ -88,14 +111,15 @@ def create_login_code(
     db: Session = Depends(get_db),
 ):
     instance = db.get(Instance, instance_id)
-    if instance is None or instance.owner_id != user.id:
+    from app.community.service import active_publication
+    if instance is None or (instance.owner_id != user.id and active_publication(db,instance_id) is None):
         abort("NOT_FOUND", "实例不存在或无权访问", 404)
     try:
         code = issue_login_code(db, instance_id, user.id, body.callback)
     except ValueError as exc:
         abort("CALLBACK_INVALID", str(exc), 422)
     db.commit()
-    return LoginCodeResponse(code=code)
+    return Response(content=LoginCodeResponse(code=code).model_dump_json(),media_type='application/json',headers={'Cache-Control':'no-store'})
 
 
 @router.post(
@@ -107,9 +131,10 @@ def exchange_identity(body: IdentityExchangeRequest, db: Session = Depends(get_d
     )
     token = issue_app_identity(user_id, instance.app_id, instance.id)
     db.commit()
-    return IdentityExchangeResponse(
+    result=IdentityExchangeResponse(
         access_token=token, expires_in=settings.APP_IDENTITY_TTL_SECONDS
     )
+    return Response(content=result.model_dump_json(),media_type='application/json',headers={'Cache-Control':'no-store'})
 
 
 @router.post("/api/capabilities/files", response_model=FileIdResponse, status_code=201)

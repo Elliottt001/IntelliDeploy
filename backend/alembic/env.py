@@ -9,11 +9,13 @@ from app.jobs import models as jobs_models
 from app.runtime import models as runtime_models
 from app.billing import models as billing_models
 from app.capabilities import models as capabilities_models
+from app.community import models as community_models
 
 config = context.config
 TABLES = {'users', 'apps', 'conversations', 'messages', 'requirement_records', 'app_versions', 'instances', 'jobs', 'job_events', 'tool_call_records', 'deployment_targets', 'resource_records', 'request_records'}
 TABLES |= {'price_rules','quota_grants','quota_reservations','reservation_allocations','usage_entries','unknown_usage','product_skus','subscriptions'}
 TABLES |= {'app_login_codes', 'instance_credentials', 'instance_data_spaces', 'file_records'}
+TABLES |= {'publications', 'publication_favorites', 'publication_recent_uses', 'sponsor_reservations', 'instance_operations', 'resource_observations', 'resource_meter_windows', 'maintenance_leases'}
 
 
 def include_object(obj, name, type_, reflected, compare_to):

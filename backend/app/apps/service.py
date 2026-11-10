@@ -270,6 +270,7 @@ def app_summary(session, app):
         updated_at=app.updated_at,
         active_job_id=active,
         instance_status=status,
+        source_version_id=app.source_version_id,
     )
 
 
@@ -285,6 +286,9 @@ def list_apps(session, owner_id, cursor=None, limit=20):
 
 
 def app_detail(session, app):
+    from app.community.models import Publication
+    from app.community.service import public_response
+    publication=session.scalar(select(Publication).where(Publication.app_id==app.id,Publication.visible.is_(True)))
     req = session.scalar(
         select(RequirementRecord)
         .where(RequirementRecord.app_id == app.id)
@@ -334,6 +338,7 @@ def app_detail(session, app):
         if version and version.delivery
         else None,
         candidate_version_id=app.candidate_version_id,
+        publication=public_response(session,publication) if publication else None,
         instance=(
             {
                 "id": instance.id,
