@@ -98,7 +98,7 @@ argv = ['buildctl', 'build', '--frontend', 'dockerfile.v0',
 
 **Interfaces:** render_compose(manifest, instance_id, secrets) -> dict；deploy_linux(target_id, instance_id, version_id, manifest, operation_id, requirement) -> DeploymentResult，async。目标登记字段：SSH host、user、受控 key 引用、固定部署根、域名后缀、registry；不把 Key 传模型。
 
-- [ ] **Step 1: 写持久卷和失败发布检查。** ssh_executor 接收 argv/stdin，记录命令；不把用户值直接拼进 shell。
+- [x] **Step 1: 写持久卷和失败发布检查。** ssh_executor 接收 argv/stdin，记录命令；不把用户值直接拼进 shell。
 
 ```python
 def test_compose_namespaces_data_by_instance():
@@ -110,8 +110,8 @@ def test_compose_namespaces_data_by_instance():
 
 manifest_fixture 在测试文件创建有 /data 卷、web 服务的 AppManifest。测试失败部署返回明确异常，旧目录和旧版本仍保留。
 
-- [ ] **Step 2: 红测。** test_linux_deploy.py；真实验证使用 scripts/verify_linux_target.py --target-id 配置目标。
-- [ ] **Step 3: 实现目标预检和 Compose。** 预检 Docker/Compose、磁盘、registry 拉取、域名/TLS、资源能力。以 instance_id 生成固定持久卷名；版本目录只放运行配置。服务 memory 限制、healthcheck、depends_on、secret 引用由 AppManifest 转换，避免公开数据库端口。
+- [x] **Step 2: 红测。** test_linux_deploy.py；真实验证使用 scripts/verify_linux_target.py --target-id 配置目标。
+- [x] **Step 3: 实现目标预检和 Compose。** 预检 Docker/Compose、磁盘、registry 拉取、域名/TLS、资源能力。以 instance_id 生成固定持久卷名；版本目录只放运行配置。服务 memory 限制、healthcheck、depends_on、secret 引用由 AppManifest 转换，避免公开数据库端口。
 
 ```python
 subprocess.run(['ssh', '-o', 'BatchMode=yes', host, 'python3', remote_script],
@@ -120,8 +120,8 @@ subprocess.run(['ssh', '-o', 'BatchMode=yes', host, 'python3', remote_script],
 
 remote_script 由平台部署、只接受校验后的 JSON：写版本配置、docker compose pull/up、等待健康、切换反向代理；失败保留旧发布指针，清理新测试容器。Caddy 对实际域名配置 TLS；所有应用路由到不同内部端口或网络，不覆盖其他实例。
 
-- [ ] **Step 4: 绿测及真实部署。** 在已配置服务器写入记录、重启容器、读取记录，保存 URL/镜像 digest/报告；无目标配置时记未执行。
-- [ ] **Step 5: 提交。** `feat: deploy releases to existing Linux servers`。
+- [x] **Step 4: 绿测及真实部署。** 在已配置服务器写入记录、重启容器、读取记录，保存 URL/镜像 digest/报告；无目标配置时记未执行。
+- [x] **Step 5: 提交。** `feat: deploy releases to existing Linux servers`。
 
 ### Task 03-D4: Sealos/Kubernetes 多服务发布
 
@@ -320,3 +320,5 @@ ResourceWindow.compute_units为分配CPU/内存时长换算后的资源计费单
 03-D1：新增受控 Playwright 业务验证、同源 URL 限制、actor 隔离 context、验收 ID 完整性与截图/DOM/网络错误证据；服务重启只通过 runtime controller，缺 controller 记 NOT_RUN。易失/持久笔记真实子进程、缺检查、跨域、占位响应、错误身份预期和浏览器工具适配共 8 项通过；完整 phase1 回归 140 项通过、1 项专用沙箱默认跳过。真实候选节点与线上目标未执行。
 
 03-D2：新增工作区内 BuildKit 构建、外部镜像 digest 解析、operation 幂等记录和不可变源码 zip；拒绝路径/operation ID 注入，排除凭据、缓存、运行数据及越界符号链接。构建专项 8 项通过，专用 builder/registry 真实构建 1 项因未配置保持 NOT_RUN；完整 phase1 148 项通过、2 项跳过。未连接任何远程 registry。
+
+03-D3：新增 digest-only Compose 渲染、实例固定卷、数据库非公网暴露、受控 secret file、Linux 目标容量/健康/镜像拉取预检，以及 prepare/validate/activate/rollback 发布适配。SSH 仅使用 argv 与 JSON stdin，固定远程脚本不插入用户值；专项 7 项、完整 phase1 155 项通过。未提供明确 dev/test/boe Linux 目标，真实写入/重启/读取保持 NOT_RUN，未发起远程 SSH。

@@ -1,0 +1,478 @@
+from __future__ import annotations
+
+import asyncio
+import inspect
+import json
+import os
+import re
+import subprocess
+from pathlib import PurePosixPath
+from typing import Protocol
+
+from app.core.types import AppManifest, DeploymentResult, Requirement, ValidationReport
+from app.runtime.manifest import validate_release_manifest
+from app.runtime.validation import validate_application
+
+
+IDENTIFIER = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
+HOST = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.-]{0,252}$")
+USER = re.compile(r"^[a-z_][a-z0-9_-]{0,31}$")
+DOMAIN = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$")
+
+
+REMOTE_SCRIPT = r'''
+import json
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+payload = json.load(sys.stdin)
+safe = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
+
+def run(argv, timeout=600):
+    result = subprocess.run(argv, text=True, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, timeout=timeout)
+    if result.returncode:
+        raise RuntimeError((result.stderr or result.stdout)[-8000:])
+    return result.stdout.strip()
+
+def child(root, *parts):
+    root_path = pathlib.Path(root).resolve()
+    value = root_path.joinpath(*parts).resolve()
+    value.relative_to(root_path)
+    return value
+
+action = payload["action"]
+root = payload["deployment_root"]
+instance = payload.get("instance_id", "probe")
+version = payload.get("version_id", "probe")
+if not safe.fullmatch(instance) or not safe.fullmatch(version):
+    raise RuntimeError("unsafe remote identifier")
+
+if action == "preflight":
+    run(["docker", "version", "--format", "{{.Server.Version}}"], 30)
+    run(["docker", "compose", "version", "--short"], 30)
+    if shutil.disk_usage(root).free < payload["required_disk_bytes"]:
+        raise RuntimeError("insufficient disk capacity")
+    for image in payload.get("images", []):
+        run(["docker", "pull", image], 300)
+    result = {"ok": True}
+else:
+    version_dir = child(root, "instances", instance, "versions", version)
+    version_dir.mkdir(parents=True, exist_ok=True)
+    compose_file = version_dir / "compose.json"
+    project = f"intellideploy-{instance}-{version}"
+    candidate_file = pathlib.Path(payload["caddy_config_dir"]) / f"{instance}-candidate.caddy"
+    stable_file = pathlib.Path(payload["caddy_config_dir"]) / f"{instance}.caddy"
+    backup_file = version_dir / "previous-caddy"
+    current_link = child(root, "instances", instance, "current")
+
+    def reload_caddy():
+        run(["caddy", "validate", "--config", payload["caddy_main_config"]], 30)
+        run(["systemctl", "reload", "caddy"], 30)
+
+    if action == "prepare":
+        compose_file.write_text(json.dumps(payload["compose"], sort_keys=True))
+        if stable_file.exists():
+            backup_file.write_text(stable_file.read_text())
+        run(["docker", "compose", "-p", project, "-f", str(compose_file), "pull"])
+        run(["docker", "compose", "-p", project, "-f", str(compose_file), "up", "-d"])
+        mapping = run(["docker", "compose", "-p", project, "-f", str(compose_file),
+                       "port", payload["web_service"], str(payload["web_port"])], 60)
+        host_port = mapping.rsplit(":", 1)[-1]
+        candidate_file.write_text(
+            f"{payload['candidate_domain']} {{\n  reverse_proxy 127.0.0.1:{host_port}\n}}\n"
+        )
+        (version_dir / "release.json").write_text(
+            json.dumps({"host_port": int(host_port)}, sort_keys=True)
+        )
+        reload_caddy()
+        result = {"candidate_url": f"https://{payload['candidate_domain']}",
+                  "previous_version": os.path.basename(os.path.realpath(current_link)) if current_link.exists() else None}
+    elif action == "activate":
+        release = json.loads((version_dir / "release.json").read_text())
+        stable_file.write_text(
+            f"{payload['stable_domain']} {{\n  reverse_proxy 127.0.0.1:{release['host_port']}\n}}\n"
+        )
+        temporary = current_link.with_name("current-new")
+        if temporary.exists() or temporary.is_symlink():
+            temporary.unlink()
+        temporary.symlink_to(pathlib.Path("versions") / version_dir.name)
+        os.replace(temporary, current_link)
+        candidate_file.unlink(missing_ok=True)
+        reload_caddy()
+        result = {"url": f"https://{payload['stable_domain']}"}
+    elif action == "rollback":
+        if backup_file.exists():
+            stable_file.write_text(backup_file.read_text())
+        candidate_file.unlink(missing_ok=True)
+        run(["docker", "compose", "-p", project, "-f", str(compose_file), "down"], 120)
+        reload_caddy()
+        result = {"ok": True}
+    else:
+        raise RuntimeError("unsupported release action")
+
+print(json.dumps(result))
+'''
+
+
+class DeploymentFailed(RuntimeError):
+    pass
+
+
+class TargetUnavailable(RuntimeError):
+    pass
+
+
+class TargetProvider(Protocol):
+    def get(self, target_id: str): ...
+
+
+class SecretResolver(Protocol):
+    def resolve(self, reference: str) -> str: ...
+
+
+class SSHExecutor(Protocol):
+    async def run(self, argv: list[str], stdin: str, timeout: int) -> dict: ...
+
+
+class DatabaseTargetProvider:
+    def get(self, target_id: str):
+        from app.database import SessionLocal
+        from app.runtime.models import DeploymentTarget
+
+        with SessionLocal() as session:
+            target = session.get(DeploymentTarget, target_id)
+            if target is None:
+                return None
+            return {
+                "id": target.id,
+                "kind": target.kind,
+                "enabled": target.enabled,
+                "health": target.health,
+                "architecture": target.architecture,
+                "capacity": target.capacity,
+                "domain_suffix": target.domain_suffix,
+                "secret_ref": target.secret_ref,
+            }
+
+
+class EnvironmentSecretResolver:
+    def resolve(self, reference: str) -> str:
+        paths = json.loads(os.environ.get("DEPLOYMENT_SECRET_PATHS", "{}"))
+        path = paths.get(reference)
+        if not isinstance(path, str) or not path.startswith("/"):
+            raise TargetUnavailable("deployment SSH key reference is not configured")
+        return path
+
+
+class SubprocessSSHExecutor:
+    async def run(self, argv: list[str], stdin: str, timeout: int) -> dict:
+        def execute():
+            return subprocess.run(
+                argv,
+                input=stdin,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=timeout,
+                check=False,
+            )
+
+        result = await asyncio.to_thread(execute)
+        if result.returncode:
+            raise RuntimeError((result.stderr or result.stdout)[-8_000:])
+        lines = [line for line in result.stdout.splitlines() if line.strip()]
+        if not lines:
+            raise RuntimeError("remote executor returned no result")
+        return json.loads(lines[-1])
+
+
+def _safe_identifier(value: str, kind: str) -> str:
+    if not IDENTIFIER.fullmatch(value):
+        raise ValueError(f"{kind} identifier is invalid")
+    return value
+
+
+def _safe_secret_name(value: str) -> str:
+    return _safe_identifier(value, "secret")
+
+
+def render_compose(
+    manifest: AppManifest,
+    instance_id: str,
+    secrets: dict[str, str],
+) -> dict:
+    validate_release_manifest(manifest)
+    _safe_identifier(instance_id, "instance")
+    services: dict[str, dict] = {}
+    volumes: dict[str, dict] = {}
+    compose_secrets: dict[str, dict] = {}
+    for service in manifest.services:
+        _safe_identifier(service.name, "service")
+        rendered: dict = {
+            "image": service.image,
+            "restart": "unless-stopped",
+            "networks": ["app"],
+            "mem_limit": f"{service.memory_mb}m",
+            "cpus": service.cpu_millis / 1000,
+        }
+        if service.depends_on:
+            rendered["depends_on"] = service.depends_on
+        if service.name == manifest.web_service:
+            if service.port is None:
+                raise ValueError("web service requires a port")
+            rendered["ports"] = [f"127.0.0.1::{service.port}"]
+        elif service.port is not None:
+            rendered["expose"] = [str(service.port)]
+        if service.health_path:
+            rendered["healthcheck"] = {
+                "test": [
+                    "CMD-SHELL",
+                    f"wget -qO- http://127.0.0.1:{service.port}{service.health_path} || exit 1",
+                ],
+                "interval": "10s",
+                "timeout": "5s",
+                "retries": 12,
+            }
+        service_volumes = []
+        for logical_name, container_path in service.volumes.items():
+            name = _safe_identifier(logical_name, "volume")
+            volume_name = f"{instance_id}-{name}"
+            volumes[volume_name] = {"name": volume_name}
+            service_volumes.append(f"{volume_name}:{container_path}")
+        if service_volumes:
+            rendered["volumes"] = service_volumes
+        environment: dict[str, str] = {}
+        service_secrets: list[str] = []
+        for environment_name, reference in service.env_refs.items():
+            if not re.fullmatch(r"[A-Z][A-Z0-9_]{0,127}", environment_name):
+                raise ValueError("environment variable name is invalid")
+            name = _safe_secret_name(reference)
+            path = secrets.get(reference)
+            if not isinstance(path, str) or not PurePosixPath(path).is_absolute():
+                raise ValueError("secret file reference is missing")
+            compose_secrets[name] = {"file": path}
+            service_secrets.append(name)
+            environment[f"{environment_name}_FILE"] = f"/run/secrets/{name}"
+        if environment:
+            rendered["environment"] = environment
+            rendered["secrets"] = service_secrets
+        services[service.name] = rendered
+    result = {
+        "name": f"intellideploy-{instance_id}",
+        "services": services,
+        "networks": {"app": {"name": f"intellideploy-{instance_id}"}},
+        "volumes": volumes,
+    }
+    if compose_secrets:
+        result["secrets"] = compose_secrets
+    return result
+
+
+def _target_dict(value) -> dict:
+    if isinstance(value, dict):
+        return value
+    return {
+        name: getattr(value, name)
+        for name in (
+            "id",
+            "kind",
+            "enabled",
+            "health",
+            "architecture",
+            "capacity",
+            "domain_suffix",
+            "secret_ref",
+        )
+    }
+
+
+def _validated_target(value, manifest: AppManifest) -> dict:
+    if value is None:
+        raise TargetUnavailable("Linux deployment target is not configured")
+    target = _target_dict(value)
+    if target.get("kind") != "LINUX" or not target.get("enabled") or target.get("health") != "HEALTHY":
+        raise TargetUnavailable("Linux deployment target is unavailable")
+    capacity = target.get("capacity") or {}
+    host = capacity.get("ssh_host")
+    user = capacity.get("ssh_user")
+    root = capacity.get("deployment_root")
+    domain = target.get("domain_suffix")
+    if not isinstance(host, str) or not HOST.fullmatch(host):
+        raise TargetUnavailable("Linux target SSH host is invalid")
+    if not isinstance(user, str) or not USER.fullmatch(user):
+        raise TargetUnavailable("Linux target SSH user is invalid")
+    if not isinstance(root, str) or not PurePosixPath(root).is_absolute() or ".." in PurePosixPath(root).parts:
+        raise TargetUnavailable("Linux target deployment root is invalid")
+    if not isinstance(domain, str) or not DOMAIN.fullmatch(domain):
+        raise TargetUnavailable("Linux target domain suffix is invalid")
+    required_memory = sum(service.memory_mb for service in manifest.services)
+    required_cpu = sum(service.cpu_millis for service in manifest.services)
+    required_storage = sum(sum(service.storage_mb.values()) for service in manifest.services)
+    if required_memory > int(capacity.get("memory_mb", 0)) or required_cpu > int(capacity.get("cpu_millis", 0)):
+        raise TargetUnavailable("Linux target compute capacity is insufficient")
+    if required_storage > int(capacity.get("storage_mb", 0)):
+        raise TargetUnavailable("Linux target storage capacity is insufficient")
+    return target
+
+
+async def _call_validator(validator, *args, **kwargs) -> ValidationReport:
+    value = validator(*args, **kwargs)
+    if inspect.isawaitable(value):
+        value = await value
+    return ValidationReport.model_validate(value)
+
+
+def _ssh_argv(target: dict, key_path: str) -> list[str]:
+    capacity = target["capacity"]
+    return [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "IdentitiesOnly=yes",
+        "-i",
+        key_path,
+        f"{capacity['ssh_user']}@{capacity['ssh_host']}",
+        "python3",
+        "-c",
+        REMOTE_SCRIPT,
+    ]
+
+
+async def preflight_linux_target(
+    target_id: str,
+    manifest: AppManifest,
+    *,
+    target_provider: TargetProvider | None = None,
+    secret_resolver: SecretResolver | None = None,
+    ssh_executor: SSHExecutor | None = None,
+) -> dict:
+    target = _validated_target(
+        (target_provider or DatabaseTargetProvider()).get(target_id), manifest
+    )
+    secret_ref = target.get("secret_ref")
+    if not isinstance(secret_ref, str) or not secret_ref:
+        raise TargetUnavailable("Linux target SSH key reference is missing")
+    key_path = (secret_resolver or EnvironmentSecretResolver()).resolve(secret_ref)
+    payload = {
+        "action": "preflight",
+        "deployment_root": target["capacity"]["deployment_root"],
+        "instance_id": "probe",
+        "version_id": "probe",
+        "required_disk_bytes": max(
+            1_073_741_824,
+            sum(sum(item.storage_mb.values()) for item in manifest.services) * 1024 * 1024,
+        ),
+        "images": [service.image for service in manifest.services],
+    }
+    try:
+        return await (ssh_executor or SubprocessSSHExecutor()).run(
+            _ssh_argv(target, key_path), json.dumps(payload), 600
+        )
+    except Exception as exc:
+        raise DeploymentFailed(f"Linux preflight failed: {exc}") from exc
+
+
+async def deploy_linux(
+    target_id: str,
+    instance_id: str,
+    version_id: str,
+    manifest: AppManifest,
+    operation_id: str,
+    requirement: Requirement,
+    *,
+    target_provider: TargetProvider | None = None,
+    secret_resolver: SecretResolver | None = None,
+    ssh_executor: SSHExecutor | None = None,
+    validator=validate_application,
+    browser_checks: list | None = None,
+    secret_files: dict[str, str] | None = None,
+) -> DeploymentResult:
+    _safe_identifier(instance_id, "instance")
+    _safe_identifier(version_id, "version")
+    _safe_identifier(operation_id, "operation")
+    target = _validated_target(
+        (target_provider or DatabaseTargetProvider()).get(target_id), manifest
+    )
+    secret_ref = target.get("secret_ref")
+    if not isinstance(secret_ref, str) or not secret_ref:
+        raise TargetUnavailable("Linux target SSH key reference is missing")
+    key_path = (secret_resolver or EnvironmentSecretResolver()).resolve(secret_ref)
+    capacity = target["capacity"]
+    compose = render_compose(manifest, instance_id, secret_files or {})
+    web = next(item for item in manifest.services if item.name == manifest.web_service)
+    stable_domain = f"{instance_id}.{target['domain_suffix']}"
+    candidate_domain = f"candidate-{operation_id}.{target['domain_suffix']}"
+    caddy_dir = capacity.get("caddy_config_dir", "/etc/caddy/conf.d")
+    caddy_main = capacity.get("caddy_main_config", "/etc/caddy/Caddyfile")
+    common = {
+        "deployment_root": capacity["deployment_root"],
+        "instance_id": instance_id,
+        "version_id": version_id,
+        "operation_id": operation_id,
+        "compose": compose,
+        "web_service": manifest.web_service,
+        "web_port": web.port,
+        "stable_domain": stable_domain,
+        "candidate_domain": candidate_domain,
+        "caddy_config_dir": caddy_dir,
+        "caddy_main_config": caddy_main,
+    }
+    argv = _ssh_argv(target, key_path)
+    executor = ssh_executor or SubprocessSSHExecutor()
+
+    async def remote(action: str, **extra):
+        payload = {**common, "action": action, **extra}
+        try:
+            return await executor.run(argv, json.dumps(payload), 600)
+        except Exception as exc:
+            raise DeploymentFailed(f"Linux {action} failed: {exc}") from exc
+
+    await remote(
+        "preflight",
+        required_disk_bytes=max(
+            1_073_741_824,
+            sum(sum(item.storage_mb.values()) for item in manifest.services) * 1024 * 1024,
+        ),
+        images=[service.image for service in manifest.services],
+    )
+    prepared = await remote("prepare")
+    candidate_url = prepared.get("candidate_url")
+    if not isinstance(candidate_url, str):
+        raise DeploymentFailed("Linux prepare returned no candidate URL")
+    candidate_report = await _call_validator(
+        validator,
+        candidate_url,
+        requirement,
+        browser_checks or [],
+        attempt_id=operation_id,
+    )
+    if not candidate_report.passed:
+        await remote("rollback")
+        raise DeploymentFailed("Linux candidate validation failed")
+    activated = await remote("activate")
+    url = activated.get("url")
+    if not isinstance(url, str):
+        await remote("rollback")
+        raise DeploymentFailed("Linux activation returned no URL")
+    report = await _call_validator(
+        validator,
+        url,
+        requirement,
+        browser_checks or [],
+        attempt_id=operation_id,
+    )
+    if not report.passed:
+        await remote("rollback")
+        raise DeploymentFailed("Linux release validation failed")
+    return DeploymentResult(
+        operation_id=operation_id,
+        instance_id=instance_id,
+        url=url,
+        report=report,
+    )
