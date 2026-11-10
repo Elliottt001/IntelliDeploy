@@ -343,3 +343,5 @@ RequirementCoverageError、RequirementInvalid在agent/requirements.py定义为Va
 ## 实施进度（2026-11-10）
 
 02-G1：直接AsyncOpenAI/DeepSeek客户端，保留reasoning_content/tool_call_id，解析实际输入/缓存/输出用量；429/408/5xx最多三次，401/402立即报供应商故障，断连结果未知不盲目重放。7项MockTransport协议检查通过；真实Key调用未执行。客户端不设置任务成功，真实调用记账由02-G4/03-D6统一接入。
+
+02-G6需求基础：原文/事实/验收映射、保留旧验收与事实、显式移除证据、两轮JSON纠正和独立审阅、租约隔离及冻结revision不可覆写共10项检查通过；当前后端累计62项。编译与冻结模块尚未接入03-D6完整pipeline，真实模型理解与人工质量复核未执行。persist_requirement必须传worker_id/generation，review_metadata可保存移除/审阅证据。
