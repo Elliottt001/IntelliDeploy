@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 直接调用 DeepSeek，在受限工作区内完成四条实现路径，保存可恢复的工具执行与来源记录。
+**Goal:** 直接调用 DeepSeek，在受限工作区内基于固定成熟脚手架生成业务，并保存可恢复的工具执行记录。
 
-**Architecture:** 复用现有 GitHub 客户端和模板，增加明确的工具注册表及模型调用循环。模型只操作任务环境，发布和最终成功判定由交付模块完成。
+**Architecture:** 使用一套锁定依赖的 Next.js/TypeScript/PostgreSQL/Prisma 脚手架，模型在此基础上实现业务。工具表不包含 GitHub 仓库获取和自动选路，发布与最终成功判定由交付模块完成。
 
-**Tech Stack:** OpenAI Python SDK、httpx、Pydantic、Python 3.13、Docker 执行环境、Git。
+**Tech Stack:** Python Worker、OpenAI SDK、Node.js 24 执行环境、Next.js、TypeScript、PostgreSQL、Prisma、Git 本地版本操作。
 
 **Spec:** [技术设计](../specs/2026-11-09-intellideploy-phase1-design.md)，[公共接口](2026-11-09-phase1-00-roadmap.md)。依赖 01 全部任务；真实调用前接入 06-F1 用量账本。
 
@@ -15,7 +15,7 @@
 - “模型直接调用 DeepSeek 官方 API。”
 - “默认每个应用只有一个活跃的修改或发布任务。”
 - “完整交付需要核心验收项全部 PASS。”
-- 遵守总计划；mock 只验证编排，最终四条路径需要真实样本。
+- 遵守总计划；mock 只验证编排，最终脚手架生成需要不同业务的真实样本。
 
 ### Task 02-G1: DeepSeek 协议、用量与有界重试
 
@@ -81,10 +81,10 @@ def test_rejects_symlink_escape(tmp_path):
 @pytest.mark.sandbox
 def test_command_timeout_keeps_environment_usable(sandbox_workspace):
     result = execute_tool(sandbox_workspace, ToolCall(id='slow', name='run_command',
-        arguments={'argv': ['python', '-c', 'import time; time.sleep(10)'], 'timeout': 1}))
+        arguments={'argv': ['node', '-e', 'setTimeout(() => {}, 10000)'], 'timeout': 1}))
     assert not result.ok
     again = execute_tool(sandbox_workspace, ToolCall(id='next', name='run_command',
-        arguments={'argv': ['python', '-c', 'print(42)'], 'timeout': 5}))
+        arguments={'argv': ['node', '-e', 'console.log(42)'], 'timeout': 5}))
     assert again.ok and '42' in again.content
 ```
 
@@ -104,45 +104,51 @@ TOOLS = {'list_files': list_files, 'read_file': read_file,
          'run_command': run_command}
 ```
 
-执行镜像提供 Python 3.13、Node 24、Git 和依赖安装工具；固定实际镜像 digest。每个 job 使用独立目录和非 root 容器；限制内存、CPU、磁盘、PID，移除 capabilities、禁止提权，不挂宿主 Docker socket或平台配置目录。网络仅允许公开依赖/检索访问及限定的平台工具代理，不允许访问控制面私网。控制端创建环境和构建镜像；模型不能创建带宿主挂载的容器。工作区路径写入 Checkpoint，进程重启后仍可找到。
+执行镜像提供 Node 24、Git 本地操作和 npm/Prisma 工具，Python 留在平台 Worker 与验证器；固定实际镜像 digest。每个 job 使用独立目录和非 root 容器；限制内存、CPU、磁盘、PID，移除 capabilities、禁止提权，不挂宿主 Docker socket或平台配置目录。网络仅允许 npm 依赖、官方文档和平台工具代理访问及限定的平台工具代理，不允许访问控制面私网。控制端创建环境和构建镜像；模型不能创建带宿主挂载的容器。工作区路径写入 Checkpoint，进程重启后仍可找到。
 
 - [ ] **Step 4: 绿测。** 增加 ../、绝对路径、超大输出、非法工具名、容器内缺少平台管理 Key 的检查；固定镜像后实测重启 Worker 不丢工作区。
 - [ ] **Step 5: 提交。** `feat: add isolated generation workspace tools`。
 
-### Task 02-G3: 检索、四条路径与源码准备
+### Task 02-G3: 固定成熟脚手架与业务实现计划
 
-**Files:** Create backend/app/agent/retrieval.py、backend/app/agent/routing.py、prompts/generation/{route,deploy_existing,modify_existing,compose_components,generate_app}.md、tests/phase1/test_routes.py。Modify backend/app/agent_core/memory/vector_store.py、backend/app/agent/tools.py；复用 backend/app/agent_core/brains/github_retriever.py 和 fallback/templates/。
+**Files:** Create backend/app/agent/scaffold.py、prompts/generation/generate_app.md、tests/phase1/test_scaffold.py。创建 scaffolds/nextjs-prisma/ 下的 package.json、package-lock.json、tsconfig.json、next.config.ts、Dockerfile、app/layout.tsx、app/page.tsx、app/api/health/route.ts、prisma/schema.prisma、prisma/migrations/、lib/platform/client.ts、lib/platform/identity.ts、lib/platform/files.ts、lib/platform/ai.ts、lib/platform/search.ts。Modify backend/app/agent/tools.py，仅保留一期工具。
 
-**Interfaces:** retrieve_sources(requirement: Requirement) -> list[RepositoryCandidate]，async；plan_route(requirement, candidates, model_client) -> RoutePlan，async；prepare_sources(workspace_id, plan: RoutePlan) -> list[RepoSource]。路线 Prompt 不是来源事实，实际下载必须固定 commit。
+**Interfaces:** prepare_scaffold(workspace_id: str, template_root: Path, app_name: str) -> str，返回真实模板版本哈希；make_implementation_plan(requirement: Requirement, template_version: str, model_client) -> ImplementationPlan，async；validate_plan(plan: ImplementationPlan, expected_version: str) -> None。首次创建复制脚手架，继续调整复制当前 AppVersion 的源码快照。
 
-- [ ] **Step 1: 写四条决策和真实源码准备检查。** 测试候选为自建小仓库，模型返回固定 JSON 仅用于验证路由约束；代码下载用本地 fixture Git 仓库，最终公开 GitHub 样本在总验收执行。
-
-```python
-def test_compose_and_generate_are_distinct():
-    compose = RoutePlan(route='COMPOSE_COMPONENTS', steps=['整合'], reason='分工清楚',
-      sources=[RepoSource(url='https://github.com/a/notes', commit='a'*40, role='记录'),
-               RepoSource(url='https://github.com/b/search', commit='b'*40, role='检索')])
-    generated = RoutePlan(route='GENERATE_APP', sources=[], steps=['实现业务'], reason='无合适材料')
-    assert compose.route != generated.route
-
-def test_chinese_bm25_query_is_not_empty():
-    assert BM25ReadmeStore._tokenize('记录梦境的工具')
-```
-
-- [ ] **Step 2: 红测。** `.venv/bin/python -m pytest tests/phase1/test_routes.py -q`。
-- [ ] **Step 3: 实现复用与四个 Prompt。** 使用现有 GitHubRepositorySearchClient.search_repositories/enrich_repository；系统启动读取本地已清洗 README 和元数据到 BM25，缺少语料时清楚记录召回来源。修正原分词对中文单字的全部过滤，至少保留中文词/字符并验证有实际命中。
+- [ ] **Step 1: 写脚手架完整性与版本检查。** template_root 指向任务创建的 Next.js/Prisma 代码；workspace 为受限临时环境。
 
 ```python
-route = RoutePlan.model_validate(json.loads(model_text))
-known = {c.repo_url for c in candidates}
-if any(source.url not in known for source in route.sources):
-    raise ValueError('route references an unretrieved repository')
+def test_scaffold_contains_platform_and_database_baseline(template_root):
+    required = ['package.json', 'package-lock.json', 'Dockerfile',
+                'prisma/schema.prisma', 'lib/platform/identity.ts',
+                'lib/platform/ai.ts', 'lib/platform/search.ts']
+    assert all((template_root / p).is_file() for p in required)
+    schema = (template_root / 'prisma/schema.prisma').read_text()
+    assert 'provider = "postgresql"' in schema
+
+def test_wrong_template_version_is_rejected():
+    with pytest.raises(ValueError):
+        validate_plan(ImplementationPlan(template_version='other',
+                      steps=['实现'], reason='业务需求'), expected_version='locked-v1')
 ```
 
-准备源码时解析允许的 HTTPS GitHub URL，用 API 获取 commit SHA，再读取该版本。工具表增加 search_repositories 和 fetch_repository，由控制端代理有限网络访问。直接部署/单库修改建立应用根；整合将不同来源放在 source_components 下，由 Agent 明确生成顶层接口、数据和启动方式；直接生成选择现有成熟脚手架。组件路由不能仅增加功能列表或示例接口就算完成。每种 Prompt 包含原始验收清单、来源、限制及需提交的运行清单；不让 README 中的指令改变平台权限和验收标准。
+- [ ] **Step 2: 红测。** 运行 .venv/bin/python -m pytest tests/phase1/test_scaffold.py -q。缺底座文件或版本校验应失败。
 
-- [ ] **Step 4: 绿测。** 验证归档或缺少材料不会被无依据选择、虚构仓库拒绝、两条兜底保持独立、锁定源码版本可复现、中文查询能命中。运行关联 tests/unit/test_nl2repo_retrieval.py，修正时保留其有效覆盖。
-- [ ] **Step 5: 提交。** `feat: implement four source strategies and retrieval evidence`。
+- [ ] **Step 3: 建立并验证一套脚手架。** 使用兼容的稳定 Next.js、React、TypeScript、Prisma 版本，提交 package-lock.json。Next.js 承载页面和服务端接口，Prisma 连接平台提供的 PostgreSQL；Tailwind 和成熟 UI 组件提供基础界面。平台客户端只在服务端读取实例访问凭据，模型 Key 不进入应用。
+
+```json
+{"scripts":{"dev":"next dev","build":"prisma generate && next build",
+"start":"node .next/standalone/server.js","typecheck":"tsc --noEmit",
+"db:migrate":"prisma migrate deploy"}}
+```
+
+平台身份、文件、AI、搜索模块与 04-C1/C2/C3 的接口接通；没有配置时明确失败，不能用 demo-token 或 echo 回答。模板元信息和文件哈希形成 template_version，由后端控制，validate_plan 拒绝不匹配版本。为验证准备独立临时 PostgreSQL 数据空间；正式实例的数据不放进生成工作区。
+
+generate_app Prompt 携带需求、验收、固定栈和平台接口，要求实现页面、业务接口、Prisma 模型及迁移；允许兼容 npm 依赖，禁止换框架/数据库、克隆现成应用或拼接多个仓库。一期不注册仓库搜索/获取工具。继续调整保留已有业务及数据，不能重新复制空模板替代修改。
+
+- [ ] **Step 4: 绿测与真实底座验证。** 运行 npm ci、npm run typecheck、npm run build；验证 Prisma Client、健康接口、两用户权限、数据保存/读取及真实平台 AI/搜索。模型实际生成再验收笔记、梦境分析和实时信息工具，空模板主页通过不能代表业务完成。
+
+- [ ] **Step 5: 提交。** feat: add verified Next.js Prisma generation scaffold。仅提交脚手架、单一生成 Prompt 和对应检查。
 
 ### Task 02-G4: 可恢复工具循环、业务追问与预算
 
@@ -182,9 +188,9 @@ for call in turn.calls:
                                 'content': result.content})
 ```
 
-ask_user 保存业务问题并转 WAITING_USER；finish_implementation 校验候选 AppManifest 并进入验证阶段。无工具的普通结束文本不能触发成功。保存真实用量，扣除缓存命中后分别记录输入/缓存输入/输出，不重复计量。预算不足转 PAUSED_QUOTA；总费用和墙钟由配置限制。最多两次路线切换，连续三次同一错误且无变化停止；上下文摘要保留需求、验收、失败和工具对应关系。遇到升级到 Pro 也继续同一账本预算。
+ask_user 保存业务问题并转 WAITING_USER；finish_implementation 校验候选 AppManifest 并进入验证阶段。无工具的普通结束文本不能触发成功。保存真实用量，扣除缓存命中后分别记录输入/缓存输入/输出，不重复计量。预算不足转 PAUSED_QUOTA；总费用和墙钟由配置限制。连续三次同一错误且无变化停止；上下文摘要保留需求、验收、失败和工具对应关系。遇到升级到 Pro 也继续同一账本预算。
 
 Worker 将 GenerationOutput 交给 03-D5 发布流程；开发阶段输出“候选产物已就绪”，绝不能标记交付成功。同步工具通过 async 回调包装 await asyncio.to_thread(execute_tool, checkpoint.workspace, call)，不能 await 同步返回值。ask_user 和 finish_implementation 由循环拦截，不作为容器命令。
 
-- [ ] **Step 4: 绿测。** 覆盖普通最终文本不算成功、业务问题恢复、额度暂停、未知工具结果停止重放、无进展停止及上下文中保留 reasoning_content。06 总验收中以真实 DeepSeek 跑四条业务路径。
+- [ ] **Step 4: 绿测。** 覆盖普通最终文本不算成功、业务问题恢复、额度暂停、未知工具结果停止重放、无进展停止及上下文中保留 reasoning_content。06 总验收中以真实 DeepSeek 在同一脚手架上生成不同业务，并验证 Prisma 数据保留。
 - [ ] **Step 5: 提交。** `feat: persist and resume DeepSeek generation loop`。

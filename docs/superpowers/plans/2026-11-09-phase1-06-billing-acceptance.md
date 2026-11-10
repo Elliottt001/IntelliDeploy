@@ -138,7 +138,7 @@ normalize_paid_invoice 在本模块定义，从服务端订阅记录定位 owner
 
 **Files:** Create scripts/audit_legacy_state.py、scripts/migrate_legacy_users.py、scripts/run_phase1_acceptance.py、tests/phase1/test_legacy_migration.py、tests/phase1/cases/acceptance.json、frontend/e2e/phase1.spec.ts。Modify README.md、CLAUDE.md、.gitignore、backend/app/main.py、backend/requirements.txt、.github/workflows/phase1-ci.yml。
 
-**Interfaces:** audit_legacy(path: Path) -> dict；migrate_users(source_snapshot, target_session) -> dict；run_case(case: dict, api_url: str) -> dict。验收报告保存 route、source commits、time、actual usage、validation、deployment target、URL和结果。
+**Interfaces:** audit_legacy(path: Path) -> dict；migrate_users(source_snapshot, target_session) -> dict；run_case(case: dict, api_url: str) -> dict。验收报告保存 template_version、time、actual usage、validation、deployment target、URL和结果。
 
 - [ ] **Step 1: 写迁移与无假成功检查。** 创建临时旧 SQLite schema（缺部署列），导入四个测试 User 并保存密码哈希；新库验证同密码可登录，不输出哈希。
 
@@ -164,18 +164,18 @@ with sqlite3.connect(snapshot_path) as snapshot:
     source.backup(snapshot)
 ```
 
-对已存在目标 ID/用户名不一致的用户明确报冲突，不覆盖；每批事务可回滚。完成迁移及新验收后从 main.py 删除旧 RAG/NL/fallback/multi-agent 路由挂载，删除未被调用的 LangGraph 编排依赖；Redis 客户端包只有在旧 GitHub token 池等引用迁移完成后才能移除，不启动额外 Redis 服务。旧实验文件和历史测试分类记录，不用删掉失败测试伪造回归通过；对仍复用的 GitHub/构建/K8s/校验模块运行其有效旧测试并修正实际失败。
+对已存在目标 ID/用户名不一致的用户明确报冲突，不覆盖；每批事务可回滚。完成迁移及新验收后从 main.py 删除旧 RAG/NL/fallback/multi-agent 路由挂载，删除未被调用的 LangGraph 编排依赖；Redis 客户端包只有在旧 GitHub token 池等引用迁移完成后才能移除，不启动额外 Redis 服务。旧实验文件和历史测试分类记录，不用删掉失败测试伪造回归通过；对仍复用的构建/K8s/校验模块运行其有效旧测试；GitHub/BM25 属于后续范围，不在一期修复扩展。
 
-验收 JSON 每个 case 给 prompt、期望路线、核心行为、部署目标和用户身份；固定来源版本。至少四条实现路径、两云目标、多人权限、继续调整、共享/副本、预算暂停、Worker 中断恢复、支付重复回调均有实际记录。
+验收 JSON 每个 case 给 prompt、固定 template_version、核心行为、部署目标和用户身份。至少个人笔记、多人梦境分析和实时信息工具三类脚手架生成场景，加两云目标、继续调整、共享/副本、预算暂停、Worker 恢复、支付重复回调，均有实际记录。
 
 ```json
-{"id":"dream-modify","route":"MODIFY_EXISTING",
- "prompt":"在日记应用加入梦境分析，保存分析历史，只允许本人读取",
+{"id":"dream-journal","template_version":"nextjs-prisma-v1",
+ "prompt":"生成梦境记录和分析应用，保存分析历史，只允许本人读取",
  "checks":["save_record","ai_analysis","history_persists","other_user_denied"],
  "target":"linux"}
 ```
 
-run_phase1_acceptance 逐 case 通过真实 API 创建/调整，轮询持久 Job 到终态并收集报告；缺目标或模型配置返回 NOT_RUN，不伪造 URL。四条路线需要各有真实 DeepSeek 执行，其中至少一例从真实公开仓库改造/部署；组件整合验证跨来源功能打通。数据重启、版本调整和独立副本通过实际操作验证。
+run_phase1_acceptance 逐 case 通过真实 API 创建/调整，轮询持久 Job 到终态并收集报告；缺目标或模型配置返回 NOT_RUN，不伪造 URL。使用真实 DeepSeek 从固定脚手架生成不同业务，报告模板版本、依赖锁及实际验证；不要求或声称支持外部仓库改造和多项目拼接。数据重启、版本调整和独立副本通过实际操作验证。
 
 README 更新 Python/Node、迁移、API/Worker/Web 三进程、配置和验收命令；CLAUDE.md 更新新入口与历史说明。CI 用 PostgreSQL service 跑 phase1 测试，前端 typecheck/build；真实模型/云/支付测试由有配置的受控环境运行，报告注明环境。
 
