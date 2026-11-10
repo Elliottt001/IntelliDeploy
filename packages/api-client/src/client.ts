@@ -17,30 +17,30 @@ type Schema = components['schemas'];
 export function createApiClient(options: ClientOptions) {
   const base = options.baseUrl.replace(/\/$/, '');
   const transport = options.fetchImpl ?? fetch;
-  async function response(path: string, method = 'GET', body?: unknown, operationId?: string): Promise<Response> {
+  async function response(path: string, method = 'GET', body?: unknown, operationId?: string, signal?: AbortSignal): Promise<Response> {
     const headers = new Headers();
     const token = await options.getToken?.();
     if (token) headers.set('Authorization', `Bearer ${token}`);
     if (body !== undefined) headers.set('Content-Type', 'application/json');
     if (operationId) headers.set('Idempotency-Key', operationId);
-    const result = await transport(base + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' });
+    const result = await transport(base + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin', signal });
     if (!result.ok) {
       const error = await result.json().catch(() => null);
       throw new ApiError(result.status, error?.error?.code ?? 'REQUEST_FAILED', error?.error?.message ?? '请求失败', error?.error?.retryable ?? false);
     }
     return result;
   }
-  async function request<T>(path: string, method = 'GET', body?: unknown, operationId?: string): Promise<T> {
-    return (await response(path, method, body, operationId)).json();
+  async function request<T>(path: string, method = 'GET', body?: unknown, operationId?: string, signal?: AbortSignal): Promise<T> {
+    return (await response(path, method, body, operationId, signal)).json();
   }
   const id = encodeURIComponent;
   const artifact = (appId: string, versionId: string) => `/api/apps/${id(appId)}/versions/${id(versionId)}/artifact`;
   return {
     createApp: (prompt: string, budgetUnits: number | undefined, operationId: string, evaluationTargetId?: string) => request<Schema['CreateAppResponse']>('/api/apps', 'POST', { prompt, budget_units: budgetUnits, evaluation_target_id: evaluationTargetId }, operationId),
     sendMessage: (appId: string, content: string, operationId: string, budgetUnits?: number) => request<Schema['JobRef']>(`/api/apps/${id(appId)}/messages`, 'POST', { content, budget_units: budgetUnits }, operationId),
-    getApp: (appId: string) => request<Schema['AppDetail']>(`/api/apps/${id(appId)}`),
+    getApp: (appId: string, signal?: AbortSignal) => request<Schema['AppDetail']>(`/api/apps/${id(appId)}`, 'GET', undefined, undefined, signal),
     listMyApps: (cursor?: string) => request<Schema['AppPage']>('/api/apps' + (cursor ? `?cursor=${id(cursor)}` : '')),
-    getJob: (jobId: string) => request<Schema['JobSnapshot']>(`/api/jobs/${id(jobId)}`),
+    getJob: (jobId: string, signal?: AbortSignal) => request<Schema['JobSnapshot']>(`/api/jobs/${id(jobId)}`, 'GET', undefined, undefined, signal),
     getReport: (jobId: string) => request<Schema['JobReport']>(`/api/jobs/${id(jobId)}/report`),
     resumeJob: (jobId: string, operationId: string, budgetUnits?: number) => request<Schema['JobRef']>(`/api/jobs/${id(jobId)}/resume`, 'POST', { budget_units: budgetUnits }, operationId),
     cancelJob: (jobId: string, operationId: string) => request<Schema['JobRef']>(`/api/jobs/${id(jobId)}/cancel`, 'POST', undefined, operationId),

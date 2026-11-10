@@ -38,3 +38,32 @@ test('SSE proxy preserves named events and the reconnect cursor',async () => {
   expect(new Headers(options.headers).get('Last-Event-ID')).toBe('11');
   expect(new Headers(options.headers).get('Authorization')).toBe('Bearer test-token');
 });
+
+test('upstream authorization failures remain failures instead of becoming a successful response', async () => {
+  vi.stubEnv('SESSION_SECRET', 's'.repeat(40));
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: '无权访问', retryable: false } }), { status: 404 })));
+  const response = await GET(new NextRequest('http://localhost:3000/api/jobs/other', { headers: { Cookie: `${SESSION_COOKIE}=${sealSession('token', 's'.repeat(40))}` } }), { params: Promise.resolve({ path: ['jobs', 'other'] }) });
+  expect(response.status).toBe(404);
+  expect((await response.json()).error.code).toBe('NOT_FOUND');
+});
+
+test('artifact proxy keeps the authenticated download private', async () => {
+  vi.stubEnv('SESSION_SECRET', 's'.repeat(40));
+  const transport = vi.fn(async () => new Response('zip-content', { headers: { 'Content-Type': 'application/zip', 'Content-Disposition': 'attachment; filename="source.zip"' } }));
+  vi.stubGlobal('fetch', transport);
+  const response = await GET(new NextRequest('http://localhost:3000/api/apps/app/versions/version/artifact', { headers: { Cookie: `${SESSION_COOKIE}=${sealSession('token', 's'.repeat(40))}` } }), { params: Promise.resolve({ path: ['apps', 'app', 'versions', 'version', 'artifact'] }) });
+  expect(response.headers.get('content-disposition')).toContain('attachment');
+  expect(response.headers.get('cache-control')).toBe('no-store');
+  expect(await response.text()).toBe('zip-content');
+  expect(new Headers((transport.mock.calls[0] as unknown as [string, RequestInit])[1].headers).get('Authorization')).toBe('Bearer token');
+});
+
+test('logout clears the session locally and never calls the API', async () => {
+  const transport = vi.fn();
+  vi.stubGlobal('fetch', transport);
+  const response = await POST(new NextRequest('http://localhost:3000/api/auth/logout', { method: 'POST', headers: { Origin: 'http://localhost:3000' } }), { params: Promise.resolve({ path: ['auth', 'logout'] }) });
+  expect(response.status).toBe(200);
+  expect(response.cookies.get(SESSION_COOKIE)?.value).toBe('');
+  expect(response.cookies.get(SESSION_COOKIE)?.expires?.valueOf()).toBeLessThan(Date.now());
+  expect(transport).not.toHaveBeenCalled();
+});

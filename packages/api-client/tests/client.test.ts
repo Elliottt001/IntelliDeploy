@@ -32,3 +32,15 @@ test('quota methods read the shared account endpoints',async () => {
   expect(await api.getBalance()).toEqual({available_units:70,reserved_units:30});
   expect(fetchImpl.mock.calls[0][0]).toBe('/api/quota/balance');
 });
+
+test('snapshot reads can be cancelled when a mobile screen leaves the foreground', async () => {
+  const controller = new AbortController();
+  const fetchImpl = vi.fn<typeof fetch>(async (_url, init) => {
+    if (init?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    return new Response(JSON.stringify({ id: 'job' }));
+  });
+  const api = createApiClient({ baseUrl: '', fetchImpl });
+  controller.abort();
+  await expect(api.getJob('job', controller.signal)).rejects.toMatchObject({ name: 'AbortError' });
+  await expect(api.getApp('app', controller.signal)).rejects.toMatchObject({ name: 'AbortError' });
+});

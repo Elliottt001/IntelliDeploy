@@ -1,9 +1,9 @@
 name: Web workspace checks
 on:
   pull_request:
-    paths: ['web/**', 'packages/api-client/**', 'package.json', 'package-lock.json', '.github/workflows/web.yml']
+    paths: ['backend/**', 'scripts/export_openapi.py', 'web/**', 'packages/api-client/**', 'package.json', 'package-lock.json', '.github/workflows/web.yml']
   push:
-    paths: ['web/**', 'packages/api-client/**', 'package.json', 'package-lock.json', '.github/workflows/web.yml']
+    paths: ['backend/**', 'scripts/export_openapi.py', 'web/**', 'packages/api-client/**', 'package.json', 'package-lock.json', '.github/workflows/web.yml']
 permissions:
   contents: read
 jobs:
@@ -16,7 +16,15 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm --workspace @intellideploy/api-client run build
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.13'
+      - run: uv venv --python 3.13 .venv
+      - run: uv pip install --python .venv/bin/python -r backend/requirements.txt
+      - run: npm run api:generate
+        env:
+          SECRET_KEY: ci-only-openapi-export-secret
+      - run: git diff --exit-code -- packages/api-client/openapi.json packages/api-client/src/generated.ts
       - run: npm --workspace @intellideploy/api-client test
       - run: npm --workspace web test
       - run: npm --workspace web run typecheck
