@@ -77,3 +77,10 @@ test('verification report displays business checks and protected evidence links'
   await expect(page.getByText('原笔记仍在')).toBeVisible();
   await expect(page.getByRole('link',{name:'查看证据'})).toHaveAttribute('href','/api/jobs/job/report/evidence/e1');
 });
+
+test('a creation draft is restored after refresh before submitting', async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('你想做什么应用？').fill('记录梦境并保存历史');
+  await page.reload();
+  await expect(page.getByLabel('你想做什么应用？')).toHaveValue('记录梦境并保存历史');
+});
