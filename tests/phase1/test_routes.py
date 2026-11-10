@@ -6,6 +6,7 @@ import pytest
 from app.agent.retrieval import SearchUnavailable, normalize_candidate, retrieve_sources
 from app.agent.routing import choose_route, plan_route, prepare_sources, score_candidate
 from app.agent_core.brains.context_rag_agent import RepositoryCandidate
+from app.agent_core.brains.github_retriever import GitHubRepositorySearchClient
 from app.agent_core.memory.vector_store import BM25ReadmeStore, ReadmeDocument
 from app.core.types import AcceptanceItem, CandidateEvaluation, ModelTurn, Requirement
 
@@ -111,3 +112,10 @@ def test_prepare_sources_locks_local_fixture_commit(tmp_path):
 def test_scoring_requires_key_material_and_web_runtime():
     evaluation = score_candidate(normalize_candidate(candidate(key_files={}, file_tree=[])), REQ)
     assert evaluation.unknown_fields and not evaluation.eligible_a
+
+
+def test_license_must_be_collected_before_source_is_publishable():
+    evaluation = score_candidate(normalize_candidate(candidate()), REQ)
+    assert "license" in evaluation.unknown_fields and not evaluation.eligible_a
+    selected = GitHubRepositorySearchClient._select_key_paths(["README.md", "LICENSE", "src/app.ts"])
+    assert "LICENSE" in selected

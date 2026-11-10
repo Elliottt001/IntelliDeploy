@@ -24,6 +24,8 @@ def score_candidate(profile: dict, requirement: Requirement) -> CandidateEvaluat
     unknown = []
     if not row.get("key_files"): unknown.append("key_files")
     if not files: unknown.append("file_tree")
+    if not any(Path(name).name.lower() in {"license", "license.md", "notice"} for name in (row.get("key_files") or {})):
+        unknown.append("license")
     compatibility = row.get("compatibility", "SUPPORTED" if has_manifest else "UNKNOWN")
     evidence = {"files": ",".join(sorted(files)[:8])} if files else {}
     return CandidateEvaluation(repo_url=row["repo_url"], match_score=match,

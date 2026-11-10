@@ -358,6 +358,9 @@ class GitHubRepositorySearchClient:
 _KEY_FILE_NAMES = {
     "readme.md",
     "readme",
+    "license",
+    "license.md",
+    "notice",
     "package.json",
     "requirements.txt",
     "pyproject.toml",
