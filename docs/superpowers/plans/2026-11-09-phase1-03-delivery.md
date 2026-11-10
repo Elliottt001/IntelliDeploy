@@ -62,7 +62,7 @@ execute_browser_check 在本模块定义，验证动作参数和 URL 属于当�
 
 **Interfaces:** BuildSpec(service: str, context: str, dockerfile: str)；AppManifest.builds: list[BuildSpec]；build_release(workspace_id, manifest: AppManifest, operation_id: str) -> AppManifest，async；snapshot_release(workspace_id, manifest, report) -> str。候选 image 可是本地标签，发布 image 必须是实际 digest。
 
-- [ ] **Step 1: 写缺源码和有依赖服务的检查。** build_executor 是模拟命令返回，仅检查参数和清单替换；真实构建另跑 docker 标记测试。
+- [x] **Step 1: 写缺源码和有依赖服务的检查。** build_executor 是模拟命令返回，仅检查参数和清单替换；真实构建另跑 docker 标记测试。
 
 ```python
 def test_manifest_rejects_dependency_cycle():
@@ -77,8 +77,8 @@ async def test_release_contains_real_digest(sample_workspace, registry):
     assert all('@sha256:' in s.image for s in result.services)
 ```
 
-- [ ] **Step 2: 红测。** test_build_artifacts.py，真实构建测试必须连接配置的专用 builder 和测试 registry。
-- [ ] **Step 3: 按服务生成构建操作。** 校验 context/dockerfile 在工作区内；调用独立 builder 的 buildctl，推送配置仓库并读取 metadata 中 digest。已有镜像也解析并固定 digest。源码快照排除 .git、缓存、生产数据、运行凭据；记录来源 commit、锁文件和内容哈希。
+- [x] **Step 2: 红测。** test_build_artifacts.py，真实构建测试必须连接配置的专用 builder 和测试 registry。
+- [x] **Step 3: 按服务生成构建操作。** 校验 context/dockerfile 在工作区内；调用独立 builder 的 buildctl，推送配置仓库并读取 metadata 中 digest。已有镜像也解析并固定 digest。源码快照排除 .git、缓存、生产数据、运行凭据；记录来源 commit、锁文件和内容哈希。
 
 ```python
 argv = ['buildctl', 'build', '--frontend', 'dockerfile.v0',
@@ -89,8 +89,8 @@ argv = ['buildctl', 'build', '--frontend', 'dockerfile.v0',
 
 不通过 app 容器挂宿主 Docker socket。每个构建 operation_id 保存请求和已完成 digest，重试先核对结果。AppVersion 保存清单、验证和快照路径后不可修改，只创建新版本。
 
-- [ ] **Step 4: 绿测。** 增加 context 越界、secret/data 排除、重复构建动作返回同 digest、推送失败不会生成可发布版本的断言。
-- [ ] **Step 5: 提交。** `feat: build immutable multi-service releases`。
+- [x] **Step 4: 绿测。** 增加 context 越界、secret/data 排除、重复构建动作返回同 digest、推送失败不会生成可发布版本的断言。
+- [x] **Step 5: 提交。** `feat: build immutable multi-service releases`。
 
 ### Task 03-D3: 普通 Linux 发布
 
@@ -318,3 +318,5 @@ ResourceWindow.compute_units为分配CPU/内存时长换算后的资源计费单
 ## 实施进度（2026-11-10）
 
 03-D1：新增受控 Playwright 业务验证、同源 URL 限制、actor 隔离 context、验收 ID 完整性与截图/DOM/网络错误证据；服务重启只通过 runtime controller，缺 controller 记 NOT_RUN。易失/持久笔记真实子进程、缺检查、跨域、占位响应、错误身份预期和浏览器工具适配共 8 项通过；完整 phase1 回归 140 项通过、1 项专用沙箱默认跳过。真实候选节点与线上目标未执行。
+
+03-D2：新增工作区内 BuildKit 构建、外部镜像 digest 解析、operation 幂等记录和不可变源码 zip；拒绝路径/operation ID 注入，排除凭据、缓存、运行数据及越界符号链接。构建专项 8 项通过，专用 builder/registry 真实构建 1 项因未配置保持 NOT_RUN；完整 phase1 148 项通过、2 项跳过。未连接任何远程 registry。

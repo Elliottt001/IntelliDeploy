@@ -134,9 +134,9 @@ class ServiceSpec(BaseModel):
     storage_mb: dict[str, int] = Field(default_factory=dict)
 
 class BuildSpec(BaseModel):
-    service: str
-    context: str
-    dockerfile: str
+    service: str = Field(min_length=1)
+    context: str = Field(min_length=1)
+    dockerfile: str = Field(min_length=1)
 
 class AppManifest(BaseModel):
     schema_version: Literal[1] = 1
