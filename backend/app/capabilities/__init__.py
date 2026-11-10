@@ -1,0 +1,2 @@
+"""Instance-scoped platform capabilities."""
+

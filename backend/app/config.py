@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     FREE_GRANT_POLICY_VERSION: str = 'initial-v1'
     FREE_GRANT_DAYS: int = Field(default=30, gt=0)
     FAILED_USAGE_RULE: str = '已发生且有证据的模型及执行用量计费，未用预留释放；平台故障按账本返还。'
+    APP_IDENTITY_PRIVATE_KEY: str = ""
+    APP_IDENTITY_PUBLIC_KEY: str = ""
+    APP_IDENTITY_ISSUER: str = "intellideploy"
+    APP_IDENTITY_TTL_SECONDS: int = Field(default=900, ge=60, le=3600)
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ALGORITHM: str = "HS256"
     MODEL_API: str = ""

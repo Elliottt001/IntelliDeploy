@@ -23,7 +23,7 @@
 
 **Interfaces:** POST /api/instances/{id}/login-code 消费 callback、返回 code/expires_in，应用服务端 POST /api/capabilities/identity/exchange 消费 code/instance_token，返回限定应用身份；同交付说明。issue_app_identity(user_id: int, app_id: str, instance_id: str) -> str；verify_app_identity(token: str, app_id, instance_id) -> int；resolve_context(session, instance_id, user_token, instance_token) -> CapabilityContext。共享策略尚未创建时只允许实例拥有者；05-W2 注册后允许 SPONSOR/VISITOR 策略。
 
-- [ ] **Step 1: 写跨应用和匿名付费方检查。** 使用 test-only RSA key fixture，在测试内生成，不写业务配置。
+- [x] **Step 1: 写跨应用和匿名付费方检查。** 使用 test-only RSA key fixture，在测试内生成，不写业务配置。
 
 ```python
 def test_token_for_one_instance_rejected_by_another(identity_keys):
@@ -36,8 +36,8 @@ def test_visitor_mode_requires_login(context_factory):
         context_factory(policy='VISITOR', user_token=None)
 ```
 
-- [ ] **Step 2: 红测。** `.venv/bin/python -m pytest tests/phase1/test_capability_identity.py -q`。
-- [ ] **Step 3: 实现限定身份和单次登录交换。** JWT 使用独立的平台应用签名 Key，claims 至少有 sub、aud=app_id、instance_id、exp、iss。校验算法固定为配置的 RS256，应用拿公钥验证。登录在平台完成，回到登记的应用 callback 用单次短期 code 交换身份；code 一次消费、有效期 60 秒且绑定 callback/实例；不把长效 JWT 放进公开 URL。
+- [x] **Step 2: 红测。** `.venv/bin/python -m pytest tests/phase1/test_capability_identity.py -q`。
+- [x] **Step 3: 实现限定身份和单次登录交换。** JWT 使用独立的平台应用签名 Key，claims 至少有 sub、aud=app_id、instance_id、exp、iss。校验算法固定为配置的 RS256，应用拿公钥验证。登录在平台完成，回到登记的应用 callback 用单次短期 code 交换身份；code 一次消费、有效期 60 秒且绑定 callback/实例；不把长效 JWT 放进公开 URL。
 
 ```python
 claims = jwt.decode(token, public_key, algorithms=['RS256'],
@@ -49,8 +49,10 @@ return int(claims['sub'])
 
 AppLoginCode 在 capabilities/models.py 保存 code_hash、instance_id、user_id、callback、expires_at、consumed_at，数据库事务保证一次消费。resolve_context 从可信实例记录和公开策略决定 payer_id；客户端不能直接提交任意 payer_id。实例凭据只授权当前实例，允许匿名的赞助调用受实例配置限额约束。已存在仓库的账号系统通过映射真实平台身份接入，修改代码时增加两账号测试，不能只在入口加登录就宣布隔离成功。
 
-- [ ] **Step 4: 绿测。** 覆盖过期 token、错误 audience/instance、code 重放、未登记 callback、匿名赞助额度限制和伪造 payer_id。
-- [ ] **Step 5: 提交。** `feat: scope platform identity and capability authorization`。
+- [x] **Step 4: 绿测。** 覆盖过期 token、错误 audience/instance、code 重放、未登记 callback、匿名赞助额度限制和伪造 payer_id。
+- [x] **Step 5: 提交。** `feat: scope platform identity and capability authorization`。
+
+实施证据（2026-11-10）：使用测试内临时 RSA 密钥完成 RS256 app/instance 绑定身份、可撤销实例凭据、同源 callback 的 60 秒单次 code、服务端付费方选择及入口伪造头拒绝；`test_capability_identity.py` 与 `test_runtime_access.py` 共 7 项通过，迁移往返与 OpenAPI 关联检查 2 项通过。真实生产密钥与公开 Publication 策略接入仍分别由外部配置和 05-W2 完成。
 
 ### Task 04-C2: 独立数据与文件持久化
 

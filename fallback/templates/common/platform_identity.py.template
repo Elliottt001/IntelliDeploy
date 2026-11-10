@@ -1,0 +1,19 @@
+"""Verify IntelliDeploy instance identities inside a generated Python service."""
+
+import os
+
+from jose import jwt
+
+
+def verify_platform_identity(token: str, app_id: str, instance_id: str) -> int:
+    claims = jwt.decode(
+        token,
+        os.environ["INTELLIDEPLOY_IDENTITY_PUBLIC_KEY"],
+        algorithms=["RS256"],
+        audience=app_id,
+        issuer=os.environ.get("INTELLIDEPLOY_IDENTITY_ISSUER", "intellideploy"),
+    )
+    if claims.get("instance_id") != instance_id:
+        raise ValueError("instance identity mismatch")
+    return int(claims["sub"])
+
