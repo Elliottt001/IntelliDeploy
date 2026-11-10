@@ -80,3 +80,5 @@ web/next-env.d.ts
 web/*.tsbuildinfo
 packages/api-client/dist/
 artifacts/
+web/test-results/
+web/playwright-report/

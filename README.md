@@ -2,7 +2,7 @@
 
 用自然语言描述需求，平台检索并复用开源代码或生成应用，自动验证、修复并部署为Web应用。支持继续对话调整、社区共享及独立副本。
 
-一期正在按[实施总计划](docs/superpowers/plans/2026-11-09-phase1-00-roadmap.md)开发。已实现持久应用/任务API、PostgreSQL迁移、Worker租约及共享客户端/BFF基础；真实生成、完整客户端、平台能力、云部署、社区和支付仍在实施。旧演示部署结果不算真实交付。
+一期正在按[实施总计划](docs/superpowers/plans/2026-11-09-phase1-00-roadmap.md)开发。已实现持久应用/任务API、PostgreSQL迁移、Worker租约及共享客户端/BFF、额度账本和Web工作台基础；真实生成、手机新客户端、平台能力、云部署、社区和支付仍在实施。旧演示部署结果不算真实交付。
 
 | 目录 | 职责 |
 | --- | --- |
@@ -27,7 +27,7 @@ npm run api:generate
 
 先按backend/.env.example设置backend/.env和随机SECRET_KEY，Web另设API_BASE_URL、WEB_ORIGIN、SESSION_SECRET；详见[开发运行指南](docs/开发运行指南.md)。根package-lock管理三个npm工作区，API启动不会自动建表或修改旧SQLite。
 
-分别在终端运行npm run dev:api、dev:web、dev:mobile。dev:worker脚本已建立，在完整pipeline实施前明确退出，不模拟任务成功。当前Web只有BFF基础；旧Expo聊天屏幕正等待07-E2接入新API。
+分别在终端运行npm run dev:api、dev:web、dev:mobile。dev:worker脚本已建立，在完整pipeline实施前明确退出，不模拟任务成功。当前Web可以操作持久任务状态；旧Expo聊天屏幕正等待07-E2接入新API。
 
 API文档：http://localhost:9000/docs。JSON登录后Authorize填Bearer token，POST /api/apps需Idempotency-Key，GET /api/jobs/{id}读取持久状态。创建返回QUEUED只说明任务已保存，不能当成应用交付。
 

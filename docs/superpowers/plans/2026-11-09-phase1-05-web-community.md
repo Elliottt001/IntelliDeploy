@@ -137,3 +137,7 @@ job = Job(kind='COPY', checkpoint={'source_version_id': publication.version_id},
 05-W2发布必须version_id==App.active_version_id==Instance.version_id且实际运行验证PASS；版本不匹配409，不能公开一个链接指向另一版。共享同一运行实例按每个用户隔离私有记录，公开详情/预览不从拥有者私有数据取样。发布设置保存在Publication；作者继续调整已公开应用时UI提示将更新公开应用，通过03-D5激活事务同步所有该实例visible Publication.version_id，失败则两者保持旧版；公开应用页面显示最新版本，不假称固定在旧版。既有副本仍固定source_version不随作者更新。若作者不愿更新公开应用，可先取消公开；平台不擅自复制生产数据建立新公开实例。
 
 收藏/最近使用分页响应字段明确items及next_cursor；直接使用记录publication_id/instance_id，匿名按允许功能访问；VISITOR消费个人额度前登录，SPONSOR受服务端赞助上限（period/limit_units）控制。赞助上限在Publication保存，resolve_context与06-F1预留同事务检查，访问者不能改上限。取消公开阻止新匿名/社区身份进入共享实例；实例拥有者仍可访问，实例停机时社区显示暂不可用。05-W2测试公开版本更新与实际入口一致、取消公开后的匿名拒绝、赞助超限；05-W3测试已有副本不升级、不复制私人数据。
+
+## 实施进度（2026-11-10）
+
+05-W1工作台基础已实现：首页创建/登录/注册、我的应用、持久对话、交付卡、继续调整、取消/额度恢复、命名SSE/快照补读、源码下载和业务验证报告。5项Playwright夹具检查通过，包含手机宽度、刷新、旧版保留、业务回答、额度暂停、刷新后原请求键重试及报告证据；Next build/typecheck与Web6项单测通过。首次全链路/实例start-delete/社区发布/私有登录交换在03/04/05-W2及07-E2后继续联调，不将夹具URL标真实交付。本任务最终验收未完成。
