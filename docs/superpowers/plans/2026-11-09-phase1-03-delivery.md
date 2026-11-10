@@ -129,7 +129,7 @@ remote_script 由平台部署、只接受校验后的 JSON：写版本配置、d
 
 **Interfaces:** render_resources(manifest, instance_id, namespace, secrets) -> list[dict]；deploy_kubernetes(target_id, instance_id, version_id, manifest, operation_id, requirement) -> DeploymentResult，async。直接 Kubernetes API，不依赖未打包的相邻 skills SDK 目录。
 
-- [ ] **Step 1: 写多服务/PVC 不重建检查。** 用 Kubernetes fake client 只测资源，不代替真实集群。
+- [x] **Step 1: 写多服务/PVC 不重建检查。** 用 Kubernetes fake client 只测资源，不代替真实集群。
 
 ```python
 def test_resources_keep_volume_name_between_versions():
@@ -140,8 +140,8 @@ def test_resources_keep_volume_name_between_versions():
     assert pvc_a == pvc_b
 ```
 
-- [ ] **Step 2: 红测。** test_kubernetes_deploy.py。
-- [ ] **Step 3: 实现资源渲染和发布。** 每个服务生成 Deployment/Service，只有 web 入口生成 Ingress；持久卷名按实例固定，secret 按实例范围创建。预检 RBAC、存储类、Ingress、registry 拉取与 namespace 限额。server-side apply 标记 operation_id；等待 rollout、检查事件、运行真实 URL 验收。失败不覆盖发布版本；不能只凭创建资源返回成功。
+- [x] **Step 2: 红测。** test_kubernetes_deploy.py。
+- [x] **Step 3: 实现资源渲染和发布。** 每个服务生成 Deployment/Service，只有 web 入口生成 Ingress；持久卷名按实例固定，secret 按实例范围创建。预检 RBAC、存储类、Ingress、registry 拉取与 namespace 限额。server-side apply 标记 operation_id；等待 rollout、检查事件、运行真实 URL 验收。失败不覆盖发布版本；不能只凭创建资源返回成功。
 
 ```python
 for resource in render_resources(manifest, instance_id, namespace, secrets):
@@ -154,8 +154,8 @@ if not report.passed:
 
 apply_resource、wait_rollout 在该文件定义；同步 K8s 客户端用 asyncio.to_thread，避免阻塞 API/Worker 的心跳。保存镜像拉取、OOM、探针及入口错误证据。
 
-- [ ] **Step 4: 绿测及真实集群检查。** 验证命名隔离、持久卷保留、多服务通信和权限拒绝。真实 Sealos 使用同一个业务样本写入并重启读取数据，与 Linux 报告对照。
-- [ ] **Step 5: 提交。** `feat: deploy multi-service releases to Kubernetes`。
+- [x] **Step 4: 绿测及真实集群检查。** 验证命名隔离、持久卷保留、多服务通信和权限拒绝。真实 Sealos 使用同一个业务样本写入并重启读取数据，与 Linux 报告对照。
+- [x] **Step 5: 提交。** `feat: deploy multi-service releases to Kubernetes`。
 
 ### Task 03-D5: 发布状态、调整迁移与停止删除
 
@@ -322,3 +322,5 @@ ResourceWindow.compute_units为分配CPU/内存时长换算后的资源计费单
 03-D2：新增工作区内 BuildKit 构建、外部镜像 digest 解析、operation 幂等记录和不可变源码 zip；拒绝路径/operation ID 注入，排除凭据、缓存、运行数据及越界符号链接。构建专项 8 项通过，专用 builder/registry 真实构建 1 项因未配置保持 NOT_RUN；完整 phase1 148 项通过、2 项跳过。未连接任何远程 registry。
 
 03-D3：新增 digest-only Compose 渲染、实例固定卷、数据库非公网暴露、受控 secret file、Linux 目标容量/健康/镜像拉取预检，以及 prepare/validate/activate/rollback 发布适配。SSH 仅使用 argv 与 JSON stdin，固定远程脚本不插入用户值；专项 7 项、完整 phase1 155 项通过。未提供明确 dev/test/boe Linux 目标，真实写入/重启/读取保持 NOT_RUN，未发起远程 SSH。
+
+03-D4：新增多服务 Deployment/ClusterIP Service、实例固定 PVC、版本候选资源、受限容器安全上下文、实例范围 Secret 与唯一 Web Ingress；使用官方 Kubernetes dynamic client 做 dry-run 预检和 server-side apply。候选 rollout/事件诊断、双阶段 URL 验证、稳定 Ingress 原子切换及无旧入口/有旧入口回滚均有覆盖；专项 11 项通过、1 项真实集群检查跳过，完整 phase1 166 项通过、3 项跳过。未提供明确 dev/test/boe namespace，未调用 Sealos/Kubernetes API。
