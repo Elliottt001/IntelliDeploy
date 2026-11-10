@@ -24,7 +24,7 @@
 
 **Interfaces:** 消费 01-F1/F3 的公开 Schema；createApiClient({baseUrl, getToken?, fetchImpl?}) 产出 createApp、sendMessage、getApp、listMyApps、getJob、getReport、resumeJob、cancelJob、getArtifactUrl、issueLoginCode，以及05社区和06额度/订单方法。每个写方法接 operationId，传 Idempotency-Key；组件不能自行生成第二套 API 地址或结果结构。Web baseUrl为空字符串，同源请求path本身含`/api`；避免/api/api重复前缀，Expo 为配置的后端地址。
 
-- [ ] **Step 1: 写传输和认证协议测试。** 使用 Vitest 注入 Fetch 夹具，仅证明请求行为；在 backend 测试 HTTPBearer 与 JSON 登录共存。
+- [x] **Step 1: 写传输和认证协议测试。** 使用 Vitest 注入 Fetch 夹具，仅证明请求行为；在 backend 测试 HTTPBearer 与 JSON 登录共存。
 
 ```typescript
 import { expect, test, vi } from 'vitest';
@@ -45,8 +45,8 @@ test('create carries token and retry key without changing the payload', async ()
 });
 ```
 
-- [ ] **Step 2: 红测。** `npm --workspace @intellideploy/api-client test`；未实现函数应失败。先建立根 workspaces=`["frontend","web","packages/api-client"]`，不把 Expo 的 React 版本强制替换为 Web 版本。
-- [ ] **Step 3: 实现协议包及运行入口。** export_openapi.py 导入 app.main.app，写 app.openapi() 到包内 JSON；该导入不可写数据库或 require 云凭据。openapi-typescript 生成 components/schemas 类型；client.ts 从 Schema 获取 JobSnapshot/AppDetail 等响应。共享包使用 TypeScript 编译成 dist ESM，package exports/types 指向 dist；Next 和 Expo 的解析均实际验证。api:generate 先导出，再生成类型，最后构建包；CI 再生成后 git diff --exit-code 检查协议漂移。
+- [x] **Step 2: 红测。** `npm --workspace @intellideploy/api-client test`；未实现函数应失败。先建立根 workspaces=`["frontend","web","packages/api-client"]`，不把 Expo 的 React 版本强制替换为 Web 版本。
+- [x] **Step 3: 实现协议包及运行入口。** export_openapi.py 导入 app.main.app，写 app.openapi() 到包内 JSON；该导入不可写数据库或 require 云凭据。openapi-typescript 生成 components/schemas 类型；client.ts 从 Schema 获取 JobSnapshot/AppDetail 等响应。共享包使用 TypeScript 编译成 dist ESM，package exports/types 指向 dist；Next 和 Expo 的解析均实际验证。api:generate 先导出，再生成类型，最后构建包；CI 再生成后 git diff --exit-code 检查协议漂移。
 
 ```typescript
 export type ClientOptions = {
@@ -76,8 +76,8 @@ Web BFF映射/api/auth/login、/api/auth/register、/api/auth/me分别到后端/
 
 运行指南包含环境样例、PostgreSQL/迁移、独立 Worker 和隔离构建节点配置、云目标登记、四终端命令、Web/docs/Expo入口；手机 LAN 地址、Android模拟器地址、CORS/HTTPS与回到前台刷新。明确缺配置为未执行，API启动成功不等于应用生成成功。artifacts/evaluations 加 Git 忽略，不能忽略需要提交的契约或测试代码。
 
-- [ ] **Step 4: 绿测及联调。** 共享包 Vitest、后端 auth/API协议检查；Next 登录/SSE代理测试覆盖401、越权、Origin不匹配、流重连、源码下载和退出；用真实API创建后 GET job，在 Expo transport 中读到同一id。检查导出/生成文件无凭据、变更后再生成无 diff。
-- [ ] **Step 5: 提交。** `feat: share API contracts and client startup paths`。此任务交付可联调协议，尚不代表引擎已交付业务应用。
+- [x] **Step 4: 绿测及联调。** 共享包 Vitest、后端 auth/API协议检查；Next 登录/SSE代理测试覆盖401、越权、Origin不匹配、流重连、源码下载和退出；用真实API创建后 GET job，在 Expo transport 中读到同一id。检查导出/生成文件无凭据、变更后再生成无 diff。
+- [x] **Step 5: 提交。** `feat: share API contracts and client startup paths`。此任务交付可联调协议，尚不代表引擎已交付业务应用。
 
 ### Task 07-E2: 接通保留的 Expo 客户端
 
@@ -85,7 +85,7 @@ Web BFF映射/api/auth/login、/api/auth/register、/api/auth/me分别到后端/
 
 **Interfaces:** 消费07-E1请求包及01/05/06 API。subscribeJob(jobId, onSnapshot) -> unsubscribe；authStorage.getToken/setToken/clearToken；DeliveryCard 从 AppDetail.delivery/instance_status 和 latest_job 读取。身份code由04-C1提供。基础联调依赖01/07-E1；真实交付依赖03/04，社区和购买联调依赖05/06。
 
-- [ ] **Step 1: 写轮询与旧版本保持检查。** Vitest 使用fake timer，fixture仅验证恢复逻辑；测试token为空回到登录，失败候选仍显示原delivery，不能把非空URL当作任务成功。
+- [x] **Step 1: 写轮询与旧版本保持检查。** Vitest 使用fake timer，fixture仅验证恢复逻辑；测试token为空回到登录，失败候选仍显示原delivery，不能把非空URL当作任务成功。
 
 ```typescript
 import { expect, test } from 'vitest';
@@ -99,7 +99,7 @@ test('poll only active jobs and pause while app is in background', () => {
 });
 ```
 
-- [ ] **Step 2: 红测。** `npm --workspace frontend test -- jobPolling.test.ts`，shouldPoll 未实现应失败；新增独立 test script，保留原start/ios/android/web命令。
+- [x] **Step 2: 红测。** `npm --workspace frontend test -- jobPolling.test.ts`，shouldPoll 未实现应失败；新增独立 test script，保留原start/ios/android/web命令。
 - [ ] **Step 3: 替换旧数据链路。** api.ts 创建共享API实例，登录接/auth JSON，原生token用expo-secure-store；Expo浏览器预览存储适配单独处理。登录读取时迁移旧AsyncStorage token到SecureStore后删除旧值，退出清除两者。ChatbotScreen 不再调用 rag search/chat 或旧WebSocket来判断交付，改createApp/sendMessage/getApp/getJob。持久app_id及输入草稿，前台每3秒串行轮询，后台停止、重新前台立即GET；网络失败退避到30秒，清理timer/AbortController，禁止重叠请求。WAITING_USER显示业务问题，PAUSED_QUOTA提供充值/恢复，终态回读AppDetail；连续轮询失败提示网络状态而不改变后端Job。
 
 ```typescript
@@ -113,7 +113,7 @@ AppDetailScreen 提供对话、候选/当前版本、打开应用、继续修改
 保留视觉资产、Metro/NativeWind及现有Expo路由，不为共享API包改掉全部UI。使用expo install安装与当前SDK兼容的SecureStore等模块。配置明确的iOS bundleIdentifier/Android package，避免覆盖其他应用；运行指南记录所选标识和开发构建命令。
 
 - [ ] **Step 4: 绿测、原生与跨端验收。** typecheck/Vitest；`npm --workspace frontend exec -- expo export --platform all` 检查打包。运行iOS/Android开发构建；Maestro覆盖登录→需求→离开/恢复→交付→打开浏览器→返回→调整→社区/副本/额度。Maestro文件以实际appId/testID定位，不等待一个固定生成时长，轮询后端状态并记录超时；等待中的手机恢复可测试预先真实发起的job。自动化不可用时，两平台按同一流程记录设备/构建/时间/app_id/job_id/截图和每一步结果，未执行不得写PASS。Web创建手机读取、手机回答Web续接必须读同一id和持久对话；失败调整保留旧线上数据。
-- [ ] **Step 5: 提交。** `feat: retain Expo client with shared app delivery flows`。
+- [x] **Step 5: 提交。** `feat: retain Expo client with shared app delivery flows`。基础提交为`74594d5`；Step 3中的身份/社区/支付/实例操作及Step 4原生设备验收仍受后续依赖约束，保持未勾选。
 
 ### Task 07-E3: 开发者真实评测页与 CLI
 
@@ -217,4 +217,6 @@ expected_route仅是评测参考，路由不读取它。检索发现比预期D�
 
 ## 实施进度（2026-11-10）
 
-07-E1基础已实现：根npm工作区与单一lock、OpenAPI导出/ESM共享包、Web加密cookie/BFF、Origin/路径白名单/SSE转发、根启动脚本与运行指南。共享请求3项和Web代理/会话6项测试通过；Next16.4.6 build/typecheck、Expo55网页导出/原有typecheck通过，Node和Metro可解析共享包。Worklets按原lock固定0.8.3，未升级Expo/RN。后续实例/身份/社区/额度接口实施后扩充请求包并重新生成协议；完整双客户端/真实生成/原生验收未执行，不将初次基础联调标作整项最终验收完成。
+07-E1基础已实现：根npm工作区与单一lock、OpenAPI导出/ESM共享包、Web加密cookie/BFF、Origin/路径白名单/SSE转发、可取消快照读取、根启动脚本与运行指南。共享请求5项和Web代理/会话9项测试通过；协议重新生成无漂移，Next16.4.6 build/typecheck通过。后续实例/身份/社区/支付接口实施后扩充请求包并重新生成协议。
+
+07-E2基础已实现：Expo创建、我的应用、持久对话/状态、取消与额度恢复、额度查看；原生token使用SecureStore并安全迁移旧值，浏览器预览使用独立适配；草稿/app_id/原请求键按账号持久，前后台取消与立即回读、串行轮询及30秒退避。12项Vitest及6项Expo浏览器检查通过；其中跨端检查使用真实intellideploy_test/PostgreSQL/API验证Web与Expo共享app/job和持久对话，追问状态是fixture、报告为NOT_RUN。Web/iOS/Android bundle导出通过。iOS/Android开发构建、设备SecureStore/前后台操作及完整交付、身份、社区、实例、支付联调未执行，详见[原生客户端验收记录](../../原生客户端验收记录.md)，本记录不将07-E2整项最终验收标完成。

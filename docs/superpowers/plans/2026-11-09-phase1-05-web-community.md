@@ -23,7 +23,7 @@
 
 **Interfaces:** api.createApp(prompt, budgetUnits, operationId)；api.sendMessage(appId, content, operationId)；api.getApp(appId)；api.getJob(jobId)；streamJob(jobId, cursor, onEvent)。Next 服务端 API 代理用安全 HttpOnly、Secure、SameSite=Lax session cookie 绑定现有认证；修改请求校验 Origin，代理只转发允许的路径。登录代理接 JSON 并保存返回 Bearer token，浏览器不直接读取 token；401 保留输入并跳转登录。认证细节见 07-E1，不把平台模型 Key 暴露给浏览器。
 
-- [ ] **Step 1: 写页面恢复与交付门槛测试。** 测试后端 fixture 返回已发布、运行中、失败候选三种持久状态。
+- [x] **Step 1: 写页面恢复与交付门槛测试。** 测试后端 fixture 返回已发布、运行中、失败候选三种持久状态。
 
 ```typescript
 test('refresh keeps the existing task and delivery link', async ({ page }) => {
@@ -40,8 +40,8 @@ test('a failed candidate keeps the previous live version', async ({ page }) => {
 });
 ```
 
-- [ ] **Step 2: 红测。** 新 package scripts 包含 dev/build/start/typecheck/test:e2e；运行 `npm --prefix web run test:e2e -- workspace.spec.ts`。没有页面时应失败。
-- [ ] **Step 3: 改造项目与工作台。** 使用 Node 24，Next/React 兼容稳定版本，提交 lockfile；在独立 web 包使用 Web 元素；从 frontend 复用配色、Logo 和资产，客户端组件不强制共享。平台首页复用现有 Logo、配色和素材，不引入额外视觉重设计。
+- [x] **Step 2: 红测。** 新 package scripts 包含 dev/build/start/typecheck/test:e2e；运行 `npm --prefix web run test:e2e -- workspace.spec.ts`。没有页面时应失败。
+- [x] **Step 3: 改造项目与工作台。** 使用 Node 24，Next/React 兼容稳定版本，提交 lockfile；在独立 web 包使用 Web 元素；从 frontend 复用配色、Logo 和资产，客户端组件不强制共享。平台首页复用现有 Logo、配色和素材，不引入额外视觉重设计。
 
 ```typescript
 export function streamJob(jobId: string, cursor: number, onEvent: (event: JobEvent) => void) {
@@ -55,8 +55,8 @@ JobEvent 在 packages/api-client/src/generated.ts 从 OpenAPI 导出，包括 id
 
 公开 Web 部署需要真实 Next 服务端；Expo 静态 preview 仅用于其浏览器预览；新增 Web CI 执行 typecheck/build/E2E并保存构建产物；Expo CI 执行 typecheck/export，本地和服务器用 next start。前端和 API 部署的代理、cookie 和 API_BASE_URL 写入运行说明。
 
-- [ ] **Step 4: 绿测。** 跑 npm typecheck/build 与 E2E；检查移动和桌面尺寸、断线补发、刷新、余额暂停、错误消息及重复点击不创建重复任务。
-- [ ] **Step 5: 提交。** `feat: add persistent web app workspace and delivery UI`。
+- [x] **Step 4: 绿测。** 跑 npm typecheck/build 与 E2E；检查移动和桌面尺寸、断线补发、刷新、余额暂停、错误消息及重复点击不创建重复任务。
+- [x] **Step 5: 提交。** `feat: add persistent web app workspace and delivery UI`。
 
 ### Task 05-W2: 公开社区页与访问策略
 
@@ -140,4 +140,4 @@ job = Job(kind='COPY', checkpoint={'source_version_id': publication.version_id},
 
 ## 实施进度（2026-11-10）
 
-05-W1工作台基础已实现：首页创建/登录/注册、我的应用、持久对话、交付卡、继续调整、取消/额度恢复、命名SSE/快照补读、源码下载和业务验证报告。5项Playwright夹具检查通过，包含手机宽度、刷新、旧版保留、业务回答、额度暂停、刷新后原请求键重试及报告证据；Next build/typecheck与Web6项单测通过。首次全链路/实例start-delete/社区发布/私有登录交换在03/04/05-W2及07-E2后继续联调，不将夹具URL标真实交付。本任务最终验收未完成。
+05-W1工作台基础已实现：首页创建/登录/注册、我的应用、持久对话、交付卡、继续调整、取消/额度恢复、命名SSE/快照补读、源码下载、业务验证报告及创建草稿刷新恢复。6项Playwright夹具检查通过，包含手机宽度、刷新、旧版保留、业务回答、额度暂停、刷新后原请求键重试及报告证据；Next build/typecheck与Web9项代理/会话单测通过。首次全链路/实例start-delete/社区发布/私有登录交换在03/04/05-W2及07-E2后继续联调，不将夹具URL标真实交付。本任务最终验收未完成。

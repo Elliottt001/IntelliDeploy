@@ -25,7 +25,7 @@
 
 本任务仅依赖 01，可先于生成模块实施。平台额度用整数最小单位；价格按有版本的整数比例计算，CNY/USD 支付金额单独保存，不用浮点金额或即时汇率改变已下单价格。
 
-- [ ] **Step 1: 写并发预算与重复计费检查。** 使用真实 PostgreSQL；两个独立连接同时预留，账户只剩 100 单位。
+- [x] **Step 1: 写并发预算与重复计费检查。** 使用真实 PostgreSQL；两个独立连接同时预留，账户只剩 100 单位。
 
 ```python
 def test_same_usage_is_recorded_once(ledger_context):
@@ -41,8 +41,8 @@ def test_reservation_cannot_overdraw(ledger_context):
         reserve(ledger_context.session, ledger_context.owner, 'job-b', 80)
 ```
 
-- [ ] **Step 2: 红测。** `.venv/bin/python -m pytest tests/phase1/test_ledger.py -q`。
-- [ ] **Step 3: 实现事务与周期额度。** QuotaGrant 保存来源、到期和余额；Reservation 保存各 grant 分配；UsageEntry 对 operation_id唯一；UsageEntry包含reservation_operation_id关联父预留，模型/工具子动作从job父预留消耗，不重新预留整个预算。预留锁定可用 grant，优先最早到期，购买永久额度排后；结算只消耗实际用量并释放余量；退款追加反向记录。
+- [x] **Step 2: 红测。** `.venv/bin/python -m pytest tests/phase1/test_ledger.py -q`。
+- [x] **Step 3: 实现事务与周期额度。** QuotaGrant 保存来源、到期和余额；Reservation 保存各 grant 分配；UsageEntry 对 operation_id唯一；UsageEntry包含reservation_operation_id关联父预留，模型/工具子动作从job父预留消耗，不重新预留整个预算。预留锁定可用 grant，优先最早到期，购买永久额度排后；结算只消耗实际用量并释放余量；退款追加反向记录。
 
 ```python
 cost = (usage.units * price.numerator + price.denominator - 1) // price.denominator
@@ -56,7 +56,7 @@ if existing:
 Job 和 capability 调用都走本账本；错误或不确定上游用量记录待核对，不生成假的 0 费用。公开页和交付页显示可理解的剩余额度及用量项目。
 
 - [ ] **Step 4: 绿测。** 加入并发预留、过期额度、周期只发一次、缓存输入不重复计价、退款幂等、暂停保留检查点和停止后保留数据的检查。
-- [ ] **Step 5: 提交。** `feat: add quota reservations and idempotent usage ledger`。
+- [x] **Step 5: 提交。** `feat: add quota reservations and idempotent usage ledger`。
 
 ### Task 06-F2: 国内订单、支付宝和微信支付
 
@@ -198,4 +198,4 @@ README 更新 Python/Node、迁移、API/Worker/Web 三进程与 Expo 手机入�
 
 ## 实施进度（2026-11-10）
 
-06-F1账本基础已实现：有来源/到期的grants、整数版本价格、账户行锁、父Reservation/子Usage、结算释放、反向退款、周期grant唯一键、注册免费额度、quota政策/余额/用量/SKU/订阅读取。累计45项后端PG/协议测试通过；共享额度请求新增1项通过，Web6项通过。新增0003_billing延续唯一head；默认预算按可用额度约束，resume真实预留且核对累计hard cap。维护tick实际周期发放/运行采样在03-D7接入；生成/能力用量回调在02/04接入，托管停止/恢复实际验收在03完成。支付商户、真实费用与外部验收未执行，本记录不将整期或06所有任务标为完成。
+06-F1账本基础已实现：有来源/到期的grants、整数版本价格、账户行锁、父Reservation/子Usage、结算释放、反向退款、周期grant唯一键、注册免费额度、quota政策/余额/用量/SKU/订阅读取。12项账本/额度API的实际PostgreSQL检查通过，补充验证缓存输入、非缓存输入和输出从同一父预留结算且重放不重复扣费；phase1累计63项通过。新增0003_billing延续唯一head；默认预算按可用额度约束，resume真实预留且核对累计hard cap。维护tick实际周期发放/运行采样在03-D7接入；生成/能力用量回调在02/04接入，托管停止/恢复实际验收在03完成。支付商户、真实费用与外部验收未执行，本记录不将整期或06所有任务标为完成。
