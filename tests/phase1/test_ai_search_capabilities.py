@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 import httpx
@@ -244,6 +245,52 @@ async def test_search_provider_failures_are_bounded_upstream_errors(
     assert len(requests) == expected_calls
     with session_factory() as session:
         assert balance(session, capability_context.payer_id)["reserved_units"] == 0
+
+
+@pytest.mark.asyncio
+async def test_failed_search_operation_is_replayed_without_provider_retry(
+    monkeypatch, session_factory, capability_context
+):
+    requests = []
+
+    def respond(request):
+        requests.append(request)
+        return httpx.Response(402, json={"error": {"message": "provider quota"}})
+
+    module = configure_search(
+        monkeypatch, session_factory, httpx.MockTransport(respond)
+    )
+    for _ in range(2):
+        with pytest.raises(module.CapabilityUpstreamUnavailable):
+            await module.search(capability_context, "资料", "failed-replay")
+    assert len(requests) == 1
+    with pytest.raises(LedgerConflict):
+        await module.search(capability_context, "不同资料", "failed-replay")
+
+
+@pytest.mark.asyncio
+async def test_concurrent_search_operation_calls_provider_once(
+    monkeypatch, session_factory, capability_context
+):
+    requests = []
+
+    async def respond(request):
+        requests.append(request)
+        await asyncio.sleep(0.05)
+        return httpx.Response(
+            200,
+            json={"results": [], "usage": {"billable_requests": 1}},
+        )
+
+    module = configure_search(
+        monkeypatch, session_factory, httpx.MockTransport(respond)
+    )
+    results = await asyncio.gather(
+        module.search(capability_context, "资料", "concurrent-search"),
+        module.search(capability_context, "资料", "concurrent-search"),
+    )
+    assert results == [[], []]
+    assert len(requests) == 1
 
 
 @pytest.mark.asyncio

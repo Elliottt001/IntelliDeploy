@@ -11,7 +11,7 @@ from app.capabilities.search import (
     _fingerprint,
     _load_replay,
     _NO_REPLAY,
-    _release_reservation,
+    _operation_lock,
     _reservation_id,
     _reserve_operation,
     _result_id,
@@ -39,11 +39,21 @@ async def chat(
     model: str,
     operation_id: str,
 ) -> dict:
+    _validate_operation_id(operation_id)
+    async with _operation_lock(operation_id, _session_factory):
+        return await _chat(context, messages, model, operation_id)
+
+
+async def _chat(
+    context: CapabilityContext,
+    messages: list[dict],
+    model: str,
+    operation_id: str,
+) -> dict:
     if not isinstance(messages, list) or not messages:
         raise ValueError("messages must not be empty")
     if not isinstance(model, str) or not 1 <= len(model) <= 128:
         raise ValueError("model must contain 1..128 characters")
-    _validate_operation_id(operation_id)
     payload = {"messages": messages, "model": model}
     request_hash = _fingerprint("chat", context, payload)
     price_kinds = (
@@ -80,7 +90,15 @@ async def chat(
                 session_factory=_session_factory,
             )
         else:
-            _release_reservation(operation_id, _session_factory)
+            save_unknown_usage(
+                context,
+                operation_id,
+                "model.chat",
+                request_hash,
+                session_factory=_session_factory,
+                status="FAILED",
+                error_message=str(exc),
+            )
         raise CapabilityUpstreamUnavailable(str(exc)) from exc
 
     response = dict(turn.assistant_message)
