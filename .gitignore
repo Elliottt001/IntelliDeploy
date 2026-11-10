@@ -82,3 +82,5 @@ packages/api-client/dist/
 artifacts/
 web/test-results/
 web/playwright-report/
+frontend/test-results/
+frontend/playwright-report/

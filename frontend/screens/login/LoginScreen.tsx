@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { cssInterop } from 'nativewind';
 import { useEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type ReactNode } from 'react';
@@ -169,12 +169,14 @@ function MotionLayer(props: MotionLayerProps) {
 interface CheckboxProps {
   checked: boolean;
   onPress: () => void;
+  testID?: string;
 }
 
-function Checkbox({ checked, onPress }: CheckboxProps) {
+function Checkbox({ checked, onPress, testID }: CheckboxProps) {
   return (
     <TPressable
       accessibilityRole="checkbox"
+      testID={testID}
       accessibilityState={{ checked }}
       onPress={onPress}
       className={[
@@ -235,8 +237,8 @@ function showAlert(title: string, message: string, onConfirm?: () => void) {
 }
 
 function getLoginErrorMessage(error: unknown): string {
-  const maybeResponse = error as { response?: { data?: { detail?: string } } };
-  return maybeResponse.response?.data?.detail || '登录失败，请检查账号和密码';
+  const maybeResponse = error as { response?: { data?: { error?: { message?: string }; detail?: string } } };
+  return maybeResponse.response?.data?.error?.message || maybeResponse.response?.data?.detail || '登录失败，请检查账号和密码';
 }
 
 const DESIGN_WIDTH = 375;
@@ -244,6 +246,7 @@ const DESIGN_HEIGHT = 812;
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { next } = useLocalSearchParams<{ next?: string }>();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [account, setAccount] = useState('');
@@ -276,7 +279,7 @@ export default function LoginScreen() {
     try {
       const response = await authAPI.login(account.trim(), password);
       await authAPI.setToken(response.data.access_token);
-      showAlert('成功', '登录成功！', () => router.replace('/'));
+      router.replace((next && /^\/(?:chatbot|app-gallery|billing|app-detail\/[A-Za-z0-9_-]+)$/.test(next) ? next : '/') as Href);
     } catch (error: unknown) {
       showAlert('错误', getLoginErrorMessage(error));
     } finally {
@@ -382,6 +385,7 @@ export default function LoginScreen() {
           <MotionLayer className="absolute left-[47px] top-[356px] h-[112px] w-[280px]" delay={0.32} fromY={18}>
             <TView className="h-full w-full gap-[16px]">
               <TTextInput
+                testID="login-account"
                 value={account}
                 onChangeText={setAccount}
                 placeholder="用户名/电话号码/邮箱"
@@ -392,6 +396,7 @@ export default function LoginScreen() {
                 style={styles.inputText}
               />
               <TTextInput
+                testID="login-password"
                 value={password}
                 onChangeText={setPassword}
                 placeholder="密码"
@@ -411,7 +416,7 @@ export default function LoginScreen() {
           <MotionLayer className="absolute left-[48.5px] top-[489px] h-[15px] w-[278px]" delay={0.4} fromY={12}>
             <TView className="h-full w-full flex-row items-start justify-between">
               <TView className="h-[15px] flex-row items-center gap-[3px]">
-                <Checkbox checked={agreePrivacy} onPress={() => setAgreePrivacy((value) => !value)} />
+                <Checkbox testID="login-privacy" checked={agreePrivacy} onPress={() => setAgreePrivacy((value) => !value)} />
                 <TText className="text-[10px]" style={styles.alibabaRegular}>
                   <TText className="text-[#545454]">点击即表示同意</TText>
                   <TText className="text-[#94ACF6] underline">《隐私协议》</TText>
@@ -431,6 +436,7 @@ export default function LoginScreen() {
             <TPressable
               accessibilityRole="button"
               disabled={!canSubmit}
+              testID="login-submit"
               onPress={handleLogin}
               className={[
                 'relative h-[46px] w-[299px] items-center justify-center overflow-hidden rounded-full border-[0.5px] border-[#FDE0FF] active:scale-[0.98]',
@@ -489,7 +495,7 @@ export default function LoginScreen() {
               <TText className="text-[12px] text-[#B4B4B4]" style={styles.alibabaRegular}>
                 还没有账号？
               </TText>
-              <TPressable accessibilityRole="button" onPress={() => router.push('/register')}>
+              <TPressable accessibilityRole="button" onPress={() => router.push({ pathname: '/register', params: { next } })}>
                 <TText className="text-[12px] text-[#7C62FF]" style={styles.alibabaRegular}>
                   立即注册
                 </TText>

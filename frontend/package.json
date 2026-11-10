@@ -6,20 +6,26 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.6",
     "@expo/vector-icons": "^15.1.1",
+    "@intellideploy/api-client": "*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "autoprefixer": "^10.5.0",
     "axios": "^1.13.6",
     "expo": "~55.0.23",
     "expo-constants": "~55.0.9",
+    "expo-crypto": "~55.0.19",
     "expo-font": "~55.0.7",
     "expo-linear-gradient": "^55.0.13",
     "expo-linking": "~55.0.15",
     "expo-router": "~55.0.14",
+    "expo-secure-store": "~55.0.18",
     "expo-status-bar": "~55.0.6",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.14.0",
@@ -34,16 +40,17 @@
     "react-native-screens": "~4.23.0",
     "react-native-svg": "^15.15.5",
     "react-native-web": "^0.21.0",
-    "react-native-worklets": "0.8.3",
-    "@intellideploy/api-client": "*"
+    "react-native-worklets": "0.8.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/react": "~19.2.2",
     "babel-preset-expo": "^55.0.21",
     "prettier-plugin-tailwindcss": "^0.5.14",
     "react-native-svg-transformer": "^1.5.3",
     "tailwindcss": "^3.4.19",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "vitest": "^5.1.0"
   },
   "private": true
 }

@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { cssInterop } from 'nativewind';
 import { useEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type ReactNode } from 'react';
@@ -235,8 +235,8 @@ function showAlert(title: string, message: string, onConfirm?: () => void) {
 }
 
 function getRegisterErrorMessage(error: unknown): string {
-  const maybeResponse = error as { response?: { data?: { detail?: string } } };
-  return maybeResponse.response?.data?.detail || '注册失败，请稍后重试';
+  const maybeResponse = error as { response?: { data?: { error?: { message?: string }; detail?: string } } };
+  return maybeResponse.response?.data?.error?.message || maybeResponse.response?.data?.detail || '注册失败，请稍后重试';
 }
 
 const DESIGN_WIDTH = 375;
@@ -244,6 +244,7 @@ const DESIGN_HEIGHT = 812;
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { next } = useLocalSearchParams<{ next?: string }>();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('');
@@ -290,7 +291,7 @@ export default function RegisterScreen() {
       await authAPI.register(username.trim(), email.trim(), password);
       const loginResponse = await authAPI.login(username.trim(), password);
       await authAPI.setToken(loginResponse.data.access_token);
-      showAlert('成功', '注册成功！', () => router.replace('/'));
+      router.replace((next && /^\/(?:chatbot|app-gallery|billing|app-detail\/[A-Za-z0-9_-]+)$/.test(next) ? next : '/') as Href);
     } catch (error: unknown) {
       showAlert('错误', getRegisterErrorMessage(error));
     } finally {
@@ -518,7 +519,7 @@ export default function RegisterScreen() {
               <TText className="text-[12px] text-[#B4B4B4]" style={styles.alibabaRegular}>
                 已有账号？
               </TText>
-              <TPressable accessibilityRole="button" onPress={() => router.push('/login')}>
+              <TPressable accessibilityRole="button" onPress={() => router.push({ pathname: '/login', params: { next } })}>
                 <TText className="text-[12px] text-[#7C62FF]" style={styles.alibabaRegular}>
                   立即登录
                 </TText>

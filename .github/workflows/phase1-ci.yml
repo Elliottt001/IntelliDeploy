@@ -1,0 +1,44 @@
+name: Phase one foundation and client integration
+on:
+  pull_request:
+    paths: ['backend/**', 'frontend/**', 'web/**', 'packages/api-client/**', 'tests/phase1/**', 'infra/**', 'scripts/export_openapi.py', 'package*.json', '.github/workflows/phase1-ci.yml']
+  push:
+    paths: ['backend/**', 'frontend/**', 'web/**', 'packages/api-client/**', 'tests/phase1/**', 'infra/**', 'scripts/export_openapi.py', 'package*.json', '.github/workflows/phase1-ci.yml']
+permissions:
+  contents: read
+jobs:
+  basic-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.13'
+      - run: uv venv --python 3.13 .venv
+      - run: uv pip install --python .venv/bin/python -r backend/requirements.txt -r backend/requirements-dev.txt
+      - run: docker compose -p intellideploy-dev -f infra/compose.dev.yml up -d --wait postgres
+      - run: PYTHONPATH=backend .venv/bin/python -m alembic -c backend/alembic.ini upgrade head
+        env:
+          DATABASE_URL: postgresql+psycopg://intellideploy:dev-only@127.0.0.1:55432/intellideploy_test
+      - run: PYTHONPATH=backend .venv/bin/python -m pytest tests/phase1 -q
+      - run: npm ci
+      - run: npm run api:generate
+        env:
+          SECRET_KEY: ci-only-openapi-export-secret
+      - run: git diff --exit-code -- packages/api-client/openapi.json packages/api-client/src/generated.ts
+      - run: npm --workspace @intellideploy/api-client test
+      - run: npm --workspace frontend run typecheck
+      - run: npm --workspace frontend test
+      - run: npm --workspace frontend exec -- playwright install --with-deps chromium
+      - run: npm --workspace frontend run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase1-client-integration
+          path: frontend/test-results
+      - run: docker compose -p intellideploy-dev -f infra/compose.dev.yml down
+        if: always()

@@ -60,14 +60,11 @@ export default function RootLayout() {
     const isPublicRoute = PUBLIC_ROUTES.has(pathname);
 
     if (isPublicRoute) {
-      if (isAuthenticated) {
-        router.replace('/');
-      }
       return;
     }
 
     if (!isAuthenticated) {
-      router.replace('/login');
+      router.replace({ pathname: '/login', params: { next: pathname } });
     }
   }, [isAuthenticated, isCheckingAuth, pathname, router]);
 
@@ -119,6 +116,8 @@ export default function RootLayout() {
         <Stack.Screen name="register" options={{ title: '注册' }} />
         <Stack.Screen name="app-gallery" options={{ title: 'App Gallery' }} />
         <Stack.Screen name="chatbot" options={{ title: 'Mibo', headerShown: false }} />
+        <Stack.Screen name="app-detail/[id]" options={{ title: '应用与对话', headerShown: false }} />
+        <Stack.Screen name="billing" options={{ title: '额度与用量', headerShown: false }} />
       </Stack>
 
       {shouldShowAuthOverlay && (

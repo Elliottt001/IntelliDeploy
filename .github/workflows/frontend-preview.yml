@@ -46,6 +46,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check retained Expo client
+        run: |
+          npm --workspace @intellideploy/api-client run build
+          npm --workspace frontend run typecheck
+          npm --workspace frontend test
+          npm --workspace frontend exec -- expo export --platform all --output-dir .expo/phase1-export
+
       - name: Build web output
         run: |
           npm --workspace @intellideploy/api-client run build

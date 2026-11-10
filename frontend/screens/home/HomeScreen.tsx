@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Action } from '../../components/WorkspacePage';
 
 // Web landing page components
 import Navbar from '../../components/web/Navbar';
@@ -42,6 +43,7 @@ const navUserIcon =
   'https://www.figma.com/api/mcp/asset/2f36f385-98cf-41db-9a3a-bc7a7318e801';
 
 function WebHome() {
+  const router = useRouter();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [hasManualTheme, setHasManualTheme] = useState(false);
 
@@ -86,6 +88,11 @@ function WebHome() {
     >
       <View style={[webStyles.page, isDark && webStyles.pageDark]}>
         <Navbar theme={theme} onToggleTheme={handleToggleTheme} />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16 }}>
+          <Action label="新建应用" onPress={() => router.push('/chatbot')} />
+          <Action label="我的应用" onPress={() => router.push('/app-gallery')} />
+          <Action label="额度与用量" onPress={() => router.push('/billing')} />
+        </View>
         <HeroSection theme={theme} />
         <StatsSection theme={theme} />
 
@@ -342,7 +349,7 @@ function MobileHome() {
               <Text style={styles.mobileLogoSub}>Powered by Sealos | GitHub</Text>
             </View>
           </View>
-          <Pressable style={styles.mobileSettings}>
+          <Pressable style={styles.mobileSettings} onPress={() => router.push('/billing')}>
             <Text style={styles.mobileSettingsIcon}>⚙</Text>
           </Pressable>
         </Animated.View>
@@ -652,7 +659,7 @@ function MobileHome() {
             },
           ]}
         >
-          <Pressable style={styles.cardHitArea} onPress={() => toggleCard('profile')}>
+          <Pressable style={styles.cardHitArea} onPress={() => router.push('/billing')}>
           <View style={styles.cardArrowSmall}>
             <Text style={styles.cardArrowText}>{expandedCard === 'profile' ? '↓' : '→'}</Text>
           </View>
@@ -689,9 +696,9 @@ function MobileHome() {
           ]}
         >
           <NavItem icon={navHomeIcon} label="首页" active={activeTab === '首页'} onPress={setActiveTab} />
-          <NavItem icon={navAppsIcon} label="应用" active={activeTab === '应用'} onPress={setActiveTab} />
+          <NavItem icon={navAppsIcon} label="应用" active={activeTab === '应用'} onPress={() => router.push('/app-gallery')} />
           <NavItem icon={navSquareIcon} label="广场" active={activeTab === '广场'} onPress={setActiveTab} />
-          <NavItem icon={navUserIcon} label="我的" active={activeTab === '我的'} onPress={setActiveTab} />
+          <NavItem icon={navUserIcon} label="我的" active={activeTab === '我的'} onPress={() => router.push('/billing')} />
         </Animated.View>
         </View>
       </View>
