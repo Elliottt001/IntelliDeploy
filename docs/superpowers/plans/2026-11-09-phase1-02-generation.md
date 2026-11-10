@@ -339,3 +339,7 @@ def test_high_match_is_not_eligible_when_runtime_is_unsupported(compatibility_co
 #### 衔接类型的定义责任
 
 RequirementCoverageError、RequirementInvalid在agent/requirements.py定义为ValueError子类；compile_requirement的两轮纠正与validate_revision复核使用这两个错误。RepositoryIndex与IndexUpdateReport在agent/repository_index.py为Pydantic模型，items至少含repo_url/default_branch/commit/license/readme_hash/fetched_at/status/readme，IndexUpdateReport含updated/unchanged/failed/snapshot_version。SearchUnavailable在agent/retrieval.py定义，可重试且不会产空completed=True结果。plan_route作为choose_route的兼容封装消费同一个RetrievalResult，不绕过完整度/兼容评分。
+
+## 实施进度（2026-11-10）
+
+02-G1：直接AsyncOpenAI/DeepSeek客户端，保留reasoning_content/tool_call_id，解析实际输入/缓存/输出用量；429/408/5xx最多三次，401/402立即报供应商故障，断连结果未知不盲目重放。7项MockTransport协议检查通过；真实Key调用未执行。客户端不设置任务成功，真实调用记账由02-G4/03-D6统一接入。
