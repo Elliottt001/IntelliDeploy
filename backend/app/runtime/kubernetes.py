@@ -327,6 +327,7 @@ class KubernetesApiExecutor:
         self.dynamic = dynamic.DynamicClient(self.api_client)
         self.apps = client.AppsV1Api(self.api_client)
         self.core = client.CoreV1Api(self.api_client)
+        self.networking = client.NetworkingV1Api(self.api_client)
         self.api_exception = client.ApiException
 
     def _resource(self, value: dict):
@@ -422,6 +423,145 @@ class KubernetesApiExecutor:
         await self.apply(
             ingress, field_manager=field_manager, operation_id=operation_id
         )
+
+    async def scale_instance(self, namespace: str, instance_id: str, replicas: int):
+        deployments = await asyncio.to_thread(
+            self.apps.list_namespaced_deployment,
+            namespace,
+            label_selector=f"app.kubernetes.io/instance={instance_id}",
+        )
+        if not deployments.items:
+            raise KubernetesDeploymentFailed("instance deployments are missing")
+        for deployment in deployments.items:
+            await asyncio.to_thread(
+                self.apps.patch_namespaced_deployment_scale,
+                deployment.metadata.name,
+                namespace,
+                {"spec": {"replicas": replicas}},
+            )
+
+    async def observe_instance(self, namespace: str, instance_id: str):
+        try:
+            deployments = await asyncio.to_thread(
+                self.apps.list_namespaced_deployment,
+                namespace,
+                label_selector=f"app.kubernetes.io/instance={instance_id}",
+            )
+        except self.api_exception as exc:
+            if getattr(exc, "status", None) == 404:
+                return {"state": "DELETED", "compute_state": "STOPPED"}
+            raise
+        if not deployments.items:
+            return {"state": "DELETED", "compute_state": "STOPPED"}
+        desired = [deployment.spec.replicas or 0 for deployment in deployments.items]
+        available = [
+            deployment.status.available_replicas or 0
+            for deployment in deployments.items
+        ]
+        if not any(desired):
+            return {"state": "STOPPED", "compute_state": "STOPPED"}
+        if all(current >= wanted for current, wanted in zip(available, desired)):
+            return {"state": "RUNNING", "compute_state": "RUNNING"}
+        return {"state": "PENDING", "compute_state": "RUNNING"}
+
+    async def delete_instance(self, namespace: str, instance_id: str, delete_data: bool):
+        selector = f"app.kubernetes.io/instance={instance_id}"
+        deployments = await asyncio.to_thread(
+            self.apps.list_namespaced_deployment, namespace, label_selector=selector
+        )
+        services = await asyncio.to_thread(
+            self.core.list_namespaced_service, namespace, label_selector=selector
+        )
+        secrets = await asyncio.to_thread(self.core.list_namespaced_secret, namespace)
+        for item in deployments.items:
+            await asyncio.to_thread(
+                self.apps.delete_namespaced_deployment, item.metadata.name, namespace
+            )
+        for item in services.items:
+            await asyncio.to_thread(
+                self.core.delete_namespaced_service, item.metadata.name, namespace
+            )
+        for item in secrets.items:
+            if item.metadata.name.startswith(f"{instance_id}-"):
+                await asyncio.to_thread(
+                    self.core.delete_namespaced_secret, item.metadata.name, namespace
+                )
+        try:
+            await asyncio.to_thread(
+                self.networking.delete_namespaced_ingress, instance_id, namespace
+            )
+        except self.api_exception as exc:
+            if getattr(exc, "status", None) != 404:
+                raise
+        if delete_data:
+            claims = await asyncio.to_thread(
+                self.core.list_namespaced_persistent_volume_claim,
+                namespace,
+            )
+            for item in claims.items:
+                if item.metadata.name.startswith(f"{instance_id}-"):
+                    await asyncio.to_thread(
+                        self.core.delete_namespaced_persistent_volume_claim,
+                        item.metadata.name,
+                        namespace,
+                    )
+
+
+class KubernetesInstanceAdapter:
+    def __init__(self, *, target_provider=None, kubeconfig_resolver=None, kube_executor=None):
+        self.target_provider = target_provider or DatabaseTargetProvider()
+        self.kubeconfig_resolver = kubeconfig_resolver or EnvironmentKubeconfigResolver()
+        self.kube_executor = kube_executor
+
+    def _context(self, instance):
+        target = _target_dict(self.target_provider.get(instance.target_id))
+        if (
+            target.get("kind") not in {"KUBERNETES", "SEALOS"}
+            or not target.get("enabled")
+            or target.get("health") != "HEALTHY"
+        ):
+            raise KubernetesTargetUnavailable("Kubernetes target is unavailable")
+        namespace = (target.get("capacity") or {}).get("namespace")
+        if not isinstance(namespace, str) or not DNS_LABEL.fullmatch(namespace):
+            raise KubernetesTargetUnavailable("Kubernetes namespace is invalid")
+        executor = self.kube_executor
+        if executor is None:
+            secret_ref = target.get("secret_ref")
+            if not secret_ref:
+                raise KubernetesTargetUnavailable("Kubernetes kubeconfig reference is missing")
+            executor = KubernetesApiExecutor(self.kubeconfig_resolver.resolve(secret_ref))
+        return namespace, executor
+
+    async def start(self, instance):
+        namespace, executor = self._context(instance)
+        await executor.scale_instance(namespace, instance.id, 1)
+
+    async def stop(self, instance):
+        namespace, executor = self._context(instance)
+        await executor.scale_instance(namespace, instance.id, 0)
+
+    async def delete(self, instance, *, delete_data: bool):
+        namespace, executor = self._context(instance)
+        await executor.delete_instance(namespace, instance.id, delete_data)
+
+    async def observe(self, instance):
+        try:
+            namespace, executor = self._context(instance)
+            value = await executor.observe_instance(namespace, instance.id)
+        except Exception as exc:
+            return {
+                "state": "UNKNOWN",
+                "compute_state": "UNKNOWN",
+                "resource_spec": instance.resource_spec,
+                "storage_mb": (instance.resource_spec or {}).get("storage_mb", 0),
+                "evidence": f"Kubernetes observation failed: {type(exc).__name__}",
+            }
+        return {
+            **value,
+            "resource_spec": instance.resource_spec,
+            "storage_mb": (instance.resource_spec or {}).get("storage_mb", 0),
+            "evidence": "Kubernetes workload state observed",
+        }
 
 
 def _target_dict(value) -> dict:

@@ -96,6 +96,29 @@ class UnknownUsage(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
 
 
+class ResourceMeterWindow(Base):
+    __tablename__ = "resource_meter_windows"
+    __table_args__ = (
+        UniqueConstraint("instance_id", "window_start", "kind"),
+        CheckConstraint("window_end > window_start"),
+    )
+    id = Column(String, primary_key=True, default=new_id)
+    instance_id = Column(String, ForeignKey("instances.id"), nullable=False, index=True)
+    payer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    kind = Column(String, nullable=False, default="resource")
+    window_start = Column(DateTime(timezone=True), nullable=False)
+    window_end = Column(DateTime(timezone=True), nullable=False)
+    compute_state = Column(String, nullable=False)
+    compute_units = Column(BigInteger)
+    storage_units = Column(BigInteger)
+    price_version = Column(String, nullable=False)
+    status = Column(String, nullable=False)
+    evidence_ref = Column(String, nullable=False)
+    reservation_operation_id = Column(String)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
+
+
 class ProductSku(Base):
     __tablename__ = "product_skus"
     id = Column(String, primary_key=True)

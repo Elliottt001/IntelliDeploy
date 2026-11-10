@@ -112,8 +112,37 @@ else:
         run(["docker", "compose", "-p", project, "-f", str(compose_file), "down"], 120)
         reload_caddy()
         result = {"ok": True}
+    elif action == "start":
+        if not compose_file.is_file():
+            raise RuntimeError("release compose file is missing")
+        run(["docker", "compose", "-p", project, "-f", str(compose_file), "up", "-d"], 300)
+        result = {"ok": True}
+    elif action == "stop":
+        if compose_file.is_file():
+            run(["docker", "compose", "-p", project, "-f", str(compose_file), "stop"], 120)
+        result = {"ok": True}
+    elif action == "delete":
+        if compose_file.is_file():
+            command = ["docker", "compose", "-p", project, "-f", str(compose_file), "down"]
+            if payload.get("delete_data"):
+                command.append("-v")
+            run(command, 180)
+        stable_file.unlink(missing_ok=True)
+        candidate_file.unlink(missing_ok=True)
+        if current_link.exists() or current_link.is_symlink():
+            current_link.unlink()
+        reload_caddy()
+        result = {"ok": True}
+    elif action == "observe":
+        if not compose_file.is_file():
+            state = "DELETED" if not current_link.exists() else "STOPPED"
+        else:
+            running = run(["docker", "compose", "-p", project, "-f", str(compose_file),
+                           "ps", "--status", "running", "--services"], 60)
+            state = "RUNNING" if running.strip() else "STOPPED"
+        result = {"state": state, "compute_state": "RUNNING" if state == "RUNNING" else "STOPPED"}
     else:
-        raise RuntimeError("unsupported release action")
+        raise RuntimeError("unsupported runtime action")
 
 print(json.dumps(result))
 '''
@@ -189,6 +218,73 @@ class SubprocessSSHExecutor:
         if not lines:
             raise RuntimeError("remote executor returned no result")
         return json.loads(lines[-1])
+
+
+class LinuxInstanceAdapter:
+    def __init__(self, *, target_provider=None, secret_resolver=None, ssh_executor=None):
+        self.target_provider = target_provider or DatabaseTargetProvider()
+        self.secret_resolver = secret_resolver or EnvironmentSecretResolver()
+        self.ssh_executor = ssh_executor or SubprocessSSHExecutor()
+
+    def _context(self, instance):
+        target = _target_dict(self.target_provider.get(instance.target_id))
+        if (
+            target.get("kind") != "LINUX"
+            or not target.get("enabled")
+            or target.get("health") != "HEALTHY"
+        ):
+            raise TargetUnavailable("Linux target is unavailable")
+        capacity = target.get("capacity") or {}
+        for key in ("ssh_host", "ssh_user", "deployment_root"):
+            if not capacity.get(key):
+                raise TargetUnavailable(f"Linux target {key} is missing")
+        secret_ref = target.get("secret_ref")
+        if not secret_ref:
+            raise TargetUnavailable("Linux target SSH key reference is missing")
+        return target, self.secret_resolver.resolve(secret_ref)
+
+    async def _run(self, instance, action: str, **extra):
+        target, key_path = self._context(instance)
+        capacity = target["capacity"]
+        payload = {
+            "action": action,
+            "deployment_root": capacity["deployment_root"],
+            "instance_id": instance.id,
+            "version_id": instance.version_id,
+            "caddy_config_dir": capacity.get("caddy_config_dir", "/etc/caddy/conf.d"),
+            "caddy_main_config": capacity.get("caddy_main_config", "/etc/caddy/Caddyfile"),
+            **extra,
+        }
+        return await self.ssh_executor.run(
+            _ssh_argv(target, key_path), json.dumps(payload), 300
+        )
+
+    async def start(self, instance):
+        await self._run(instance, "start")
+
+    async def stop(self, instance):
+        await self._run(instance, "stop")
+
+    async def delete(self, instance, *, delete_data: bool):
+        await self._run(instance, "delete", delete_data=delete_data)
+
+    async def observe(self, instance):
+        try:
+            value = await self._run(instance, "observe")
+        except Exception as exc:
+            return {
+                "state": "UNKNOWN",
+                "compute_state": "UNKNOWN",
+                "resource_spec": instance.resource_spec,
+                "storage_mb": (instance.resource_spec or {}).get("storage_mb", 0),
+                "evidence": f"Linux observation failed: {type(exc).__name__}",
+            }
+        return {
+            **value,
+            "resource_spec": instance.resource_spec,
+            "storage_mb": (instance.resource_spec or {}).get("storage_mb", 0),
+            "evidence": "Linux Compose state observed",
+        }
 
 
 def _safe_identifier(value: str, kind: str) -> str:

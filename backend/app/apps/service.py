@@ -9,6 +9,7 @@ from app.apps.models import (
     AppVersion,
     Conversation,
     Instance,
+    InstanceOperation,
     Message,
     RequestRecord,
     RequirementRecord,
@@ -293,6 +294,12 @@ def app_detail(session, app):
         if app.active_version_id
         else None
     )
+    instance = session.scalar(
+        select(Instance)
+        .where(Instance.app_id == app.id)
+        .order_by(Instance.created_at.desc())
+        .limit(1)
+    )
     return AppDetail(
         **app_summary(session, app).model_dump(),
         requirement=Requirement.model_validate(req.requirement)
@@ -314,6 +321,26 @@ def app_detail(session, app):
         if version and version.delivery
         else None,
         candidate_version_id=app.candidate_version_id,
+        instance=(
+            {
+                "id": instance.id,
+                "status": {"DEPLOYING": "PENDING", "DELETING": "PENDING"}.get(
+                    instance.status, instance.status
+                ),
+                "desired_state": instance.desired_state,
+                "stop_reason": instance.stop_reason,
+                "url": instance.url,
+                "observed_at": instance.observed_at,
+                "active_operation_id": session.scalar(
+                    select(InstanceOperation.id).where(
+                        InstanceOperation.instance_id == instance.id,
+                        InstanceOperation.status.in_(("QUEUED", "RUNNING")),
+                    )
+                ),
+            }
+            if instance
+            else None
+        ),
     )
 
 

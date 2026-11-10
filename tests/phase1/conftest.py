@@ -41,9 +41,13 @@ def session_factory(pg_engine):
         connection.execute(text('TRUNCATE users, deployment_targets CASCADE'))
         if connection.execute(text("SELECT to_regclass('price_rules')")).scalar():
             connection.execute(text('TRUNCATE price_rules, product_skus CASCADE'))
+        if connection.execute(text("SELECT to_regclass('maintenance_leases')")).scalar():
+            connection.execute(text('TRUNCATE maintenance_leases'))
     yield sessionmaker(bind=pg_engine, expire_on_commit=False)
     with pg_engine.begin() as connection:
         connection.execute(text('TRUNCATE users, deployment_targets CASCADE'))
+        if connection.execute(text("SELECT to_regclass('maintenance_leases')")).scalar():
+            connection.execute(text('TRUNCATE maintenance_leases'))
 
 
 @pytest.fixture

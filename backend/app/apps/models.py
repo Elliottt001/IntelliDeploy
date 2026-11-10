@@ -79,10 +79,39 @@ class Instance(Base):
     version_id = Column(String, ForeignKey('app_versions.id'))
     target_id = Column(String, ForeignKey('deployment_targets.id'))
     status = Column(String, nullable=False, default='PENDING')
+    desired_state = Column(String, nullable=False, default='RUNNING')
+    stop_reason = Column(String)
+    observed_at = Column(DateTime(timezone=True))
+    resource_spec = Column(JSONB, nullable=False, default=dict)
+    price_version = Column(String, nullable=False, default='dev-v1')
+    state_version = Column(BigInteger, nullable=False, default=0)
     url = Column(Text)
     data_namespace = Column(String, unique=True)
     secret_ref = Column(String)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class InstanceOperation(Base):
+    __tablename__ = 'instance_operations'
+    __table_args__ = (
+        UniqueConstraint('owner_id', 'instance_id', 'kind', 'operation_id'),
+    )
+    id = Column(String, primary_key=True, default=new_id)
+    instance_id = Column(String, ForeignKey('instances.id'), nullable=False, index=True)
+    owner_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    kind = Column(String, nullable=False)
+    operation_id = Column(String, nullable=False)
+    payload_hash = Column(String, nullable=False)
+    delete_data = Column(Boolean, nullable=False, default=False)
+    status = Column(String, nullable=False, default='QUEUED')
+    error = Column(JSONB)
+    reservation_operation_id = Column(String)
+    effect_started_at = Column(DateTime(timezone=True))
+    lease_owner = Column(String)
+    lease_until = Column(DateTime(timezone=True))
+    lease_generation = Column(BigInteger, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
 
 class RequestRecord(Base):

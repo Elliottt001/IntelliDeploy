@@ -398,6 +398,11 @@ class InstanceOperationResponse(BaseModel):
     updated_at: datetime
 
 
+class DeleteInstanceRequest(BaseModel):
+    confirmation: str
+    delete_data: bool
+
+
 Requirement.model_rebuild()
 RequirementDraft.model_rebuild()
 

@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, String, Text
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 
 from app.database import Base
@@ -31,3 +31,18 @@ class ResourceRecord(Base):
     metadata_json = Column(JSONB, nullable=False, default=dict)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     last_seen_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class ResourceObservation(Base):
+    __tablename__ = 'resource_observations'
+    __table_args__ = (UniqueConstraint('instance_id', 'observed_at'),)
+    id = Column(String, primary_key=True, default=new_id)
+    instance_id = Column(String, ForeignKey('instances.id'), nullable=False, index=True)
+    target_id = Column(String, ForeignKey('deployment_targets.id'))
+    observed_at = Column(DateTime(timezone=True), nullable=False)
+    state = Column(String, nullable=False)
+    compute_state = Column(String, nullable=False)
+    resource_spec = Column(JSONB, nullable=False, default=dict)
+    storage_mb = Column(BigInteger, nullable=False, default=0)
+    evidence = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)

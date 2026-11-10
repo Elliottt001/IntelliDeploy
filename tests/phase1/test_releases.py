@@ -256,6 +256,10 @@ async def test_verified_release_switches_state_once_and_is_idempotent(
         assert instance.version_id == candidate.id
         assert instance.status == "RUNNING"
         assert instance.url == first.url
+        assert instance.desired_state == "RUNNING"
+        assert instance.resource_spec["services"][0]["memory_mb"] == 512
+        assert instance.resource_spec["storage_mb"] == 1024
+        assert instance.price_version == "dev-v1"
         assert job.status == "SUCCEEDED"
         assert job.result["version_id"] == candidate.id
         assert candidate.delivery["url"] == first.url
@@ -373,6 +377,7 @@ def test_stop_preserves_version_url_and_data(session_factory, release_context):
             target_actions=actions,
         )
         assert result.status == "STOPPED"
+        assert result.desired_state == "STOPPED"
     with session_factory() as session:
         instance = session.get(Instance, release_context["instance_id"])
         data = session.get(InstanceDataSpace, instance.id)
@@ -429,6 +434,7 @@ def test_delete_requires_owner_confirmation_and_is_idempotent(
         )
 
     assert first.status == second.status == "DELETED"
+    assert first.desired_state == second.desired_state == "DELETED"
     assert actions.deleted == [(release_context["instance_id"], False)]
     with session_factory() as session:
         instance = session.get(Instance, release_context["instance_id"])

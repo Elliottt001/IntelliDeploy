@@ -57,12 +57,16 @@ async def run_worker(process_job, stop=None, session_factory=SessionLocal):
 
 
 async def main():
+    from app.jobs.maintenance import run_maintenance_loop
     from app.jobs.pipeline import run_pipeline
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, stop.set)
-    await run_worker(run_pipeline, stop)
+    await asyncio.gather(
+        run_worker(run_pipeline, stop),
+        run_maintenance_loop(stop),
+    )
 
 
 if __name__ == '__main__':

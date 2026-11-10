@@ -266,7 +266,7 @@ RepairableCandidateError在jobs/pipeline.py定义并携带结构化失败report�
 
 **Interfaces:** request_instance_operation(session, instance_id, owner_id, kind, operation_id, delete_data=False) -> InstanceOperation；reconcile_instance(instance_id) -> InstanceSnapshot，async；collect_resource_window(instance_id, window_start, window_end) -> ResourceWindow，async；run_maintenance_once(now) -> None，async。公开GET /api/instances/{id}、POST /api/instances/{id}/start、/stop、DELETE /api/instances/{id}、GET /api/instance-operations/{operation_id}。InstanceOperation独立于生成Job，状态QUEUED/RUNNING/SUCCEEDED/FAILED；生成Job仍只有GENERATE/ADJUST/COPY，避免把管理操作结果伪装DeliveryResult。
 
-- [ ] **Step 1: 写恢复、并发与重复计量检查。** 真实PG记录instance、operation、资源采样；target_adapter可注入故障，真实恢复另在Linux和Sealos验证。
+- [x] **Step 1: 写恢复、并发与重复计量检查。** 真实PG记录instance、operation、资源采样；target_adapter可注入故障，真实恢复另在Linux和Sealos验证。
 
 ```python
 def test_start_is_idempotent_and_keeps_data(instance_context):
@@ -282,8 +282,8 @@ def test_same_resource_window_is_charged_once(meter_context):
     assert meter_context.runtime_entries() == 1
 ```
 
-- [ ] **Step 2: 红测。** pytest test_instance_operations.py/test_metering_reconcile.py；业务失败不以SSH/集群连接不可用替代。
-- [ ] **Step 3: 实现意图与观测分离。** Instance增加desired_state=RUNNING/STOPPED/DELETED、observed_state沿用PENDING/RUNNING/STOPPED/FAILED/DELETED、stop_reason=USER/QUOTA/ERROR|null、observed_at、resource_spec/price_version。status是公开observed_state；公网200并不自动改desired_state。操作以(user,instance,kind,Idempotency-Key)唯一；同键不同payload409。GET只读归属，操作请求202返回id/instance_id/kind/status，执行不在HTTP内阻塞。实例锁与生成/发布使用同一app互斥；正在修改/发布时管理请求409，用户可先取消该任务，取消完成后再操作。
+- [x] **Step 2: 红测。** pytest test_instance_operations.py/test_metering_reconcile.py；业务失败不以SSH/集群连接不可用替代。
+- [x] **Step 3: 实现意图与观测分离。** Instance增加desired_state=RUNNING/STOPPED/DELETED、observed_state沿用PENDING/RUNNING/STOPPED/FAILED/DELETED、stop_reason=USER/QUOTA/ERROR|null、observed_at、resource_spec/price_version。status是公开observed_state；公网200并不自动改desired_state。操作以(user,instance,kind,Idempotency-Key)唯一；同键不同payload409。GET只读归属，操作请求202返回id/instance_id/kind/status，执行不在HTTP内阻塞。实例锁与生成/发布使用同一app互斥；正在修改/发布时管理请求409，用户可先取消该任务，取消完成后再操作。
 
 start校验拥有者、已发布版本、未删除、额度与容量；重用固定镜像/卷/账号/URL，预留下一资源窗口，不重新生成源码。已经运行返回已完成幂等操作；首次未交付实例不能start。stop关闭Web/API等计算服务，独立数据库等计算服务也计入停止范围；持久文件/数据保留。delete确认DELETE和delete_data范围后撤入口/凭据/运行资源，保留数据时记录可保留数据资源，仍按明确存储价格计量，不创建新可运行入口；删除未确认404/409按交付协议。启动失败保存状态/原因/诊断，不能返回RUNNING；已删除不能恢复原实例，需创建新实例。
 
@@ -302,8 +302,8 @@ else:
 
 save_pending_window/reserve_next_window_or_stop/settle_observed_window在billing/metering.py定义；预留不足记录stop_reason=QUOTA并排入同一实例操作队列，不执行到余额为负。托管计算允许最多一个预先预留的分钟窗口，API/搜索并发也使用同一grant锁，不能各用同一余额。存储欠费只标待续费/限制新增写入，不自动删用户数据；已欠费时不新建计算窗口，存储不足时未预留的保留成本由平台承担并记录未收费成本，后续充值不追扣这段未预留费用；恢复后按新窗口规则计费，不产生负余额。后续长期数据处置留到独立服务规则。一期基本配额采集包含这些规则，不扩展主动运维服务。
 
-- [ ] **Step 4: 绿测和两类目标。** stop→start数据/URL不变、重复start/stop/delete、操作越权、发布与停止互斥、欠费停机保留数据、补额度用户start后恢复、停机不计计算但计存储、跨窗口价格、目标未知待核对、双Worker不重复计量、周期grant/索引任务断点恢复。服务器重启后观察状态与实际一致，不只检查ORM字段。
-- [ ] **Step 5: 提交。** `feat: reconcile instance lifecycle and resource billing`。
+- [x] **Step 4: 绿测和两类目标。** stop→start数据/URL不变、重复start/stop/delete、操作越权、发布与停止互斥、欠费停机保留数据、补额度用户start后恢复、停机不计计算但计存储、跨窗口价格、目标未知待核对、双Worker不重复计量、周期grant/索引任务断点恢复。服务器重启后观察状态与实际一致，不只检查ORM字段。
+- [x] **Step 5: 提交。** `feat: reconcile instance lifecycle and resource billing`。
 
 #### 既有适配的同步要求
 
@@ -328,3 +328,5 @@ ResourceWindow.compute_units为分配CPU/内存时长换算后的资源计费单
 03-D5：新增候选需求 revision、不可变源码、digest 固定清单、验证报告与 manifest hash 的发布绑定校验；迁移仅在数据副本试运行，失败保持旧版本、旧 URL 和数据，成功后单事务切换 App/Instance/Job。发布、停止和删除均具备幂等边界，删除要求所有者、精确确认字符串和明确数据选项，并撤销实例凭据；专项 10 项通过，完整 phase1 176 项通过、3 项跳过。未执行任何真实 Linux/Sealos 发布、停止或删除动作。
 
 03-D6：新增两轮核心检查计划编译门槛、候选 runner 隔离注册与受控服务重启、最多四次共享修复循环、需求 revision/attempt/manifest hash 证据绑定、不可变版本快照和 D5 单一发布入口。候选业务失败可携证据重试，目标凭据/平台故障不进入模型修复，取消在安全点落终态，失租 Worker 不得覆盖新 Worker；专项 11 项通过，完整 phase1 187 项通过、3 项跳过。真实 DeepSeek、专用候选 runner、registry 与远程目标均未配置，保持 NOT_RUN，不以连接失败代替业务验证。
+
+03-D7：新增实例 START/STOP/DELETE 意图队列、所有权与发布互斥、外部副作用标记和续租恢复；Linux/Kubernetes 生命周期仅经控制面适配器执行，Kubernetes 按实例标签缩放/观测全部服务，目标不可达采样为 UNKNOWN。UTC 分钟窗口按实例唯一，首次建窗固定价格版本，每个运行窗口结算后最多预留下一窗口；UNKNOWN 释放预留且不计假 0，计算额度不足排队停机并保留数据，未预留存储成本由平台承担且充值后不追扣。维护循环包含独立租约/心跳/失败断点、周期免费与套餐 grant，并为每日索引和 08-O2 清理提供同一可注入任务入口；D7 专项 26 项、完整 phase1 213 项通过，3 项真实环境检查跳过。未配置明确 dev/test/boe 目标，未执行真实 SSH/Kubernetes 操作；GitHub 日更和资源清理由 02-G7/08-O2 在具备受控依赖后接入，当前不自动发起远程调用或删除。

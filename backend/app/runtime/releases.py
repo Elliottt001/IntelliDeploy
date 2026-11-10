@@ -9,6 +9,7 @@ from sqlalchemy import select
 
 from app.apps.models import App, AppVersion, Instance, RequirementRecord
 from app.capabilities.models import InstanceCredential, InstanceDataSpace
+from app.config import settings
 from app.core.types import (
     AppManifest,
     DeliveryResult,
@@ -331,7 +332,28 @@ async def publish_candidate(
     app.candidate_version_id = None
     instance.version_id = candidate.id
     instance.status = "RUNNING"
+    instance.desired_state = "RUNNING"
+    instance.stop_reason = None
+    instance.observed_at = now
+    instance.state_version += 1
     instance.url = deployment.url
+    storage = {}
+    for service in manifest.services:
+        for name in service.volumes:
+            amount = service.storage_mb.get(name, 1024)
+            storage[name] = max(storage.get(name, 0), amount)
+    instance.resource_spec = {
+        "services": [
+            {
+                "name": service.name,
+                "memory_mb": service.memory_mb,
+                "cpu_millis": service.cpu_millis,
+            }
+            for service in manifest.services
+        ],
+        "storage_mb": sum(storage.values()),
+    }
+    instance.price_version = settings.PRICE_VERSION
     candidate.validation = deployment.report.model_dump(mode="json")
     candidate.delivery = public_delivery.model_dump(mode="json")
     job.status = "SUCCEEDED"
@@ -378,6 +400,10 @@ def stop_instance(
         raise RuntimeError("target stop adapter is not configured")
     target_actions.stop(instance)
     instance.status = "STOPPED"
+    instance.desired_state = "STOPPED"
+    instance.stop_reason = "USER"
+    instance.observed_at = datetime.now(timezone.utc)
+    instance.state_version += 1
     session.commit()
     return instance
 
@@ -407,6 +433,9 @@ def delete_instance(
         data.destroyed_at = datetime.now(timezone.utc)
         instance.data_namespace = None
     instance.status = "DELETED"
+    instance.desired_state = "DELETED"
+    instance.observed_at = datetime.now(timezone.utc)
+    instance.state_version += 1
     instance.url = None
     instance.secret_ref = None
     session.commit()

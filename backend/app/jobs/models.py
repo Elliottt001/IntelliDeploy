@@ -55,3 +55,14 @@ class ToolCallRecord(Base):
     result = Column(JSONB)
     usage = Column(JSONB)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class MaintenanceLease(Base):
+    __tablename__ = 'maintenance_leases'
+    name = Column(String, primary_key=True)
+    owner = Column(String)
+    lease_until = Column(DateTime(timezone=True))
+    generation = Column(BigInteger, nullable=False, default=0)
+    last_success = Column(DateTime(timezone=True))
+    retry_after = Column(DateTime(timezone=True))
+    error = Column(JSONB)
