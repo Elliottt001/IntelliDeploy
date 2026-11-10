@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     GITHUB_TOKEN: str = ""
     GITHUB_SEARCH_TOKENS: str = ""
     GITHUB_SEARCH_TIMEOUT_SECONDS: float = 10.0
+    REPOSITORY_INDEX_PATH: str = str(Path(__file__).resolve().parents[2] / "artifacts/repository-index/current.json")
 
     # 降级生成服务地址（"inprocess" 走进程内直调，避免依赖独立 HTTP 服务）
     FALLBACK_SERVICE_URL: str = "inprocess"

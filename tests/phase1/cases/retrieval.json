@@ -1,0 +1,12 @@
+[
+  {
+    "id": "notes-existing",
+    "prompt": "可以保存和搜索笔记的Web应用",
+    "known_repositories": ["https://github.com/usememos/memos"]
+  },
+  {
+    "id": "forms-existing",
+    "prompt": "可自托管的表单收集Web应用",
+    "known_repositories": ["https://github.com/heyform/heyform"]
+  }
+]

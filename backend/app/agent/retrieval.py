@@ -33,11 +33,17 @@ def requirement_queries(requirement: Requirement) -> list[str]:
     return list(dict.fromkeys([original, f"{chinese} web app", f"{english} open source"]))
 
 
-async def retrieve_sources(requirement: Requirement, github_client=None) -> RetrievalResult:
+async def retrieve_sources(requirement: Requirement, github_client=None, repository_index=None) -> RetrievalResult:
     client = github_client or GitHubRepositorySearchClient()
     queries = requirement_queries(requirement)
     errors: list[str] = []
     found: dict[str, RepositoryCandidate] = {}
+    for item in getattr(repository_index, "items", []):
+        try:
+            cached = RepositoryCandidate.model_validate(item)
+            found[cached.repo_key] = cached
+        except Exception:
+            continue
     for query in queries:
         try:
             rows = await client.search_repositories(query, per_page=20)
