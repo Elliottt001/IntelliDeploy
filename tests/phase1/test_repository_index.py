@@ -8,8 +8,9 @@ from app.agent_core.brains.context_rag_agent import RepositoryCandidate
 
 
 class Client:
-    def __init__(self, fail=False, commit="a" * 40): self.fail, self.commit = fail, commit
+    def __init__(self, fail=False, commit="a" * 40, interrupt=False): self.fail, self.commit, self.interrupt = fail, commit, interrupt
     async def enrich_repository(self, candidate):
+        if self.interrupt: raise KeyboardInterrupt()
         if self.fail: raise RuntimeError("429")
         candidate.commit = self.commit
         candidate.default_branch = "main"
@@ -33,9 +34,17 @@ async def test_interrupted_update_keeps_last_good_snapshot(tmp_path):
     destination = tmp_path / "current.json"
     destination.write_text(RepositoryIndex(generated_at=datetime.now(timezone.utc), items=[{"repo_url": "https://github.com/old/repo", "status": "READY"}]).model_dump_json())
     before = destination.read_bytes()
-    report = await update_index(["https://github.com/example/notes"], destination, Client(fail=True))
+    with pytest.raises(KeyboardInterrupt):
+        await update_index(["https://github.com/example/notes"], destination, Client(interrupt=True))
     assert destination.read_bytes() == before
-    assert report.failed and load_index(destination).items[0]["repo_url"].endswith("old/repo")
+
+
+@pytest.mark.asyncio
+async def test_failed_refresh_marks_previous_evidence_stale(tmp_path):
+    destination = tmp_path / "current.json"
+    destination.write_text(RepositoryIndex(generated_at=datetime.now(timezone.utc), items=[{"repo_url": "https://github.com/example/notes", "status": "READY"}]).model_dump_json())
+    report = await update_index(["https://github.com/example/notes"], destination, Client(fail=True))
+    assert report.failed and load_index(destination).items[0]["status"] == "STALE"
 
 
 def test_invalid_or_partial_snapshot_is_rejected(tmp_path):

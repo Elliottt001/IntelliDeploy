@@ -16,6 +16,14 @@ class FakeExecutor:
         return True, ("x" * 70000) if argv == ["large"] else "42\n"
 
 
+class FakeRepositories:
+    def search(self, query, limit): return [{"repo_url": "https://github.com/example/notes", "commit": "a" * 40}]
+    def fetch(self, url, commit, destination):
+        Path(destination).mkdir(parents=True, exist_ok=True)
+        (Path(destination) / "README.md").write_text("fixture")
+        return {"repo_url": url, "commit": commit, "path": destination}
+
+
 def test_paths_and_symlinks_cannot_escape_workspace(tmp_path):
     root = tmp_path / "workspace"
     root.mkdir()
@@ -60,3 +68,16 @@ def test_illegal_tool_timeout_and_platform_secrets_are_rejected(tmp_path):
         with pytest.raises(ValueError):
             execute_tool(workspace, ToolCall(id="x", name="run_command", arguments={"argv": ["true"], "timeout": timeout}), executor=FakeExecutor())
     assert not any(name in {"DEEPSEEK_API_KEY", "GITHUB_TOKEN", "SEALOS_API_TOKEN"} for name in FakeExecutor().__dict__)
+
+
+def test_repository_tools_require_controlled_proxy_and_lock_commits(tmp_path):
+    workspace = WorkspaceManager(tmp_path / "jobs").create_workspace("job-4")
+    missing = execute_tool(workspace, ToolCall(id="s0", name="search_repositories", arguments={"query": "notes"}))
+    assert not missing.ok and "仓库代理" in missing.content
+    repositories = FakeRepositories()
+    found = execute_tool(workspace, ToolCall(id="s", name="search_repositories", arguments={"query": "notes", "limit": 3}), repository_executor=repositories)
+    assert found.ok and "github.com/example/notes" in found.content
+    fetched = execute_tool(workspace, ToolCall(id="f", name="fetch_repository", arguments={"url": "https://github.com/example/notes", "commit": "a" * 40, "destination": "source"}), repository_executor=repositories)
+    assert fetched.ok and (Path(workspace) / "source/README.md").read_text() == "fixture"
+    with pytest.raises(ValueError):
+        execute_tool(workspace, ToolCall(id="bad", name="fetch_repository", arguments={"url": "https://evil.test/repo", "commit": "main", "destination": "source"}), repository_executor=repositories)

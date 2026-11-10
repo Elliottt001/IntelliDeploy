@@ -77,7 +77,7 @@ async def update_index(seeds: list[str], destination: Path, github_client) -> In
                 report.failed.append({"repo_url": url, "error": f"{type(exc).__name__}: {exc}"})
                 if url in merged:
                     merged[url] = {**merged[url], "status": "STALE"}
-        if report.failed and not report.updated and not report.unchanged:
+        if report.failed and not report.updated and not report.unchanged and not old:
             return report
         snapshot = RepositoryIndex(generated_at=datetime.now(timezone.utc), items=list(merged.values()))
         payload = snapshot.model_dump_json(indent=2)

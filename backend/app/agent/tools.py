@@ -1,3 +1,5 @@
+import json
+import re
 import subprocess
 from pathlib import Path
 from typing import Protocol
@@ -12,6 +14,11 @@ MAX_PUBLIC_BYTES = 64 * 1024
 
 class CommandExecutor(Protocol):
     def run(self, workspace: str, argv: list[str], timeout: int) -> tuple[bool, str]: ...
+
+
+class RepositoryExecutor(Protocol):
+    def search(self, query: str, limit: int) -> list[dict]: ...
+    def fetch(self, url: str, commit: str, destination: str) -> dict: ...
 
 
 class PathArgs(BaseModel):
@@ -34,12 +41,25 @@ class CommandArgs(BaseModel):
     timeout: int = Field(default=60, ge=1, le=600)
 
 
+class SearchArgs(BaseModel):
+    query: str = Field(min_length=1, max_length=500)
+    limit: int = Field(default=10, ge=1, le=20)
+
+
+class FetchArgs(BaseModel):
+    url: str
+    commit: str
+    destination: str
+
+
 ARGUMENTS = {
     "list_files": PathArgs,
     "read_file": PathArgs,
     "write_file": WriteArgs,
     "apply_patch": PatchArgs,
     "run_command": CommandArgs,
+    "search_repositories": SearchArgs,
+    "fetch_repository": FetchArgs,
 }
 
 
@@ -75,7 +95,8 @@ def _public_output(content: str) -> str:
     return (raw[: MAX_PUBLIC_BYTES - len(suffix)] + suffix).decode("utf-8", errors="ignore")
 
 
-def execute_tool(workspace_id: str, call: ToolCall, executor: CommandExecutor | None = None) -> ToolResult:
+def execute_tool(workspace_id: str, call: ToolCall, executor: CommandExecutor | None = None,
+                 repository_executor: RepositoryExecutor | None = None) -> ToolResult:
     model = ARGUMENTS.get(call.name)
     if model is None:
         raise ValueError("unknown tool")
@@ -102,6 +123,18 @@ def execute_tool(workspace_id: str, call: ToolCall, executor: CommandExecutor | 
             return ToolResult(call_id=call.id, ok=False, content="patch context must match exactly once")
         path.write_text(original.replace(args.old_text, args.new_text, 1))
         return ToolResult(call_id=call.id, ok=True, content="patched")
+    if call.name == "search_repositories":
+        if repository_executor is None:
+            return ToolResult(call_id=call.id, ok=False, content="受控仓库代理尚未配置")
+        return ToolResult(call_id=call.id, ok=True, content=_public_output(json.dumps(repository_executor.search(args.query, args.limit), ensure_ascii=False)))
+    if call.name == "fetch_repository":
+        if (not re.fullmatch(r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?", args.url)
+                or not re.fullmatch(r"[0-9a-f]{40}", args.commit)):
+            raise ValueError("repository URL or commit is not allowed")
+        destination = safe_path(root, args.destination)
+        if repository_executor is None:
+            return ToolResult(call_id=call.id, ok=False, content="受控仓库代理尚未配置")
+        return ToolResult(call_id=call.id, ok=True, content=_public_output(json.dumps(repository_executor.fetch(args.url, args.commit, str(destination)), ensure_ascii=False)))
     if executor is None:
         return ToolResult(call_id=call.id, ok=False, content="隔离执行器尚未配置")
     ok, content = executor.run(str(root), args.argv, args.timeout)
