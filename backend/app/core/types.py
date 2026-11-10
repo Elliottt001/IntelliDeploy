@@ -93,6 +93,7 @@ class Checkpoint(BaseModel):
     workspace: str | None = None
     pending_calls: list[ToolCall] = Field(default_factory=list)
     completed_calls: dict[str, ToolResult] = Field(default_factory=dict)
+    call_arguments: dict[str, dict] = Field(default_factory=dict)
     route_switches: int = 0
     stalled_rounds: int = 0
     requirement_revision: int | None = None
