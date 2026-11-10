@@ -163,7 +163,7 @@ apply_resource、wait_rollout 在该文件定义；同步 K8s 客户端用 async
 
 **Interfaces:** publish_candidate(session, job_id, candidate_version_id) -> DeploymentResult，async；stop_instance(session, instance_id, owner_id)；delete_instance(session, instance_id, owner_id, confirmation, delete_data: bool)。删除必须明确 confirmation='DELETE' 和 data 范围。
 
-- [ ] **Step 1: 写自愈状态不反转和迁移保护检查。** fixture 发布器先返回失败证据，再返回通过的 DeploymentResult；当前 active_version 保持到所有检查通过。
+- [x] **Step 1: 写自愈状态不反转和迁移保护检查。** fixture 发布器先返回失败证据，再返回通过的 DeploymentResult；当前 active_version 保持到所有检查通过。
 
 ```python
 @pytest.mark.asyncio
@@ -176,8 +176,8 @@ async def test_failed_candidate_keeps_live_version(release_context):
     assert release_context.job.status == 'FAILED'
 ```
 
-- [ ] **Step 2: 红测。** test_releases.py。
-- [ ] **Step 3: 统一状态转换。** 获取应用锁；验证03-D6候选报告与固定digest/需求revision一致（不重建未测试镜像），在数据副本试运行迁移、保存发布相关恢复材料，再执行指定部署器。验证实际访问后在单个事务切换 version、instance 和 Job 终态。修复流程返回新候选后从同一门槛重试，原异常只保留为事件。
+- [x] **Step 2: 红测。** test_releases.py。
+- [x] **Step 3: 统一状态转换。** 获取应用锁；验证03-D6候选报告与固定digest/需求revision一致（不重建未测试镜像），在数据副本试运行迁移、保存发布相关恢复材料，再执行指定部署器。验证实际访问后在单个事务切换 version、instance 和 Job 终态。修复流程返回新候选后从同一门槛重试，原异常只保留为事件。
 
 ```python
 if not deployment_result.report.passed:
@@ -191,8 +191,8 @@ job.status = 'SUCCEEDED'
 
 迁移失败阻止发布；有数据时不可用“重建空数据库”恢复。停止保留卷和数据库；删除校验拥有者、确认字符串和数据选项后按资源记录操作，重复请求返回已删除状态。版本失败不会撤掉已有可用实例。
 
-- [ ] **Step 4: 绿测。** 自愈成功最终状态成功、两次发布动作幂等、迁移后原记录仍在、停止后数据仍在、未确认删除拒绝、其他用户删除拒绝。
-- [ ] **Step 5: 提交。** `feat: publish verified versions and preserve instance data`。
+- [x] **Step 4: 绿测。** 自愈成功最终状态成功、两次发布动作幂等、迁移后原记录仍在、停止后数据仍在、未确认删除拒绝、其他用户删除拒绝。
+- [x] **Step 5: 提交。** `feat: publish verified versions and preserve instance data`。
 
 ### Task 03-D6: 隔离候选运行、自动验证修复与原子发布（P2）
 
@@ -324,3 +324,5 @@ ResourceWindow.compute_units为分配CPU/内存时长换算后的资源计费单
 03-D3：新增 digest-only Compose 渲染、实例固定卷、数据库非公网暴露、受控 secret file、Linux 目标容量/健康/镜像拉取预检，以及 prepare/validate/activate/rollback 发布适配。SSH 仅使用 argv 与 JSON stdin，固定远程脚本不插入用户值；专项 7 项、完整 phase1 155 项通过。未提供明确 dev/test/boe Linux 目标，真实写入/重启/读取保持 NOT_RUN，未发起远程 SSH。
 
 03-D4：新增多服务 Deployment/ClusterIP Service、实例固定 PVC、版本候选资源、受限容器安全上下文、实例范围 Secret 与唯一 Web Ingress；使用官方 Kubernetes dynamic client 做 dry-run 预检和 server-side apply。候选 rollout/事件诊断、双阶段 URL 验证、稳定 Ingress 原子切换及无旧入口/有旧入口回滚均有覆盖；专项 11 项通过、1 项真实集群检查跳过，完整 phase1 166 项通过、3 项跳过。未提供明确 dev/test/boe namespace，未调用 Sealos/Kubernetes API。
+
+03-D5：新增候选需求 revision、不可变源码、digest 固定清单、验证报告与 manifest hash 的发布绑定校验；迁移仅在数据副本试运行，失败保持旧版本、旧 URL 和数据，成功后单事务切换 App/Instance/Job。发布、停止和删除均具备幂等边界，删除要求所有者、精确确认字符串和明确数据选项，并撤销实例凭据；专项 10 项通过，完整 phase1 176 项通过、3 项跳过。未执行任何真实 Linux/Sealos 发布、停止或删除动作。

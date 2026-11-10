@@ -18,6 +18,7 @@ from app.apps.router import router as apps_router
 from app.jobs.router import router as jobs_router
 from app.billing.router import router as billing_router
 from app.capabilities.router import router as capabilities_router
+from app.runtime.router import router as runtime_router
 
 
 def check_schema():
@@ -44,6 +45,7 @@ app.include_router(apps_router)
 app.include_router(jobs_router)
 app.include_router(billing_router)
 app.include_router(capabilities_router)
+app.include_router(runtime_router)
 
 
 @app.middleware('http')
