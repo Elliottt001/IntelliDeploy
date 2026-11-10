@@ -84,3 +84,7 @@ web/test-results/
 web/playwright-report/
 frontend/test-results/
 frontend/playwright-report/
+# Added by CJADK
+.cjadk/
+# Added by CJADK
+log/app.log
