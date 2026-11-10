@@ -25,3 +25,10 @@ test('download sends authentication without putting the token in the URL',async 
   expect(await (await api.downloadArtifact('a','v')).text()).toBe('archive');
   expect(fetchImpl.mock.calls[0][0]).toBe('https://api.test/api/apps/a/versions/v/artifact');
 });
+
+test('quota methods read the shared account endpoints',async () => {
+  const fetchImpl=vi.fn<typeof fetch>(async () => new Response(JSON.stringify({available_units:70,reserved_units:30})));
+  const api=createApiClient({baseUrl:'',fetchImpl});
+  expect(await api.getBalance()).toEqual({available_units:70,reserved_units:30});
+  expect(fetchImpl.mock.calls[0][0]).toBe('/api/quota/balance');
+});

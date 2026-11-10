@@ -119,12 +119,17 @@ def test_artifact_download_is_scoped_and_cannot_read_host_files(api_client,owner
     assert download.content==b'zip-bytes' and 'attachment' in download.headers['content-disposition']
 
 
-def test_missing_billing_cannot_resume_paused_task(api_client,owner_headers,session_factory):
+def test_insufficient_balance_cannot_resume_paused_task(api_client,owner_headers,session_factory):
+    from app.billing.ledger import reserve, balance
+    from app.models.user import User
     one=create(api_client,owner_headers).json()
     with session_factory() as session:
-        session.get(Job,one['job_id']).status='PAUSED_QUOTA';session.commit()
+        session.get(Job,one['job_id']).status='PAUSED_QUOTA'
+        user=session.scalar(select(User).where(User.username=='owner'))
+        reserve(session,user.id,'other-reservation',balance(session,user.id)['available_units'])
+        session.commit()
     response=api_client.post('/api/jobs/'+one['job_id']+'/resume',headers={**owner_headers,'Idempotency-Key':'resume'})
-    assert response.status_code==503
+    assert response.status_code==402
     assert api_client.get('/api/jobs/'+one['job_id'],headers=owner_headers).json()['status']=='PAUSED_QUOTA'
 
 

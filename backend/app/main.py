@@ -16,6 +16,7 @@ from app.database import engine
 from app.routers.auth import router as auth_router
 from app.apps.router import router as apps_router
 from app.jobs.router import router as jobs_router
+from app.billing.router import router as billing_router
 
 
 def check_schema():
@@ -40,6 +41,7 @@ app.add_middleware(CORSMiddleware,allow_origins=settings.CORS_ORIGINS,
 app.include_router(auth_router)
 app.include_router(apps_router)
 app.include_router(jobs_router)
+app.include_router(billing_router)
 
 
 @app.middleware('http')

@@ -426,3 +426,48 @@ class MessageRequest(BaseModel):
 
 class ResumeRequest(BaseModel):
     budget_units: int | None = Field(default=None, gt=0)
+
+
+class QuotaBalance(BaseModel):
+    available_units: int
+    reserved_units: int
+
+
+class QuotaPolicy(BaseModel):
+    default_budget_units: int
+    hard_cap_units: int
+    price_version: str
+    failed_usage_rule: str
+
+
+class QuotaUsage(BaseModel):
+    id: str
+    kind: str
+    units: int
+    cost_units: int
+    price_version: str
+    created_at: datetime
+
+
+class QuotaUsagePage(BaseModel):
+    items: list[QuotaUsage]
+    next_cursor: str | None = None
+
+
+class QuotaSku(BaseModel):
+    id: str
+    name: str
+    provider: Literal['alipay','wechat','stripe']
+    currency: Literal['CNY','USD']
+    amount_minor: int
+    units: int
+    period: str | None = None
+
+
+class SubscriptionInfo(BaseModel):
+    id: str
+    sku_id: str
+    provider: str
+    status: str
+    period_end: datetime
+    cancelled: bool

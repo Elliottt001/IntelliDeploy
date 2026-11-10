@@ -46,6 +46,11 @@ export function createApiClient(options: ClientOptions) {
     cancelJob: (jobId: string, operationId: string) => request<Schema['JobRef']>(`/api/jobs/${id(jobId)}/cancel`, 'POST', undefined, operationId),
     getArtifactUrl: (appId: string, versionId: string) => base + artifact(appId, versionId),
     downloadArtifact: async (appId: string, versionId: string) => (await response(artifact(appId, versionId))).blob(),
+    getPolicy: () => request<Schema['QuotaPolicy']>('/api/quota/policy'),
+    getBalance: () => request<Schema['QuotaBalance']>('/api/quota/balance'),
+    listUsage: (cursor?: string) => request<Schema['QuotaUsagePage']>('/api/quota/usage' + (cursor ? `?cursor=${id(cursor)}` : '')),
+    listSkus: () => request<Schema['QuotaSku'][]>('/api/quota/skus'),
+    getSubscription: () => request<Schema['SubscriptionInfo'] | null>('/api/quota/subscription'),
     request,
   };
 }

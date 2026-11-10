@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -40,6 +41,11 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         hashed_password=hashed_password,
     )
     db.add(db_user)
+    db.flush()
+    from app.billing.ledger import grant
+    from app.config import settings
+    if settings.FREE_GRANT_UNITS:
+        grant(db,db_user.id,f'register:{settings.FREE_GRANT_POLICY_VERSION}',settings.FREE_GRANT_UNITS,'FREE',datetime.now(timezone.utc)+timedelta(days=settings.FREE_GRANT_DAYS))
     db.commit()
     db.refresh(db_user)
     return db_user

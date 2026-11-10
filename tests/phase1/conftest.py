@@ -39,6 +39,8 @@ def session_factory(pg_engine):
     from sqlalchemy import text
     with pg_engine.begin() as connection:
         connection.execute(text('TRUNCATE users, deployment_targets CASCADE'))
+        if connection.execute(text("SELECT to_regclass('price_rules')")).scalar():
+            connection.execute(text('TRUNCATE price_rules, product_skus CASCADE'))
     yield sessionmaker(bind=pg_engine, expire_on_commit=False)
     with pg_engine.begin() as connection:
         connection.execute(text('TRUNCATE users, deployment_targets CASCADE'))

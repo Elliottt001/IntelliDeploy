@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     DEEPSEEK_MODEL: str = "deepseek-flash"
     ARTIFACTS_ROOT: str = str(Path(__file__).resolve().parents[2] / "artifacts")
     ENABLE_EVALUATION_UI: bool = False
+    PRICE_VERSION: str = 'dev-v1'
+    FREE_GRANT_UNITS: int = Field(default=1000, ge=0)
+    FREE_GRANT_POLICY_VERSION: str = 'initial-v1'
+    FREE_GRANT_DAYS: int = Field(default=30, gt=0)
+    FAILED_USAGE_RULE: str = '已发生且有证据的模型及执行用量计费，未用预留释放；平台故障按账本返还。'
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ALGORITHM: str = "HS256"
     MODEL_API: str = ""

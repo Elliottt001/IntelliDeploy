@@ -195,3 +195,7 @@ README 更新 Python/Node、迁移、API/Worker/Web 三进程与 Expo 手机入�
 06-F1定义BudgetPolicy与周期grant政策，03-D7维护循环执行发放与真实计量，08-O1管理价格。注册事务按(user_id,free-policy-version)唯一授免费额度，重复登录不重复领；注册请求不允许自选额度。周期免费/套餐grant按周期唯一，用户取消后到期不再发新周期，已付额度保留。支付宝/微信套餐用户新订单续费，Stripe按真实invoice周期；界面标明手动续费与自动订阅。UsageEntry带reservation_operation_id并从父预留扣费；子operation_id仍唯一。上游模型402是供应商故障，不提示用户给平台充值。
 
 06-F4最后整合07-E4的12例quality/flow/faults及08平台生产、两原生、两云、三支付证据。test mode只说明渠道集成验证，商业上线还须生产商户、实际价格与回调域名；未就绪为NOT_RUN。最终release_ready计算必须包括这些必需检查，不能只查四个生成例子。
+
+## 实施进度（2026-11-10）
+
+06-F1账本基础已实现：有来源/到期的grants、整数版本价格、账户行锁、父Reservation/子Usage、结算释放、反向退款、周期grant唯一键、注册免费额度、quota政策/余额/用量/SKU/订阅读取。累计45项后端PG/协议测试通过；共享额度请求新增1项通过，Web6项通过。新增0003_billing延续唯一head；默认预算按可用额度约束，resume真实预留且核对累计hard cap。维护tick实际周期发放/运行采样在03-D7接入；生成/能力用量回调在02/04接入，托管停止/恢复实际验收在03完成。支付商户、真实费用与外部验收未执行，本记录不将整期或06所有任务标为完成。

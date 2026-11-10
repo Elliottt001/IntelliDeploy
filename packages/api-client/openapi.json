@@ -758,6 +758,188 @@
         }
       }
     },
+    "/api/quota/policy": {
+      "get": {
+        "tags": [
+          "quota"
+        ],
+        "summary": "Policy",
+        "operationId": "policy_api_quota_policy_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotaPolicy"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/quota/balance": {
+      "get": {
+        "tags": [
+          "quota"
+        ],
+        "summary": "Get Balance",
+        "operationId": "get_balance_api_quota_balance_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotaBalance"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/quota/usage": {
+      "get": {
+        "tags": [
+          "quota"
+        ],
+        "summary": "Usage",
+        "operationId": "usage_api_quota_usage_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotaUsagePage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quota/skus": {
+      "get": {
+        "tags": [
+          "quota"
+        ],
+        "summary": "Skus",
+        "operationId": "skus_api_quota_skus_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/QuotaSku"
+                  },
+                  "type": "array",
+                  "title": "Response Skus Api Quota Skus Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/quota/subscription": {
+      "get": {
+        "tags": [
+          "quota"
+        ],
+        "summary": "Subscription",
+        "operationId": "subscription_api_quota_subscription_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/SubscriptionInfo"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Subscription Api Quota Subscription Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
@@ -1535,6 +1717,176 @@
         ],
         "title": "PublicError"
       },
+      "QuotaBalance": {
+        "properties": {
+          "available_units": {
+            "type": "integer",
+            "title": "Available Units"
+          },
+          "reserved_units": {
+            "type": "integer",
+            "title": "Reserved Units"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available_units",
+          "reserved_units"
+        ],
+        "title": "QuotaBalance"
+      },
+      "QuotaPolicy": {
+        "properties": {
+          "default_budget_units": {
+            "type": "integer",
+            "title": "Default Budget Units"
+          },
+          "hard_cap_units": {
+            "type": "integer",
+            "title": "Hard Cap Units"
+          },
+          "price_version": {
+            "type": "string",
+            "title": "Price Version"
+          },
+          "failed_usage_rule": {
+            "type": "string",
+            "title": "Failed Usage Rule"
+          }
+        },
+        "type": "object",
+        "required": [
+          "default_budget_units",
+          "hard_cap_units",
+          "price_version",
+          "failed_usage_rule"
+        ],
+        "title": "QuotaPolicy"
+      },
+      "QuotaSku": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "alipay",
+              "wechat",
+              "stripe"
+            ],
+            "title": "Provider"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Currency"
+          },
+          "amount_minor": {
+            "type": "integer",
+            "title": "Amount Minor"
+          },
+          "units": {
+            "type": "integer",
+            "title": "Units"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "provider",
+          "currency",
+          "amount_minor",
+          "units"
+        ],
+        "title": "QuotaSku"
+      },
+      "QuotaUsage": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "units": {
+            "type": "integer",
+            "title": "Units"
+          },
+          "cost_units": {
+            "type": "integer",
+            "title": "Cost Units"
+          },
+          "price_version": {
+            "type": "string",
+            "title": "Price Version"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "units",
+          "cost_units",
+          "price_version",
+          "created_at"
+        ],
+        "title": "QuotaUsage"
+      },
+      "QuotaUsagePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QuotaUsage"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "QuotaUsagePage"
+      },
       "ReportCheck": {
         "properties": {
           "id": {
@@ -1633,6 +1985,45 @@
         },
         "type": "object",
         "title": "ResumeRequest"
+      },
+      "SubscriptionInfo": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "sku_id": {
+            "type": "string",
+            "title": "Sku Id"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "period_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Period End"
+          },
+          "cancelled": {
+            "type": "boolean",
+            "title": "Cancelled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "sku_id",
+          "provider",
+          "status",
+          "period_end",
+          "cancelled"
+        ],
+        "title": "SubscriptionInfo"
       },
       "Token": {
         "properties": {

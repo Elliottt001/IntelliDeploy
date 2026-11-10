@@ -226,6 +226,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/quota/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Policy */
+        get: operations["policy_api_quota_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quota/balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Balance */
+        get: operations["get_balance_api_quota_balance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quota/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Usage */
+        get: operations["usage_api_quota_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quota/skus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Skus */
+        get: operations["skus_api_quota_skus_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quota/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Subscription */
+        get: operations["subscription_api_quota_subscription_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/": {
         parameters: {
             query?: never;
@@ -496,6 +581,72 @@ export interface components {
              */
             retryable: boolean;
         };
+        /** QuotaBalance */
+        QuotaBalance: {
+            /** Available Units */
+            available_units: number;
+            /** Reserved Units */
+            reserved_units: number;
+        };
+        /** QuotaPolicy */
+        QuotaPolicy: {
+            /** Default Budget Units */
+            default_budget_units: number;
+            /** Hard Cap Units */
+            hard_cap_units: number;
+            /** Price Version */
+            price_version: string;
+            /** Failed Usage Rule */
+            failed_usage_rule: string;
+        };
+        /** QuotaSku */
+        QuotaSku: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "alipay" | "wechat" | "stripe";
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "CNY" | "USD";
+            /** Amount Minor */
+            amount_minor: number;
+            /** Units */
+            units: number;
+            /** Period */
+            period?: string | null;
+        };
+        /** QuotaUsage */
+        QuotaUsage: {
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Units */
+            units: number;
+            /** Cost Units */
+            cost_units: number;
+            /** Price Version */
+            price_version: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** QuotaUsagePage */
+        QuotaUsagePage: {
+            /** Items */
+            items: components["schemas"]["QuotaUsage"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
         /** ReportCheck */
         ReportCheck: {
             /** Id */
@@ -532,6 +683,24 @@ export interface components {
         ResumeRequest: {
             /** Budget Units */
             budget_units?: number | null;
+        };
+        /** SubscriptionInfo */
+        SubscriptionInfo: {
+            /** Id */
+            id: string;
+            /** Sku Id */
+            sku_id: string;
+            /** Provider */
+            provider: string;
+            /** Status */
+            status: string;
+            /**
+             * Period End
+             * Format: date-time
+             */
+            period_end: string;
+            /** Cancelled */
+            cancelled: boolean;
         };
         /** Token */
         Token: {
@@ -1038,6 +1207,118 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    policy_api_quota_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotaPolicy"];
+                };
+            };
+        };
+    };
+    get_balance_api_quota_balance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotaBalance"];
+                };
+            };
+        };
+    };
+    usage_api_quota_usage_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotaUsagePage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    skus_api_quota_skus_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotaSku"][];
+                };
+            };
+        };
+    };
+    subscription_api_quota_subscription_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionInfo"] | null;
                 };
             };
         };
