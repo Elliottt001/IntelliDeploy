@@ -10,7 +10,7 @@
 
 **Spec:** [一期技术设计](../specs/2026-11-09-intellideploy-phase1-design.md)，[PRD](../../PRD.md)。整体设计已获用户确认。
 
-**当前执行状态（2026-11-10）：** 一期产品范围已确认，实施方案仍有六项衔接缺口，见 [一期规划待办](../../一期规划待办.md)。先补齐影响主链路的接口与验收，再执行相关生成/发布任务；01-F1/F2已明确的基础部分可以先实施。完成现有任务清单不能自动关闭这些缺口。每次执行或换会话先读该待办，并更新方案/实施证据。
+**当前执行状态（2026-11-10）：** 六项方案缺口已落实到02-G6/G7、03-D6/D7、07-E4与08-O1/O2，并完成文档流程走查；记录见 [一期规划待办](../../一期规划待办.md) 和 [产品流程走查](../../一期产品流程走查.md)。这是方案完成状态，产品代码与真实验收仍未开始。每次实施同时读当前总计划及所需子计划，按测试证据更新进度。
 
 ## Global Constraints
 
@@ -29,12 +29,14 @@
 backend/app/
   core/types.py                 公共 Pydantic 契约和枚举
   apps/{models,service,router}.py 需求、对话、应用与版本记录
-  jobs/{models,store,events,worker}.py 租约、检查点、恢复、事件
-  agent/{deepseek,tools,loop,retrieval,routing,scaffold,workspace}.py 模型与四条路径
-  runtime/{manifest,validation,build,linux,kubernetes,releases,router}.py 验证和发布
+  jobs/{models,store,events,worker,pipeline,maintenance}.py 租约、检查点、恢复、事件
+  agent/{deepseek,tools,loop,requirements,retrieval,repository_index,compatibility,routing,scaffold,workspace}.py 模型与四条路径
+  runtime/{manifest,validation,build,candidate,check_plan,linux,kubernetes,releases,operations,reconcile,cleanup,models,router}.py 验证和发布
   capabilities/{identity,data,files,ai,search,router}.py 平台能力
   community/{models,service,router}.py 发布、访问策略、独立副本
-  billing/{models,ledger,pricing,router}.py 额度、预留和用量
+  billing/{models,ledger,pricing,metering,router}.py 额度、预留和用量
+  admin/{cli,service}.py         平台管理命令及审计
+  core/health.py                平台存活/就绪状态
   main.py                      统一产品入口；移除重复旧链路
 backend/alembic/                正式数据库迁移
 frontend/                      保留 Expo 手机客户端及现有路由、视觉资产
@@ -58,9 +60,10 @@ scripts/                       只读审计、可恢复迁移、真实样本执�
 | 04 | [平台能力](2026-11-09-phase1-04-capabilities.md) | 多人身份、数据、文件、AI、真实联网搜索 | 01；用量回调由 06 接入 |
 | 05 | [Web 与社区](2026-11-09-phase1-05-web-community.md) | 对话、交付、调整、共享使用、独立副本 | 01、03、04 |
 | 07 | [客户端联调与评测](2026-11-10-phase1-07-clients-evaluation.md) | 共用协议、Expo 接入、启动入口、开发者评测 | E1 依赖 01；E2 依赖 E1；E3 依赖 02、03、04、06-F1 |
+| 08 | [平台上线与清理](2026-11-10-phase1-08-production.md) | 平台自身部署、管理CLI、维护任务与资源清理 | 01、07-E1；真实运行依赖03-D6/D7、06-F1 |
 | 06 | [额度与总验收](2026-11-09-phase1-06-billing-acceptance.md) | 免费、套餐、购买额度，支付宝/微信/Stripe，幂等结算与总验收 | 01；完成总验收依赖全部 |
 
-推荐顺序：01 → 07-E1 → 05-W1/07-E2 客户端基础联调 → 06-F1 → 02 → 04 → 03 → 05-W2/W3 → 07-E3 → 06-F2/F3/F4。客户端初次接入状态 API 不等待生成引擎全部完成；真实交付验收在引擎与发布完成后执行。在所有真实模型调用前接入用量记录。04 与 03 的独立检查可分别进行，但最终必须一起通过真实应用验收。每个任务单独提交，只提交该任务文件。迁移必须从当前唯一 Alembic head 延长；文件编号是标识，不代表能脱离依赖顺序执行，出现多 head 必须合并后继续。
+推荐顺序：01 → 07-E1 → 05-W1/07-E2 客户端基础联调 → 06-F1 → 02-G1/G2/G3/G5/G6/G7/G4 → 04 → 03-D1/D2/D3/D4/D5/D6/D7 → 05-W2/W3及双客户端交付联调 → 07-E3 → 06-F2/F3 → 08-O1/O2 → 07-E4 → 06-F4。客户端初次接入状态 API 不等待生成引擎全部完成；真实交付验收在引擎与发布完成后执行。在所有真实模型调用前接入用量记录。04 与 03 的独立检查可分别进行，但最终必须一起通过真实应用验收。每个任务单独提交，只提交该任务文件。迁移必须从当前唯一 Alembic head 延长；文件编号是标识，不代表能脱离依赖顺序执行，出现多 head 必须合并后继续。
 
 ## 3. 公共接口
 
@@ -74,9 +77,29 @@ from datetime import datetime
 from typing import Literal
 from pydantic import BaseModel, Field
 
+class DemandFact(BaseModel):
+    id: str
+    source_message_id: str
+    quote: str
+    kind: Literal['FUNCTION', 'DATA', 'ACCESS', 'EXTERNAL']
+    acceptance_ids: list[str] = Field(default_factory=list)
+
 class Requirement(BaseModel):
     prompt: str
     acceptance: list[AcceptanceItem]
+    revision: int = Field(default=1, ge=1)
+    facts: list[DemandFact] = Field(default_factory=list)
+    source_message_ids: list[str] = Field(default_factory=list)
+
+class RequirementDraft(BaseModel):
+    prompt: str
+    acceptance: list[AcceptanceItem]
+    facts: list[DemandFact]
+    questions: list[str] = Field(default_factory=list, max_length=2)
+    explicit_removals: list[str] = Field(default_factory=list)
+    removal_evidence: dict[str, str] = Field(default_factory=dict)
+    review_missing: list[str] = Field(default_factory=list)
+    unsupported: list[str] = Field(default_factory=list)
 
 class AcceptanceItem(BaseModel):
     id: str
@@ -106,6 +129,7 @@ class CandidateEvaluation(BaseModel):
     missing_core: list[str] = Field(default_factory=list)
     unknown_fields: list[str] = Field(default_factory=list)
     evidence: dict[str, str] = Field(default_factory=dict)
+    compatibility: Literal['SUPPORTED', 'UNKNOWN', 'UNSUPPORTED'] = 'UNKNOWN'
 
     @property
     def total(self) -> float:
@@ -113,7 +137,7 @@ class CandidateEvaluation(BaseModel):
 
     @property
     def eligible_a(self) -> bool:
-        return (self.is_web_app is True and not self.missing_core and
+        return (self.is_web_app is True and self.compatibility == 'SUPPORTED' and not self.missing_core and
                 not self.unknown_fields and bool(self.evidence) and
                 self.match_score >= 80 and self.deploy_score >= 70 and self.total >= 75)
 
@@ -143,6 +167,10 @@ class Checkpoint(BaseModel):
     completed_calls: dict[str, ToolResult] = Field(default_factory=dict)
     route_switches: int = 0
     stalled_rounds: int = 0
+    requirement_revision: int | None = None
+    attempt_id: str | None = None
+    validation_refs: list[str] = Field(default_factory=list)
+    reservation_id: str | None = None
 
 class CheckResult(BaseModel):
     id: str
@@ -151,10 +179,17 @@ class CheckResult(BaseModel):
 
 class ValidationReport(BaseModel):
     checks: list[CheckResult]
+    required_ids: list[str] = Field(default_factory=list)
+    requirement_revision: int | None = None
+    attempt_id: str | None = None
+    manifest_hash: str | None = None
 
     @property
     def passed(self) -> bool:
-        return bool(self.checks) and all(c.status == 'PASS' for c in self.checks)
+        ids = [c.id for c in self.checks]
+        return (bool(ids) and len(ids) == len(set(ids))
+                and set(self.required_ids) <= set(ids)
+                and all(c.status == 'PASS' for c in self.checks))
 
 class ServiceSpec(BaseModel):
     name: str
@@ -165,6 +200,8 @@ class ServiceSpec(BaseModel):
     depends_on: list[str] = Field(default_factory=list)
     health_path: str | None = None
     memory_mb: int = 512
+    cpu_millis: int = Field(default=500, gt=0)
+    storage_mb: dict[str, int] = Field(default_factory=dict)
 
 class BuildSpec(BaseModel):
     service: str
@@ -183,6 +220,7 @@ class GenerationOutput(BaseModel):
     manifest: AppManifest | None = None
     question: str | None = None
     exhausted: bool = False
+    requirement_revision: int | None = None
 
 class DeploymentResult(BaseModel):
     operation_id: str
@@ -203,6 +241,7 @@ class UsageInput(BaseModel):
     units: int
     price_version: str
     metadata: dict = Field(default_factory=dict)
+    reservation_operation_id: str | None = None
 
 class PaymentEvent(BaseModel):
     provider: Literal['alipay', 'wechat', 'stripe']
@@ -257,18 +296,18 @@ DeepSeek Key、GitHub 搜索额度、可写镜像仓库、已准备的 Linux 目
 | Spec 章节 | 实施位置 |
 | --- | --- |
 | 2 技术栈 | 01-F1、05-W1、07-E1/E2 |
-| 3 A/B/C/D、检索评分与状态 | 01-F1、02-G3、02-G4、02-G5 |
+| 3 A/B/C/D、检索评分与状态 | 01-F1、02-G3/G4/G5/G6/G7 |
 | 4 工具循环与上下文 | 02-G1、02-G2、02-G4 |
 | 5 执行隔离与恢复 | 01-F2、02-G2、02-G4 |
-| 6 验证与发布 | 03-D1、03-D2、03-D5 |
+| 6 验证与发布 | 02-G6、03-D1/D2/D5/D6 |
 | 7 两种部署 | 03-D3、03-D4 |
 | 8 平台能力 | 04-C1 至 C3 |
 | 9 社区与额度 | 05-W2、05-W3、06-F1 |
 | 支付渠道补充确认 | 06-F2、06-F3 |
 | 10 API 与事件 | 01-F1/F3、05-W1、07-E1/E2 |
-| 11 故障暂停 | 01-F2、02-G4、06-F1、06-F4 |
+| 11 故障暂停 | 01-F2、02-G4、03-D6/D7、06-F1/F4 |
 | 12 迁移旧实现 | 01-F1、06-F4 |
-| 14 真实验收 | 07-E3、06-F4 |
+| 14 真实验收 | 07-E3/E4、08-O1/O2、06-F4 |
 | 客户端交付与启动 | 05-W1/W2/W3、07-E1/E2/E3 |
 
 总计划和各子计划中的测试代码是执行阶段要落地的检查，不是当前已经通过的报告。
@@ -276,3 +315,69 @@ DeepSeek Key、GitHub 搜索额度、可写镜像仓库、已准备的 Linux 目
 计划于 2026-11-09 起草，跨日后在 2026-11-10 完成一致性自查；文件名保留起草日期以稳定引用。
 
 2026-11-10 最新范围：一期保留 A/B/C/D，GitHub 检索与证据评分是主链路；D 仅从固定成熟脚手架生成。范围按本条和当前 PRD 执行，不按中间误写的“全部需求从脚手架生成”执行。
+
+## 8. 六项补齐的统一执行契约
+
+以下类型同样由01-F1在core/types.py定义，不各自造返回字段：
+
+```python
+class CompatibilityReport(BaseModel):
+    status: Literal['SUPPORTED', 'UNKNOWN', 'UNSUPPORTED']
+    reasons: list[str] = Field(default_factory=list)
+    runtime: str | None = None
+    databases: list[str] = Field(default_factory=list)
+    architecture: str = 'amd64'
+    evidence: dict[str, str] = Field(default_factory=dict)
+
+class RetrievalResult(BaseModel):
+    queries: list[str]
+    completed: bool
+    candidates: list[dict] = Field(default_factory=list)
+    reuse_rejections: list[dict] = Field(default_factory=list)
+    index_version: str | None = None
+    errors: list[str] = Field(default_factory=list)
+
+class BrowserCheck(BaseModel):
+    item_id: str
+    actor: Literal['owner', 'other', 'anonymous']
+    actions: list[dict]
+    expected: str
+
+class CandidateRuntime(BaseModel):
+    id: str
+    base_url: str
+    manifest_hash: str
+    data_namespace: str
+    identity_refs: dict[str, str] = Field(default_factory=dict)
+
+class InstanceSnapshot(BaseModel):
+    id: str
+    status: Literal['PENDING', 'RUNNING', 'STOPPED', 'FAILED', 'DELETED']
+    desired_state: Literal['RUNNING', 'STOPPED', 'DELETED']
+    stop_reason: Literal['USER', 'QUOTA', 'ERROR'] | None = None
+    url: str | None = None
+    observed_at: datetime | None = None
+    active_operation_id: str | None = None
+
+class ResourceWindow(BaseModel):
+    instance_id: str
+    window_start: datetime
+    window_end: datetime
+    compute_state: Literal['RUNNING', 'STOPPED', 'UNKNOWN']
+    compute_units: int | None = None
+    storage_units: int | None = None
+    price_version: str
+    evidence_ref: str
+```
+
+RetrievalResult.candidates用序列化的现有RepositoryCandidate字典（repo_url/name/metadata/profile），由retrieval.py的normalize_candidate统一转换；不让旧retriever、index、路由各用不同字段。评分需要compatibility=SUPPORTED，构建/启动真实检查仍不能省。required_ids默认仅为旧夹具兼容；实际运行报告必须填本次冻结需求全部ID、revision、attempt和manifest_hash，01/03的契约测试拒绝缺这些绑定的生产报告。
+
+InstanceOperation、ReleaseAttempt、ResourceRecord/CleanupAction为数据库实体，分别由03-D7、03-D6、01-F1/08-O2定义；core/types.py另外导出公开InstanceOperationResponse(id/instance_id/kind/status/error/created_at/updated_at)。kind=START/STOP/DELETE，status=QUEUED/RUNNING/SUCCEEDED/FAILED，error=PublicError|null。生成Job输出与实例操作响应分开，手机/CLI知道轮询哪个ID。
+
+共用串联签名：01-F2 process_job调用03-D6 run_pipeline；02-G6冻结需求；02-G7将RetrievalResult交02-G3 choose_route；02-G4只产GenerationOutput；03-D6编排已锁定产物的启动/检查/修复；03-D5部署适配通过prepare_release/verify_release/activate_release三阶段完成发布；03-D7维护真实实例；08管理与清理复用维护循环；07-E4/06-F4验收同一流程。
+
+预算在01-F3请求阶段由后端BudgetPolicy决定：budget_units可选，省略采用已配置的生成/调整/副本预算上限（最小为正，受账户可用额度及服务端hard cap限制）；用户UI以可理解的额度/费用提示，不让小白填写CPU分钟。06-F1在首次付费执行前原子reserve，声明失败已发生用量的计费规则；每个job预留是父Reservation，模型/工具/候选AI/构建等UsageEntry含reservation_operation_id='job:{id}'，operation_id为唯一子动作。子调用从父预留扣减，不重复reserve同一job总预算；应用运行中的能力调用使用独立父预留。reserve/record_usage/settle/refund的数据库约束和价格版本见06-F1；PAUSED_QUOTA保留工作区，resume同一job重新预留剩余预算，不能重算已完成用量。模型402等供应商余额故障为UPSTREAM_UNAVAILABLE，不能错误要求用户充值平台额度。
+
+维护循环是同一Worker的独立async任务，持久维护租约及tick由03-D7实现；运行认领/外部动作也要核对lease generation，旧Worker失去租约后不能提交新版本。生产发布前用08-O1管理命令预检目标、价格和执行节点，未通过则拒绝执行而非模拟成功。
+
+方案补齐覆盖：P1=02-G6；P2=03-D6；P3=03-D7；P4=02-G7；P5=08-O1/O2；P6=07-E4。实施仍需落实每项代码、测试和真实运行证据。

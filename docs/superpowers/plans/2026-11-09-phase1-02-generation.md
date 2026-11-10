@@ -113,7 +113,7 @@ TOOLS = {'list_files': list_files, 'read_file': read_file,
 
 **Files:** Create backend/app/agent/retrieval.py、backend/app/agent/routing.py、prompts/generation/{route,deploy_existing,modify_existing,compose_components,generate_app}.md、tests/phase1/test_routes.py。Modify backend/app/agent_core/memory/vector_store.py、backend/app/agent/tools.py；复用 backend/app/agent_core/brains/github_retriever.py 和 fallback/templates/。
 
-**Interfaces:** retrieve_sources(requirement: Requirement) -> list[RepositoryCandidate]，async；plan_route(requirement, candidates, model_client) -> RoutePlan，async；prepare_sources(workspace_id, plan: RoutePlan) -> list[RepoSource]。路线 Prompt 不是来源事实，实际下载必须固定 commit。
+**Interfaces:** retrieve_sources(requirement: Requirement) -> RetrievalResult，async；plan_route(requirement, candidates, model_client) -> RoutePlan，async；prepare_sources(workspace_id, plan: RoutePlan) -> list[RepoSource]。路线 Prompt 不是来源事实，实际下载必须固定 commit。
 
 - [ ] **Step 1: 写四条决策和真实源码准备检查。** 测试候选为自建小仓库，模型返回固定 JSON 仅用于验证路由约束；代码下载用本地 fixture Git 仓库，最终公开 GitHub 样本在总验收执行。
 
@@ -149,7 +149,7 @@ if any(source.url not in known for source in route.sources):
 
 **Files 补充：** Modify backend/app/agent_core/brains/context_rag_agent.py、backend/app/agent_core/brains/router_agent.py；在 tests/phase1/test_routes.py 增加检索回归。复用 GitHub 客户端和 BM25，但去掉过严的统一 stars/pushed/archive 查询限制及一年更新时间直接淘汰；这些属性改为评分证据。
 
-**Interfaces 补充：** score_candidate(profile, requirement) -> CandidateEvaluation，async；choose_route(requirement, search_result, evaluations, model_client) -> RoutePlan，async。search_result 在 retrieval.py 定义，保存 queries、completed、candidates、reuse_rejections；candidates 使用现有 RepositoryCandidate，reuse_rejections 保存 B/C 的证据和否决原因。查询或资料抓取失败时 completed=False，不能伪装空结果。
+**Interfaces 补充：** score_candidate(profile, requirement) -> CandidateEvaluation，async；choose_route(requirement, search_result, evaluations, model_client) -> RoutePlan，async。search_result 使用01-F1的RetrievalResult，保存 queries、completed、candidates、reuse_rejections；candidates为normalize_candidate输出的RepositoryCandidate字典，reuse_rejections 保存 B/C 的证据和否决原因。查询或资料抓取失败时 completed=False，不能伪装空结果。
 
 - [ ] 补充低星好应用优于高星框架的排序与 A 资格检查：
 
@@ -157,7 +157,7 @@ if any(source.url not in known for source in route.sources):
 def test_relevant_app_beats_popular_framework():
     app = CandidateEvaluation(repo_url='https://github.com/a/dreams',
         match_score=95, deploy_score=85, quality_score=60,
-        is_web_app=True, evidence={'features': 'README + source entrypoint'})
+        is_web_app=True, compatibility='SUPPORTED', evidence={'features': 'README + source entrypoint'})
     library = CandidateEvaluation(repo_url='https://github.com/b/framework',
         match_score=20, deploy_score=80, quality_score=100,
         is_web_app=False, evidence={'type': 'library manifest'})
@@ -217,7 +217,7 @@ for call in turn.calls:
 
 ask_user 保存业务问题并转 WAITING_USER；finish_implementation 校验候选 AppManifest 并进入验证阶段。无工具的普通结束文本不能触发成功。保存真实用量，扣除缓存命中后分别记录输入/缓存输入/输出，不重复计量。预算不足转 PAUSED_QUOTA；总费用和墙钟由配置限制。最多两次路线切换，连续三次同一错误且无变化停止；上下文摘要保留需求、验收、失败和工具对应关系。遇到升级到 Pro 也继续同一账本预算。
 
-Worker 将 GenerationOutput 交给 03-D5 发布流程；开发阶段输出“候选产物已就绪”，绝不能标记交付成功。同步工具通过 async 回调包装 await asyncio.to_thread(execute_tool, checkpoint.workspace, call)，不能 await 同步返回值。ask_user 和 finish_implementation 由循环拦截，不作为容器命令。
+Worker process_job交03-D6 run_pipeline，后者调用run_generation得到GenerationOutput，再通过候选验证及03-D5发布流程；开发阶段输出“候选产物已就绪”，绝不能标记交付成功。同步工具通过 async 回调包装 await asyncio.to_thread(execute_tool, checkpoint.workspace, call)，不能 await 同步返回值。ask_user 和 finish_implementation 由循环拦截，不作为容器命令。
 
 - [ ] **Step 4: 绿测。** 覆盖检索故障不转 D、合适现成项目优先 A、普通最终文本不算成功、业务问题恢复、额度暂停、未知工具结果停止重放、无进展停止及上下文中保留 reasoning_content。06 总验收中以真实 DeepSeek 跑四条业务路径。
 - [ ] **Step 5: 提交。** `feat: persist and resume DeepSeek generation loop`。
@@ -262,3 +262,80 @@ D 的 generate_app Prompt 携带需求、验收、固定栈和平台接口，要
 - [ ] **Step 4: 绿测与真实底座验证。** 运行 npm ci、npm run typecheck、npm run build；验证 Prisma Client、健康接口、两用户权限、数据保存/读取及真实平台 AI/搜索。模型实际生成再验收笔记、梦境分析和实时信息工具，空模板主页通过不能代表业务完成。
 
 - [ ] **Step 5: 提交。** feat: add verified Next.js Prisma generation scaffold。仅提交脚手架、单一生成 Prompt 和对应检查。
+
+### Task 02-G6: 对话整理需求、覆盖检查与变更版本（P1）
+
+**Files:** Create backend/app/agent/requirements.py、prompts/generation/requirements.md、tests/phase1/test_requirement_revision.py。Modify backend/app/agent/loop.py、backend/app/apps/service.py、backend/app/apps/models.py、backend/app/core/types.py。依赖01、02-G1；先于检索和源码实现接入。
+
+**Interfaces:** compile_requirement(messages: list[dict], previous: Requirement | None, model_client: DeepSeekClient) -> RequirementDraft，async；validate_revision(previous, draft, messages) -> Requirement；persist_requirement(session, job_id, requirement) -> int。RequirementDraft、DemandFact、Requirement在总计划统一定义；Job.requirement_revision固定本次需求版本，AppVersion记录相同revision。messages至少有id/sequence/role/content，不把业务消息与工具日志混在一起。
+
+- [ ] **Step 1: 写漏项、追问和回归检查。** tests内定义消息fixture和假的模型transport，真实DeepSeek需求理解在07-E4人工复核。
+
+```python
+def test_adding_search_preserves_existing_acceptance(requirement_context):
+    previous = requirement_context.notes_requirement()
+    draft = requirement_context.draft_adding('联网搜索')
+    revised = validate_revision(previous, draft, requirement_context.messages)
+    assert {x.id for x in previous.acceptance} <= {x.id for x in revised.acceptance}
+    assert revised.revision == previous.revision + 1
+
+def test_unmapped_user_fact_cannot_be_frozen(requirement_context):
+    draft = requirement_context.draft_with_unmapped_fact('上传图片')
+    with pytest.raises(RequirementCoverageError):
+        validate_revision(None, draft, requirement_context.messages)
+```
+
+- [ ] **Step 2: 红测。** `PYTHONPATH=backend .venv/bin/python -m pytest tests/phase1/test_requirement_revision.py -q`。初次因requirements模块缺失失败。
+- [ ] **Step 3: 实现结构化整理和版本冻结。** requirements Prompt要求按用户原消息提取业务事实（source_message_id、原文quote、功能/数据/权限/外部依赖分类）、按可观察结果拆验收项，每条事实映射至少一个验收ID，或给出明确的追问/不支持原因。另一次同模型审阅只读原消息和draft，检查漏项；确定性校验引用的消息/原文确实存在、ID唯一、事实都有映射。不把同模型审阅当成功率证明；07-E4独立人工核对。模型JSON无效或覆盖未完成最多纠正两轮，仍无效FAILED/REQUIREMENT_INVALID，不能跳过需求阶段。
+
+```python
+old = {item.id for item in previous.acceptance} if previous else set()
+new = {item.id for item in draft.acceptance}
+removed = old - new
+if removed - set(draft.explicit_removals):
+    raise RequirementCoverageError('previous acceptance was silently removed')
+```
+
+explicit_removals必须能对应本次用户明确删除/替换功能的消息，validate_revision复核quote与消息；变更验收内容也按删除旧ID+新增ID处理，不能改写旧expected降低门槛。旧数据保留、其他用户拒绝访问、真实AI/搜索及文件保存按需求生成独立核心项。初始业务名称、颜色等可合理推断，默认私有；影响数据公开、权限或关键业务缺少信息时一次合并最多两个业务问题，保存draft后WAITING_USER，不询问技术栈或要求用户选择A/B/C/D。用户回复恢复同一job、重新整理；仍缺关键资料可以继续等待，不因追问轮数耗尽擅自开放数据。明确要求原生/桌面生成时解释一期支持Web并WAITING_USER询问是否接受Web，不冒充原生交付。
+
+RequirementRecord保存revision、原消息引用、事实映射、验收和review结果；在事务锁下冻结，写入Job.requirement_revision。已有线上应用调整从当前已发布版本的需求和源码开始，保留旧项为回归检查。失败任务的继续对话建立新job并沿用未完成目标；WAITING_USER仅恢复旧job。运行中新增需求返回409并保留输入，避免改变当前测试门槛。冻结后模型不能自行删验收；业务新答复需要新的冻结记录，旧执行材料不再当该revision的验证证据。
+
+- [ ] **Step 4: 绿测。** 漏事实、虚构quote、重复ID、隐式删功能、显式删功能、私有默认、少量追问/恢复、并发消息、已有应用回归、原生请求范围反馈全部检查；用真实模型试“私有笔记+图片+分析历史”，人工核对每个要求都有验收，不做固定演示。
+- [ ] **Step 5: 提交。** `feat: compile versioned requirements and preserve regressions`。
+
+### Task 02-G7: 可更新检索索引、实时证据与运行兼容评估（P4）
+
+**Files:** Create backend/app/agent/repository_index.py、backend/app/agent/compatibility.py、scripts/update_repository_index.py、tests/phase1/test_repository_index.py、tests/phase1/test_runtime_compatibility.py、tests/phase1/cases/retrieval.json。Modify scripts/build_vector_db.py、backend/app/agent/retrieval.py、backend/app/agent/routing.py、backend/app/agent_core/memory/vector_store.py、backend/app/config.py。依赖02-G3；不引入向量数据库服务。
+
+**Interfaces:** update_index(seeds: list[str], destination: Path, github_client) -> IndexUpdateReport，async；load_index(path: Path) -> RepositoryIndex；assess_compatibility(profile: dict, requirement: Requirement) -> CompatibilityReport；select_deploy_target(manifest: AppManifest, targets: list[dict]) -> str。RepositoryIndex/IndexUpdateReport在repository_index.py定义（schema_version、generated_at、items及失败列表）；CompatibilityReport在core/types.py定义。旧retrieve_sources返回candidates的接口改为RetrievalResult，所有调用同步，不同时维护两种返回结构。
+
+- [ ] **Step 1: 写冷启动、更新中断和高匹配兼容性检查。** tmp_path存本地索引，GitHub transport可返回404/429/改动SHA；不执行真实删除。
+
+```python
+def test_interrupted_update_keeps_last_good_snapshot(index_context):
+    before = index_context.snapshot_hash()
+    index_context.interrupt_update()
+    assert index_context.snapshot_hash() == before
+
+def test_high_match_is_not_eligible_when_runtime_is_unsupported(compatibility_context):
+    report = assess_compatibility(compatibility_context.gpu_only_desktop(),
+                                  compatibility_context.web_requirement())
+    assert report.status == 'UNSUPPORTED'
+    assert 'gpu' in report.reasons
+```
+
+- [ ] **Step 2: 红测。** pytest test_repository_index.py/test_runtime_compatibility.py；额外运行02-G3检索评分回归。
+- [ ] **Step 3: 实现原子索引与兼容规则。** 第一版索引是平台登记的真实仓库README/元数据JSON快照+现有BM25。首次没快照仍做实时GitHub检索；缺本地语料不可伪造召回。管理命令`PYTHONPATH=backend .venv/bin/python scripts/update_repository_index.py --seeds tests/phase1/cases/retrieval.json --output artifacts/repository-index/current.json`从样本中的known_repositories去重取种子，增量刷新记录repo_url/default_branch/commit/license/README哈希/fetched_at/status，另保存评分证据来源；不要把评测答案写进用户查询或强制路由。
+
+先写临时快照并验证schema，再os.replace切换；文件锁/维护任务租约防止两个更新覆盖。失败仓库留原条目并标STALE/DELETED/UNAVAILABLE，历史来源不被改写。维护任务每日刷新，启动读最后完整快照并报告快照年龄；本地资料超过7天仅用于召回，完整评分前实时读取选中commit的必要代码。实时404候选剔除、429/超时有界重试；候选关键文件失败记录UNKNOWN。实时检索不可用时缓存仅用于保留候选和诊断，重试后仍不完整则SearchUnavailable可重试失败；不执行D，也不暗中省略完整检索来执行A/B/C。下一次用户重试继续已有证据但重新核对实时资料。D必须RetrievalResult.completed=True且B/C复用否决理由完整；completed表示所有计划查询成功、候选评估覆盖完成，不代表遍历了全部GitHub。
+
+首批自动执行环境：Linux amd64 CPU；Node.js LTS的React/Vue/Next/Express等Web项目、Python ASGI/WSGI项目、静态Web项目，以及有可核对Dockerfile/Compose的其他语言Web项目。支持项目原有PostgreSQL/MySQL/Redis/SQLite等依赖；依赖必须固定版本、独立持久资源并能映射AppManifest。A/B/C不强制改成Next/PostgreSQL；非容器项目的受支持语言由Agent生成Dockerfile并真实构建。需要GPU、Windows GUI、原生客户端、不可无人值守购买的第三方服务或平台没有的专用硬件时标UNSUPPORTED；缺依赖证据为UNKNOWN，继续读文件/启动验证，不用热度抵消。CompatibilityReport输出status/reasons/runtime/databases/architecture/evidence，eligible_a还要求SUPPORTED。B可有明确改造方案，C逐来源核对并验证顶层业务；合理复用不可行再D，向普通用户反馈功能边界而非技术选择题。
+
+所有来源保存commit和LICENSE/NOTICE，整合保留归因及已知许可证要求；不明使用条件记录UNKNOWN由管理员核对，不能冒充可发布来源。此检查合并在来源准备，不建设额外合规服务。select_deploy_target选择已登记、HEALTHY、架构/持久存储/容量满足清单的目标，先按平台默认目标，容量不足选兼容目标；无兼容资源FAILED/TARGET_UNAVAILABLE可重试，不自动购云服务器。
+
+- [ ] **Step 4: 绿测和实际召回。** 无本地索引仍实时命中、更新中断不损坏、长期少更新可运行项目保留、关键代码缺失不高置信、实时故障不转D、跨栈项目保留原库、缺GPU不假成功；人工查看已知适配样本Top10和score/evidence，不把种子召回当自动搜索成功。
+- [ ] **Step 5: 提交。** `feat: refresh repository evidence and assess runtime compatibility`。
+
+#### 衔接类型的定义责任
+
+RequirementCoverageError、RequirementInvalid在agent/requirements.py定义为ValueError子类；compile_requirement的两轮纠正与validate_revision复核使用这两个错误。RepositoryIndex与IndexUpdateReport在agent/repository_index.py为Pydantic模型，items至少含repo_url/default_branch/commit/license/readme_hash/fetched_at/status/readme，IndexUpdateReport含updated/unchanged/failed/snapshot_version。SearchUnavailable在agent/retrieval.py定义，可重试且不会产空completed=True结果。plan_route作为choose_route的兼容封装消费同一个RetrievalResult，不绕过完整度/兼容评分。

@@ -99,11 +99,11 @@ FileRecord 在 capabilities/models.py 保存 id、instance_id、owner_id、path�
 
 ```python
 @pytest.mark.asyncio
-async def test_empty_search_does_not_bill_success(search_context):
+async def test_empty_search_records_provider_usage(search_context):
     search_context.respond({'results': []})
     result = await search(search_context.identity, '梦境研究', 'search-once')
     assert result == []
-    assert search_context.billed_successes == 0
+    assert search_context.billed_successes == search_context.provider_billable_requests
 
 @pytest.mark.asyncio
 async def test_search_returns_sources(search_context):
@@ -120,12 +120,24 @@ response = await http_client.post('/v1/tools/search',
     json={'query': query, 'count': count, 'need_content': True})
 response.raise_for_status()
 results = response.json()['results']
-if results:
+provider_units = parse_provider_search_usage(response)
+if provider_units is None:
+    save_unknown_usage(operation_id, response.status_code)
+else:
     record_usage(UsageInput(operation_id=operation_id, payer_id=context.payer_id,
-                           kind='search.success', units=1, price_version=price_version))
+                           kind='search.success', units=provider_units, price_version=price_version,
+                           reservation_operation_id=reservation_operation_id))
 ```
 
-工具表增加 web_search 和 fetch_page，绑定当前任务的可信付费上下文。AI 请求用统一 DeepSeekClient，返回内容与真实使用量；平台 Key 不出现在应用响应。请求前预留预算，成功结算，失败释放未用部分；402 暂停、429/408/5xx 有界退避，其他 4xx 明确失败。客户端取消和上游结果不确定时记录待核对事件，不重复扣用户费用。
+工具表增加 web_search 和 fetch_page，绑定当前任务的可信付费上下文。AI 请求用统一 DeepSeekClient，返回内容与真实使用量；平台 Key 不出现在应用响应。请求前预留预算，按供应商实际用量结算，失败释放未用部分；平台额度不足暂停，供应商402为UPSTREAM_UNAVAILABLE、429/408/5xx 有界退避，其他 4xx 明确失败。客户端取消和上游结果不确定时记录待核对事件，不重复扣用户费用。
 
-- [ ] **Step 4: 绿测和真实调用。** 包含第三方 401/402/429、重复 operation_id、赞助/访客正确付费方、空搜索不收费、真实搜索 URL 来源和 AI 回答保存。真实 Key 未就绪只标未执行。
+- [ ] **Step 4: 绿测和真实调用。** 包含第三方 401/402/429、重复 operation_id、赞助/访客正确付费方、空搜索按供应商实际成功请求费记录、真实搜索 URL 来源和 AI 回答保存。真实 Key 未就绪只标未执行。
 - [ ] **Step 5: 提交。** `feat: provide metered AI and live web search`。
+
+#### 候选测试身份与用量衔接
+
+03-D6为候选登记ephemeral测试Instance（app_id/job_id/attempt_id绑定、独立data_namespace、expires_at），04-C1校验任务拥有者并只为该候选签发test_user身份。测试身份不能登录平台控制面或其他实例；真实AI/搜索费用归创建job父Reservation，不另扣访客。stop_candidate撤销身份/凭据，恢复新候选需重签；已过期调用拒绝。parse_provider_search_usage、save_unknown_usage在capabilities/search.py定义，前者按供应商响应/明确计费成功请求数解析，后者保存待核对账本事件；没有上游计费规则就拒绝收费调用，不猜空结果免费。
+
+#### 公开访问撤销与部署入口同步
+
+04-C1补平台入口访问检查（backend/app/runtime/access.py及tests/phase1/test_runtime_access.py）：Linux Caddy forward_auth/K8s登记的入口鉴权组件经受控通道查询实例与visible Publication。公开允许的匿名入口可访问；未公开/已取消公开仅拥有者或授权实例身份，callback/code交换路径由平台限定。数据库/应用服务不公开绕过入口的端口。每次入口访问核对当前公开策略，不能只在一次登录时检查；传入身份头由可信入口重写，不信任浏览器自填user_id。能力/data/files仍在服务端按实例及用户检查；A/B/C账号映射与D脚手架接相同身份，不把入口放行当作多人数据隔离完成。测试取消公开后直接URL匿名访问拒绝、拥有者仍可用、伪造身份头拒绝、私有callback一次交换和公开策略更改即时生效。临时候选入口只对runner/测试身份开放。

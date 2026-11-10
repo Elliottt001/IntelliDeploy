@@ -42,7 +42,7 @@ def test_reservation_cannot_overdraw(ledger_context):
 ```
 
 - [ ] **Step 2: 红测。** `.venv/bin/python -m pytest tests/phase1/test_ledger.py -q`。
-- [ ] **Step 3: 实现事务与周期额度。** QuotaGrant 保存来源、到期和余额；Reservation 保存各 grant 分配；UsageEntry 对 operation_id 唯一。预留锁定可用 grant，优先最早到期，购买永久额度排后；结算只消耗实际用量并释放余量；退款追加反向记录。
+- [ ] **Step 3: 实现事务与周期额度。** QuotaGrant 保存来源、到期和余额；Reservation 保存各 grant 分配；UsageEntry 对 operation_id唯一；UsageEntry包含reservation_operation_id关联父预留，模型/工具子动作从job父预留消耗，不重新预留整个预算。预留锁定可用 grant，优先最早到期，购买永久额度排后；结算只消耗实际用量并释放余量；退款追加反向记录。
 
 ```python
 cost = (usage.units * price.numerator + price.denominator - 1) // price.denominator
@@ -51,7 +51,7 @@ if existing:
     return existing
 ```
 
-使用唯一约束处理并发插入，不能只有上述先查询。免费和套餐每个周期用唯一 grant_key 发放；过期额度不可继续预留，已预留按原规则结算。用量按模型输入/缓存输入/输出、搜索成功请求、构建以及分配的 CPU/内存/存储分钟分别记录。运行计量使用实例资源记录和目标状态，停止应用不再计运行资源，保留存储仍按存储配置计量；实例托管余额不足时停止运行并保留数据，补足后用户选择恢复。
+使用唯一约束处理并发插入，不能只有上述先查询。免费和套餐每个周期用唯一 grant_key 发放；过期额度不可继续预留，已预留按原规则结算。用量按模型输入/缓存输入/输出、供应商实际计费搜索请求、构建和分配的CPU/内存/存储分钟记录；空搜索是否收费以供应商用量证据为准。运行计量使用实例资源记录和目标状态，停止应用不再计运行资源，保留存储仍按存储配置计量；实例托管余额不足时停止运行并保留数据，补足后用户选择恢复。
 
 Job 和 capability 调用都走本账本；错误或不确定上游用量记录待核对，不生成假的 0 费用。公开页和交付页显示可理解的剩余额度及用量项目。
 
@@ -136,7 +136,7 @@ normalize_paid_invoice 在本模块定义，从服务端订阅记录定位 owner
 
 ### Task 06-F4: 旧数据审计、入口切换与真实总验收
 
-**Files:** Create scripts/audit_legacy_state.py、scripts/migrate_legacy_users.py、scripts/run_phase1_acceptance.py、tests/phase1/test_legacy_migration.py、tests/phase1/cases/acceptance.json、web/e2e/phase1.spec.ts。Modify README.md、CLAUDE.md、.gitignore、backend/app/main.py、backend/requirements.txt、.github/workflows/phase1-ci.yml。
+**Files:** Create scripts/audit_legacy_state.py、scripts/migrate_legacy_users.py、scripts/run_phase1_acceptance.py、tests/phase1/test_legacy_migration.py、tests/phase1/cases/flow.json、web/e2e/phase1.spec.ts。Modify README.md、CLAUDE.md、.gitignore、backend/app/main.py、backend/requirements.txt、.github/workflows/phase1-ci.yml。
 
 **Interfaces:** audit_legacy(path: Path) -> dict；migrate_users(source_snapshot, target_session) -> dict；run_case(case: dict, api_url: str) -> dict。验收报告保存 route、source commits、time、actual usage、validation、deployment target、URL和结果。
 
@@ -169,9 +169,9 @@ with sqlite3.connect(snapshot_path) as snapshot:
 验收 JSON 每个 case 给 prompt、期望路线、核心行为、部署目标和用户身份；固定来源版本。至少已知项目召回/优先复用、四条实现路径、两云目标、多人权限、继续调整、共享/副本、预算暂停、Worker 中断恢复、支付重复回调均有实际记录。
 
 ```json
-{"id":"dream-modify","route":"MODIFY_EXISTING",
+{"id":"dream-modify","expected_route":"MODIFY_EXISTING",
  "prompt":"在日记应用加入梦境分析，保存分析历史，只允许本人读取",
- "checks":["save_record","ai_analysis","history_persists","other_user_denied"],
+ "core_checks":["save_record","ai_analysis","history_persists","other_user_denied"],
  "target":"linux"}
 ```
 
@@ -179,7 +179,7 @@ run_phase1_acceptance 的评测协议和入口按 07-E3 落地，06-F4 在此基
 
 README 更新 Python/Node、迁移、API/Worker/Web 三进程与 Expo 手机入口、配置和验收命令；CLAUDE.md 更新新入口与历史说明。CI 用 PostgreSQL service 跑 phase1 测试，Web typecheck/build 和 Expo typecheck/export；真实模型/云/支付测试由有配置的受控环境运行，报告注明环境。
 
-- [ ] **Step 4: 绿测与完整检查。** `.venv/bin/python -m pytest tests/phase1 -q`；`npm --prefix web run typecheck`；`npm --prefix web run build`；`npm --prefix web run test:e2e`。再执行 07-E2 原生验收、07-E3 真实评测与 `scripts/run_phase1_acceptance.py`，确认真实 case 全部 PASS，不能以默认跳过掩盖缺渠道/目标。
+- [ ] **Step 4: 绿测与完整检查。** `.venv/bin/python -m pytest tests/phase1 -q`；`npm --prefix web run typecheck`；`npm --prefix web run build`；`npm --prefix web run test:e2e`。再执行07-E2原生验收、07-E3/E4真实评测及08-O1/O2生产清理演练与 `scripts/run_phase1_acceptance.py`，确认真实 case 全部 PASS，不能以默认跳过掩盖缺渠道/目标。
 - [ ] **Step 5: 提交。** `feat: cut over phase one and verify real delivery`。仅真实模型、两种部署和三支付渠道验收完成后对外声明一期全部支持。
 
 ## 商业上线所需配置
@@ -188,4 +188,10 @@ README 更新 Python/Node、迁移、API/Worker/Web 三进程与 Expo 手机入�
 
 ## 面向两客户端的收费接口
 
-06-F1 实现 GET /api/quota/balance（available_units、reserved_units）、GET /api/quota/usage（分页用量）、GET /api/quota/skus（id/name/provider/currency/amount_minor/units/period，全部来自服务端配置）与 GET /api/quota/subscription。06-F2/F3 实现 POST /api/quota/orders（sku_id、provider、Idempotency-Key；201 order_id/status/checkout_url）、GET /api/quota/orders/{id}（仅本人订单，状态/金额/额度/周期）、POST /api/quota/subscription/cancel（幂等取消未来续订，不清空已付额度）。checkout_url 来自渠道或平台托管支付页，不能接收客户端自定义回跳主机。两客户端只能查看/创建本人订单，价格和授予额度不能由客户端传入。Web支付页支持微信二维码/支付宝跳转/Stripe Checkout，移动浏览器按渠道支持方式完成，实际微信移动支付与回调在06-F2验收。07-E1导出上述Schema并实现getBalance/listUsage/listSkus/getSubscription/createOrder/getOrder/cancelSubscription；07-E2消费同一接口。
+06-F1实现GET /api/quota/policy（default_budget_units/hard_cap_units/price_version/failed_usage_rule）和GET /api/quota/balance（available_units、reserved_units）、GET /api/quota/usage（分页用量）、GET /api/quota/skus（id/name/provider/currency/amount_minor/units/period，全部来自服务端配置）与 GET /api/quota/subscription。06-F2/F3 实现 POST /api/quota/orders（sku_id、provider、Idempotency-Key；201 order_id/status/checkout_url）、GET /api/quota/orders/{id}（仅本人订单，状态/金额/额度/周期）、POST /api/quota/subscription/cancel（幂等取消未来续订，不清空已付额度）。checkout_url 来自渠道或平台托管支付页，不能接收客户端自定义回跳主机。两客户端只能查看/创建本人订单，价格和授予额度不能由客户端传入。Web支付页支持微信二维码/支付宝跳转/Stripe Checkout，移动浏览器按渠道支持方式完成，实际微信移动支付与回调在06-F2验收。07-E1导出上述Schema并实现getBalance/listUsage/listSkus/getSubscription/createOrder/getOrder/cancelSubscription；07-E2消费同一接口。
+
+#### 收费与最终验收的同步
+
+06-F1定义BudgetPolicy与周期grant政策，03-D7维护循环执行发放与真实计量，08-O1管理价格。注册事务按(user_id,free-policy-version)唯一授免费额度，重复登录不重复领；注册请求不允许自选额度。周期免费/套餐grant按周期唯一，用户取消后到期不再发新周期，已付额度保留。支付宝/微信套餐用户新订单续费，Stripe按真实invoice周期；界面标明手动续费与自动订阅。UsageEntry带reservation_operation_id并从父预留扣费；子operation_id仍唯一。上游模型402是供应商故障，不提示用户给平台充值。
+
+06-F4最后整合07-E4的12例quality/flow/faults及08平台生产、两原生、两云、三支付证据。test mode只说明渠道集成验证，商业上线还须生产商户、实际价格与回调域名；未就绪为NOT_RUN。最终release_ready计算必须包括这些必需检查，不能只查四个生成例子。

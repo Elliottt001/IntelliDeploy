@@ -129,3 +129,11 @@ job = Job(kind='COPY', checkpoint={'source_version_id': publication.version_id},
 ## 双客户端边界
 
 本计划实现 Web 和社区后端；07-E2 将同一接口接入保留的 Expo 手机客户端。社区接口纳入 07-E1 的共享客户端：listPublications、getPublication、publish、unpublish、createCopy、listMyApps、listRecentApps、listFavorites、setFavorite。收藏和最近使用由 community 后端按用户持久保存，分页格式沿用交付说明。05-W3 实现 /api/library/recent、/api/library/favorites 和 PUT/DELETE /api/library/favorites/{publication_id}；05-W2 增加 GET/DELETE /api/publications/{id}。两客户端提供额度、订阅、购买入口，接 06-F1/F2/F3；手机通过外部浏览器打开平台托管的支付页，订单状态由同一后端核对，返回后刷新额度，不额外要求接原生支付 SDK。原生商店上架发行与审核规则需在确定发行方式时核对，本计划的原生验收是可运行客户端及真实联调。
+
+#### 发布版本、实例恢复及费用提示的同步
+
+05-W1交付卡同时显示instance.status/stop_reason，STOPPED提供“恢复运行”，调用03-D7 start接口后轮询InstanceOperation；FAILED显示错误和可重试入口，历史delivery不能当实际在线状态。客户端消费后端BudgetPolicy/余额及报价提示，普通用户不填技术预算参数，提交时可省略budget_units；生成与失败已发生用量的计费规则在首次执行前可见。
+
+05-W2发布必须version_id==App.active_version_id==Instance.version_id且实际运行验证PASS；版本不匹配409，不能公开一个链接指向另一版。共享同一运行实例按每个用户隔离私有记录，公开详情/预览不从拥有者私有数据取样。发布设置保存在Publication；作者继续调整已公开应用时UI提示将更新公开应用，通过03-D5激活事务同步所有该实例visible Publication.version_id，失败则两者保持旧版；公开应用页面显示最新版本，不假称固定在旧版。既有副本仍固定source_version不随作者更新。若作者不愿更新公开应用，可先取消公开；平台不擅自复制生产数据建立新公开实例。
+
+收藏/最近使用分页响应字段明确items及next_cursor；直接使用记录publication_id/instance_id，匿名按允许功能访问；VISITOR消费个人额度前登录，SPONSOR受服务端赞助上限（period/limit_units）控制。赞助上限在Publication保存，resolve_context与06-F1预留同事务检查，访问者不能改上限。取消公开阻止新匿名/社区身份进入共享实例；实例拥有者仍可访问，实例停机时社区显示暂不可用。05-W2测试公开版本更新与实际入口一致、取消公开后的匿名拒绝、赞助超限；05-W3测试已有副本不升级、不复制私人数据。

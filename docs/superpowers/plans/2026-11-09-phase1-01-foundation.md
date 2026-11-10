@@ -19,9 +19,9 @@
 
 ### Task 01-F1: 公共契约、实体和迁移
 
-**Files:** Create backend/app/core/__init__.py、backend/app/core/types.py、backend/app/apps/{__init__,models}.py、backend/app/jobs/{__init__,models}.py、backend/alembic.ini、backend/alembic/env.py、backend/alembic/versions/0001_phase1.py、backend/requirements-dev.txt、backend/.env.example、pytest.ini、infra/compose.dev.yml、tests/phase1/{conftest,test_contracts,test_migrations}.py。Modify backend/requirements.txt、backend/app/config.py、backend/app/database.py、backend/app/models/__init__.py。
+**Files:** Create backend/app/runtime/{__init__,models}.py、backend/app/core/__init__.py、backend/app/core/types.py、backend/app/apps/{__init__,models}.py、backend/app/jobs/{__init__,models}.py、backend/alembic.ini、backend/alembic/env.py、backend/alembic/versions/0001_phase1.py、backend/requirements-dev.txt、backend/.env.example、pytest.ini、infra/compose.dev.yml、tests/phase1/{conftest,test_contracts,test_migrations}.py。Modify backend/requirements.txt、backend/app/config.py、backend/app/database.py、backend/app/models/__init__.py。
 
-**Interfaces:** 产生总计划全部 Pydantic 类型和 JobStatus、InstanceStatus；SQL 实体 App、Conversation、RequirementRecord、AppVersion、Instance、Job、JobEvent、ToolCallRecord。User 保持整数主键，数据迁移不自动删除旧数据。
+**Interfaces:** 产生总计划第3/8节全部Pydantic类型、交付说明全部公开响应，以及JobStatus、InstanceStatus；SQL 实体 App、Conversation、RequirementRecord、AppVersion、Instance、Job、JobEvent、ToolCallRecord。User 保持整数主键，数据迁移不自动删除旧数据。
 
 - [ ] **Step 0: 准备独立测试环境。** 安装 Python 3.13、创建 .venv 并安装现有后端依赖及 pytest、pytest-asyncio、Alembic。先创建本任务的 infra/compose.dev.yml，使用 PostgreSQL 17、本地开发密码和持久卷，主数据库 intellideploy_dev，另创建 intellideploy_test。数据库可用后开始红测，不能把连接失败当业务红测。
 
@@ -90,7 +90,7 @@ class Job(Base):
     error = Column(Text)
 ```
 
-新增字符串 UUID 主键用 default=lambda: str(uuid.uuid4())。App 有 owner_id、prompt、active_version_id 和 nullable source_version_id；Conversation 有 app_id 和按顺序追加的消息；RequirementRecord 保存 revision 和验收项；AppVersion 保存 sources、template_version、manifest、validation、artifact_path、immutable 标记；Instance 保存 owner_id、app_id、version_id、target_id、status、url、data_namespace、secret_ref；JobEvent 用自增 ID；ToolCallRecord 对 (job_id, call_id) 唯一，保存 STARTED/COMPLETED/UNKNOWN、输入摘要、结果及用量。对 QUEUED/RUNNING/WAITING_USER/PAUSED_QUOTA 的 app_id 建部分唯一索引。
+新增字符串 UUID 主键用 default=lambda: str(uuid.uuid4())。App 有 owner_id、prompt、active_version_id 和 nullable source_version_id；Conversation 有 app_id 和按顺序追加的消息；RequirementRecord 保存 revision、原消息引用、事实/验收映射、审核结果和验收项；Job.requirement_revision和AppVersion.requirement_revision固定执行/产物对应的需求版本；AppVersion 保存 sources、template_version、manifest、validation、artifact_path、immutable 标记；Instance 保存 owner_id、app_id、version_id、target_id、status、url、data_namespace、secret_ref；JobEvent 用自增 ID；ToolCallRecord 对 (job_id, call_id) 唯一，保存 STARTED/COMPLETED/UNKNOWN、输入摘要、结果及用量。对 QUEUED/RUNNING/WAITING_USER/PAUSED_QUOTA 的 app_id 建部分唯一索引。
 
 Alembic 0001 在新 PostgreSQL 建 User 和新表，正式启动不调用 create_all。保留 SQLite URL 仅给旧只读迁移脚本；新 Worker 拒绝 SQLite。开发 Compose 只启动带持久卷的 PostgreSQL 17，创建独立 dev/test 数据库；测试 URL 不指向生产库。dev 依赖包含 pytest、pytest-asyncio、Alembic 和后续 Playwright；pytest.ini 设置 asyncio_mode=auto、testpaths=tests/phase1，登记 real/sandbox/docker 标记；有效旧测试可按显式路径运行。backend/.env.example 只列配置键与开发默认值，不含实际凭据。移除 LangGraph 的动作留到引用清理时。
 
@@ -139,7 +139,7 @@ UPDATE jobs SET status='RUNNING', lease_owner=:worker,
 WHERE id=(SELECT id FROM candidate) RETURNING *;
 ```
 
-Worker 10 秒续约，正常无任务等待 1 秒；执行器作为明确的 async process_job(job_id) 回调，在 02-G4/03-D5 接入。SIGTERM 保存检查点并释放或到期租约；取消任务保留事件。JobEvent.public_payload 只含业务状态、消息和用量，不含思考文本、Key 或原始工具日志。
+Worker 10 秒续约，正常无任务等待 1 秒；执行器作为明确的 async process_job(job_id) 回调，在 02-G4/03-D5 接入。SIGTERM 保存检查点并释放或到期租约；取消任务保留事件。JobEvent.public_payload 只含业务状态、消息和用量，不含思考文本、Key 或原始工具日志。03-D7加入独立维护async循环，不能让计量/清理阻塞生成心跳；外部效果也用lease_generation防止过期Worker继续激活。
 
 - [ ] **Step 4: 绿测。** 增加失去租约后禁止写入、事件 ID 补读、终态不重领三项断言，运行同一测试文件。
 - [ ] **Step 5: 提交。** `feat: persist job leases checkpoints and events`。
@@ -148,7 +148,7 @@ Worker 10 秒续约，正常无任务等待 1 秒；执行器作为明确的 asy
 
 **Files:** Create backend/app/apps/service.py、backend/app/apps/router.py、backend/app/jobs/router.py、tests/phase1/test_apps_api.py。Modify backend/app/main.py、backend/app/config.py。
 
-**Interfaces:** 所有公开 Schema 在 01-F1 的 core/types.py 按 [交付协议](../../一期交付与测试说明.md) 定义。create_app(session, owner_id, prompt, operation_id, budget_units) -> (App, Job)；add_message(session, app_id, owner_id, content, operation_id) -> Job；GET /api/jobs/{id}/events?after_id=；GET /api/apps/{id} 返回持久状态。
+**Interfaces:** 所有公开 Schema 在 01-F1 的 core/types.py 按 [交付协议](../../一期交付与测试说明.md) 定义。create_app(session, owner_id, prompt, operation_id, budget_units=None) -> (App, Job)；add_message(session, app_id, owner_id, content, operation_id) -> Job；GET /api/jobs/{id}/events?after_id=；GET /api/apps/{id} 返回持久状态。
 
 - [ ] **Step 1: 写认证、幂等和续接检查。** api_client 使用专用库及 User fixture；请求头 Idempotency-Key 保存为 operation_id。
 
@@ -170,16 +170,24 @@ def test_other_user_cannot_read_app(api_client, app_record, other_headers):
 ```python
 def encode_event(event) -> str:
     payload = json.dumps(event.public_payload, ensure_ascii=False)
-    return f'id: {event.id}\nevent: {event.kind}\ndata: {payload}\n\n'
+    return f'id: {event.id}\nevent: job\ndata: {payload}\n\n'
 ```
 
 补齐 GET apps 列表、GET jobs 快照/报告、版本产物下载、POST jobs resume/cancel，返回交付说明中固定公开 Schema。任务报告读取保存的验证结果，缺验证为 NOT_RUN；源码产物下载校验版本属于该应用及拥有者，只读取版本固定 artifact_path，不接受任意路径。错误统一 code/message/retryable；返回值不泄漏工作区、凭据和私有日志。resume 只允许 PAUSED_QUOTA 且额度检查/预留通过后回到 QUEUED，幂等恢复同一任务；cancel 请求记录 cancel_requested，Worker 在安全检查点停止并核对已发生外部动作，已发布版本不被删除。
 
-SSE 先验证归属，从 Last-Event-ID 或 after_id 恢复，以数据库 ID 补发；无新事件发送心跳，客户端断线结束查询。设置响应缓存禁用。服务启动检查迁移版本，不自动 ALTER 或 create_all。
+SSE统一event: job，data.kind描述实际业务事件，公开Schema中kind为字符串；Next EventSource监听job。SSE 先验证归属，从 Last-Event-ID 或 after_id 恢复，以数据库 ID 补发；无新事件发送心跳，客户端断线结束查询。设置响应缓存禁用。服务启动检查迁移版本，不自动 ALTER 或 create_all。
 
 - [ ] **Step 4: 绿测。** 补充 SSE 补发只返回 ID 大于游标的事件、刷新读到原任务、业务补充恢复而非新建任务，以及未登录创建返回 401 的检查；补充 jobs/report/artifact 越权 404、活跃任务冲突 409、额度不足 402、幂等键同请求重放与不同请求冲突、取消/恢复幂等、OpenAPI 与响应 Schema 检查。
 - [ ] **Step 5: 提交。** `feat: add persistent app conversations and event stream`。
 
 ## 本计划完成条件
 
-新库迁移可复现；两个 Worker 不同时认领；事件可补读；应用访问有归属检查；HTTP 创建请求不执行模型或构建；旧数据库未被清空。此时可以独立测试状态系统，尚不能声明应用已生成。
+新库迁移可复现；两个 Worker 不同时认领；事件可补读；应用访问有归属检查；HTTP 创建请求不执行需求模型、生成或构建；旧数据库未被清空。此时可以独立测试状态系统，尚不能声明应用已生成。
+
+#### 六项补齐对基础任务的约束
+
+01-F1同时建立Message(id/sequence/role/content)、RequirementRecord revision与Job需求绑定、lease_generation（每次认领递增）、BudgetPolicy配置和公开Schema；ResourceRecord/InstanceOperation等实体在对应后续任务唯一Alembic head追加，不在多个分支创建互不兼容迁移。01-F3只把用户输入存入对话并排队，由02-G6在Worker编译需求；WAITING_USER回复恢复同一job，运行中改门槛返回409。budget_units省略时按总计划BudgetPolicy选择正整数上限，接口不要求小白理解内部单位；01阶段未接06-F1时只做状态fixture测试，不发生真实付费调用。GET report把保存的required_ids/revision/attempt/hash与Job绑定核对，漏项或旧候选证据不会返回PASS。错误FAILED时用户明确重试可发送新消息建立新job，已有线上版本保留。
+
+公开请求字段同步：POST messages预算可选只对新ADJUST使用；WAITING_USER业务回复仅恢复原job需求整理，不擅自提高预算。POST jobs/resume可接剩余budget_units并由06-F1检查hard cap/原已计费额度，Job.reservation_id按恢复段保存历史父预留引用，子operation_id唯一避免重放扣费。01-F3响应message接受相同Idempotency-Key时返回原JobRef，不重复追加对话消息。
+
+01-F1同时在runtime/models.py定义DeploymentTarget与ResourceRecord基本字段并纳入0001迁移，使03-D3/D4能登记目标、03-D6能从第一次候选创建就记录资源，不等待08上线任务才有表。DeploymentTarget字段按08-O1定义，ResourceRecord字段按08-O2定义；08任务消费/扩展这些实体，CleanupAction在08-O2追加迁移。runtime/__init__.py不导入未实施的部署模块，避免基础迁移加载循环。

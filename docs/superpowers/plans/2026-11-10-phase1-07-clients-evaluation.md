@@ -22,7 +22,7 @@
 
 **Files:** Create package.json、package-lock.json、packages/api-client/{package.json,tsconfig.json,openapi.json}、packages/api-client/src/{generated,client,index}.ts、packages/api-client/tests/client.test.ts、scripts/export_openapi.py、docs/开发运行指南.md、web/app/api/[...path]/route.ts、web/lib/session.ts。Create web/package.json、web/next.config.ts（最小Next包用于workspace安装，05-W1扩展）；Modify frontend/package.json、frontend/metro.config.js、backend/app/utils/security.py、backend/app/main.py、backend/.env.example、.gitignore、README.md。已有单包 lockfile 确认 npm workspace 解析成功后迁移到根 lock，不先删依赖再排错。
 
-**Interfaces:** 消费 01-F1/F3 的公开 Schema；createApiClient({baseUrl, getToken?, fetchImpl?}) 产出 createApp、sendMessage、getApp、listMyApps、getJob、getReport、resumeJob、cancelJob、getArtifactUrl、issueLoginCode，以及05社区和06额度/订单方法。每个写方法接 operationId，传 Idempotency-Key；组件不能自行生成第二套 API 地址或结果结构。Web baseUrl 为同源 `/api` 代理，Expo 为配置的后端地址。
+**Interfaces:** 消费 01-F1/F3 的公开 Schema；createApiClient({baseUrl, getToken?, fetchImpl?}) 产出 createApp、sendMessage、getApp、listMyApps、getJob、getReport、resumeJob、cancelJob、getArtifactUrl、issueLoginCode，以及05社区和06额度/订单方法。每个写方法接 operationId，传 Idempotency-Key；组件不能自行生成第二套 API 地址或结果结构。Web baseUrl为空字符串，同源请求path本身含`/api`；避免/api/api重复前缀，Expo 为配置的后端地址。
 
 - [ ] **Step 1: 写传输和认证协议测试。** 使用 Vitest 注入 Fetch 夹具，仅证明请求行为；在 backend 测试 HTTPBearer 与 JSON 登录共存。
 
@@ -58,7 +58,7 @@ export type ClientOptions = {
 
 客户端内部 request(path, method, body?, operationId?) 在请求时读 token，统一解析交付说明错误，401抛带 code 的异常，组件保留业务输入并转登录。网络重试重用 operationId；GET 可重试，写请求只以同幂等键重试。下载用认证 fetch，或 Web BFF 的同源下载，不将 Bearer token 拼在下载 URL。POST/messages 在409后回读已有任务。
 
-Web BFF 映射 `/api/auth/login` 到后端 `/auth/login`，其余 `/api/*` 到列明产品路径；使用 cookie 存签名/加密的 token session（服务端 SESSION_SECRET），退出清除 cookie；校验修改请求的 Origin。SSE 直接流式转发并传 Last-Event-ID；不缓冲全部事件；设置 no-store。API_BASE_URL 只服务端读取，禁止客户端提交任意代理目标。登录成功只返回用户必要字段，不回传 access_token 给浏览器。Expo 直接 JSON 登录/Bearer；auth/security.py 保留 JWT验证与密码哈希，OAuth2PasswordBearer 改 HTTPBearer，统一401错误。
+Web BFF映射/api/auth/login、/api/auth/register、/api/auth/me分别到后端/auth/login、/auth/register、/auth/me；/api/auth/logout本地清cookie，不代理模型。登录映射/api/auth/login到后端/auth/login，其余 `/api/*` 到列明产品路径；使用 cookie 存签名/加密的 token session（服务端 SESSION_SECRET），退出清除 cookie；校验修改请求的 Origin。SSE 直接流式转发并传 Last-Event-ID；不缓冲全部事件；设置 no-store。API_BASE_URL 只服务端读取，禁止客户端提交任意代理目标。登录成功只返回用户必要字段，不回传 access_token 给浏览器。Expo 直接 JSON 登录/Bearer；auth/security.py 保留 JWT验证与密码哈希，OAuth2PasswordBearer 改 HTTPBearer，统一401错误。
 
 根 scripts 必须包含以下映射；api:generate 的 OpenAPI 导出运行前需配置后端环境。
 
@@ -158,3 +158,59 @@ def real_delivery_passed(record):
 ## 完成条件
 
 手机、Web、API共用协议；保留现有Expo；启动命令有可复制运行指南；开发者能在页面或CLI发起并评估真实生成。新代码单元绿测、Expo export、Web build均不能替代真实模型/云及iOS/Android验收。没有证据的能力标未执行，禁止用文档检查结果宣称产品已完成。
+
+### Task 07-E4: 代表性需求集、独立需求核对与交付质量门槛（P6）
+
+**Files:** Create tests/phase1/cases/{quality,flow,faults}.json；Modify tests/phase1/cases/retrieval.json、scripts/summarize_phase1_evaluations.py、tests/phase1/test_quality_metrics.py、docs/一期真实验收记录.md。Modify scripts/run_phase1_acceptance.py、backend/app/evaluation/schemas.py、web/components/EvaluationResult.tsx、web/e2e/evaluation.spec.ts。retrieval.json由02-G7首次建立，本任务扩充；不复制第二份检索答案索引。
+
+**Interfaces:** summarize(records: list[dict], reviews: list[dict]) -> dict；review记录case_id/job_id/reviewer/requirement_coverage/usability/blockers/evidence；生成记录来自07-E3/03-D6及06-F4。CLI增加--suite smoke|quality|faults，--cases沿用明确文件；默认automatic。真实记录中source_mode=real仅由runner根据实际环境/部署证据设置，客户端不能传real绕过验证。
+
+- [ ] **Step 1: 写指标不能被漏项或强制路线抬高的检查。** 夹具records在test文件定义，统计函数不执行任何真实收费。
+
+```python
+def test_forced_and_not_run_are_separate(metric_context):
+    report = summarize(metric_context.records(), metric_context.reviews())
+    assert report['automatic']['attempted'] == 3
+    assert report['automatic']['passed'] == 1
+    assert report['required_not_run'] == 1
+    assert report['forced']['attempted'] == 1
+    assert report['release_ready'] is False
+
+def test_model_report_cannot_override_missing_user_feature(metric_context):
+    records, reviews = metric_context.model_pass_but_missing_upload()
+    assert summarize(records, reviews)['release_ready'] is False
+```
+
+- [ ] **Step 2: 红测。** pytest test_quality_metrics.py；夹具不计真实生成成功率。
+- [ ] **Step 3: 建立固定样本与计算标准。** smoke至少4个真实A/B/C/D需求（原笔记/梦境/记录检索/实时信息），并完成一次Web发起、Expo读取续接和API发起。quality至少12个独立业务需求，每路线至少3个，合计包含：个人笔记/个人任务/静态展示；现成日记加AI/现成文件库加权限/现成看板加筛选；记录与检索/上传与分析/目录与多人收藏整合；从脚手架生成实时信息/多人活动报名/私有图片分析工具。每条明确个人或多人、外部能力、数据保存、界面可观察动作、预期路线和已知候选参考。不能通过只改配色凑三个不同需求，且不得人为限定用户检索到预设仓库。
+
+case定义固定id/prompt/expected_route/core_checks/known_repositories/answers/target；core_checks来自人工逐句核对用户需求，不只采用模型生成清单。每路线至少一例不提供仓库名，验证自动检索；其他已给定仓库的要求另标source_hint=true，不混算无提示检索指标。C样本记录两个关键来源commit及业务连接，不把“装了两个npm包”算跨组件交付。每例首次生成/部署执行一次，挑选各路线一例重复3次观察波动，重复运行预算由测试负责人明确配置，runner不得自动无限重试。
+
+faults单独包含检索429/资料缺失、模型超时、预算暂停恢复、构建错误自愈、候选数据不持久、跨用户拒绝、迁移失败回滚、部署切换崩溃、平台重启、实例欠费恢复、孤儿清理保护、共享/副本独立、两类目标及三支付重复回调。故障注入仅测试目标，fixture故障证据与真实业务样本分别标注；两种云至少用同一持久化业务样本实测。iOS和Android原生操作记录依07-E2，不能将Expo网页预览当两平台原生通过。
+
+人工review读取原prompt、生成Requirement、实际应用及证据，标requirement_coverage=PASS/FAIL、usability=PASS/FAIL、blockers列表；检查中文可理解、主要动作可找到、加载/空/错误状态有反馈、电脑和手机浏览器无阻断布局、无固定演示内容冒充结果。可接受简单UI风格，不要求每例专业设计，但核心操作不可用则FAIL。首次真实回归至少人工复核12例，不能用模型自己写PASS作为用户需求完整的证据。
+
+统计attempted为实际开始执行的automatic real任务（含失败和预算暂停）；delivered必须job成功、真实URL检查、全部核心ID及需求人工核对PASS；usability另列。NOT_RUN未发起不混入交付分母，但required_not_run阻止release_ready。输出各路线成功/失败/暂停数、召回Recall@10（只对已知相关项目集）、选路符合率、功能项通过率、p50/p90到首次可用耗时、实际用量/已知费用、unknown_cost_count、调整结果、失败分类；source_hint、forced、fixture单独表。费用未知不填0。没有执行的统计值为null，不生成虚构成功率。
+
+```python
+release_ready = (required_not_run == 0 and required_failures == 0
+                 and all(row['requirement_coverage'] == 'PASS' for row in required_reviews)
+                 and all(row['usability'] == 'PASS' for row in required_reviews)
+                 and covered_routes == {'DEPLOY_EXISTING', 'MODIFY_EXISTING',
+                                        'COMPOSE_COMPONENTS', 'GENERATE_APP'})
+```
+
+required_reviews必须覆盖全部必需样本，空列表不能因all([])而通过；summarize先校验expected_case_ids集合与records/reviews一致。首版发布门槛：12例必需质量样本全部交付/人工复核PASS，四条路线、多人隐私、真实AI/搜索、调整保留数据、共享/副本、Linux/Sealos、三支付、两客户端均有必需证据；失败先修复再重跑相关样本并保留旧失败记录。该门槛是固定套件通过，不等于任意需求95%成功率，宣传数字只引用标明样本数/时间/环境的统计。
+
+- [ ] **Step 4: 绿测和真实报告。** 模型PASS但漏功能、review缺案例、强制路线混算、未知费用、缺原生/支付/云证据都阻止上线门槛；运行CLI的smoke→quality→faults，将脱敏JSON/截图存artifacts/evaluations，docs/一期真实验收记录仅写索引、环境、提交版本、PASS/FAIL/NOT_RUN及限制，不提交私人内容/Key。开发者评测页展示相同指标和未执行原因。
+- [ ] **Step 5: 提交。** `test: establish representative phase one delivery acceptance`。尚未真实执行时记录“未执行”，不得将本计划已写标为样本已通过。
+
+#### 两客户端操作与评测的同步
+
+07-E1请求包新增getInstance/startInstance/stopInstance/deleteInstance/getInstanceOperation，消费03-D7公开Schema；07-E2和05-W1按操作id轮询直到SUCCEEDED/FAILED，结束后GET instance及app，不把202当已启动。启动/停止与job共用互斥；运行中新增输入保留草稿并提示已有任务，不默默覆盖执行需求。令牌过期401保留app_id/job_id/草稿，重新登录后回读同一任务；只有明确新提交才生成新幂等键，避免重新登录重发生成。
+
+CLI统一case字段expected_route/core_checks/known_repositories/answers/target，旧route/checks仅在读取旧历史报告时做一次转换并标legacy，不允许两个子计划维护不同测试输入。故障套件faults.json与生产演练不混算普通需求交付率。原07-E3 real.json为smoke集，07-E4 quality/flow/faults扩展；verify必须核对所有必需case是否有记录/review。运行输出保留每次旧失败而非覆盖最新PASS。
+
+#### 路线预期不能反向控制产品
+
+expected_route仅是评测参考，路由不读取它。检索发现比预期D更适合的A/B/C时优先复用，人工核对可标ROUTE_EXPECTATION_STALE，不将合法复用当核心业务失败，不为凑D强制生成。覆盖数按实际route统计，原预计D实际A不能算D；须补充真正无合理复用的D需求，或显式用户要求脚手架的样本（标user_requested_generation=true，单独统计检索跳过原因）。每条路线至少一例无路线提示的自动检索真实需求，最终覆盖仍以实际行为满足。case版本变更保存原因，不抹掉旧失败/旧预期。07-E4增加“参考D但合适A优先”的统计回归，确保优化检索不会导致评测驱动倒退。
