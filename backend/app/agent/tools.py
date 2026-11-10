@@ -1,5 +1,6 @@
 import json
 import re
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Protocol
@@ -65,13 +66,16 @@ ARGUMENTS = {
 
 class DockerExecutor:
     def __init__(self, image: str):
-        if "@sha256:" not in image:
+        if "@sha256:" not in image and not re.fullmatch(r"sha256:[0-9a-f]{64}", image):
             raise ValueError("executor image must be pinned by digest")
         self.image = image
+        self.docker = shutil.which("docker")
+        if not self.docker:
+            raise ValueError("docker CLI is unavailable")
 
     def run(self, workspace: str, argv: list[str], timeout: int) -> tuple[bool, str]:
         command = [
-            "docker", "run", "--rm", "--network", "none", "--read-only",
+            self.docker, "run", "--rm", "--network", "none", "--read-only",
             "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
             "--pids-limit", "128", "--memory", "1g", "--cpus", "1",
             "--user", "10001:10001", "--tmpfs", "/tmp:rw,noexec,nosuid,size=128m",

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from app.agent.tools import execute_tool
+from app.agent.tools import DockerExecutor, execute_tool
 from app.agent.workspace import WorkspaceManager, safe_path
 from app.core.types import ToolCall
 
@@ -57,6 +57,9 @@ def test_commands_require_isolated_executor_and_cap_public_output(tmp_path):
     assert result.ok and len(result.content.encode()) <= 65536 and "truncated" in result.content
     assert (Path(workspace) / ".tool-results" / "large.log").stat().st_size == 70000
     assert executor.calls[0][1:] == (["large"], 5)
+    with pytest.raises(ValueError):
+        DockerExecutor("intellideploy-agent:latest")
+    assert DockerExecutor("sha256:" + "a" * 64).image.startswith("sha256:")
 
 
 def test_illegal_tool_timeout_and_platform_secrets_are_rejected(tmp_path):
