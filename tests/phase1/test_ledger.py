@@ -319,3 +319,27 @@ def test_period_grant_is_issued_once(session_factory, account):
         second = grant_period(session, account, "monthly-v1", 20, start, end, "FREE")
         assert first.id == second.id
         assert balance(session, account)["available_units"] == 120
+
+
+def test_cached_and_uncached_input_are_settled_once_from_the_same_parent(
+    session_factory, account
+):
+    with session_factory() as session:
+        session.add_all([
+            PriceRule(kind="cache-test.input", version="test-v1", numerator=1, denominator=10),
+            PriceRule(kind="cache-test.cached", version="test-v1", numerator=1, denominator=30),
+            PriceRule(kind="cache-test.output", version="test-v1", numerator=1, denominator=5),
+        ])
+        parent = reserve(session, account, "cache-job", 20)
+        # 80 prompt tokens = 50 uncached + 30 cached, plus 20 output tokens.
+        usages = [
+            UsageInput(operation_id="uncached", payer_id=account, kind="cache-test.input", units=50, price_version="test-v1", reservation_operation_id="cache-job"),
+            UsageInput(operation_id="cached", payer_id=account, kind="cache-test.cached", units=30, price_version="test-v1", reservation_operation_id="cache-job"),
+            UsageInput(operation_id="output", payer_id=account, kind="cache-test.output", units=20, price_version="test-v1", reservation_operation_id="cache-job"),
+        ]
+        ids = [record_usage(session, usage).id for usage in usages]
+        assert [record_usage(session, usage).id for usage in usages] == ids
+        assert parent.used_units == 10
+        settle(session, "cache-job")
+        session.commit()
+        assert balance(session, account) == {"available_units": 90, "reserved_units": 0}
