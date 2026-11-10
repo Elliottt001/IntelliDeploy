@@ -17,7 +17,7 @@ test('copy retry after refresh keeps its request key and opens the new app',asyn
   await page.route('**/api/publications/public/copies',async r=>{keys.push(r.request().headers()['idempotency-key']); if(keys.length===1)await r.abort();else await r.fulfill({status:201,json:{app_id:'copy',job_id:'copy-job',status:'QUEUED'}});});
   await page.goto('/community/public');
   await page.getByRole('button',{name:'创建我的副本'}).click();
-  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.locator('p[role="alert"]')).toBeVisible();
   await page.reload();
   await page.getByRole('button',{name:'创建我的副本'}).click();
   await expect(page).toHaveURL(/\/apps\/copy/);

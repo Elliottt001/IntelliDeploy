@@ -1,6 +1,8 @@
 {
   "name": "intellideploy",
   "private": true,
+  "overrides": { "react-native-worklets": "0.7.4" },
+  "dependencies": { "react-native-worklets": "0.7.4" },
   "workspaces": [
     "frontend",
     "web",

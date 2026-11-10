@@ -91,3 +91,5 @@ frontend/playwright-report/
 log/app.log
 
 .codex/
+frontend/ios/
+frontend/android/
