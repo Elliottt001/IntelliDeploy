@@ -175,6 +175,19 @@ def add_message(session, app_id, owner_id, content, operation_id, budget_units=N
     app = owned_app(session, app_id, owner_id, lock=True)
     if record:
         return JobRef.model_validate(record.response)
+    active_operation = session.scalar(
+        select(InstanceOperation.id)
+        .join(Instance, Instance.id == InstanceOperation.instance_id)
+        .where(
+            Instance.app_id == app.id,
+            InstanceOperation.status.in_(("QUEUED", "RUNNING")),
+        )
+    )
+    if active_operation is not None:
+        abort(
+            "ACTIVE_INSTANCE_OPERATION",
+            "该应用正在执行实例操作",
+        )
     active = session.scalar(
         select(Job).where(Job.app_id == app_id, Job.status.in_(ACTIVE_STATUSES))
     )

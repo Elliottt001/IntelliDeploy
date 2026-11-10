@@ -10,7 +10,11 @@ from app.billing.models import Reservation, ResourceMeterWindow, UnknownUsage
 from app.billing.pricing import resolve_price
 from app.core.types import ResourceWindow, UsageInput
 from app.database import SessionLocal
-from app.runtime.operations import OperationConflict, _enqueue_instance_operation
+from app.runtime.operations import (
+    OperationConflict,
+    _enqueue_instance_operation,
+    _lock_instance_app,
+)
 from app.runtime.reconcile import collect_resource_window
 
 
@@ -280,7 +284,7 @@ async def process_resource_window(
     )
     key = _window_key(window)
     with session_factory() as session:
-        instance = session.scalar(select(Instance).where(Instance.id == instance_id).with_for_update())
+        instance = _lock_instance_app(session, instance_id)
         if window.compute_state == "UNKNOWN":
             row = save_pending_window(session, key, window, instance.owner_id)
             session.commit()

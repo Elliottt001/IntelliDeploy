@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from sqlalchemy import and_, or_, select
 
-from app.apps.models import Instance, InstanceOperation
+from app.apps.models import App, Instance, InstanceOperation
 from app.billing.ledger import InsufficientQuota, balance, settle
 from app.billing.models import Reservation, ResourceMeterWindow
 from app.capabilities.models import InstanceCredential, InstanceDataSpace
@@ -70,10 +70,26 @@ def _payload_hash(kind: str, delete_data: bool) -> str:
     ).hexdigest()
 
 
-def _owned_instance(session, instance_id: str, owner_id: int) -> Instance:
+def _lock_instance_app(
+    session, instance_id: str, owner_id: int | None = None
+) -> Instance:
+    predicates = [Instance.id == instance_id]
+    if owner_id is not None:
+        predicates.append(Instance.owner_id == owner_id)
+    hint = session.scalar(select(Instance).where(*predicates))
+    if hint is None:
+        raise LookupError("instance not found")
+
+    app_predicates = [App.id == hint.app_id]
+    if owner_id is not None:
+        app_predicates.append(App.owner_id == owner_id)
+    app = session.scalar(select(App).where(*app_predicates).with_for_update())
+    if app is None:
+        raise LookupError("instance not found")
+
     instance = session.scalar(
         select(Instance)
-        .where(Instance.id == instance_id, Instance.owner_id == owner_id)
+        .where(*predicates, Instance.app_id == app.id)
         .with_for_update()
     )
     if instance is None:
@@ -94,7 +110,7 @@ def _enqueue_instance_operation(
         raise ValueError("instance operation kind is invalid")
     if not isinstance(operation_id, str) or not operation_id.strip() or len(operation_id) > 200:
         raise ValueError("operation ID is required")
-    instance = _owned_instance(session, instance_id, owner_id)
+    instance = _lock_instance_app(session, instance_id, owner_id)
     payload_hash = _payload_hash(kind, delete_data)
     existing = session.scalar(
         select(InstanceOperation).where(

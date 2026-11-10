@@ -228,6 +228,40 @@ def test_active_delivery_blocks_instance_operation(session_factory, instance_con
             )
 
 
+def test_active_instance_operation_blocks_adjustment(session_factory, instance_context):
+    from fastapi import HTTPException
+    from sqlalchemy import func, select
+
+    from app.apps.models import Message
+    from app.apps.service import add_message
+    from app.jobs.models import Job
+    from app.runtime.operations import request_instance_operation
+
+    with session_factory() as session:
+        request_instance_operation(
+            session,
+            instance_context.instance_id,
+            instance_context.owner_id,
+            "STOP",
+            "queued-stop",
+        )
+
+    with session_factory() as session:
+        with pytest.raises(HTTPException) as exc_info:
+            add_message(
+                session,
+                instance_context.app_id,
+                instance_context.owner_id,
+                "增加搜索功能",
+                "blocked-adjustment",
+                100,
+            )
+        assert exc_info.value.status_code == 409
+        assert exc_info.value.detail["code"] == "ACTIVE_INSTANCE_OPERATION"
+        assert session.scalar(select(func.count()).select_from(Job)) == 0
+        assert session.scalar(select(func.count()).select_from(Message)) == 0
+
+
 @pytest.mark.asyncio
 async def test_stop_then_start_preserves_url_version_and_data(
     session_factory, instance_context
