@@ -192,6 +192,8 @@ class CapabilityContext(BaseModel):
     user_id: int | None
     payer_id: int
     publication_id: str | None = None
+    reservation_operation_id: str | None = None
+    job_id: str | None = None
 
 
 class PublishRequest(BaseModel):

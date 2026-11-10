@@ -31,11 +31,19 @@ def instance_access(instance_id:str,
     instance=db.get(Instance,instance_id)
     if instance is None: abort('NOT_FOUND','实例不存在',404)
     _verify_instance_credential(db,instance_id,instance_token)
+    from app.runtime.models import ResourceRecord
+    from sqlalchemy import select
+    migration=db.scalar(select(ResourceRecord).where(ResourceRecord.type=='MIGRATION_GUARD',ResourceRecord.reference==instance_id,ResourceRecord.state.in_(['PREPARING','APPLYING','UNKNOWN'])))
     user_id=None
     if authorization:
         scheme,_,token=authorization.partition(' ')
         if scheme.lower()!='bearer' or not token: abort('IDENTITY_INVALID','应用身份格式无效',401)
         user_id=verify_app_identity(token,instance.app_id,instance_id)
+    from app.capabilities.identity import candidate_context
+    context=candidate_context(db,instance,user_id)
+    if context:
+        return Response(content=__import__('json').dumps({'allowed':True,'user_id':context.user_id}),media_type='application/json',headers={'Cache-Control':'no-store'})
+    if migration:abort('INSTANCE_MAINTENANCE','应用数据正在维护或等待核对',403)
     if instance.status!='RUNNING': abort('INSTANCE_UNAVAILABLE','应用暂不可用',403)
     try:
         user_id=authorize_instance_access(owner_id=instance.owner_id,public_visible=active_publication(db,instance_id) is not None,authenticated_user_id=user_id,forwarded_user_id=None,trusted_gateway=False)

@@ -18,6 +18,8 @@ from app.core.types import (
 from app.database import SessionLocal
 from app.jobs.models import Job, JobEvent
 from app.jobs.store import LeaseLost, leased_job
+from app.jobs.execution import WaitingForUser, UncertainModelCall
+from app.billing.ledger import InsufficientQuota
 from app.runtime.build import build_release, snapshot_release
 from app.runtime.candidate import candidate_controller, start_candidate, stop_candidate
 from app.runtime.check_plan import compile_browser_checks
@@ -283,18 +285,19 @@ def _create_verified_version(
     with session_factory() as session:
         job = session.get(Job, job_id)
         app = session.scalar(select(App).where(App.id == job.app_id).with_for_update())
+        requirement=session.scalar(select(RequirementRecord).where(RequirementRecord.app_id==app.id,RequirementRecord.revision==job.requirement_revision))
         version = AppVersion(
             app_id=app.id,
             requirement_revision=job.requirement_revision,
-            sources=(session.get(AppVersion,app.source_version_id).sources if job.kind=='COPY' else []),
-            template_version=(session.get(AppVersion,app.source_version_id).template_version if job.kind=='COPY' else None),
+            sources=(session.get(AppVersion,app.source_version_id).sources if job.kind=='COPY' else job.checkpoint.get('sources',[])),
+            template_version=(session.get(AppVersion,app.source_version_id).template_version if job.kind=='COPY' else job.checkpoint.get('template_version')),
             manifest=candidate.manifest.model_dump(mode="json"),
             validation=report.model_dump(mode="json"),
             artifact_path=artifact_path,
             immutable=True,
             delivery={
                 "summary": app.name,
-                "features": [],
+                "features": [item['action'] for item in requirement.requirement['acceptance']] if requirement else [],
                 "browser_checks": [
                     item.model_dump(mode="json") for item in candidate.browser_checks
                 ],
@@ -377,12 +380,16 @@ async def run_pipeline(
     dependencies: PipelineDependencies | None = None,
     policy: PipelinePolicy | None = None,
 ) -> None:
-    dependencies = dependencies or PipelineDependencies()
+    execution = None
     policy = policy or PipelinePolicy()
     repair_evidence: list[dict] = []
     last_message = "core checks did not pass"
     is_copy = _copy_job(session_factory,job_id)
     try:
+        if dependencies is None:
+            from app.jobs.execution import build_default_dependencies
+            dependencies,execution=await build_default_dependencies(job_id,worker_id,generation,session_factory)
+            await execution.ensure_requirement()
         for attempt_index in range(1 if is_copy else policy.max_attempts):
             runtime = None
             try:
@@ -396,6 +403,8 @@ async def run_pipeline(
                     from app.community.service import prepare_copy_candidate
                     with session_factory() as session:
                         draft=prepare_copy_candidate(session,session.get(Job,job.id))
+                    if execution:
+                        draft=CandidateDraft(draft.workspace_id,execution.candidates.prepare_manifest(draft.manifest),draft.source_tree,draft.browser_checks)
                     attempt_id=f'{job.id[:8]}-copy-{attempt_index+1}'
                     candidate=PipelineCandidate(attempt_id,draft.workspace_id,draft.manifest,manifest_hash(draft.manifest),draft.browser_checks)
                 else:
@@ -451,7 +460,7 @@ async def run_pipeline(
     except PipelineCancelled:
         _finish_cancelled(session_factory, job_id)
         return
-    except PauseQuota:
+    except (PauseQuota,InsufficientQuota):
         with session_factory() as session:
             job = session.get(Job, job_id)
             job.status = "PAUSED_QUOTA"
@@ -464,6 +473,11 @@ async def run_pipeline(
         return
     except LeaseLost:
         raise
+    except WaitingForUser:
+        return
+    except UncertainModelCall:
+        _finish_failure(session_factory,job_id,'UPSTREAM_UNAVAILABLE','模型请求结果或用量待核对，不能自动重放')
+        return
     except TargetUnavailable as exc:
         _finish_failure(session_factory, job_id, "TARGET_UNAVAILABLE", str(exc))
         return
@@ -471,6 +485,15 @@ async def run_pipeline(
         _finish_failure(session_factory, job_id, "PIPELINE_FAILED", str(exc))
         return
     finally:
+        if execution is not None:
+            from app.billing.ledger import settle
+            from app.billing.models import Reservation
+            with session_factory() as session:
+                current=session.get(Job,job_id)
+                if current.status in {'SUCCEEDED','FAILED','CANCELLED','PAUSED_QUOTA'} and current.reservation_id:
+                    parent=session.get(Reservation,current.reservation_id)
+                    if parent and parent.status=='OPEN':settle(session,parent.operation_id);session.commit()
+            await execution.close()
         if is_copy:
             from app.billing.ledger import settle
             with session_factory() as session:

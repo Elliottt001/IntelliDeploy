@@ -13,7 +13,7 @@ from fastapi import HTTPException
 from sqlalchemy import select, text
 
 from app.billing.ledger import LedgerConflict, record_usage, reserve, settle
-from app.billing.models import UnknownUsage, UsageEntry
+from app.billing.models import UnknownUsage, UsageEntry, Reservation
 from app.billing.pricing import resolve_price
 from app.config import settings
 from app.core.types import CapabilityContext, UsageInput
@@ -134,11 +134,25 @@ def _reserve_operation(
 ):
     factory = session_factory or _session_factory
     with factory() as session:
+        if context.job_id:
+            from app.jobs.models import Job
+            session.scalar(select(Job).where(Job.id==context.job_id).with_for_update())
         replay = _load_replay(session, operation_id, request_hash)
         if replay is not _NO_REPLAY:
             return replay
         for kind in price_kinds:
             resolve_price(kind, settings.PRICE_VERSION, session)
+        if context.reservation_operation_id:
+            from app.billing.ledger import InsufficientQuota
+            from app.runtime.models import ResourceRecord
+            parent=session.scalar(select(Reservation).where(Reservation.operation_id==context.reservation_operation_id).with_for_update())
+            if not parent or parent.payer_id!=context.payer_id or parent.status!='OPEN':raise LedgerConflict()
+            holds=list(session.scalars(select(ResourceRecord).where(ResourceRecord.type=='CAPABILITY_HOLD',ResourceRecord.job_id==context.job_id,ResourceRecord.state.in_(['OPEN','UNKNOWN']))))
+            if parent.used_units+sum(item.metadata_json['units'] for item in holds)+settings.CAPABILITY_RESERVATION_UNITS>parent.max_units:raise InsufficientQuota()
+            operation='hold:'+_reservation_id(operation_id)
+            hold=session.scalar(select(ResourceRecord).where(ResourceRecord.operation_id==operation,ResourceRecord.type=='CAPABILITY_HOLD'))
+            if not hold:session.add(ResourceRecord(type='CAPABILITY_HOLD',job_id=context.job_id,app_id=context.app_id,operation_id=operation,state='OPEN',reference=context.reservation_operation_id,metadata_json={'units':settings.CAPABILITY_RESERVATION_UNITS}))
+            session.commit();return _NO_REPLAY
         reserve(
             session,
             context.payer_id,
@@ -164,7 +178,7 @@ def save_unknown_usage(
     status: str = "UNKNOWN",
     error_message: str | None = None,
 ) -> UnknownUsage:
-    metadata = {"request_hash": request_hash, "reservation_operation_id":_reservation_id(operation_id)}
+    metadata = {"request_hash": request_hash, "reservation_operation_id":context.reservation_operation_id or _reservation_id(operation_id)}
     if status_code is not None:
         metadata["provider_status"] = status_code
     if response is not None:
@@ -195,7 +209,7 @@ def save_unknown_usage(
             metadata_json=metadata,
         )
         session.add(result)
-        settle(session, _reservation_id(operation_id))
+        finish_capability_reservation(session,context,operation_id,unknown=status=='UNKNOWN')
         session.commit()
         return result
 
@@ -263,6 +277,7 @@ def _record_success(
     response,
 ):
     with _session_factory() as session:
+        lock_shared_job(session,context)
         replay = _load_replay(session, operation_id, request_hash)
         if replay is not _NO_REPLAY:
             return replay
@@ -275,12 +290,26 @@ def _record_success(
                 units=units,
                 price_version=settings.PRICE_VERSION,
                 metadata={"request_hash": request_hash, "response": response},
-                reservation_operation_id=_reservation_id(operation_id),
+                reservation_operation_id=context.reservation_operation_id or _reservation_id(operation_id),
             ),
         )
-        settle(session, _reservation_id(operation_id))
+        finish_capability_reservation(session,context,operation_id)
         session.commit()
     return response
+
+
+def finish_capability_reservation(session,context,operation_id,unknown=False):
+    if context.reservation_operation_id:
+        from app.runtime.models import ResourceRecord
+        hold=session.scalar(select(ResourceRecord).where(ResourceRecord.operation_id=='hold:'+_reservation_id(operation_id),ResourceRecord.type=='CAPABILITY_HOLD').with_for_update())
+        if hold:hold.state='UNKNOWN' if unknown else 'CLOSED'
+    else:settle(session,_reservation_id(operation_id))
+
+
+def lock_shared_job(session,context):
+    if context.job_id:
+        from app.jobs.models import Job
+        session.scalar(select(Job).where(Job.id==context.job_id).with_for_update())
 
 
 async def search(

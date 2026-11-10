@@ -36,6 +36,8 @@ class DataSpaceManager:
             "dbname": database or self.control_database,
             "user": self.admin_url.username,
             "password": self.admin_url.password,
+            "connect_timeout":10,
+            **{key:value for key,value in self.admin_url.query.items() if key in {'sslmode','sslrootcert','sslcert','sslkey'}},
         }
 
     def _names(self, instance_id: str) -> tuple[str, str]:
@@ -175,6 +177,70 @@ class DataSpaceManager:
                 instance.data_namespace = None
                 instance.secret_ref = None
             session.commit()
+
+    def _instance_connection(self,instance_id):
+        with self.session_factory() as session:
+            record=session.get(InstanceDataSpace,instance_id)
+            if not record or record.destroyed_at:raise DataSpaceError('instance database is not available')
+            return self._read_secret(Path(record.secret_ref))
+
+    def _pg_environment(self,config):
+        return {'PATH':os.environ.get('PATH','/usr/bin:/bin'),'PGHOST':str(config['host']),'PGPORT':str(config['port']),'PGUSER':str(config['username']),'PGPASSWORD':str(config['password']),'PGDATABASE':str(config['database']),**{('PG'+key.upper()):str(value) for key,value in self.admin_url.query.items() if key in {'sslmode','sslrootcert'}}}
+
+    def snapshot(self,instance_id,operation_id):
+        import shutil,subprocess
+        executable=shutil.which('pg_dump')
+        if not executable:raise DataSpaceError('PostgreSQL snapshot tooling is not installed')
+        config=self._instance_connection(instance_id)
+        root=self.secrets_root/'recovery';root.mkdir(parents=True,exist_ok=True,mode=0o700)
+        name=hashlib.sha256((instance_id+':'+operation_id).encode()).hexdigest()
+        path=root/(name+'.dump')
+        if path.is_file():return path
+        temporary=path.with_suffix('.tmp')
+        result=subprocess.run([executable,'--format=custom','--no-owner','--no-acl','--file',str(temporary)],env=self._pg_environment(config),stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,timeout=300)
+        if result.returncode:temporary.unlink(missing_ok=True);raise DataSpaceError('instance snapshot failed')
+        temporary.chmod(0o600);os.replace(temporary,path)
+        return path
+
+    def restore(self,instance_id,snapshot):
+        import shutil,subprocess
+        executable=shutil.which('pg_restore')
+        snapshot=Path(snapshot).resolve()
+        if not executable or not snapshot.is_relative_to(self.secrets_root.resolve()/'recovery') or not snapshot.is_file():raise DataSpaceError('valid recovery material and PostgreSQL tools are required')
+        config=self._instance_connection(instance_id)
+        result=subprocess.run([executable,'--clean','--if-exists','--no-owner','--no-acl','--dbname',config['database'],str(snapshot)],env=self._pg_environment(config),stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,timeout=300)
+        if result.returncode:raise DataSpaceError('instance recovery could not be verified')
+
+    def clone(self,source_instance,target_instance,operation_id):
+        with self.session_factory() as session:
+            source=session.get(Instance,source_instance);target=session.get(Instance,target_instance)
+            if not source or not target or target.kind!='CANDIDATE' or source.app_id!=target.app_id or source.owner_id!=target.owner_id:
+                raise DataSpaceError('data copies are limited to the same app candidate')
+        self.provision(target_instance)
+        snapshot=self.snapshot(source_instance,operation_id)
+        self.restore(target_instance,snapshot)
+        return snapshot
+
+    def data_proof(self,instance_id,baseline=None):
+        from collections import Counter
+        config=self._instance_connection(instance_id)
+        with psycopg.connect(host=config['host'],port=config['port'],dbname=config['database'],user=config['username'],password=config['password'],connect_timeout=10) as connection:
+            tables=[row[0] for row in connection.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")]
+            result={}
+            for table in tables:
+                if baseline is not None and table not in baseline:continue
+                columns=[row[0] for row in connection.execute("SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name=%s ORDER BY column_name",(table,))]
+                if baseline is not None:
+                    wanted=baseline[table]['columns']
+                    if not set(wanted)<=set(columns):return False
+                    columns=wanted
+                statement=sql.SQL('SELECT {} FROM {}').format(sql.SQL(',').join(sql.Identifier(column) for column in columns),sql.Identifier('public',table))
+                hashes=Counter(hashlib.sha256(json.dumps(row,default=str,separators=(',',':')).encode()).hexdigest() for row in connection.execute(statement))
+                if baseline is not None:
+                    if any(hashes[key]<count for key,count in baseline[table]['rows'].items()):return False
+                else:result[table]={'columns':columns,'rows':dict(hashes)}
+            if baseline is not None:return set(baseline)<=set(tables)
+            return result
 
 
 def _manager() -> DataSpaceManager:

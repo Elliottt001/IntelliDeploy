@@ -258,7 +258,7 @@ def app_summary(session, app):
     )
     instance = session.scalar(
         select(Instance)
-        .where(Instance.app_id == app.id)
+        .where(Instance.app_id == app.id,Instance.kind=='PRODUCTION')
         .order_by(Instance.created_at.desc())
         .limit(1)
     )
@@ -313,7 +313,7 @@ def app_detail(session, app):
     )
     instance = session.scalar(
         select(Instance)
-        .where(Instance.app_id == app.id)
+        .where(Instance.app_id == app.id,Instance.kind=='PRODUCTION')
         .order_by(Instance.created_at.desc())
         .limit(1)
     )

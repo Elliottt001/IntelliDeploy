@@ -132,6 +132,24 @@ def _verify_instance_credential(session, instance_id: str, token: str) -> None:
         raise IdentityError("实例凭据无效")
 
 
+def candidate_context(session,instance,user_id):
+    from datetime import datetime,timezone
+    from app.jobs.models import Job
+    from app.runtime.models import ResourceRecord
+    record=session.scalar(select(ResourceRecord).where(ResourceRecord.type.in_(['CANDIDATE_RUNTIME','LIVE_VALIDATION']),ResourceRecord.reference==instance.id,ResourceRecord.state=='RUNNING'))
+    if not record:
+        if instance.kind=='CANDIDATE':raise IdentityError('候选身份已失效')
+        return None
+    job=session.get(Job,record.job_id);grant=record.metadata_json
+    if not job or job.status!='RUNNING' or job.cancel_requested or job.lease_owner!=grant['worker_id'] or job.lease_generation!=grant['generation'] or job.lease_until<=datetime.now(timezone.utc):
+        if instance.kind=='CANDIDATE':raise IdentityError('候选任务租约已失效')
+        return None
+    if user_id not in {grant.get('test_owner_id',grant['owner_id']),grant['other_id']} and not (user_id is None and grant.get('anonymous_allowed')):
+        if instance.kind!='CANDIDATE':return None
+        raise IdentityError('未登记的候选测试身份')
+    return CapabilityContext(app_id=instance.app_id,instance_id=instance.id,user_id=user_id,payer_id=grant['owner_id'],reservation_operation_id=grant['reservation_operation_id'],job_id=job.id)
+
+
 def _origin(url: str) -> tuple[str, str, int | None]:
     parsed = urlsplit(url)
     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
@@ -229,6 +247,8 @@ def resolve_context(
     user_id = (
         verify_app_identity(user_token, instance.app_id, instance.id) if user_token else None
     )
+    validation=candidate_context(session,instance,user_id)
+    if validation:return validation
     from app.community.service import active_publication
     publication = active_publication(session, instance.id)
     if instance.status in {'STOPPED', 'FAILED', 'DELETED'}:

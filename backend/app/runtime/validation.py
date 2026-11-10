@@ -163,7 +163,8 @@ async def validate_application(
                     )
                     continue
                 if check.actor not in contexts:
-                    contexts[check.actor] = await browser.new_context()
+                    options=runtime_controller.browser_options(check.actor) if runtime_controller and hasattr(runtime_controller,'browser_options') else {}
+                    contexts[check.actor] = await browser.new_context(**options)
                     pages[check.actor] = await contexts[check.actor].new_page()
                     errors[check.actor] = []
                     pages[check.actor].on(

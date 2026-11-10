@@ -106,6 +106,8 @@ def test_instance_credential_and_context_cannot_cross_instances(session_factory)
             "user_id": owner.id,
             "payer_id": owner.id,
             "publication_id": None,
+            "reservation_operation_id": None,
+            "job_id": None,
         }
         with pytest.raises(IdentityError):
             resolve_context(session, two.id, user_token, one_secret)

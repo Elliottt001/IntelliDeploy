@@ -17,7 +17,7 @@ Key = Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=20
 
 def _owned(session: Session, instance_id: str, owner_id: int) -> Instance:
     instance = session.scalar(
-        select(Instance).where(Instance.id == instance_id, Instance.owner_id == owner_id)
+        select(Instance).where(Instance.id == instance_id, Instance.owner_id == owner_id,Instance.kind=='PRODUCTION')
     )
     if instance is None:
         raise HTTPException(404, "instance not found")

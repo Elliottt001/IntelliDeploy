@@ -75,11 +75,22 @@ else:
         run(["systemctl", "reload", "caddy"], 30)
 
     if action == "prepare":
+        for reference, value in payload.get('secret_values', {}).items():
+            if not re.fullmatch(r'[A-Za-z0-9_.-]{1,128}', reference):
+                raise RuntimeError('unsafe secret reference')
+            secret = child(root, 'instances', instance, 'secrets', reference)
+            secret.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            descriptor = os.open(secret, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(descriptor, 'w') as output:
+                output.write(value)
         compose_file.write_text(json.dumps(payload["compose"], sort_keys=True))
+        compose_file.chmod(0o600)
         if stable_file.exists():
             backup_file.write_text(stable_file.read_text())
         run(["docker", "compose", "-p", project, "-f", str(compose_file), "pull"])
         run(["docker", "compose", "-p", project, "-f", str(compose_file), "up", "-d"])
+        if payload.get('migrations'):
+            run(['docker', 'compose', '-p', project, '-f', str(compose_file), 'run', '--rm', payload.get('migration_service',payload['web_service']), *payload['migrations']])
         mapping = run(["docker", "compose", "-p", project, "-f", str(compose_file),
                        "port", payload["web_service"], str(payload["web_port"])], 60)
         host_port = mapping.rsplit(":", 1)[-1]
@@ -488,6 +499,8 @@ async def deploy_linux(
     validator=validate_application,
     browser_checks: list | None = None,
     secret_files: dict[str, str] | None = None,
+    secret_values: dict[str,str] | None = None,
+    gateway_image: str | None = None,
 ) -> DeploymentResult:
     _safe_identifier(instance_id, "instance")
     _safe_identifier(version_id, "version")
@@ -500,10 +513,26 @@ async def deploy_linux(
         raise TargetUnavailable("Linux target SSH key reference is missing")
     key_path = (secret_resolver or EnvironmentSecretResolver()).resolve(secret_ref)
     capacity = target["capacity"]
-    compose = render_compose(manifest, instance_id, secret_files or {})
+    secret_files=dict(secret_files or {})
+    for reference in (secret_values or {}):
+        _safe_secret_name(reference)
+        secret_files[reference]=str(PurePosixPath(capacity['deployment_root'])/'instances'/instance_id/'secrets'/reference)
+    compose = render_compose(manifest, instance_id, secret_files)
+    for service in manifest.services:
+        for name,reference in service.env_refs.items():
+            if reference in (secret_values or {}):compose['services'][service.name].setdefault('environment',{})[name]=secret_values[reference]
     web = next(item for item in manifest.services if item.name == manifest.web_service)
     stable_domain = f"{instance_id}.{target['domain_suffix']}"
     candidate_domain = f"candidate-{operation_id}.{target['domain_suffix']}"
+    web_name=manifest.web_service;web_port=web.port
+    if gateway_image:
+        from app.runtime.manifest import digest_pinned
+        if not digest_pinned(gateway_image):raise ValueError('gateway image must be digest pinned')
+        environment={name:secret_values[reference] for name,reference in web.env_refs.items() if name in {'PLATFORM_INSTANCE_ID','PLATFORM_INSTANCE_TOKEN','PLATFORM_CAPABILITY_URL'}}
+        environment.update({'RUNTIME_ALLOWED_HOSTS':stable_domain+','+candidate_domain,'RUNTIME_UPSTREAM_URL':f'http://{web.name}:{web.port}'})
+        compose['services'][web.name].pop('ports',None)
+        compose['services']['platform-gateway']={'image':gateway_image,'command':['python','-m','app.runner.gateway'],'environment':environment,'networks':['app'],'ports':['127.0.0.1::8080'],'depends_on':[web.name],'read_only':True,'cap_drop':['ALL'],'security_opt':['no-new-privileges:true'],'mem_limit':'256m','cpus':0.5,'restart':'unless-stopped'}
+        web_name='platform-gateway';web_port=8080
     caddy_dir = capacity.get("caddy_config_dir", "/etc/caddy/conf.d")
     caddy_main = capacity.get("caddy_main_config", "/etc/caddy/Caddyfile")
     common = {
@@ -512,12 +541,15 @@ async def deploy_linux(
         "version_id": version_id,
         "operation_id": operation_id,
         "compose": compose,
-        "web_service": manifest.web_service,
-        "web_port": web.port,
+        "web_service": web_name,
+        "web_port": web_port,
+        "migration_service":manifest.web_service,
         "stable_domain": stable_domain,
         "candidate_domain": candidate_domain,
         "caddy_config_dir": caddy_dir,
         "caddy_main_config": caddy_main,
+        "secret_values":secret_values or {},
+        "migrations":manifest.migration,
     }
     argv = _ssh_argv(target, key_path)
     executor = ssh_executor or SubprocessSSHExecutor()

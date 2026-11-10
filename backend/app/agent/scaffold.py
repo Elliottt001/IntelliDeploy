@@ -9,7 +9,7 @@ from app.core.types import Requirement, RoutePlan
 def template_version(root: Path) -> str:
     digest = hashlib.sha256()
     for path in sorted(root.rglob("*")):
-        if path.is_file() and "node_modules" not in path.parts and path.name != ".DS_Store":
+        if path.is_file() and not {'node_modules','.next','.git'} & set(path.parts) and path.name not in {'.DS_Store','tsconfig.tsbuildinfo'}:
             digest.update(str(path.relative_to(root)).encode())
             digest.update(path.read_bytes())
     return "nextjs-prisma-" + digest.hexdigest()[:16]
@@ -17,10 +17,10 @@ def template_version(root: Path) -> str:
 
 def prepare_scaffold(workspace_id: str, template_root: Path, app_name: str) -> str:
     destination = Path(workspace_id).resolve()
-    if any(destination.iterdir()):
+    if any(path.name!='.tool-results' for path in destination.iterdir()):
         raise ValueError("new generation workspace must be empty")
     shutil.copytree(template_root, destination, dirs_exist_ok=True,
-                    ignore=shutil.ignore_patterns("node_modules", ".next", ".env"))
+                    ignore=shutil.ignore_patterns("node_modules", ".next", ".env*",'tsconfig.tsbuildinfo'))
     return template_version(template_root)
 
 

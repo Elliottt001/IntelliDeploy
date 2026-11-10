@@ -97,7 +97,7 @@ def _load_release_context(session, job_id: str, candidate_version_id: str):
     candidate = session.get(AppVersion, candidate_version_id)
     instance = session.scalar(
         select(Instance)
-        .where(Instance.app_id == app.id, Instance.status != "DELETED")
+        .where(Instance.app_id == app.id, Instance.status != "DELETED",Instance.kind=='PRODUCTION')
         .order_by(Instance.created_at)
         .with_for_update()
     )

@@ -234,7 +234,7 @@ async def _run_runtime_maintenance(now, *, session_factory, adapter, worker_id):
         worker_id=worker_id,
     )
     with session_factory() as session:
-        instance_ids = list(session.scalars(select(Instance.id)))
+        instance_ids = list(session.scalars(select(Instance.id).where(Instance.kind=='PRODUCTION')))
     window_end = now.replace(second=0, microsecond=0)
     window_start = window_end - timedelta(minutes=1)
     for instance_id in instance_ids:

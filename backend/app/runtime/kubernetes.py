@@ -328,6 +328,7 @@ class KubernetesApiExecutor:
         self.apps = client.AppsV1Api(self.api_client)
         self.core = client.CoreV1Api(self.api_client)
         self.networking = client.NetworkingV1Api(self.api_client)
+        self.batch = client.BatchV1Api(self.api_client)
         self.api_exception = client.ApiException
 
     def _resource(self, value: dict):
@@ -390,6 +391,15 @@ class KubernetesApiExecutor:
             if instance_id in involved:
                 result.append(f"{involved}: {event.reason}: {event.message}"[:2000])
         return result
+
+    async def wait_job(self,namespace,name,timeout):
+        deadline=time.monotonic()+timeout
+        while time.monotonic()<deadline:
+            value=await asyncio.to_thread(self.batch.read_namespaced_job_status,name,namespace)
+            if value.status.succeeded:return
+            if value.status.failed:raise RuntimeError('candidate migration job failed')
+            await asyncio.sleep(2)
+        raise RuntimeError('candidate migration job timed out')
 
     async def get_ingress(self, namespace: str, name: str):
         from kubernetes import client
@@ -670,6 +680,7 @@ async def deploy_kubernetes(
     validator=validate_application,
     browser_checks: list | None = None,
     secrets: dict[str, str] | None = None,
+    gateway_image: str | None = None,
 ) -> DeploymentResult:
     _safe_label(instance_id, "instance")
     _safe_label(version_id, "version")
@@ -702,6 +713,18 @@ async def deploy_kubernetes(
         ingress_host=candidate_host,
         operation_id=operation_id,
     )
+    if gateway_image:
+        from app.runtime.manifest import digest_pinned
+        if not digest_pinned(gateway_image):raise ValueError('gateway image must be digest pinned')
+        web_deployment=next(resource for resource in candidate_resources if resource['kind']=='Deployment' and resource['metadata']['name']==candidate_name+'-'+manifest.web_service)
+        container=web_deployment['spec']['template']['spec']['containers'][0]
+        web=next(service for service in manifest.services if service.name==manifest.web_service)
+        environment=[item for item in container.get('env',[]) if item['name'] in {'PLATFORM_INSTANCE_ID','PLATFORM_INSTANCE_TOKEN','PLATFORM_CAPABILITY_URL'}]
+        environment.extend([{'name':'RUNTIME_ALLOWED_HOSTS','value':candidate_host+','+f'{instance_id}.{target["domain_suffix"]}'},{'name':'RUNTIME_UPSTREAM_URL','value':f'http://127.0.0.1:{web.port}'}])
+        web_deployment['spec']['template']['spec']['containers'].append({'name':'platform-gateway','image':gateway_image,'command':['python','-m','app.runner.gateway'],'env':environment,'ports':[{'containerPort':8080}],'securityContext':{'runAsNonRoot':True,'runAsUser':10001,'allowPrivilegeEscalation':False,'readOnlyRootFilesystem':True,'capabilities':{'drop':['ALL']}},'resources':{'requests':{'cpu':'100m','memory':'128Mi'},'limits':{'cpu':'500m','memory':'256Mi'}}})
+        for resource in candidate_resources:
+            if resource['kind']=='Service' and resource['metadata']['name']==candidate_name+'-'+manifest.web_service:
+                resource['spec']['ports'][0]['targetPort']=8080
     try:
         await executor.preflight(
             namespace, candidate_resources, [service.image for service in manifest.services]
@@ -710,6 +733,8 @@ async def deploy_kubernetes(
         raise KubernetesTargetUnavailable(f"Kubernetes preflight denied: {exc}") from exc
     try:
         for resource in candidate_resources:
+            if manifest.migration and resource['kind']=='Deployment' and resource['metadata']['name']==candidate_name+'-'+manifest.web_service:
+                continue
             await executor.apply(
                 resource, field_manager="intellideploy", operation_id=operation_id
             )
@@ -717,8 +742,20 @@ async def deploy_kubernetes(
             resource["metadata"]["name"]
             for resource in candidate_resources
             if resource["kind"] == "Deployment"
+            and not (manifest.migration and resource['metadata']['name']==candidate_name+'-'+manifest.web_service)
         ]
         await executor.wait_rollout(namespace, deployments, 300)
+        if manifest.migration:
+            import copy
+            web_deployment=next(resource for resource in candidate_resources if resource['kind']=='Deployment' and resource['metadata']['name']==candidate_name+'-'+manifest.web_service)
+            pod=copy.deepcopy(web_deployment['spec']['template']);pod['spec']['containers']=pod['spec']['containers'][:1]
+            pod['spec']['containers'][0]['command']=manifest.migration;pod['spec']['restartPolicy']='Never'
+            job={'apiVersion':'batch/v1','kind':'Job','metadata':{'name':candidate_name+'-migration','namespace':namespace,'labels':web_deployment['metadata']['labels']},'spec':{'template':pod,'backoffLimit':0,'activeDeadlineSeconds':600,'ttlSecondsAfterFinished':60}}
+            await executor.apply(job,field_manager='intellideploy',operation_id=operation_id)
+            await executor.wait_job(namespace,job['metadata']['name'],600)
+            await executor.delete([job])
+            await executor.apply(web_deployment,field_manager='intellideploy',operation_id=operation_id)
+            await executor.wait_rollout(namespace,[web_deployment['metadata']['name']],300)
     except Exception as exc:
         events = await executor.events(namespace, candidate_name)
         await executor.delete(candidate_resources)

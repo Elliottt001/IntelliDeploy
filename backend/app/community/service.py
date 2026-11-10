@@ -24,7 +24,7 @@ def active_publication(session, instance_id):
 def publish(session, app_id, owner_id, version_id, payer_policy, *, sponsor_period='DAY', sponsor_limit_units=100):
     app=session.scalar(select(App).where(App.id==app_id, App.owner_id==owner_id).with_for_update())
     if app is None: raise PublicationError()
-    instance=session.scalar(select(Instance).where(Instance.app_id==app_id, Instance.status!='DELETED').with_for_update())
+    instance=session.scalar(select(Instance).where(Instance.app_id==app_id, Instance.status!='DELETED',Instance.kind=='PRODUCTION').with_for_update())
     version=session.get(AppVersion,version_id)
     if not version or not instance or version.app_id!=app.id or not (version_id==app.active_version_id==instance.version_id) or instance.status!='RUNNING' or not instance.url:
         raise PublicationError('只能发布当前已验证且正在运行的版本',409)
@@ -199,7 +199,7 @@ def prepare_copy_candidate(session,job):
     manifest=AppManifest.model_validate(source.manifest).model_copy(deep=True)
     validate_release_manifest(manifest)
     manifest.builds=[]
-    instance=session.scalar(select(Instance).where(Instance.app_id==job.app_id))
+    instance=session.scalar(select(Instance).where(Instance.app_id==job.app_id,Instance.kind=='PRODUCTION'))
     for service in manifest.services:
         # Preserve required names, replace every source credential reference.
         service.env_refs={name:f'copy-{instance.id}-{name.lower().replace("_","-")}' for name in service.env_refs}

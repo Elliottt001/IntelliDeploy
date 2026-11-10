@@ -44,6 +44,7 @@ class DeepSeekClient:
                     model=model,
                     messages=messages,
                     tools=tools or None,
+                    max_tokens=settings.DEEPSEEK_MAX_OUTPUT_TOKENS,
                     extra_body={"thinking": {"type": "enabled"}},
                 )
                 break

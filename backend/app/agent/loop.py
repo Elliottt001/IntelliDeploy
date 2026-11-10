@@ -89,12 +89,14 @@ async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_too
                 if not isinstance(question, str) or not question.strip():
                     raise ValueError("ask_user requires a business question")
                 checkpoint.pending_calls = []
+                checkpoint.messages.append({'role':'tool','tool_call_id':call.id,'content':'等待用户业务回答'})
                 await _call(persist, checkpoint)
                 return GenerationOutput(checkpoint=checkpoint, question=question.strip(),
                                         requirement_revision=checkpoint.requirement_revision)
             if call.name == "finish_implementation":
                 manifest = AppManifest.model_validate(call.arguments.get("manifest"))
                 checkpoint.pending_calls = []
+                checkpoint.messages.append({'role':'tool','tool_call_id':call.id,'content':'候选已提交，等待平台验证'})
                 await _call(persist, checkpoint)
                 return GenerationOutput(checkpoint=checkpoint, manifest=manifest,
                                         requirement_revision=checkpoint.requirement_revision)

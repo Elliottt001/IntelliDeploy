@@ -17,6 +17,8 @@ from app.capabilities.search import (
     _result_id,
     _validate_operation_id,
     save_unknown_usage,
+    finish_capability_reservation,
+    lock_shared_job,
 )
 from app.config import settings
 from app.core.types import CapabilityContext, UsageInput
@@ -123,6 +125,7 @@ async def _chat(
         ("output", "model.flash.output", turn.output_tokens),
     )
     with _session_factory() as session:
+        lock_shared_job(session,context)
         replay = _load_replay(session, operation_id, request_hash)
         if replay is not _NO_REPLAY:
             return replay
@@ -139,9 +142,9 @@ async def _chat(
                         "request_hash": request_hash,
                         "response": response,
                     },
-                    reservation_operation_id=_reservation_id(operation_id),
+                    reservation_operation_id=context.reservation_operation_id or _reservation_id(operation_id),
                 ),
             )
-        settle(session, _reservation_id(operation_id))
+        finish_capability_reservation(session,context,operation_id)
         session.commit()
     return response

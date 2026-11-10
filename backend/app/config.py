@@ -43,6 +43,18 @@ class Settings(BaseSettings):
     REPOSITORY_INDEX_PATH: str = str(Path(__file__).resolve().parents[2] / "artifacts/repository-index/current.json")
     AGENT_WORKSPACE_ROOT: str = str(Path(__file__).resolve().parents[2] / "artifacts/agent-workspaces")
     AGENT_EXECUTOR_IMAGE: str = ""
+    RUNNER_URL: str = ""
+    RUNNER_CA_FILE: str = ""
+    RUNNER_CERT_FILE: str = ""
+    RUNNER_KEY_FILE: str = ""
+    RUNNER_RPC_TOKEN: str = ""
+    PLATFORM_CAPABILITY_URL: str = ""
+    INSTANCE_DATABASE_ADMIN_URL: str = ""
+    INSTANCE_DATABASE_HOST: str = ""
+    INSTANCE_POSTGRES_IMAGE: str = ""
+    DEEPSEEK_MAX_OUTPUT_TOKENS: int = Field(default=2048,gt=0)
+    DEEPSEEK_PRICE_PREFIX: str = 'model.flash'
+    MAX_JOB_MODEL_CALLS: int = Field(default=40,gt=0)
 
     # 降级生成服务地址（"inprocess" 走进程内直调，避免依赖独立 HTTP 服务）
     FALLBACK_SERVICE_URL: str = "inprocess"

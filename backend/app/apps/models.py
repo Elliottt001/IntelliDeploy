@@ -79,6 +79,7 @@ class Instance(Base):
     version_id = Column(String, ForeignKey('app_versions.id'))
     target_id = Column(String, ForeignKey('deployment_targets.id'))
     status = Column(String, nullable=False, default='PENDING')
+    kind = Column(String, nullable=False, default='PRODUCTION')
     desired_state = Column(String, nullable=False, default='RUNNING')
     stop_reason = Column(String)
     observed_at = Column(DateTime(timezone=True))
