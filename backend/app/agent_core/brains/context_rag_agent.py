@@ -49,6 +49,7 @@ class RepositoryCandidate(BaseModel):
     )
     readme_snippet: str = ""
     default_branch: str | None = None
+    commit: str | None = None
     retrieval_score: float = Field(
         default=0.0,
         description="Final numeric score copied from score for the public API contract.",

@@ -117,7 +117,7 @@ class BM25ReadmeStore:
     def _tokenize(text: str) -> list[str]:
         normalized = text.lower()
         tokens = re.findall(r"[a-z0-9][a-z0-9_.+-]*|[\u4e00-\u9fff]", normalized)
-        return [token for token in tokens if token not in _STOP_WORDS and len(token) > 1]
+        return [token for token in tokens if token not in _STOP_WORDS and (len(token) > 1 or "\u4e00" <= token <= "\u9fff")]
 
 
 def clean_readme_text(content: str) -> str:

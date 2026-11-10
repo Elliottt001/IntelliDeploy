@@ -213,6 +213,8 @@ class GitHubRepositorySearchClient:
                 allow_404=True,
             )
             if isinstance(tree, dict) and isinstance(tree.get("tree"), list):
+                if tree.get("sha"):
+                    candidate.commit = tree["sha"]
                 candidate.file_tree = [
                     item["path"]
                     for item in tree["tree"][:500]
