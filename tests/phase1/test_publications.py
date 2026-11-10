@@ -180,3 +180,22 @@ def test_parallel_sponsor_reservations_cannot_exceed_period_limit(publication_co
     with ThreadPoolExecutor(max_workers=2) as pool:
         futures=[pool.submit(attempt,key) for key in ('parallel-1','parallel-2')]
         assert sorted(f.result(timeout=10) for f in futures)==[False,True]
+
+
+def test_unknown_provider_usage_keeps_sponsor_budget_bounded(publication_context,session_factory):
+    from app.community.service import reserve_sponsor
+    from app.capabilities.identity import SponsorLimitExceeded
+    from app.capabilities.search import save_unknown_usage
+    from app.billing.ledger import grant,reserve
+    from app.core.types import CapabilityContext
+    c=publication_context
+    with session_factory() as session:
+        p=publish_context(session,c,sponsor_limit_units=100)
+        grant(session,c.owner_id,'unknown-sponsor',1000,'FREE')
+        reserve(session,c.owner_id,'capability:uncertain:reservation',80)
+        reserve_sponsor(session,p.id,'capability:uncertain:reservation',80);session.commit()
+    context=CapabilityContext(app_id=c.app_id,instance_id=c.instance_id,user_id=None,payer_id=c.owner_id,publication_id=p.id)
+    save_unknown_usage(context,'uncertain','search.success','request-hash',session_factory=session_factory)
+    with session_factory() as session:
+        reserve(session,c.owner_id,'next-call',80)
+        with pytest.raises(SponsorLimitExceeded):reserve_sponsor(session,p.id,'next-call',80)

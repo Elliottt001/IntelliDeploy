@@ -14,6 +14,11 @@ config.transformer = {
 
 config.resolver = {
   ...config.resolver,
+  // Next build output changes independently of Expo's source graph.
+  blockList: [
+    ...(Array.isArray(config.resolver.blockList) ? config.resolver.blockList : config.resolver.blockList ? [config.resolver.blockList] : []),
+    /[/\\]\.next[/\\]/,
+  ],
   assetExts: assetExts.filter((ext) => ext !== 'svg'),
   sourceExts: [...sourceExts, 'svg'],
 };

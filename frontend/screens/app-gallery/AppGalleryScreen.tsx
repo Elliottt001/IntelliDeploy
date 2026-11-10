@@ -7,6 +7,7 @@ import WorkspacePage, { Action, workspaceStyles as styles } from '../../componen
 
 export default function AppGalleryScreen() {
   const router = useRouter();
+  const [category,setCategory]=useState<'created'|'copies'>('created');
   const [data, setData] = useState<components['schemas']['AppPage'] | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -22,5 +23,5 @@ export default function AppGalleryScreen() {
     catch (exc) { setError(exc instanceof Error ? exc.message : '无法读取更多应用'); }
     finally { setBusy(false); }
   }
-  return <WorkspacePage title="我的应用">{Boolean(error) && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}{!data && !error && <Text style={styles.text}>正在读取应用…</Text>}{data?.items.length === 0 && <Text style={styles.text}>还没有应用，先描述一个想解决的问题。</Text>}{data?.items.map(app => <View key={app.id} style={styles.card}><Action label={app.name} onPress={() => router.push({ pathname: '/app-detail/[id]', params: { id: app.id } })} /><Text style={styles.muted}>{app.active_job_id ? '正在处理需求' : app.instance_status === 'RUNNING' ? '应用正在运行' : app.instance_status === 'STOPPED' ? '应用已停止，数据仍保留' : '查看状态与结果'}</Text></View>)}{data?.next_cursor && <Action label="加载更多" disabled={busy} onPress={() => { void more(); }} />}</WorkspacePage>;
+  return <WorkspacePage title="我的应用"><View style={styles.actions}><Action label="我创建的" onPress={()=>setCategory('created')}/><Action label="我的副本" onPress={()=>setCategory('copies')}/><Action label="最近使用" onPress={()=>router.push({pathname:'/library/[kind]',params:{kind:'recent'}})}/><Action label="我的收藏" onPress={()=>router.push({pathname:'/library/[kind]',params:{kind:'favorites'}})}/></View>{Boolean(error) && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}{!data && !error && <Text style={styles.text}>正在读取应用…</Text>}{data?.items.length === 0 && <Text style={styles.text}>还没有应用，先描述一个想解决的问题。</Text>}{data?.items.filter(app=>category==='copies'?!!app.source_version_id:!app.source_version_id).map(app => <View key={app.id} style={styles.card}><Action label={app.name} onPress={() => router.push({ pathname: '/app-detail/[id]', params: { id: app.id } })} /><Text style={styles.muted}>{app.active_job_id ? '正在处理需求' : app.instance_status === 'RUNNING' ? '应用正在运行' : app.instance_status === 'STOPPED' ? '应用已停止，数据仍保留' : '查看状态与结果'}</Text></View>)}{data?.next_cursor && <Action label="加载更多" disabled={busy} onPress={() => { void more(); }} />}</WorkspacePage>;
 }

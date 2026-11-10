@@ -57,7 +57,7 @@ export default function RootLayout() {
       return;
     }
 
-    const isPublicRoute = PUBLIC_ROUTES.has(pathname);
+    const isPublicRoute = (PUBLIC_ROUTES.has(pathname)||pathname==='/community'||pathname.startsWith('/community/'));
 
     if (isPublicRoute) {
       return;
@@ -68,7 +68,7 @@ export default function RootLayout() {
     }
   }, [isAuthenticated, isCheckingAuth, pathname, router]);
 
-  const isPublicRoute = PUBLIC_ROUTES.has(pathname);
+  const isPublicRoute = (PUBLIC_ROUTES.has(pathname)||pathname==='/community'||pathname.startsWith('/community/'));
   const shouldShowAuthOverlay = isCheckingAuth && !isPublicRoute;
 
 

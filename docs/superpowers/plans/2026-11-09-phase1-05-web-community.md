@@ -60,11 +60,11 @@ JobEvent 在 packages/api-client/src/generated.ts 从 OpenAPI 导出，包括 id
 
 ### Task 05-W2: 公开社区页与访问策略
 
-**Files:** Create backend/app/community/{__init__,models,service,router}.py、backend/alembic/versions/0003_publications.py、tests/phase1/test_publications.py、web/app/community/page.tsx、web/app/community/[id]/page.tsx、web/e2e/community.spec.ts。Modify backend/app/main.py、backend/app/capabilities/identity.py。
+**Files:** Create backend/app/community/{__init__,models,service,router}.py、backend/alembic/versions/0007_community.py、tests/phase1/test_publications.py、web/app/community/page.tsx、web/app/community/[id]/page.tsx、web/e2e/community.spec.ts。Modify backend/app/main.py、backend/app/capabilities/identity.py。
 
 **Interfaces:** publish(session, app_id, owner_id, version_id, payer_policy) -> Publication；get_publication(session, publication_id)；unpublish(session, publication_id, owner_id)；payer_policy 为 SPONSOR/VISITOR。公开返回名称、用途、功能、预览、作者、实例 URL、copy 入口，不含内部配置。
 
-- [ ] **Step 1: 写公开可看、私有不可看及未验收不可发布的检查。** publication_factory 为测试库创建一个报告全部 PASS 的版本和正在运行的实例。
+- [x] **Step 1: 写公开可看、私有不可看及未验收不可发布的检查。** publication_factory 为测试库创建一个报告全部 PASS 的版本和正在运行的实例。
 
 ```python
 def test_unverified_version_cannot_be_published(publication_context):
@@ -77,8 +77,8 @@ def test_public_response_contains_no_secrets(publication_context):
     assert 'env_refs' not in data and 'checkpoint' not in data
 ```
 
-- [ ] **Step 2: 红测。** test_publications.py 与 community.spec.ts。
-- [ ] **Step 3: 实现发布验证与公开页。** 发布校验 app 归属、版本验证和实例访问报告；每次更新明确引用版本。取消公开不删除 Instance；其他用户只能看到公开记录。SSR 输出可分享的名称、描述和预览；页面有“直接使用”“创建我的副本”和轻量创建入口。免费公开内容不强制登录；调用个人额度或私有功能使用 04-C1 身份流程。赞助者预算上限不由访问者修改。
+- [x] **Step 2: 红测。** test_publications.py 与 community.spec.ts。
+- [x] **Step 3: 实现发布验证与公开页。** 发布校验 app 归属、版本验证和实例访问报告；每次更新明确引用版本。取消公开不删除 Instance；其他用户只能看到公开记录。SSR 输出可分享的名称、描述和预览；页面有“直接使用”“创建我的副本”和轻量创建入口。免费公开内容不强制登录；调用个人额度或私有功能使用 04-C1 身份流程。赞助者预算上限不由访问者修改。
 
 ```python
 if app.owner_id != owner_id or not ValidationReport.model_validate(version.validation).passed:
@@ -91,7 +91,7 @@ publication.visible = True
 数据库保存报告明细，读取时由 ValidationReport.passed 计算结果，不接受前端提交 passed=true。公开列表只查询 visible=true 和可访问状态，并展示暂不可用状态而非坏链接。
 
 - [ ] **Step 4: 绿测。** 未登录打开公开页、按需登录保留输入、取消公开隐藏页面、伪造 owner 拒绝、作者应用和访客最近使用记录正确；与 07-E2 手机社区联调验证同一 Publication。
-- [ ] **Step 5: 提交。** `feat: publish applications with public and metered access`。
+- [x] **Step 5: 提交。** `feat: publish applications with public and metered access`。
 
 ### Task 05-W3: 独立副本与我的应用
 
@@ -99,7 +99,7 @@ publication.visible = True
 
 **Interfaces:** create_copy(session, publication_id, owner_id, operation_id, budget_units) -> (App, Instance, Job)；Job.kind=COPY，引用不可变 source_version_id。copy worker 复用 03 发布器，不重新生成源码。
 
-- [ ] **Step 1: 写私有数据不复制和重复点击检查。** 原始实例写入私有记录和 secret，source_version 仅含公开代码材料。
+- [x] **Step 1: 写私有数据不复制和重复点击检查。** 原始实例写入私有记录和 secret，source_version 仅含公开代码材料。
 
 ```python
 def test_copy_has_new_data_and_credentials(copy_context):
@@ -110,8 +110,8 @@ def test_copy_has_new_data_and_credentials(copy_context):
     assert copy_context.read_private_rows(copied.instance) == []
 ```
 
-- [ ] **Step 2: 红测。** test_copies.py 与 copies.spec.ts。
-- [ ] **Step 3: 实现事务与 COPY Worker。** 同一用户/operation_id 幂等创建。引用发布时版本，创建新 App、数据空间、配置和实例。只复制源码、镜像和公开初始化资料，不复制原 User、生产数据、文件或凭据。COPY 作业使用同一验证和部署门槛，只有独立实例实际可用才能成功。
+- [x] **Step 2: 红测。** test_copies.py 与 copies.spec.ts。
+- [x] **Step 3: 实现事务与 COPY Worker。** 同一用户/operation_id 幂等创建。引用发布时版本，创建新 App、数据空间、配置和实例。只复制源码、镜像和公开初始化资料，不复制原 User、生产数据、文件或凭据。COPY 作业使用同一验证和部署门槛，只有独立实例实际可用才能成功。
 
 ```python
 copy_app = App(owner_id=owner_id, source_version_id=publication.version_id)
@@ -124,7 +124,7 @@ job = Job(kind='COPY', checkpoint={'source_version_id': publication.version_id},
 将 copied软件材料映射到新的 AppVersion 并保留原来源；复制后可以继续对话修改。我的应用按创建、复制、最近使用、收藏组织，收藏持久保存而非前端 boolean；最近使用只记公开实例或授权访问，不公开其他用户记录。
 
 - [ ] **Step 4: 绿测及真实副本。** 重新发布原应用不改变已引用副本版本，复制两次不共享数据，多人访问保持权限，副本部署失败不出现成功链接。
-- [ ] **Step 5: 提交。** `feat: create independent application copies and library`。
+- [x] **Step 5: 提交。** `feat: create independent application copies and library`。
 
 ## 双客户端边界
 
@@ -141,3 +141,20 @@ job = Job(kind='COPY', checkpoint={'source_version_id': publication.version_id},
 ## 实施进度（2026-11-10）
 
 05-W1工作台基础已实现：首页创建/登录/注册、我的应用、持久对话、交付卡、继续调整、取消/额度恢复、命名SSE/快照补读、源码下载、业务验证报告及创建草稿刷新恢复。6项Playwright夹具检查通过，包含手机宽度、刷新、旧版保留、业务回答、额度暂停、刷新后原请求键重试及报告证据；Next build/typecheck与Web9项代理/会话单测通过。首次全链路/实例start-delete/社区发布/私有登录交换在03/04/05-W2及07-E2后继续联调，不将夹具URL标真实交付。本任务最终验收未完成。
+
+
+### 第8步本地实施与验证（2026-11-10）
+
+05-W2已实现Publication、公开列表/详情、发布/取消公开、当前版本与需求/报告/digest绑定、SPONSOR/VISITOR政策和周期赞助预留。成功发布事务同步公开版本；停止显示暂不可用，取消公开拒绝新的匿名/访客入口及身份交换，拥有者仍有访问权。公开Schema只返回业务描述、作者和入口，不返回配置/私有数据/工具记录。
+
+05-W3已实现幂等COPY事务、新App/Instance/凭据/预留、固定source_version、安全源码解包及保留来源、复用已验证digest和业务检查。COPY经过同一候选验证与发布器，失败无交付链接、终态释放未用预留；不重复生成或构建源镜像。复制不带生产数据/文件/密钥/工具日志，所有环境变量引用重新绑定为副本引用。复制后的实例数据库和所需配置需由受控runner/部署接入，未配置时不能声称副本可用。
+
+Web/Expo已接社区、分享详情、直接使用、收藏/最近使用、独立副本、发布政策和取消公开；两端补实例start/stop/delete及操作轮询，删除要求DELETE与明确数据选项。客户端打开私有应用只传60秒code；D脚手架补callback、应用HttpOnly会话和逐请求平台授权。A/B/C仓库仍需在真实流水线中接入对应身份/业务权限，不假设任意项目无需改造。
+
+检查位置：tests/phase1/test_publications.py、test_copies.py、test_releases.py；packages/api-client/tests/client.test.ts；web/e2e/community.spec.ts；web/tests/platform-client.test.ts；frontend/e2e/community.spec.ts、community-cross-client.spec.ts。红测已实际执行，数据库使用intellideploy_test；浏览器/发布记录夹具显式标fixture。实际测试数量以一期实施进度为准。
+
+Step 4保留未勾选：本地协议和浏览器绿测已执行，真实模型、runner、registry、Linux/Sealos副本/多人数据及原生设备验收仍NOT_RUN。此状态不表示重做已实现代码，也不表示第8步的真实验收已通过。
+
+提交：05-W2 `11332ba`；05-W3 `bd80012`；双客户端、脚手架接入与文档另以第8步联调提交记录。真实验收状态仍按上述NOT_RUN边界。
+
+提交前复核补充：供应商用量UNKNOWN时，该调用的上界继续占用当期赞助预算，避免用多次新请求绕过上限；已知失败释放预算，未知账单不记假0。关联检查test_unknown_provider_usage_keeps_sponsor_budget_bounded与并发赞助预留检查，用户账户与赞助预算分别核对。

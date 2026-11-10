@@ -1,8 +1,8 @@
 import { ApiError, type components } from '@intellideploy/api-client';
 
 type Snapshot = components['schemas']['JobSnapshot'];
-type PollingOptions = {
-  readJob: (jobId: string, signal?: AbortSignal) => Promise<Snapshot>;
+type PollingOptions<T> = {
+  readJob: (jobId: string, signal?: AbortSignal) => Promise<T>;
   appState: { currentState: string | null; addEventListener(event: 'change', listener: (state: string) => void): { remove(): void } };
   onError?: (error: unknown) => void;
   onUnauthorized?: () => void;
@@ -12,7 +12,7 @@ export function shouldPoll(status: string, appState: string | null): boolean {
   return appState === 'active' && ['QUEUED', 'RUNNING'].includes(status);
 }
 
-export function subscribeJob(jobId: string, onSnapshot: (snapshot: Snapshot, signal: AbortSignal) => void | Promise<void>, options: PollingOptions) {
+export function subscribeJob<T extends {status:string}=Snapshot>(jobId: string, onSnapshot: (snapshot: T, signal: AbortSignal) => void | Promise<void>, options: PollingOptions<T>) {
   let state = options.appState.currentState;
   let status = 'QUEUED';
   let stopped = false;

@@ -1,6 +1,6 @@
 # IntelliDeploy
 
-用自然语言描述需求，平台检索并复用开源代码或生成应用，自动验证、修复并部署为Web应用。支持继续对话调整、社区共享及独立副本。
+一期按[实施总计划](docs/superpowers/plans/2026-11-09-phase1-00-roadmap.md)开发，现已实现持久应用/任务、额度账本、需求/检索/生成模块、候选验证与发布适配、实例管理，以及第8步社区/独立副本和双客户端协议联调。默认新生成/调整的需求冻结与生成依赖组装、受控runner/实例配置及真实外部验收仍需补齐，见[实施进度](docs/一期实施进度.md)和[规划待办](docs/一期规划待办.md)。局部测试和旧演示结果不算真实应用交付。
 
 一期正在按[实施总计划](docs/superpowers/plans/2026-11-09-phase1-00-roadmap.md)开发。已实现持久应用/任务API、PostgreSQL迁移、Worker租约、共享客户端/BFF、额度账本、双客户端状态基础，以及DeepSeek协议、需求冻结、隔离工具、检索四路线、固定脚手架、索引兼容与可恢复生成循环。02目前只形成候选，平台能力、候选验证修复、云发布、社区和支付仍在实施；旧演示部署结果不算真实交付。
 
@@ -27,7 +27,7 @@ npm run api:generate
 
 先按backend/.env.example设置backend/.env和随机SECRET_KEY，Web另设API_BASE_URL、WEB_ORIGIN、SESSION_SECRET；详见[开发运行指南](docs/开发运行指南.md)。根package-lock管理三个npm工作区，API启动不会自动建表或修改旧SQLite。
 
-分别在终端运行npm run dev:api、dev:web、dev:mobile。dev:worker脚本已建立，在完整pipeline实施前明确退出，不模拟任务成功。当前Web和Expo已接持久应用/任务API，支持创建、对话、取消/额度恢复和离开后回读；Expo原生token迁移到SecureStore，浏览器预览使用独立存储适配。完整交付、社区、运行管理及支付随后端继续接入。
+分别在终端运行npm run dev:api、dev:web、dev:mobile。dev:worker已加载候选/发布与维护循环，但默认新生成依赖尚未完整接线，不模拟成功。当前Web和Expo已接持久应用/任务API，支持创建、对话、取消/额度恢复和离开后回读；Expo原生token迁移到SecureStore，浏览器预览使用独立存储适配。社区、副本、code身份和实例管理已接同一API；真实交付与原生验收、支付后续继续实施。
 
 API文档：http://localhost:9000/docs。JSON登录后Authorize填Bearer token，POST /api/apps需Idempotency-Key，GET /api/jobs/{id}读取持久状态。创建返回QUEUED只说明任务已保存，不能当成应用交付。
 

@@ -44,3 +44,18 @@ test('snapshot reads can be cancelled when a mobile screen leaves the foreground
   await expect(api.getJob('job', controller.signal)).rejects.toMatchObject({ name: 'AbortError' });
   await expect(api.getApp('app', controller.signal)).rejects.toMatchObject({ name: 'AbortError' });
 });
+
+test('community copies, instance operations and login exchange share authenticated endpoints',async()=>{
+  const calls:Array<[string,RequestInit|undefined]>=[];
+  const transport:typeof fetch=async(input,init)=>{calls.push([String(input),init]);return new Response(JSON.stringify({code:'single-use-code',expires_in:60,items:[],next_cursor:null}));};
+  const api=createApiClient({baseUrl:'',getToken:async()=>'private-platform-token',fetchImpl:transport});
+  await api.createCopy('publication',undefined,'copy-once');
+  await api.startInstance('instance','start-once');
+  await api.deleteInstance('instance',false,'delete-once');
+  await api.issueLoginCode('instance','https://app.example/api/platform/callback');
+  await api.listFavorites('cursor');
+  expect(calls.map(([path])=>path)).toEqual(['/api/publications/publication/copies','/api/instances/instance/start','/api/instances/instance','/api/instances/instance/login-code','/api/library/favorites?cursor=cursor']);
+  expect(JSON.parse(calls[2][1]?.body as string)).toEqual({confirmation:'DELETE',delete_data:false});
+  expect(new Headers(calls[0][1]?.headers).get('Idempotency-Key')).toBe('copy-once');
+  expect(calls.every(([url])=>!url.includes('private-platform-token'))).toBe(true);
+});

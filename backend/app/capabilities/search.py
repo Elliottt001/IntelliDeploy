@@ -164,7 +164,7 @@ def save_unknown_usage(
     status: str = "UNKNOWN",
     error_message: str | None = None,
 ) -> UnknownUsage:
-    metadata = {"request_hash": request_hash}
+    metadata = {"request_hash": request_hash, "reservation_operation_id":_reservation_id(operation_id)}
     if status_code is not None:
         metadata["provider_status"] = status_code
     if response is not None:

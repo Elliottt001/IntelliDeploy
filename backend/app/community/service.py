@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
 from pathlib import Path
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, select, or_
 from sqlalchemy.dialects.postgresql import insert
 from fastapi import HTTPException
 
 from app.apps.models import App, AppVersion, Instance, RequirementRecord
-from app.billing.models import Reservation
+from app.billing.models import Reservation, UnknownUsage
 from app.community.models import Favorite, Publication, RecentUse, SponsorReservation
 from app.core.types import AppManifest, PublicationPage, PublicationResponse, Requirement, ValidationReport
 from app.models.user import User
@@ -115,7 +115,8 @@ def reserve_sponsor(session,publication_id,operation_id,max_units):
     if existing:
         if existing.publication_id!=publication.id: raise SponsorLimitExceeded()
         return existing
-    used=session.scalar(select(func.coalesce(func.sum(case((Reservation.status=='OPEN',Reservation.max_units),else_=Reservation.used_units)),0)).join(SponsorReservation,SponsorReservation.operation_id==Reservation.operation_id).where(SponsorReservation.publication_id==publication.id,SponsorReservation.period_start==period))
+    pending_usage=select(UnknownUsage.id).where(UnknownUsage.status=='UNKNOWN',UnknownUsage.metadata_json['reservation_operation_id'].astext==Reservation.operation_id).correlate(Reservation).exists()
+    used=session.scalar(select(func.coalesce(func.sum(case((or_(Reservation.status=='OPEN',pending_usage),Reservation.max_units),else_=Reservation.used_units)),0)).join(SponsorReservation,SponsorReservation.operation_id==Reservation.operation_id).where(SponsorReservation.publication_id==publication.id,SponsorReservation.period_start==period))
     if used+max_units>publication.sponsor_limit_units: raise SponsorLimitExceeded()
     result=SponsorReservation(publication_id=publication.id,operation_id=operation_id,period_start=period)
     session.add(result); session.flush()
