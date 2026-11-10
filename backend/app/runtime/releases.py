@@ -22,7 +22,9 @@ from app.runtime.models import DeploymentTarget, ResourceRecord
 
 
 class ReleaseFailed(RuntimeError):
-    pass
+    def __init__(self, message: str, *, report: ValidationReport | None = None):
+        super().__init__(message)
+        self.report = report
 
 
 class TargetActions(Protocol):
@@ -68,18 +70,20 @@ def _fail_release(
     *,
     code: str,
     message: str,
+    repairable: bool = False,
 ) -> None:
     attempt.state = "FAILED"
     attempt.metadata_json = {
         **(attempt.metadata_json or {}),
         "error": {"code": code, "message": message, "retryable": True},
     }
-    job.status = "FAILED"
-    job.phase = "release_failed"
+    job.status = "RUNNING" if repairable else "FAILED"
+    job.phase = "repairing" if repairable else "release_failed"
     job.result = None
-    job.error = {"code": code, "message": message, "retryable": True}
-    job.lease_owner = None
-    job.lease_until = None
+    job.error = None if repairable else {"code": code, "message": message, "retryable": True}
+    if not repairable:
+        job.lease_owner = None
+        job.lease_until = None
     _public_event(session, job, message)
     session.commit()
 
@@ -164,6 +168,7 @@ async def publish_candidate(
     *,
     deployer=None,
     migration_runner=None,
+    repairable: bool = False,
 ) -> DeploymentResult:
     operation_id = _operation_id(job_id, candidate_version_id)
     existing = _attempt(session, operation_id)
@@ -200,6 +205,7 @@ async def publish_candidate(
             attempt,
             code="RELEASE_CANDIDATE_INVALID",
             message="候选版本与需求或验证证据不一致",
+            repairable=repairable,
         )
         raise exc
     job.phase = "migrating" if manifest.migration else "deploying"
@@ -217,6 +223,7 @@ async def publish_candidate(
                     current_attempt,
                     code="MIGRATION_UNAVAILABLE",
                     message="数据迁移执行器未配置",
+                    repairable=repairable,
                 )
             raise ReleaseFailed("release migration runner is unavailable")
         try:
@@ -237,6 +244,7 @@ async def publish_candidate(
                 current_attempt,
                 code="MIGRATION_FAILED",
                 message="数据迁移验证失败，当前版本保持运行",
+                repairable=repairable,
             )
             raise ReleaseFailed("release migration failed") from exc
         current_attempt = _attempt(session, operation_id)
@@ -271,6 +279,7 @@ async def publish_candidate(
             current_attempt,
             code="DEPLOYMENT_FAILED",
             message="候选版本发布失败，当前版本保持运行",
+            repairable=repairable,
         )
         raise ReleaseFailed("release deployment failed") from exc
     if (
@@ -287,8 +296,9 @@ async def publish_candidate(
             current_attempt,
             code="RELEASE_VERIFICATION_FAILED",
             message="发布后业务验证未通过，当前版本保持运行",
+            repairable=repairable,
         )
-        raise ReleaseFailed("release verification failed")
+        raise ReleaseFailed("release verification failed", report=deployment.report)
 
     job, app, candidate, instance, _ = _load_release_context(
         session, job_id, candidate_version_id
@@ -302,6 +312,7 @@ async def publish_candidate(
             attempt,
             code="RELEASE_CONFLICT",
             message="应用版本已变化，需要重新核对发布结果",
+            repairable=repairable,
         )
         raise ReleaseFailed("active version changed during release")
     now = datetime.now(timezone.utc)

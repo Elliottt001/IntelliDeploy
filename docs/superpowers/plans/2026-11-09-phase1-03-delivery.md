@@ -200,7 +200,7 @@ job.status = 'SUCCEEDED'
 
 **Interfaces:** start_candidate(job_id, attempt_id, manifest: AppManifest, requirement: Requirement) -> CandidateRuntime，async；stop_candidate(runtime_id, preserve_evidence=True)，async；compile_browser_checks(requirement, source_tree, model_client) -> list[BrowserCheck]，async；validate_application(base_url, requirement, browser_checks, runtime_controller=None) -> ValidationReport，async；run_pipeline(job_id: str) -> None，async。CandidateRuntime/BrowserCheck在core/types.py定义，candidate_controller在runtime/candidate.py定义，runtime_controller由candidate_controller(runtime_id)取得，提供restart_service(name)及两个隔离test_user身份；pipeline管理phase/预算/锁，run_generation只返回候选；03-D5仅发布已验证相同digest的候选，不再重新生成未测镜像。
 
-- [ ] **Step 1: 写自动失败修复和已验证产物一致性检查。** pipeline_context提供真实小笔记服务、测试隔离runner和固定模型transport，模型第一次写不持久实现，第二次依失败证据修复；真实DeepSeek复测在07-E4。
+- [x] **Step 1: 写自动失败修复和已验证产物一致性检查。** pipeline_context提供真实小笔记服务、测试隔离runner和固定模型transport，模型第一次写不持久实现，第二次依失败证据修复；真实DeepSeek复测在07-E4。
 
 ```python
 @pytest.mark.asyncio
@@ -220,8 +220,8 @@ async def test_live_failure_keeps_old_release(live_context):
     assert live_context.old_data_is_readable()
 ```
 
-- [ ] **Step 2: 红测。** pytest test_candidate_pipeline.py/test_live_repair.py；真实runner缺配置记NOT_RUN，不能以容器连接失败当业务红测。
-- [ ] **Step 3: 实现确定的流水线与测试运行环境。** GENERATE/ADJUST依次：冻结需求→检索/路由（ADJUST通常沿用源码，新增功能可检索组件）→run_generation→清单/兼容检查→构建固定digest→启动隔离候选→编译核心检查→执行真实候选验证→准备版本材料→部署到隔离发布槽→线上验证→最终切换入口与发布指针。COPY复用source_version清单与已保存检查，仍创建独立身份/数据、候选和实际URL检查，不重跑生成。Worker process_job直接await run_pipeline；状态和租约继续由01-F2管理。
+- [x] **Step 2: 红测。** pytest test_candidate_pipeline.py/test_live_repair.py；真实runner缺配置记NOT_RUN，不能以容器连接失败当业务红测。
+- [x] **Step 3: 实现确定的流水线与测试运行环境。** GENERATE/ADJUST依次：冻结需求→检索/路由（ADJUST通常沿用源码，新增功能可检索组件）→run_generation→清单/兼容检查→构建固定digest→启动隔离候选→编译核心检查→执行真实候选验证→准备版本材料→部署到隔离发布槽→线上验证→最终切换入口与发布指针。COPY复用source_version清单与已保存检查，仍创建独立身份/数据、候选和实际URL检查，不重跑生成。Worker process_job直接await run_pipeline；状态和租约继续由01-F2管理。
 
 Candidate runner是独立可信执行节点的控制程序，通过登记的mTLS执行端点接收校验清单。它操作该节点的rootless容器/Compose；管理socket仅控制程序持有，不挂进项目容器。使用job/attempt命名的网络、空数据卷、只限当前任务的能力凭据，真实AI/搜索走平台能力并计入同一job预算。候选入口只给runner和验证浏览器访问，不向用户交付；浏览器同样在隔离节点，不能访问宿主/平台管理网段。依赖按清单启动、健康检查最长180秒；初始化失败返回结构化诊断。每次验证用新test_users，存储加run_id；重启测试通过runtime_controller重启服务并等待健康。未配置持久卷或未运行重启检查的持久化项为NOT_RUN，不凭reload冒充重启。
 
@@ -257,8 +257,8 @@ RepairableCandidateError在jobs/pipeline.py定义并携带结构化失败report�
 
 每次外部prepare/migrate/activate保存ReleaseAttempt(operation_id、slot、step、observed_effect)；崩溃后凭外部资源标记/digest/入口与恢复材料核对效果，finish事务前确认仍持有租约和实例锁。取消在安全点中止，若已切换需完成核对或回滚，禁止无条件标CANCELLED并留下未知线上版本。成功只经publish_verified_candidate同一入口写SUCCEEDED。
 
-- [ ] **Step 4: 绿测与真实闭环。** 错误持久化自动修复、漏测试阻止发布、重启检查、两账号隔离、假搜索响应失败、已验证digest一致、部署故障分类、迁移维护/恢复、切换后崩溃核对、取消、所有修复失败无假URL。使用真实DeepSeek让平台从Expo/Web输入笔记需求自动交付，再添加搜索，人工无需启动容器或改源码；验证旧笔记仍在。
-- [ ] **Step 5: 提交。** `feat: integrate candidate verification repair and atomic delivery`。
+- [x] **Step 4: 绿测与真实闭环。** 错误持久化自动修复、漏测试阻止发布、重启检查、两账号隔离、假搜索响应失败、已验证digest一致、部署故障分类、迁移维护/恢复、切换后崩溃核对、取消、所有修复失败无假URL。使用真实DeepSeek让平台从Expo/Web输入笔记需求自动交付，再添加搜索，人工无需启动容器或改源码；验证旧笔记仍在。
+- [x] **Step 5: 提交。** `feat: integrate candidate verification repair and atomic delivery`。
 
 ### Task 03-D7: 实例操作、状态核对与周期资源计量（P3）
 
@@ -326,3 +326,5 @@ ResourceWindow.compute_units为分配CPU/内存时长换算后的资源计费单
 03-D4：新增多服务 Deployment/ClusterIP Service、实例固定 PVC、版本候选资源、受限容器安全上下文、实例范围 Secret 与唯一 Web Ingress；使用官方 Kubernetes dynamic client 做 dry-run 预检和 server-side apply。候选 rollout/事件诊断、双阶段 URL 验证、稳定 Ingress 原子切换及无旧入口/有旧入口回滚均有覆盖；专项 11 项通过、1 项真实集群检查跳过，完整 phase1 166 项通过、3 项跳过。未提供明确 dev/test/boe namespace，未调用 Sealos/Kubernetes API。
 
 03-D5：新增候选需求 revision、不可变源码、digest 固定清单、验证报告与 manifest hash 的发布绑定校验；迁移仅在数据副本试运行，失败保持旧版本、旧 URL 和数据，成功后单事务切换 App/Instance/Job。发布、停止和删除均具备幂等边界，删除要求所有者、精确确认字符串和明确数据选项，并撤销实例凭据；专项 10 项通过，完整 phase1 176 项通过、3 项跳过。未执行任何真实 Linux/Sealos 发布、停止或删除动作。
+
+03-D6：新增两轮核心检查计划编译门槛、候选 runner 隔离注册与受控服务重启、最多四次共享修复循环、需求 revision/attempt/manifest hash 证据绑定、不可变版本快照和 D5 单一发布入口。候选业务失败可携证据重试，目标凭据/平台故障不进入模型修复，取消在安全点落终态，失租 Worker 不得覆盖新 Worker；专项 11 项通过，完整 phase1 187 项通过、3 项跳过。真实 DeepSeek、专用候选 runner、registry 与远程目标均未配置，保持 NOT_RUN，不以连接失败代替业务验证。
