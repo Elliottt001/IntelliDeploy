@@ -120,3 +120,88 @@ def reserve_sponsor(session,publication_id,operation_id,max_units):
     result=SponsorReservation(publication_id=publication.id,operation_id=operation_id,period_start=period)
     session.add(result); session.flush()
     return result
+
+
+def create_copy(session,publication_id,owner_id,operation_id,budget_units=None):
+    from app.apps.service import replay,remember,select_budget
+    from app.apps.models import Conversation,Message
+    from app.jobs.models import Job
+    from app.billing.ledger import reserve
+    from app.capabilities.identity import provision_instance_credential
+    from app.config import settings
+    import json,os
+    payload={'publication_id':publication_id,'budget_units':budget_units}
+    saved,digest=replay(session,owner_id,'copy',operation_id,payload)
+    if saved:
+        return session.get(App,saved.response['app_id']),session.get(Instance,saved.response['instance_id']),session.get(Job,saved.response['job_id'])
+    publication=session.scalar(select(Publication).where(Publication.id==publication_id,Publication.visible.is_(True)).with_for_update())
+    if not publication: raise PublicationError()
+    version=session.get(AppVersion,publication.version_id)
+    original=session.get(Instance,publication.instance_id)
+    if not version.immutable or not ValidationReport.model_validate(version.validation).passed or not Path(version.artifact_path or '').is_file():
+        raise PublicationError('来源版本尚未通过验证',409)
+    requirement=session.scalar(select(RequirementRecord).where(RequirementRecord.app_id==publication.app_id,RequirementRecord.revision==version.requirement_revision))
+    if not requirement: raise PublicationError('来源需求不存在',409)
+    app=App(owner_id=owner_id,name=session.get(App,publication.app_id).name+' · 我的副本',prompt=requirement.requirement['prompt'],source_version_id=version.id)
+    session.add(app);session.flush()
+    session.add(Conversation(app_id=app.id))
+    session.add(Message(app_id=app.id,sequence=1,role='user',content=app.prompt))
+    copied_requirement=Requirement.model_validate(requirement.requirement).model_copy(update={'revision':1,'facts':[],'source_message_ids':[]})
+    session.add(RequirementRecord(app_id=app.id,revision=1,requirement=copied_requirement.model_dump(mode='json'),review={'source_version_id':version.id,'copied_acceptance':True}))
+    from uuid import uuid4
+    instance=Instance(owner_id=owner_id,app_id=app.id,target_id=original.target_id,data_namespace='copy_'+uuid4().hex)
+    session.add(instance);session.flush()
+    token=provision_instance_credential(session,instance.id)
+    job=Job(app_id=app.id,kind='COPY',phase='validating',operation_id=f'{owner_id}:copy:{operation_id}',requirement_revision=1,budget_units=select_budget(budget_units,session,owner_id),checkpoint={'source_version_id':version.id})
+    session.add(job);session.flush()
+    parent=reserve(session,owner_id,f'job:{job.id}',job.budget_units)
+    job.reservation_id=parent.id
+    root=Path(settings.INSTANCE_SECRETS_ROOT)/'copies'
+    root.mkdir(parents=True,exist_ok=True,mode=0o700)
+    secret=root/(instance.id+'.json')
+    descriptor=os.open(secret,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+    with os.fdopen(descriptor,'w') as output:
+        json.dump({'instance_id':instance.id,'instance_token':token},output)
+    instance.secret_ref=str(secret)
+    remember(session,owner_id,'copy',operation_id,digest,{'app_id':app.id,'instance_id':instance.id,'job_id':job.id,'status':'QUEUED'})
+    return app,instance,job
+
+
+def prepare_copy_candidate(session,job):
+    import zipfile,stat
+    from app.agent.workspace import WorkspaceManager,safe_path
+    from app.config import settings
+    from app.core.types import BrowserCheck
+    from app.jobs.pipeline import CandidateDraft
+    from app.runtime.build import _sensitive
+    source_id=job.checkpoint.get('source_version_id')
+    app=session.get(App,job.app_id)
+    source=session.get(AppVersion,source_id)
+    if not source or app.source_version_id!=source.id or not source.immutable:
+        raise PublicationError('副本来源不完整',409)
+    workspace=Path(WorkspaceManager(settings.AGENT_WORKSPACE_ROOT).create_workspace(job.id))
+    files=[]
+    try:
+        with zipfile.ZipFile(source.artifact_path) as archive:
+            if sum(item.file_size for item in archive.infolist())>100*1024*1024: raise ValueError('source archive too large')
+            for item in archive.infolist():
+                relative=Path(item.filename)
+                if relative.is_absolute() or '..' in relative.parts or stat.S_ISLNK(item.external_attr>>16): raise ValueError('unsafe source path')
+                if item.is_dir() or item.filename in {'release-manifest.json','validation-report.json','source-metadata.json'}: continue
+                if relative.parts and relative.parts[0]=='source': relative=Path(*relative.parts[1:])
+                if _sensitive(relative): continue
+                target=safe_path(workspace,relative.as_posix())
+                target.parent.mkdir(parents=True,exist_ok=True)
+                target.write_bytes(archive.read(item));files.append(relative.as_posix())
+    except (OSError,ValueError,zipfile.BadZipFile) as exc:
+        raise PublicationError('副本源码材料无效',409) from exc
+    manifest=AppManifest.model_validate(source.manifest).model_copy(deep=True)
+    validate_release_manifest(manifest)
+    manifest.builds=[]
+    instance=session.scalar(select(Instance).where(Instance.app_id==job.app_id))
+    for service in manifest.services:
+        # Preserve required names, replace every source credential reference.
+        service.env_refs={name:f'copy-{instance.id}-{name.lower().replace("_","-")}' for name in service.env_refs}
+    checks=[BrowserCheck.model_validate(check) for check in (source.delivery or {}).get('browser_checks',[])]
+    if not checks: raise PublicationError('来源缺少可重复执行的业务检查',409)
+    return CandidateDraft(str(workspace),manifest,files,checks)

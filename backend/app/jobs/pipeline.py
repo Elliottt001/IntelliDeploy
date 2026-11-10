@@ -286,7 +286,8 @@ def _create_verified_version(
         version = AppVersion(
             app_id=app.id,
             requirement_revision=job.requirement_revision,
-            sources=[],
+            sources=(session.get(AppVersion,app.source_version_id).sources if job.kind=='COPY' else []),
+            template_version=(session.get(AppVersion,app.source_version_id).template_version if job.kind=='COPY' else None),
             manifest=candidate.manifest.model_dump(mode="json"),
             validation=report.model_dump(mode="json"),
             artifact_path=artifact_path,
@@ -380,8 +381,9 @@ async def run_pipeline(
     policy = policy or PipelinePolicy()
     repair_evidence: list[dict] = []
     last_message = "core checks did not pass"
+    is_copy = _copy_job(session_factory,job_id)
     try:
-        for attempt_index in range(policy.max_attempts):
+        for attempt_index in range(1 if is_copy else policy.max_attempts):
             runtime = None
             try:
                 job, requirement = check_lease_and_budget(
@@ -390,9 +392,16 @@ async def run_pipeline(
                     worker_id=worker_id,
                     generation=generation,
                 )
-                candidate = await implement_and_build(
-                    job, requirement, attempt_index, repair_evidence, dependencies
-                )
+                if job.kind=='COPY':
+                    from app.community.service import prepare_copy_candidate
+                    with session_factory() as session:
+                        draft=prepare_copy_candidate(session,session.get(Job,job.id))
+                    attempt_id=f'{job.id[:8]}-copy-{attempt_index+1}'
+                    candidate=PipelineCandidate(attempt_id,draft.workspace_id,draft.manifest,manifest_hash(draft.manifest),draft.browser_checks)
+                else:
+                    candidate = await implement_and_build(
+                        job, requirement, attempt_index, repair_evidence, dependencies
+                    )
                 runtime = await _await(
                     dependencies.start_candidate(
                         job.id, candidate.attempt_id, candidate.manifest, requirement
@@ -438,6 +447,7 @@ async def run_pipeline(
             finally:
                 if runtime is not None:
                     await _await(dependencies.stop_candidate(runtime.id, preserve_evidence=True))
+        _finish_failure(session_factory, job_id, "CORE_CHECKS_FAILED", last_message)
     except PipelineCancelled:
         _finish_cancelled(session_factory, job_id)
         return
@@ -460,5 +470,16 @@ async def run_pipeline(
     except Exception as exc:
         _finish_failure(session_factory, job_id, "PIPELINE_FAILED", str(exc))
         return
-    _finish_failure(session_factory, job_id, "CORE_CHECKS_FAILED", last_message)
+    finally:
+        if is_copy:
+            from app.billing.ledger import settle
+            with session_factory() as session:
+                if session.get(Job,job_id).status in {'SUCCEEDED','FAILED','CANCELLED'}:
+                    settle(session,f'job:{job_id}');session.commit()
+
+
+def _copy_job(session_factory,job_id):
+    with session_factory() as session:
+        job=session.get(Job,job_id)
+        return job is not None and job.kind=='COPY'
 

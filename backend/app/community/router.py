@@ -11,6 +11,12 @@ router=APIRouter(tags=['community'])
 Key=Annotated[str,Header(alias='Idempotency-Key',min_length=1,max_length=200)]
 
 
+@router.post('/api/publications/{publication_id}/copies',response_model=CreateAppResponse,status_code=201)
+def copy(publication_id:str,body:CopyRequest,key:Key,user:User=Depends(get_current_user),db:Session=Depends(get_db)):
+    app,instance,job=service.create_copy(db,publication_id,user.id,key,body.budget_units)
+    return CreateAppResponse(app_id=app.id,job_id=job.id,status='QUEUED')
+
+
 @router.post('/api/apps/{app_id}/publish',response_model=PublicationResponse)
 def publish(app_id:str,body:PublishRequest,user:User=Depends(get_current_user),db:Session=Depends(get_db)):
     publication=service.publish(db,app_id,user.id,body.version_id,body.payer_policy,sponsor_period=body.sponsor_period,sponsor_limit_units=body.sponsor_limit_units)

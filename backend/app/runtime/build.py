@@ -20,6 +20,7 @@ IGNORED_DIRS = {
     ".pytest_cache",
     ".ruff_cache",
     ".venv",
+    ".tool-results",
     "__pycache__",
     "build",
     "dist",
