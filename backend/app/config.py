@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     DEEPSEEK_API_KEY: str = ""
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
     DEEPSEEK_MODEL: str = "deepseek-flash"
+    ARTIFACTS_ROOT: str = str(Path(__file__).resolve().parents[2] / "artifacts")
+    ENABLE_EVALUATION_UI: bool = False
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ALGORITHM: str = "HS256"
     MODEL_API: str = ""

@@ -150,7 +150,7 @@ Worker 10 秒续约，正常无任务等待 1 秒；执行器作为明确的 asy
 
 **Interfaces:** 所有公开 Schema 在 01-F1 的 core/types.py 按 [交付协议](../../一期交付与测试说明.md) 定义。create_app(session, owner_id, prompt, operation_id, budget_units=None) -> (App, Job)；add_message(session, app_id, owner_id, content, operation_id) -> Job；GET /api/jobs/{id}/events?after_id=；GET /api/apps/{id} 返回持久状态。
 
-- [ ] **Step 1: 写认证、幂等和续接检查。** api_client 使用专用库及 User fixture；请求头 Idempotency-Key 保存为 operation_id。
+- [x] **Step 1: 写认证、幂等和续接检查。** api_client 使用专用库及 User fixture；请求头 Idempotency-Key 保存为 operation_id。
 
 ```python
 def test_create_is_idempotent(api_client, owner_headers):
@@ -164,8 +164,8 @@ def test_other_user_cannot_read_app(api_client, app_record, other_headers):
     assert api_client.get(f'/api/apps/{app_record.id}', headers=other_headers).status_code == 404
 ```
 
-- [ ] **Step 2: 红测。** `.venv/bin/python -m pytest tests/phase1/test_apps_api.py -q`。
-- [ ] **Step 3: 实现事务内创建和访问控制。** create_app 在同一事务建立 App、Conversation、Job；相同用户和请求键返回原结果，其他用户不能用同键访问。add_message 追加消息；有活跃任务时不创建第二个修改任务，WAITING_USER 时恢复原任务，成功或失败任务后的调整创建新 Job。确认旧 SQLite User schema 后，复用现有密码哈希和 JWT 验证；security.py 改用 HTTPBearer，保留 JSON 登录和 Bearer token 调用，Swagger 直接输入 token 可用；main 默认只挂载认证和新应用/任务路由，旧部署入口在 06-F4 审计后退休。
+- [x] **Step 2: 红测。** `.venv/bin/python -m pytest tests/phase1/test_apps_api.py -q`。
+- [x] **Step 3: 实现事务内创建和访问控制。** create_app 在同一事务建立 App、Conversation、Job；相同用户和请求键返回原结果，其他用户不能用同键访问。add_message 追加消息；有活跃任务时不创建第二个修改任务，WAITING_USER 时恢复原任务，成功或失败任务后的调整创建新 Job。确认旧 SQLite User schema 后，复用现有密码哈希和 JWT 验证；security.py 改用 HTTPBearer，保留 JSON 登录和 Bearer token 调用，Swagger 直接输入 token 可用；main 默认只挂载认证和新应用/任务路由，旧部署入口在 06-F4 审计后退休。
 
 ```python
 def encode_event(event) -> str:
@@ -177,8 +177,8 @@ def encode_event(event) -> str:
 
 SSE统一event: job，data.kind描述实际业务事件，公开Schema中kind为字符串；Next EventSource监听job。SSE 先验证归属，从 Last-Event-ID 或 after_id 恢复，以数据库 ID 补发；无新事件发送心跳，客户端断线结束查询。设置响应缓存禁用。服务启动检查迁移版本，不自动 ALTER 或 create_all。
 
-- [ ] **Step 4: 绿测。** 补充 SSE 补发只返回 ID 大于游标的事件、刷新读到原任务、业务补充恢复而非新建任务，以及未登录创建返回 401 的检查；补充 jobs/report/artifact 越权 404、活跃任务冲突 409、额度不足 402、幂等键同请求重放与不同请求冲突、取消/恢复幂等、OpenAPI 与响应 Schema 检查。
-- [ ] **Step 5: 提交。** `feat: add persistent app conversations and event stream`。
+- [x] **Step 4: 绿测。** 补充 SSE 补发只返回 ID 大于游标的事件、刷新读到原任务、业务补充恢复而非新建任务，以及未登录创建返回 401 的检查；补充 jobs/report/artifact 越权 404、活跃任务冲突 409、额度不足 402、幂等键同请求重放与不同请求冲突、取消/恢复幂等、OpenAPI 与响应 Schema 检查。
+- [x] **Step 5: 提交。** `feat: add persistent app conversations and event stream`。
 
 ## 本计划完成条件
 
@@ -197,3 +197,5 @@ SSE统一event: job，data.kind描述实际业务事件，公开Schema中kind为
 2026-11-10，01-F1：Python 3.13.15；PostgreSQL 17独立dev/test数据库；契约与临时schema迁移往返12项通过，alembic check无schema漂移。旧单元基线在修改前58项通过。正式API入口移除create_all在01-F3完成；本任务未运行生成/云/支付。用户指定main、本agent顺序开发。
 
 01-F2：并发认领、同名Worker代次隔离、检查点恢复、公开事件游标、Worker关闭与恢复等10项通过；连同01-F1共22项通过。heartbeat/save_checkpoint/finish_job必须传generation，run_pipeline后续接收worker_id/generation以复核租约。Worker在pipeline模块未实现前拒绝启动，不认领任务或模拟成功。
+
+01-F3：创建/消息持久化、并发及请求内容幂等、Bearer认证、跨用户拒绝、SSE断线游标、源码/证据归属、旧revision报告拒绝、取消共12项协议检查通过；累计34项。API启动核对唯一Alembic head，不执行create_all；旧模拟路由不挂载。新增0002_requests保存所有写请求的幂等结果。额度恢复在06-F1接入前明确503，不假装预留成功；402及真实resume最终验收随06-F1补充。生成/云/支付尚未执行。

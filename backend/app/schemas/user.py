@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class UserCreate(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     username: str
     email: str
     password: str

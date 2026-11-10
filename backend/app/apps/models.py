@@ -83,3 +83,15 @@ class Instance(Base):
     data_namespace = Column(String, unique=True)
     secret_ref = Column(String)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class RequestRecord(Base):
+    __tablename__ = 'request_records'
+    __table_args__ = (UniqueConstraint('user_id', 'action', 'key'),)
+    id = Column(String, primary_key=True, default=new_id)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    action = Column(String, nullable=False)
+    key = Column(String, nullable=False)
+    payload_hash = Column(String, nullable=False)
+    response = Column(JSONB, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)

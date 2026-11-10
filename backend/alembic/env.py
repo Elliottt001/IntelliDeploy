@@ -9,7 +9,7 @@ from app.jobs import models as jobs_models
 from app.runtime import models as runtime_models
 
 config = context.config
-TABLES = {'users', 'apps', 'conversations', 'messages', 'requirement_records', 'app_versions', 'instances', 'jobs', 'job_events', 'tool_call_records', 'deployment_targets', 'resource_records'}
+TABLES = {'users', 'apps', 'conversations', 'messages', 'requirement_records', 'app_versions', 'instances', 'jobs', 'job_events', 'tool_call_records', 'deployment_targets', 'resource_records', 'request_records'}
 
 
 def include_object(obj, name, type_, reflected, compare_to):

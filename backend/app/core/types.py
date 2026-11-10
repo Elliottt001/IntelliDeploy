@@ -99,6 +99,7 @@ class Checkpoint(BaseModel):
     attempt_id: str | None = None
     validation_refs: list[str] = Field(default_factory=list)
     reservation_id: str | None = None
+    manifest_hash: str | None = None
 
 class CheckResult(BaseModel):
     id: str
@@ -398,3 +399,30 @@ class InstanceOperationResponse(BaseModel):
 
 Requirement.model_rebuild()
 RequirementDraft.model_rebuild()
+
+
+class CreateAppRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=20000)
+    budget_units: int | None = Field(default=None, gt=0)
+    evaluation_target_id: str | None = None
+
+    @model_validator(mode='after')
+    def nonblank(self):
+        if not self.prompt.strip():
+            raise ValueError('prompt cannot be blank')
+        return self
+
+
+class MessageRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=20000)
+    budget_units: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode='after')
+    def nonblank(self):
+        if not self.content.strip():
+            raise ValueError('message cannot be blank')
+        return self
+
+
+class ResumeRequest(BaseModel):
+    budget_units: int | None = Field(default=None, gt=0)
