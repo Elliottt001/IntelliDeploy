@@ -2,12 +2,14 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Header, Response, UploadFile
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from app.apps.models import Instance
 from app.capabilities.files import FileAccessDenied, FileStore
+from app.capabilities.ai import chat
 from app.capabilities.identity import consume_login_code, issue_app_identity, issue_login_code
+from app.capabilities.search import fetch, search
 from app.config import settings
 from app.core.errors import abort
 from app.database import SessionLocal, get_db
@@ -40,6 +42,25 @@ class IdentityExchangeResponse(BaseModel):
 
 class FileIdResponse(BaseModel):
     file_id: str
+
+
+class CapabilityRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    operation_id: str = Field(min_length=1, max_length=128)
+
+
+class ChatRequest(CapabilityRequest):
+    messages: list[dict] = Field(min_length=1)
+    model: str = Field(min_length=1, max_length=128)
+
+
+class SearchRequest(CapabilityRequest):
+    query: str = Field(min_length=1, max_length=128)
+    count: int = Field(default=5, ge=1, le=50)
+
+
+class FetchRequest(CapabilityRequest):
+    url: str = Field(min_length=1, max_length=2048)
 
 
 def capability_context(
@@ -128,4 +149,19 @@ def download_file(file_id: str, context=Depends(capability_context)):
         )
     except FileAccessDenied as exc:
         abort("FILE_NOT_FOUND", str(exc), 404)
+
+
+@router.post("/api/capabilities/chat")
+async def capability_chat(body: ChatRequest, context=Depends(capability_context)):
+    return await chat(context, body.messages, body.model, body.operation_id)
+
+
+@router.post("/api/capabilities/search")
+async def capability_search(body: SearchRequest, context=Depends(capability_context)):
+    return await search(context, body.query, body.operation_id, body.count)
+
+
+@router.post("/api/capabilities/fetch")
+async def capability_fetch(body: FetchRequest, context=Depends(capability_context)):
+    return await fetch(context, body.url, body.operation_id)
 

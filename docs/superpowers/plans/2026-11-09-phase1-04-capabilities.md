@@ -99,7 +99,7 @@ FileRecord 在 capabilities/models.py 保存 id、instance_id、owner_id、path�
 
 **Interfaces:** chat(context, messages, model, operation_id) -> dict，async；search(context, query, operation_id, count=5) -> list[dict]，async；fetch(context, url, operation_id) -> dict，async。消费 06-F1 reserve/record_usage/settle；尚无价格配置的收费调用拒绝，不编造免费费用。
 
-- [ ] **Step 1: 写权限、来源和失败计量检查。** MockTransport 返回官方响应；真实 DeepSeek 集成作为 real 标记测试。
+- [x] **Step 1: 写权限、来源和失败计量检查。** MockTransport 返回官方响应；真实 DeepSeek 集成作为 real 标记测试。
 
 ```python
 @pytest.mark.asyncio
@@ -116,8 +116,8 @@ async def test_search_returns_sources(search_context):
     assert result[0]['url'] == 'https://example.org'
 ```
 
-- [ ] **Step 2: 红测。** test_ai_search_capabilities.py。
-- [ ] **Step 3: 调用直接 API 并绑定账本。** Search POST https://api.deepseek.com/v1/tools/search，query 长度 1..128、count 1..50、need_content=true；Fetch POST /v1/tools/fetch，HTTP(S) URL 无用户密码。返回 title/url/summary/content，保留来源，不用模型虚构摘要代替获取失败。
+- [x] **Step 2: 红测。** test_ai_search_capabilities.py。
+- [x] **Step 3: 调用直接 API 并绑定账本。** Search POST https://api.deepseek.com/v1/tools/search，query 长度 1..128、count 1..50、need_content=true；Fetch POST /v1/tools/fetch，HTTP(S) URL 无用户密码。返回 title/url/summary/content，保留来源，不用模型虚构摘要代替获取失败。
 
 ```python
 response = await http_client.post('/v1/tools/search',
@@ -135,8 +135,10 @@ else:
 
 工具表增加 web_search 和 fetch_page，绑定当前任务的可信付费上下文。AI 请求用统一 DeepSeekClient，返回内容与真实使用量；平台 Key 不出现在应用响应。请求前预留预算，按供应商实际用量结算，失败释放未用部分；平台额度不足暂停，供应商402为UPSTREAM_UNAVAILABLE、429/408/5xx 有界退避，其他 4xx 明确失败。客户端取消和上游结果不确定时记录待核对事件，不重复扣用户费用。
 
-- [ ] **Step 4: 绿测和真实调用。** 包含第三方 401/402/429、重复 operation_id、赞助/访客正确付费方、空搜索按供应商实际成功请求费记录、真实搜索 URL 来源和 AI 回答保存。真实 Key 未就绪只标未执行。
-- [ ] **Step 5: 提交。** `feat: provide metered AI and live web search`。
+- [x] **Step 4: 绿测和真实调用。** 包含第三方 401/402/429、重复 operation_id、赞助/访客正确付费方、空搜索按供应商实际成功请求费记录、真实搜索 URL 来源和 AI 回答保存。真实 Key 未就绪只标未执行。
+- [x] **Step 5: 提交。** `feat: provide metered AI and live web search`。
+
+实施证据（2026-11-10）：应用 Chat 复用统一 `DeepSeekClient`，Search/Fetch 使用 DeepSeek tools 直接协议；三类调用均从可信 `CapabilityContext.payer_id` 预留额度，按供应商实际 usage 结算并释放余量，缺价格在请求前返回 503，缺 usage 或连接结果不确定写入 `UnknownUsage`。`operation_id` 重放返回已保存结果、内容变化返回冲突；供应商 401/402 单次失败，429/408/5xx 有界重试，平台 Key 不进入应用响应。模型工具表和执行器增加受控 `web_search`/`fetch_page`，客户端不能提交 payer。专项 22 项、04-C1/C2/C3 联合 34 项、完整 phase1 130 项通过且 1 项专用沙箱默认跳过；Alembic 在专用测试库完成 `0005 → 0003 → head` 往返并保持唯一 head `0005_instance_data`。真实 DeepSeek Key、真实搜索 URL 和真实 AI 回答调用因未配置外部凭据标记 `NOT_RUN`，上述来源与回答证据均来自 `MockTransport`，不计入真实验收。
 
 #### 候选测试身份与用量衔接
 

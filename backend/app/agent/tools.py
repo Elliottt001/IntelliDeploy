@@ -22,6 +22,11 @@ class RepositoryExecutor(Protocol):
     def fetch(self, url: str, commit: str, destination: str) -> dict: ...
 
 
+class CapabilityExecutor(Protocol):
+    def web_search(self, query: str, count: int, operation_id: str) -> list[dict]: ...
+    def fetch_page(self, url: str, operation_id: str) -> dict: ...
+
+
 class PathArgs(BaseModel):
     path: str = "."
 
@@ -53,6 +58,15 @@ class FetchArgs(BaseModel):
     destination: str
 
 
+class WebSearchArgs(BaseModel):
+    query: str = Field(min_length=1, max_length=128)
+    count: int = Field(default=5, ge=1, le=50)
+
+
+class FetchPageArgs(BaseModel):
+    url: str = Field(min_length=1, max_length=2048)
+
+
 ARGUMENTS = {
     "list_files": PathArgs,
     "read_file": PathArgs,
@@ -61,6 +75,8 @@ ARGUMENTS = {
     "run_command": CommandArgs,
     "search_repositories": SearchArgs,
     "fetch_repository": FetchArgs,
+    "web_search": WebSearchArgs,
+    "fetch_page": FetchPageArgs,
 }
 
 
@@ -100,7 +116,8 @@ def _public_output(content: str) -> str:
 
 
 def execute_tool(workspace_id: str, call: ToolCall, executor: CommandExecutor | None = None,
-                 repository_executor: RepositoryExecutor | None = None) -> ToolResult:
+                 repository_executor: RepositoryExecutor | None = None,
+                 capability_executor: CapabilityExecutor | None = None) -> ToolResult:
     model = ARGUMENTS.get(call.name)
     if model is None:
         raise ValueError("unknown tool")
@@ -139,6 +156,19 @@ def execute_tool(workspace_id: str, call: ToolCall, executor: CommandExecutor | 
         if repository_executor is None:
             return ToolResult(call_id=call.id, ok=False, content="受控仓库代理尚未配置")
         return ToolResult(call_id=call.id, ok=True, content=_public_output(json.dumps(repository_executor.fetch(args.url, args.commit, str(destination)), ensure_ascii=False)))
+    if call.name in {"web_search", "fetch_page"}:
+        if capability_executor is None:
+            return ToolResult(call_id=call.id, ok=False, content="受控能力执行器尚未配置")
+        value = (
+            capability_executor.web_search(args.query, args.count, call.id)
+            if call.name == "web_search"
+            else capability_executor.fetch_page(args.url, call.id)
+        )
+        return ToolResult(
+            call_id=call.id,
+            ok=True,
+            content=_public_output(json.dumps(value, ensure_ascii=False)),
+        )
     if executor is None:
         return ToolResult(call_id=call.id, ok=False, content="隔离执行器尚未配置")
     ok, content = executor.run(str(root), args.argv, args.timeout)
