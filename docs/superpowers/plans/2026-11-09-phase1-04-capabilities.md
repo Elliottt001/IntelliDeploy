@@ -60,7 +60,7 @@ AppLoginCode 在 capabilities/models.py 保存 code_hash、instance_id、user_id
 
 **Interfaces:** provision_data_space(instance_id) -> dict[str, str]；create_file(context: CapabilityContext, stream, filename, public=False) -> str；read_file(context, file_id) -> bytes；destroy_data_space(instance_id, confirmed: bool)。返回数据连接参数只供部署器，浏览器只获得文件 ID。
 
-- [ ] **Step 1: 写真实数据隔离与文件越权检查。** 专用 PostgreSQL 创建两个实例角色/数据库；file fixture 使用 tmp_path，但元数据写专用测试库。
+- [x] **Step 1: 写真实数据隔离与文件越权检查。** 专用 PostgreSQL 创建两个实例角色/数据库；file fixture 使用 tmp_path，但元数据写专用测试库。
 
 ```python
 def test_private_file_is_not_readable_by_other_user(file_store, contexts):
@@ -75,8 +75,8 @@ def test_update_does_not_recreate_database(data_store):
     assert data_store.read_records(again) == ['saved']
 ```
 
-- [ ] **Step 2: 红测。** test_instance_data.py；数据库角色隔离必须用 PostgreSQL，不能用字典代替。
-- [ ] **Step 3: 实现实例范围资源。** 数据库名和角色名由服务器生成，仅用 psycopg.sql.Identifier 构造管理 SQL；应用角色不能连接控制面库或其他实例库。生成随机凭据，部署时通过 Secret/env_refs 引用。已有仓库的其他数据库记录由部署器管理，不能静默换成 PostgreSQL。
+- [x] **Step 2: 红测。** test_instance_data.py；数据库角色隔离必须用 PostgreSQL，不能用字典代替。
+- [x] **Step 3: 实现实例范围资源。** 数据库名和角色名由服务器生成，仅用 psycopg.sql.Identifier 构造管理 SQL；应用角色不能连接控制面库或其他实例库。生成随机凭据，部署时通过 Secret/env_refs 引用。已有仓库的其他数据库记录由部署器管理，不能静默换成 PostgreSQL。
 
 ```python
 path = files_root / context.instance_id / uuid.uuid4().hex
@@ -88,8 +88,10 @@ record = FileRecord(instance_id=context.instance_id, owner_id=context.user_id,
 
 FileRecord 在 capabilities/models.py 保存 id、instance_id、owner_id、path、filename、public、size、created_at。私有上传需要登录，不能令 owner_id=None 的访客共享私有权限。上传限制大小与类型，filename 仅作元数据，不作为真实路径。访问按实例和文件 owner/public 校验。元数据、文件卷和实例数据库跨源码版本保留；删除需要确认并按记录处理。创建副本生成新的数据空间，旧凭据不复用。
 
-- [ ] **Step 4: 绿测。** 覆盖 ../ 文件名、其他实例文件、重复 provision 幂等、停止保留数据、明示删除及实例角色跨库拒绝。
-- [ ] **Step 5: 提交。** `feat: preserve per-instance data and file access`。
+- [x] **Step 4: 绿测。** 覆盖 ../ 文件名、其他实例文件、重复 provision 幂等、停止保留数据、明示删除及实例角色跨库拒绝。
+- [x] **Step 5: 提交。** `feat: preserve per-instance data and file access`。
+
+实施证据（2026-11-10）：专用测试 PostgreSQL 中为实例创建独立 role/database，撤销控制库及实例库的 PUBLIC CONNECT；重复 provision 与 STOPPED 状态保留原记录，确认销毁后数据库/角色/secret reference 清理。文件元数据落测试库、内容使用服务端 UUID 路径及 0600 权限，覆盖跨用户/实例、公开读取、匿名私有上传、路径/类型/大小校验及实例身份 API，共 6 项通过。
 
 ### Task 04-C3: AI、Search/Fetch 与用量记录
 

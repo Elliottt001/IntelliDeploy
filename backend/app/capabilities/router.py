@@ -1,12 +1,16 @@
-from fastapi import APIRouter, Depends
+from pathlib import Path
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, File, Header, Response, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.apps.models import Instance
+from app.capabilities.files import FileAccessDenied, FileStore
 from app.capabilities.identity import consume_login_code, issue_app_identity, issue_login_code
 from app.config import settings
 from app.core.errors import abort
-from app.database import get_db
+from app.database import SessionLocal, get_db
 from app.models.user import User
 from app.utils.security import get_current_user
 
@@ -32,6 +36,27 @@ class IdentityExchangeResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
+
+
+class FileIdResponse(BaseModel):
+    file_id: str
+
+
+def capability_context(
+    instance_id: Annotated[str, Header(alias="X-Instance-ID")],
+    instance_token: Annotated[str, Header(alias="X-Instance-Token")],
+    authorization: Annotated[str | None, Header()] = None,
+    db: Session = Depends(get_db),
+):
+    from app.capabilities.identity import resolve_context
+
+    user_token = None
+    if authorization:
+        scheme, _, value = authorization.partition(" ")
+        if scheme.lower() != "bearer" or not value:
+            abort("IDENTITY_INVALID", "应用身份格式无效", 401)
+        user_token = value
+    return resolve_context(db, instance_id, user_token, instance_token)
 
 
 @router.post("/api/instances/{instance_id}/login-code", response_model=LoginCodeResponse)
@@ -64,4 +89,43 @@ def exchange_identity(body: IdentityExchangeRequest, db: Session = Depends(get_d
     return IdentityExchangeResponse(
         access_token=token, expires_in=settings.APP_IDENTITY_TTL_SECONDS
     )
+
+
+@router.post("/api/capabilities/files", response_model=FileIdResponse, status_code=201)
+def upload_file(
+    file: Annotated[UploadFile, File()],
+    public: bool = False,
+    context=Depends(capability_context),
+):
+    store = FileStore(
+        session_factory=SessionLocal,
+        root=Path(settings.INSTANCE_FILES_ROOT),
+        max_bytes=settings.INSTANCE_FILE_MAX_BYTES,
+    )
+    try:
+        return FileIdResponse(
+            file_id=store.create(context, file.file, file.filename or "", public)
+        )
+    except FileAccessDenied as exc:
+        abort("FILE_FORBIDDEN", str(exc), 403)
+    except ValueError as exc:
+        abort("FILE_INVALID", str(exc), 422)
+
+
+@router.get("/api/capabilities/files/{file_id}")
+def download_file(file_id: str, context=Depends(capability_context)):
+    store = FileStore(
+        session_factory=SessionLocal,
+        root=Path(settings.INSTANCE_FILES_ROOT),
+        max_bytes=settings.INSTANCE_FILE_MAX_BYTES,
+    )
+    try:
+        record = store.record(context, file_id)
+        return Response(
+            content=store.read(context, file_id),
+            media_type=record.content_type,
+            headers={"Cache-Control": "no-store"},
+        )
+    except FileAccessDenied as exc:
+        abort("FILE_NOT_FOUND", str(exc), 404)
 

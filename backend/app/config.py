@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     APP_IDENTITY_PUBLIC_KEY: str = ""
     APP_IDENTITY_ISSUER: str = "intellideploy"
     APP_IDENTITY_TTL_SECONDS: int = Field(default=900, ge=60, le=3600)
+    INSTANCE_FILES_ROOT: str = str(Path(__file__).resolve().parents[2] / "artifacts/instance-files")
+    INSTANCE_SECRETS_ROOT: str = str(Path(__file__).resolve().parents[2] / "artifacts/instance-secrets")
+    INSTANCE_FILE_MAX_BYTES: int = Field(default=10 * 1024 * 1024, gt=0)
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ALGORITHM: str = "HS256"
     MODEL_API: str = ""
