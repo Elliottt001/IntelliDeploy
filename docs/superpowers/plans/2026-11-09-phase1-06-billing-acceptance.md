@@ -99,7 +99,7 @@ resource = AESGCM(api_v3_key).decrypt(nonce, ciphertext, associated_data)
 
 ### Task 06-F3: Stripe 与套餐周期
 
-**Files:** Create backend/app/billing/stripe_payments.py、tests/phase1/test_stripe_payments.py、frontend/app/billing/page.tsx。Modify backend/app/billing/router.py、backend/app/config.py、frontend/lib/api.ts、backend/requirements.txt。
+**Files:** Create backend/app/billing/stripe_payments.py、tests/phase1/test_stripe_payments.py、web/app/billing/page.tsx。Modify backend/app/billing/router.py、backend/app/config.py、web/lib/api.ts、backend/requirements.txt。
 
 **Interfaces:** create_stripe_checkout(order: PaymentOrder, recurring: bool) -> str；handle_stripe_event(raw_body: bytes, signature: str) -> PaymentEvent|None。Checkout 与 webhook 连接同一 apply_payment；收费 SKU 存 Stripe price_id 与周期配置。
 
@@ -136,7 +136,7 @@ normalize_paid_invoice 在本模块定义，从服务端订阅记录定位 owner
 
 ### Task 06-F4: 旧数据审计、入口切换与真实总验收
 
-**Files:** Create scripts/audit_legacy_state.py、scripts/migrate_legacy_users.py、scripts/run_phase1_acceptance.py、tests/phase1/test_legacy_migration.py、tests/phase1/cases/acceptance.json、frontend/e2e/phase1.spec.ts。Modify README.md、CLAUDE.md、.gitignore、backend/app/main.py、backend/requirements.txt、.github/workflows/phase1-ci.yml。
+**Files:** Create scripts/audit_legacy_state.py、scripts/migrate_legacy_users.py、scripts/run_phase1_acceptance.py、tests/phase1/test_legacy_migration.py、tests/phase1/cases/acceptance.json、web/e2e/phase1.spec.ts。Modify README.md、CLAUDE.md、.gitignore、backend/app/main.py、backend/requirements.txt、.github/workflows/phase1-ci.yml。
 
 **Interfaces:** audit_legacy(path: Path) -> dict；migrate_users(source_snapshot, target_session) -> dict；run_case(case: dict, api_url: str) -> dict。验收报告保存 route、source commits、time、actual usage、validation、deployment target、URL和结果。
 
@@ -155,7 +155,7 @@ def test_missing_cloud_does_not_create_fake_success(acceptance_context):
     assert result.get('url') is None
 ```
 
-- [ ] **Step 2: 红测。** test_legacy_migration.py、frontend/e2e/phase1.spec.ts。
+- [ ] **Step 2: 红测。** test_legacy_migration.py、web/e2e/phase1.spec.ts。
 - [ ] **Step 3: 审计、迁移和退休旧入口。** audit 只读旧库，输出表数量、schema 差异与可迁移项。当前旧库有 4 个用户、无项目/部署；实施前重新核对。停止旧写入后通过 SQLite backup 建一致性快照，再迁移 User 和原 ID/哈希，权限受限，不打印秘密。若发现非空旧项目/部署则报告实际内容并停止该迁移分支，不删除源数据；补充映射后再继续。
 
 ```python
@@ -175,13 +175,17 @@ with sqlite3.connect(snapshot_path) as snapshot:
  "target":"linux"}
 ```
 
-run_phase1_acceptance 逐 case 通过真实 API 创建/调整，轮询持久 Job 到终态并收集报告；缺目标或模型配置返回 NOT_RUN，不伪造 URL。D 样本使用固定 Next.js/TypeScript/PostgreSQL/Prisma 脚手架。四条路线需要各有真实 DeepSeek 执行，已知合适项目必须被召回并优先复用，其中至少一例从真实公开仓库改造/部署；组件整合验证跨来源功能打通。数据重启、版本调整和独立副本通过实际操作验证。
+run_phase1_acceptance 的评测协议和入口按 07-E3 落地，06-F4 在此基础上整合故障、支付和跨客户端最终验收，不另写第二套生成流程。逐 case 通过真实 API 创建/调整，轮询持久 Job 到终态并收集报告；缺目标或模型配置返回 NOT_RUN，不伪造 URL。Web、Expo、直接 API 均真实发起生成并跨端继续调整，确认同一个 app_id/job_id/version_id；手机打开私有应用通过 04-C1 单次 code 登录交换。D 样本使用固定 Next.js/TypeScript/PostgreSQL/Prisma 脚手架。四条路线需要各有真实 DeepSeek 执行，已知合适项目必须被召回并优先复用，其中至少一例从真实公开仓库改造/部署；组件整合验证跨来源功能打通。数据重启、版本调整和独立副本通过实际操作验证。
 
-README 更新 Python/Node、迁移、API/Worker/Web 三进程、配置和验收命令；CLAUDE.md 更新新入口与历史说明。CI 用 PostgreSQL service 跑 phase1 测试，前端 typecheck/build；真实模型/云/支付测试由有配置的受控环境运行，报告注明环境。
+README 更新 Python/Node、迁移、API/Worker/Web 三进程与 Expo 手机入口、配置和验收命令；CLAUDE.md 更新新入口与历史说明。CI 用 PostgreSQL service 跑 phase1 测试，Web typecheck/build 和 Expo typecheck/export；真实模型/云/支付测试由有配置的受控环境运行，报告注明环境。
 
-- [ ] **Step 4: 绿测与完整检查。** `.venv/bin/python -m pytest tests/phase1 -q`；`npm --prefix frontend run typecheck`；`npm --prefix frontend run build`；`npm --prefix frontend run test:e2e`。再运行 `scripts/run_phase1_acceptance.py`，确认真实 case 全部 PASS，不能以默认跳过掩盖缺渠道/目标。
+- [ ] **Step 4: 绿测与完整检查。** `.venv/bin/python -m pytest tests/phase1 -q`；`npm --prefix web run typecheck`；`npm --prefix web run build`；`npm --prefix web run test:e2e`。再执行 07-E2 原生验收、07-E3 真实评测与 `scripts/run_phase1_acceptance.py`，确认真实 case 全部 PASS，不能以默认跳过掩盖缺渠道/目标。
 - [ ] **Step 5: 提交。** `feat: cut over phase one and verify real delivery`。仅真实模型、两种部署和三支付渠道验收完成后对外声明一期全部支持。
 
 ## 商业上线所需配置
 
 支付宝 app_id/商户/签名 Key、微信 appid/mchid/APIv3 Key/平台证书、Stripe secret/webhook secret/price_id、通知可达域名、实际价格和套餐周期。先实现额度再接收款是施工顺序；用户选择的三个渠道都属于一期验收范围。
+
+## 面向两客户端的收费接口
+
+06-F1 实现 GET /api/quota/balance（available_units、reserved_units）、GET /api/quota/usage（分页用量）、GET /api/quota/skus（id/name/provider/currency/amount_minor/units/period，全部来自服务端配置）与 GET /api/quota/subscription。06-F2/F3 实现 POST /api/quota/orders（sku_id、provider、Idempotency-Key；201 order_id/status/checkout_url）、GET /api/quota/orders/{id}（仅本人订单，状态/金额/额度/周期）、POST /api/quota/subscription/cancel（幂等取消未来续订，不清空已付额度）。checkout_url 来自渠道或平台托管支付页，不能接收客户端自定义回跳主机。两客户端只能查看/创建本人订单，价格和授予额度不能由客户端传入。Web支付页支持微信二维码/支付宝跳转/Stripe Checkout，移动浏览器按渠道支持方式完成，实际微信移动支付与回调在06-F2验收。07-E1导出上述Schema并实现getBalance/listUsage/listSkus/getSubscription/createOrder/getOrder/cancelSubscription；07-E2消费同一接口。

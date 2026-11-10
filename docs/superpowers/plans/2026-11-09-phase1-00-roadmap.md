@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 完成可真实交付、继续调整、社区使用及按额度收费的一期 Web 平台。
+**Goal:** 完成可真实交付、继续调整、社区使用及按额度收费的一期平台（Expo 手机客户端、Web 和 API）。
 
-**Architecture:** 一个 FastAPI 产品后端、一个独立 Python Worker、一个 Next.js Web 前端。直接调用 DeepSeek API；任务、版本和额度持久保存到 PostgreSQL，镜像发布到平台现有 Linux 或 Sealos 目标。
+**Architecture:** 一个 FastAPI 产品后端、一个独立 Python Worker、一个新增 Next.js Web 前端和保留的 Expo 手机客户端。直接调用 DeepSeek API；任务、版本和额度持久保存到 PostgreSQL，镜像发布到平台现有 Linux 或 Sealos 目标。
 
-**Tech Stack:** 平台为 Python/FastAPI + Next.js；直接 DeepSeek API、PostgreSQL、Docker/BuildKit/Kubernetes、Playwright。D 的成熟脚手架为 Next.js + TypeScript + PostgreSQL + Prisma；A/B/C 保留实际项目栈。
+**Tech Stack:** 平台为 Python/FastAPI + Next.js + Expo/React Native；直接 DeepSeek API、PostgreSQL、Docker/BuildKit/Kubernetes、Playwright。D 的成熟脚手架为 Next.js + TypeScript + PostgreSQL + Prisma；A/B/C 保留实际项目栈。
 
 **Spec:** [一期技术设计](../specs/2026-11-09-intellideploy-phase1-design.md)，[PRD](../../PRD.md)。整体设计已获用户确认。
 
@@ -35,7 +35,9 @@ backend/app/
   billing/{models,ledger,pricing,router}.py 额度、预留和用量
   main.py                      统一产品入口；移除重复旧链路
 backend/alembic/                正式数据库迁移
-frontend/                      改造为 Next.js Web；复用现有素材
+frontend/                      保留 Expo 手机客户端及现有路由、视觉资产
+web/                           新增 Next.js Web 工作台、社区和开发者评测页
+packages/api-client/           共享 OpenAPI 类型和可注入认证的请求函数
 infra/                         本地开发与任务执行环境配置
 scaffolds/nextjs-prisma/        D 专用、锁定版本的成熟应用脚手架
 tests/phase1/                  新主链路的独立验收目录
@@ -53,9 +55,10 @@ scripts/                       只读审计、可恢复迁移、真实样本执�
 | 03 | [验证、版本与多云](2026-11-09-phase1-03-delivery.md) | 核心业务通过并部署到两种目标，调整保留数据 | 01、02 |
 | 04 | [平台能力](2026-11-09-phase1-04-capabilities.md) | 多人身份、数据、文件、AI、真实联网搜索 | 01；用量回调由 06 接入 |
 | 05 | [Web 与社区](2026-11-09-phase1-05-web-community.md) | 对话、交付、调整、共享使用、独立副本 | 01、03、04 |
+| 07 | [客户端联调与评测](2026-11-10-phase1-07-clients-evaluation.md) | 共用协议、Expo 接入、启动入口、开发者评测 | E1 依赖 01；E2 依赖 E1；E3 依赖 02、03、04、06-F1 |
 | 06 | [额度与总验收](2026-11-09-phase1-06-billing-acceptance.md) | 免费、套餐、购买额度，支付宝/微信/Stripe，幂等结算与总验收 | 01；完成总验收依赖全部 |
 
-推荐顺序：01 → 06-F1 → 02 → 04 → 03 → 05 → 06-F2/F3/F4。在所有真实模型调用前接入用量记录。04 与 03 的独立检查可分别进行，但最终必须一起通过真实应用验收。每个任务单独提交，只提交该任务文件。迁移必须从当前唯一 Alembic head 延长；文件编号是标识，不代表能脱离依赖顺序执行，出现多 head 必须合并后继续。
+推荐顺序：01 → 07-E1 → 05-W1/07-E2 客户端基础联调 → 06-F1 → 02 → 04 → 03 → 05-W2/W3 → 07-E3 → 06-F2/F3/F4。客户端初次接入状态 API 不等待生成引擎全部完成；真实交付验收在引擎与发布完成后执行。在所有真实模型调用前接入用量记录。04 与 03 的独立检查可分别进行，但最终必须一起通过真实应用验收。每个任务单独提交，只提交该任务文件。迁移必须从当前唯一 Alembic head 延长；文件编号是标识，不代表能脱离依赖顺序执行，出现多 head 必须合并后继续。
 
 ## 3. 公共接口
 
@@ -212,6 +215,8 @@ class PaymentEvent(BaseModel):
 
 SQLAlchemy 主键：沿用 User.id 的整数；新增 app、job、version、instance、publication 用字符串 UUID。API 的 Idempotency-Key 先加上用户和动作范围再保存，不能让不同用户的同一键冲突或访问对方结果；模型/工具用量键包含 job 和回合序号。公共运行契约只暴露字符串引用，禁止向应用传递平台管理凭据。
 
+面向客户端的 CreateAppResponse、JobSnapshot、AppDetail、DeliveryResult、报告/产物协议以 [一期交付与测试说明](../../一期交付与测试说明.md) 为准；01-F1 在 core/types.py 定义，01-F3 实现路由，07-E1 从 OpenAPI 生成共享 TypeScript 类型。内部 Checkpoint/RoutePlan/AppManifest 不直接返回普通用户。
+
 ## 4. 执行环境
 
 当前本机 Node.js 24.19.0、uv、Docker CLI 和 psql 可找到；没有 Python 3.13，也没有项目虚拟环境或前端依赖。不能把本机存在 CLI 等同于服务已运行。
@@ -241,7 +246,7 @@ PYTHONPATH=backend .venv/bin/python -m pytest tests/phase1 -q
 
 ## 6. 真实验收所需外部条件
 
-DeepSeek Key、GitHub 搜索额度、可写镜像仓库、已准备的 Linux 目标、Sealos kubeconfig、可用域名与 TLS、价格配置，以及所选收款渠道的商户配置。
+DeepSeek Key、GitHub 搜索额度、可写镜像仓库、已准备的 Linux 目标、Sealos kubeconfig、可用域名与 TLS、价格配置，以及三个收款渠道的商户配置；原生验收还需要 iOS/Android 模拟器或真机和配置好的应用标识。
 
 没有外部条件时，相关检查标记为未执行，并继续完成不依赖它的任务。最终一期商业验收不能用模拟结果替代外部集成。
 
@@ -249,7 +254,7 @@ DeepSeek Key、GitHub 搜索额度、可写镜像仓库、已准备的 Linux 目
 
 | Spec 章节 | 实施位置 |
 | --- | --- |
-| 2 技术栈 | 01-F1、05-W1 |
+| 2 技术栈 | 01-F1、05-W1、07-E1/E2 |
 | 3 A/B/C/D、检索评分与状态 | 01-F1、02-G3、02-G4、02-G5 |
 | 4 工具循环与上下文 | 02-G1、02-G2、02-G4 |
 | 5 执行隔离与恢复 | 01-F2、02-G2、02-G4 |
@@ -258,10 +263,11 @@ DeepSeek Key、GitHub 搜索额度、可写镜像仓库、已准备的 Linux 目
 | 8 平台能力 | 04-C1 至 C3 |
 | 9 社区与额度 | 05-W2、05-W3、06-F1 |
 | 支付渠道补充确认 | 06-F2、06-F3 |
-| 10 API 与事件 | 01-F3、05-W1 |
+| 10 API 与事件 | 01-F1/F3、05-W1、07-E1/E2 |
 | 11 故障暂停 | 01-F2、02-G4、06-F1、06-F4 |
 | 12 迁移旧实现 | 01-F1、06-F4 |
-| 14 真实验收 | 06-F4 |
+| 14 真实验收 | 07-E3、06-F4 |
+| 客户端交付与启动 | 05-W1/W2/W3、07-E1/E2/E3 |
 
 总计划和各子计划中的测试代码是执行阶段要落地的检查，不是当前已经通过的报告。
 

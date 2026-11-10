@@ -148,7 +148,7 @@ Worker 10 秒续约，正常无任务等待 1 秒；执行器作为明确的 asy
 
 **Files:** Create backend/app/apps/service.py、backend/app/apps/router.py、backend/app/jobs/router.py、tests/phase1/test_apps_api.py。Modify backend/app/main.py、backend/app/config.py。
 
-**Interfaces:** create_app(session, owner_id, prompt, operation_id, budget_units) -> (App, Job)；add_message(session, app_id, owner_id, content, operation_id) -> Job；GET /api/jobs/{id}/events?after_id=；GET /api/apps/{id} 返回持久状态。
+**Interfaces:** 所有公开 Schema 在 01-F1 的 core/types.py 按 [交付协议](../../一期交付与测试说明.md) 定义。create_app(session, owner_id, prompt, operation_id, budget_units) -> (App, Job)；add_message(session, app_id, owner_id, content, operation_id) -> Job；GET /api/jobs/{id}/events?after_id=；GET /api/apps/{id} 返回持久状态。
 
 - [ ] **Step 1: 写认证、幂等和续接检查。** api_client 使用专用库及 User fixture；请求头 Idempotency-Key 保存为 operation_id。
 
@@ -165,7 +165,7 @@ def test_other_user_cannot_read_app(api_client, app_record, other_headers):
 ```
 
 - [ ] **Step 2: 红测。** `.venv/bin/python -m pytest tests/phase1/test_apps_api.py -q`。
-- [ ] **Step 3: 实现事务内创建和访问控制。** create_app 在同一事务建立 App、Conversation、Job；相同用户和请求键返回原结果，其他用户不能用同键访问。add_message 追加消息；有活跃任务时不创建第二个修改任务，WAITING_USER 时恢复原任务，成功或失败任务后的调整创建新 Job。确认旧 SQLite User schema 后，认证继续使用现有 security.py；main 默认只挂载认证和新应用/任务路由，旧部署入口在 06-F4 审计后退休。
+- [ ] **Step 3: 实现事务内创建和访问控制。** create_app 在同一事务建立 App、Conversation、Job；相同用户和请求键返回原结果，其他用户不能用同键访问。add_message 追加消息；有活跃任务时不创建第二个修改任务，WAITING_USER 时恢复原任务，成功或失败任务后的调整创建新 Job。确认旧 SQLite User schema 后，复用现有密码哈希和 JWT 验证；security.py 改用 HTTPBearer，保留 JSON 登录和 Bearer token 调用，Swagger 直接输入 token 可用；main 默认只挂载认证和新应用/任务路由，旧部署入口在 06-F4 审计后退休。
 
 ```python
 def encode_event(event) -> str:
@@ -173,9 +173,11 @@ def encode_event(event) -> str:
     return f'id: {event.id}\nevent: {event.kind}\ndata: {payload}\n\n'
 ```
 
+补齐 GET apps 列表、GET jobs 快照/报告、版本产物下载、POST jobs resume/cancel，返回交付说明中固定公开 Schema。任务报告读取保存的验证结果，缺验证为 NOT_RUN；源码产物下载校验版本属于该应用及拥有者，只读取版本固定 artifact_path，不接受任意路径。错误统一 code/message/retryable；返回值不泄漏工作区、凭据和私有日志。resume 只允许 PAUSED_QUOTA 且额度检查/预留通过后回到 QUEUED，幂等恢复同一任务；cancel 请求记录 cancel_requested，Worker 在安全检查点停止并核对已发生外部动作，已发布版本不被删除。
+
 SSE 先验证归属，从 Last-Event-ID 或 after_id 恢复，以数据库 ID 补发；无新事件发送心跳，客户端断线结束查询。设置响应缓存禁用。服务启动检查迁移版本，不自动 ALTER 或 create_all。
 
-- [ ] **Step 4: 绿测。** 补充 SSE 补发只返回 ID 大于游标的事件、刷新读到原任务、业务补充恢复而非新建任务，以及未登录创建返回 401 的检查。
+- [ ] **Step 4: 绿测。** 补充 SSE 补发只返回 ID 大于游标的事件、刷新读到原任务、业务补充恢复而非新建任务，以及未登录创建返回 401 的检查；补充 jobs/report/artifact 越权 404、活跃任务冲突 409、额度不足 402、幂等键同请求重放与不同请求冲突、取消/恢复幂等、OpenAPI 与响应 Schema 检查。
 - [ ] **Step 5: 提交。** `feat: add persistent app conversations and event stream`。
 
 ## 本计划完成条件

@@ -20,6 +20,7 @@
 
 | 部分 | 建议 | 原因 |
 | --- | --- | --- |
+| 平台手机 | 保留 Expo + React Native + expo-router | 沿用现有界面，接入统一应用、任务和社区 API |
 | 平台 Web | Next.js + TypeScript + Tailwind | 公开社区页可服务端渲染；应用工作台适合交互式页面。可复用现有视觉素材 |
 | 产品 API | FastAPI + Pydantic + SQLAlchemy | 保留现有后端语言与可用模块，统一接口和数据模型 |
 | 任务 Worker | 同一 Python 项目的独立进程 | 长任务与 HTTP 请求分开；避免请求进程内 create_task 充当队列 |
@@ -30,13 +31,15 @@
 | 镜像构建 | 独立构建环境，默认考虑 BuildKit | 统一镜像产物；现有 Kaniko 实现经过验证后可用于 Sealos 构建目标 |
 | 部署 | Kubernetes 与 Linux 容器部署两种实现 | 普通云服务器按运行环境适配，避免逐云厂商重写 |
 
-平台前端使用 Next.js，平台后端使用 FastAPI/Python。A/B/C 保留候选项目的合理栈和依赖；D 的默认成熟脚手架固定为 Next.js + TypeScript + PostgreSQL + Prisma，并锁定已验证依赖。
+平台手机端保留 `frontend/` 的 Expo，平台 Web 在 `web/` 使用 Next.js，平台后端使用 FastAPI/Python。共享 `packages/api-client/` 的 OpenAPI 类型和请求函数；各客户端注入认证和传输适配，不共享 React 组件或强制统一 React 版本。A/B/C 保留候选项目的合理栈和依赖；D 的默认成熟脚手架固定为 Next.js + TypeScript + PostgreSQL + Prisma，并锁定已验证依赖。
 
-首期只有 Web、API、Worker 三类业务进程，同仓库管理。部署、模型、文件和身份能力首先作为后端模块，不拆成独立微服务。构建和代码执行环境因任务隔离需要单独运行。
+首期服务端有 Web、API、Worker 三类业务进程，同仓库管理；Expo 作为保留的手机客户端调用同一 API。部署、模型、文件和身份能力首先作为后端模块，不拆成独立微服务。构建和代码执行环境因任务隔离需要单独运行。
 
 ```mermaid
 flowchart LR
     W[Web 工作台与社区] --> A[产品 API]
+    M[Expo 手机客户端] --> A
+    T[API 调用及评测] --> A
     A --> P[(PostgreSQL)]
     P --> J[任务 Worker]
     J --> D[DeepSeek API]
@@ -206,7 +209,13 @@ PAUSED_QUOTA 状态保存检查点；补足额度后由用户选择继续。任�
 
 - POST /api/apps：输入需求，创建应用与初始对话。
 - POST /api/apps/{id}/messages：继续需求澄清或调整。
-- GET /api/apps/{id}：当前需求、任务、版本和实例状态。
+- GET /api/apps：分页读取当前用户的应用。
+- GET /api/apps/{id}：当前需求、对话、任务、版本和实例状态。
+- GET /api/jobs/{id}：可认证轮询的任务快照、业务问题和结果。
+- GET /api/jobs/{id}/report：按验收项读取业务检查及证据。
+- GET /api/apps/{id}/versions/{version_id}/artifact：拥有者下载该版本源码。
+- POST /api/jobs/{id}/resume：补额度后恢复同一任务。
+- POST /api/jobs/{id}/cancel：幂等取消未结束的任务。
 - GET /api/jobs/{id}/events：SSE 事件，支持断线后按事件 ID 补发。
 - POST /api/apps/{id}/publish：发布验证通过的版本。
 - GET /api/community/apps：公开应用目录。
@@ -216,9 +225,9 @@ PAUSED_QUOTA 状态保存检查点；补足额度后由用户选择继续。任�
 - /api/capabilities/*：身份、文件、AI、搜索等能力接口。
 - /api/quota/*：额度、套餐、用量及购买记录。
 
-实际接口 Schema 在实施计划中按子系统细化。一个接口不能根据入口不同隐式选择“真实部署”或“模拟成功”。开发演示使用独立测试记录，不写入真实交付状态。
+客户端结果协议以 [一期交付与测试说明](../../一期交付与测试说明.md) 为准，由 01-F1/F3 实现并导出 OpenAPI。一个接口不能根据入口不同隐式选择“真实部署”或“模拟成功”。开发演示使用独立测试记录，不写入真实交付状态。
 
-用户消息和任务事件持久保存。前端可刷新恢复，SSE 断线补发；UI 展示简明业务状态。页面交互不依赖只有内存中的 WebSocket 历史。
+用户消息和任务事件持久保存。前端可刷新恢复，SSE 断线补发；UI 展示简明业务状态。页面交互不依赖只有内存中的 WebSocket 历史。Expo 使用认证轮询和回到前台刷新；Web 用经 Next.js 服务端代理的 SSE，并在断流时回读快照。Web 使用 HttpOnly session cookie，Expo 保留 Bearer 请求方式、将 token 存入 SecureStore；后端登录仍接收 JSON。以 HTTPBearer 修正 Swagger 认证协议，使 API 调试无需客户端。普通用户不展示执行日志，开发者评测入口按拥有者和开发权限鉴权。
 
 ## 11. 失败与暂停
 
@@ -243,7 +252,7 @@ PAUSED_QUOTA 状态保存检查点；补足额度后由用户选择继续。任�
 - 部署：提取已有 K8s、镜像和 Sealos 中可用逻辑，统一发布状态；补 Linux 实现。
 - 状态：合并旧 RAG 与 NL 部署入口；移除把进程内字典作为唯一任务结果来源的做法。
 - 数据：采用正式数据库迁移；旧 SQLite 有 11 个缺失部署字段，不依靠 create_all 升级。
-- 前端：保留设计资产和可用页面思路，围绕对话、我的应用、交付与社区重做流程。
+- 客户端：保留 Expo 路由、依赖和可用界面，替换旧 RAG/演示社区数据链路；新增 Next.js Web，围绕共用的对话、我的应用、交付与社区流程实现。
 - Prompt：保留有价值的要求和样例；不要求生成一定经过多智能体投票或产生固定数量阶段。
 
 旧实现迁移时逐项通过新验收场景，再移除重复入口。历史日志、旧账号和有效业务数据是否迁移在实施前核对，不能直接清空现有数据库。
@@ -263,7 +272,10 @@ PAUSED_QUOTA 状态保存检查点；补足额度后由用户选择继续。任�
 
 ## 14. 必须通过的故障与业务检查
 
+- Expo、Web、直接 API 均能生成、恢复任务、读取交付、继续调整及共享应用，跨客户端读取同一状态。
 - 四条路径各完成一例真实业务应用，并保存操作证据。
+- 开发者评测页与 CLI 使用同一真实流水线；记录自动选路、检索评分、版本、耗时、用量、实际 URL、验收结果及截图。强制路线样本单独统计。
+- Playwright 验证平台 Web 和交付的 Web 应用；Expo 原生流程在 iOS、Android 用 Maestro 或逐步实机记录验证。
 - 多人应用中，用户 A 无法读取用户 B 的私有数据。
 - AI 和联网搜索进行真实调用；没有权限或额度时明确失败或暂停。
 - 应用服务重启后数据库记录和上传文件仍存在。

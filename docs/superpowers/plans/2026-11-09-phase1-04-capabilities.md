@@ -21,7 +21,7 @@
 
 **Files:** Create backend/app/capabilities/{__init__,identity,models,router}.py、backend/alembic/versions/0006_app_login_codes.py、tests/phase1/test_capability_identity.py；为生成应用创建 fallback/templates/common/platform_identity.py.template。Modify backend/app/main.py、backend/app/config.py。
 
-**Interfaces:** issue_app_identity(user_id: int, app_id: str, instance_id: str) -> str；verify_app_identity(token: str, app_id, instance_id) -> int；resolve_context(session, instance_id, user_token, instance_token) -> CapabilityContext。共享策略尚未创建时只允许实例拥有者；05-W2 注册后允许 SPONSOR/VISITOR 策略。
+**Interfaces:** POST /api/instances/{id}/login-code 消费 callback、返回 code/expires_in，应用服务端 POST /api/capabilities/identity/exchange 消费 code/instance_token，返回限定应用身份；同交付说明。issue_app_identity(user_id: int, app_id: str, instance_id: str) -> str；verify_app_identity(token: str, app_id, instance_id) -> int；resolve_context(session, instance_id, user_token, instance_token) -> CapabilityContext。共享策略尚未创建时只允许实例拥有者；05-W2 注册后允许 SPONSOR/VISITOR 策略。
 
 - [ ] **Step 1: 写跨应用和匿名付费方检查。** 使用 test-only RSA key fixture，在测试内生成，不写业务配置。
 
