@@ -23,7 +23,7 @@
 
 **Interfaces:** validate_application(base_url: str, requirement: Requirement, browser_checks: list[dict], runtime_controller=None) -> ValidationReport，async。browser_checks 每项为验收项 ID、操作步骤和预期断言；缺少核心 ID 返回 NOT_RUN，不自动删验收项。
 
-- [ ] **Step 1: 写能打开但不能保存的失败检查。** notes fixture 支持故意不持久化的模式，由测试启动子进程并清理；断言刷新/重启后的结果。
+- [x] **Step 1: 写能打开但不能保存的失败检查。** notes fixture 支持故意不持久化的模式，由测试启动子进程并清理；断言刷新/重启后的结果。
 
 ```python
 @pytest.mark.asyncio
@@ -35,8 +35,8 @@ async def test_http_200_does_not_prove_persistence(notes_server):
     assert next(c for c in report.checks if c.id == 'persist').status == 'FAIL'
 ```
 
-- [ ] **Step 2: 红测。** `.venv/bin/python -m pytest tests/phase1/test_validation.py -q`；安装 Playwright Chromium：`.venv/bin/python -m playwright install chromium`。
-- [ ] **Step 3: 实现接口和浏览器动作。** 只允许 goto、fill、click、expect_text、expect_count、reload、request 等明确操作；每个断言引用验收 ID。浏览器失败保存截图、DOM 摘要和请求错误；接口失败记录状态与响应片段。
+- [x] **Step 2: 红测。** `.venv/bin/python -m pytest tests/phase1/test_validation.py -q`；安装 Playwright Chromium：`.venv/bin/python -m playwright install chromium`。
+- [x] **Step 3: 实现接口和浏览器动作。** 只允许 goto、fill、click、expect_text、expect_count、reload、request 等明确操作；每个断言引用验收 ID。浏览器失败保存截图、DOM 摘要和请求错误；接口失败记录状态与响应片段。
 
 ```python
 for item in requirement.acceptance:
@@ -53,8 +53,8 @@ for item in requirement.acceptance:
 
 execute_browser_check 在本模块定义，验证动作参数和 URL 属于当前应用，测试脚本不能要求访问平台管理端。多人隐私测试使用两个独立 browser context，不共享 cookie。测试数据有 test-run 标记，验收结束后清理。工具表增加 run_browser_check，返回验证结果和证据引用；不能由模型降低既定验收项。
 
-- [ ] **Step 4: 绿测。** 同一 fixture 开启持久化后通过；缺测试、错误登录、固定占位响应均失败。截图证据必须与实际执行 ID 对应。
-- [ ] **Step 5: 提交。** `feat: validate application behavior and persistence`。
+- [x] **Step 4: 绿测。** 同一 fixture 开启持久化后通过；缺测试、错误登录、固定占位响应均失败。截图证据必须与实际执行 ID 对应。
+- [x] **Step 5: 提交。** `feat: validate application behavior and persistence`。
 
 ### Task 03-D2: 不可变清单、源码和镜像产物
 
@@ -314,3 +314,7 @@ save_pending_window/reserve_next_window_or_stop/settle_observed_window在billing
 jobs/pipeline.py定义PipelineCandidate（attempt_id、manifest、manifest_hash、workspace_id、browser_checks），implement_and_build加载冻结Requirement、调用run_generation和build_release，再compile_browser_checks填入该对象；run_pipeline开始从Job.requirement_revision加载requirement和budget policy。runtime/candidate.py定义RuntimeController及candidate_controller，restart_service只接受当前候选清单的服务名；不暴露任意宿主命令。PipelineFailure在pipeline.py定义，所有修复耗尽保存FAILED/失败报告并由finally释放未消费额度；不得把程序异常吞掉后留RUNNING。
 
 ResourceWindow.compute_units为分配CPU/内存时长换算后的资源计费单位，storage_units独立；记录ResourceObservation（target_id/采样时间/每服务资源规格/计算状态/分配存储容量/证据）由runtime/reconcile.py产生，billing/metering.py据相同价格版本换算。缺价格拒绝新增收费执行，UNKNOWN窗口不计假0。reserve_next_window_or_stop、settle_observed_window还传当前价格版本及父Reservation记录，不能仅凭UI字段扣费。
+
+## 实施进度（2026-11-10）
+
+03-D1：新增受控 Playwright 业务验证、同源 URL 限制、actor 隔离 context、验收 ID 完整性与截图/DOM/网络错误证据；服务重启只通过 runtime controller，缺 controller 记 NOT_RUN。易失/持久笔记真实子进程、缺检查、跨域、占位响应、错误身份预期和浏览器工具适配共 8 项通过；完整 phase1 回归 140 项通过、1 项专用沙箱默认跳过。真实候选节点与线上目标未执行。

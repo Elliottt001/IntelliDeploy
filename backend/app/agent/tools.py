@@ -8,7 +8,7 @@ from typing import Protocol
 from pydantic import BaseModel, Field, TypeAdapter
 
 from app.agent.workspace import safe_path
-from app.core.types import ToolCall, ToolResult
+from app.core.types import BrowserCheck, ToolCall, ToolResult
 
 MAX_PUBLIC_BYTES = 64 * 1024
 
@@ -25,6 +25,12 @@ class RepositoryExecutor(Protocol):
 class CapabilityExecutor(Protocol):
     def web_search(self, query: str, count: int, operation_id: str) -> list[dict]: ...
     def fetch_page(self, url: str, operation_id: str) -> dict: ...
+
+
+class BrowserExecutor(Protocol):
+    def run_browser_check(
+        self, base_url: str, check: BrowserCheck, operation_id: str
+    ) -> dict: ...
 
 
 class PathArgs(BaseModel):
@@ -67,6 +73,10 @@ class FetchPageArgs(BaseModel):
     url: str = Field(min_length=1, max_length=2048)
 
 
+class BrowserCheckArgs(BrowserCheck):
+    base_url: str = Field(min_length=1, max_length=2048)
+
+
 ARGUMENTS = {
     "list_files": PathArgs,
     "read_file": PathArgs,
@@ -77,6 +87,7 @@ ARGUMENTS = {
     "fetch_repository": FetchArgs,
     "web_search": WebSearchArgs,
     "fetch_page": FetchPageArgs,
+    "run_browser_check": BrowserCheckArgs,
 }
 
 
@@ -117,7 +128,8 @@ def _public_output(content: str) -> str:
 
 def execute_tool(workspace_id: str, call: ToolCall, executor: CommandExecutor | None = None,
                  repository_executor: RepositoryExecutor | None = None,
-                 capability_executor: CapabilityExecutor | None = None) -> ToolResult:
+                 capability_executor: CapabilityExecutor | None = None,
+                 browser_executor: BrowserExecutor | None = None) -> ToolResult:
     model = ARGUMENTS.get(call.name)
     if model is None:
         raise ValueError("unknown tool")
@@ -167,6 +179,21 @@ def execute_tool(workspace_id: str, call: ToolCall, executor: CommandExecutor | 
         return ToolResult(
             call_id=call.id,
             ok=True,
+            content=_public_output(json.dumps(value, ensure_ascii=False)),
+        )
+    if call.name == "run_browser_check":
+        if browser_executor is None:
+            return ToolResult(call_id=call.id, ok=False, content="受控浏览器执行器尚未配置")
+        check = BrowserCheck(
+            item_id=args.item_id,
+            actor=args.actor,
+            actions=args.actions,
+            expected=args.expected,
+        )
+        value = browser_executor.run_browser_check(args.base_url, check, call.id)
+        return ToolResult(
+            call_id=call.id,
+            ok=value.get("status") == "PASS",
             content=_public_output(json.dumps(value, ensure_ascii=False)),
         )
     if executor is None:
