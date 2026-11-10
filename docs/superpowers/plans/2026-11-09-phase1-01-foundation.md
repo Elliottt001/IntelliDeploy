@@ -105,7 +105,7 @@ Alembic 0001 在新 PostgreSQL 建 User 和新表，正式启动不调用 create
 
 **Interfaces:** claim_job(session, worker_id: str, lease_seconds: int = 60) -> Job | None；heartbeat(session, job_id, worker_id)；save_checkpoint(session, job_id, worker_id, Checkpoint)；append_event(session, job_id, kind, public_payload) -> int；events_after(session, job_id, after_id) -> list[JobEvent]。Worker 入口 `python -m app.jobs.worker`。
 
-- [ ] **Step 1: 写真实并发与恢复检查。** job_factory 为专用测试库创建 App、Job 并提交；两次 claim 使用独立连接。
+- [x] **Step 1: 写真实并发与恢复检查。** job_factory 为专用测试库创建 App、Job 并提交；两次 claim 使用独立连接。
 
 ```python
 def test_two_workers_never_claim_same_job(job_factory, session_factory):
@@ -124,8 +124,8 @@ def test_expired_lease_preserves_checkpoint(job_factory, session_factory):
         assert recovered.checkpoint['messages'][0]['content'] == '继续'
 ```
 
-- [ ] **Step 2: 红测。** `.venv/bin/python -m pytest tests/phase1/test_jobs.py -q`。
-- [ ] **Step 3: 实现认领与权限检查。** 使用 PostgreSQL 时间计算，事务内更新状态和租约；save_checkpoint/heartbeat 只允许当前有效 lease_owner。恢复只认领 QUEUED 或租约过期的 RUNNING，不自动重启 WAITING_USER、PAUSED_QUOTA 或终态。
+- [x] **Step 2: 红测。** `.venv/bin/python -m pytest tests/phase1/test_jobs.py -q`。
+- [x] **Step 3: 实现认领与权限检查。** 使用 PostgreSQL 时间计算，事务内更新状态和租约；save_checkpoint/heartbeat 只允许当前有效 lease_owner。恢复只认领 QUEUED 或租约过期的 RUNNING，不自动重启 WAITING_USER、PAUSED_QUOTA 或终态。
 
 ```sql
 WITH candidate AS (
@@ -141,8 +141,8 @@ WHERE id=(SELECT id FROM candidate) RETURNING *;
 
 Worker 10 秒续约，正常无任务等待 1 秒；执行器作为明确的 async process_job(job_id) 回调，在 02-G4/03-D5 接入。SIGTERM 保存检查点并释放或到期租约；取消任务保留事件。JobEvent.public_payload 只含业务状态、消息和用量，不含思考文本、Key 或原始工具日志。03-D7加入独立维护async循环，不能让计量/清理阻塞生成心跳；外部效果也用lease_generation防止过期Worker继续激活。
 
-- [ ] **Step 4: 绿测。** 增加失去租约后禁止写入、事件 ID 补读、终态不重领三项断言，运行同一测试文件。
-- [ ] **Step 5: 提交。** `feat: persist job leases checkpoints and events`。
+- [x] **Step 4: 绿测。** 增加失去租约后禁止写入、事件 ID 补读、终态不重领三项断言，运行同一测试文件。
+- [x] **Step 5: 提交。** `feat: persist job leases checkpoints and events`。
 
 ### Task 01-F3: 应用 API、消息续接和 SSE
 
@@ -195,3 +195,5 @@ SSE统一event: job，data.kind描述实际业务事件，公开Schema中kind为
 ## 实施证据
 
 2026-11-10，01-F1：Python 3.13.15；PostgreSQL 17独立dev/test数据库；契约与临时schema迁移往返12项通过，alembic check无schema漂移。旧单元基线在修改前58项通过。正式API入口移除create_all在01-F3完成；本任务未运行生成/云/支付。用户指定main、本agent顺序开发。
+
+01-F2：并发认领、同名Worker代次隔离、检查点恢复、公开事件游标、Worker关闭与恢复等10项通过；连同01-F1共22项通过。heartbeat/save_checkpoint/finish_job必须传generation，run_pipeline后续接收worker_id/generation以复核租约。Worker在pipeline模块未实现前拒绝启动，不认领任务或模拟成功。
