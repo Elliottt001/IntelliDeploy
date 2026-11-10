@@ -344,4 +344,16 @@ RequirementCoverageError、RequirementInvalid在agent/requirements.py定义为Va
 
 02-G1：直接AsyncOpenAI/DeepSeek客户端，保留reasoning_content/tool_call_id，解析实际输入/缓存/输出用量；429/408/5xx最多三次，401/402立即报供应商故障，断连结果未知不盲目重放。7项MockTransport协议检查通过；真实Key调用未执行。客户端不设置任务成功，真实调用记账由02-G4/03-D6统一接入。
 
-02-G6需求基础：原文/事实/验收映射、保留旧验收与事实、显式移除证据、两轮JSON纠正和独立审阅、租约隔离及冻结revision不可覆写共10项检查通过；当前后端累计62项。编译与冻结模块尚未接入03-D6完整pipeline，真实模型理解与人工质量复核未执行。persist_requirement必须传worker_id/generation，review_metadata可保存移除/审阅证据。
+02-G6需求基础：原文/事实/验收映射、保留旧验收与事实、显式移除证据、两轮JSON纠正和独立审阅、租约隔离及冻结revision不可覆写共10项检查通过。编译与冻结模块尚未接入03-D6完整pipeline，真实模型理解与人工质量复核未执行。persist_requirement必须传worker_id/generation，review_metadata可保存移除/审阅证据。
+
+02-G2：受限工作区及list/read/write/apply_patch/run_command/search/fetch工具已实现。宿主不配置隔离执行器时run_command明确失败；仓库工具要求受控代理、HTTPS GitHub及40位commit。固定digest镜像包含Python3.13.18、Node24.22.2和Git，以非root、无网络、只读根、cap-drop、no-new-privileges、CPU/内存/PID限制运行。本机固定镜像真实sandbox超时/恢复/无DeepSeek Key检查PASS；生产专用节点、磁盘配额和受控依赖网络仍NOT_RUN。
+
+02-G3：多查询检索、中文BM25、候选归一化、60/25/15证据评分、A优先、检索不完整禁止D、虚构来源拒绝、B/C/D区分及固定commit源码展开已实现。新路线8项与旧检索10项通过；真实GitHub Top N人工复核未执行。
+
+02-G5：固定Next.js16.4.6/React19.2/Prisma7.10.1/PostgreSQL脚手架及内容哈希版本、平台identity/files/AI/search服务端客户端已实现。4项Python检查及npm ci/typecheck/build、0高危audit通过；04能力与真实数据库/AI/search业务验证未执行。
+
+02-G7：原子JSON/BM25索引、更新中断保留旧快照、刷新失败标STALE、运行兼容性及健康目标选择已实现。索引/兼容7项与G3回归通过；真实Token增量刷新、每日维护和生产目标核对未执行。
+
+02-G4：持久工具循环保存assistant/reasoning/pending/completed/tool_call_id；effect前后保存检查点，旧pending未知效果停止自动重放，普通文本不算成功，ask_user与finish_implementation分别返回等待/候选，三轮无进展停止。模型输入/缓存输入/输出以唯一子operation从job父预留结算；7项循环/真实PG账本检查通过。02模块只产生GenerationOutput，03-D6尚未接入Worker、候选验证和发布，不能宣称生成应用交付。
+
+本轮phase1累计95项通过、1项sandbox默认跳过；该sandbox另以本机固定镜像显式运行PASS。真实DeepSeek Key、GitHub Token、生产隔离节点及四路线业务样本未交接，对应检查保持NOT_RUN。
