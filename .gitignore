@@ -73,3 +73,10 @@ fallback/workspaces/
 docs/
 temp/
 background/
+
+# Phase one build and evaluation outputs
+web/.next/
+web/next-env.d.ts
+web/*.tsbuildinfo
+packages/api-client/dist/
+artifacts/

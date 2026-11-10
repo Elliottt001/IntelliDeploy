@@ -214,3 +214,7 @@ CLI统一case字段expected_route/core_checks/known_repositories/answers/target�
 #### 路线预期不能反向控制产品
 
 expected_route仅是评测参考，路由不读取它。检索发现比预期D更适合的A/B/C时优先复用，人工核对可标ROUTE_EXPECTATION_STALE，不将合法复用当核心业务失败，不为凑D强制生成。覆盖数按实际route统计，原预计D实际A不能算D；须补充真正无合理复用的D需求，或显式用户要求脚手架的样本（标user_requested_generation=true，单独统计检索跳过原因）。每条路线至少一例无路线提示的自动检索真实需求，最终覆盖仍以实际行为满足。case版本变更保存原因，不抹掉旧失败/旧预期。07-E4增加“参考D但合适A优先”的统计回归，确保优化检索不会导致评测驱动倒退。
+
+## 实施进度（2026-11-10）
+
+07-E1基础已实现：根npm工作区与单一lock、OpenAPI导出/ESM共享包、Web加密cookie/BFF、Origin/路径白名单/SSE转发、根启动脚本与运行指南。共享请求3项和Web代理/会话6项测试通过；Next16.4.6 build/typecheck、Expo55网页导出/原有typecheck通过，Node和Metro可解析共享包。Worklets按原lock固定0.8.3，未升级Expo/RN。后续实例/身份/社区/额度接口实施后扩充请求包并重新生成协议；完整双客户端/真实生成/原生验收未执行，不将初次基础联调标作整项最终验收完成。

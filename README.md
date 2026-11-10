@@ -1,173 +1,44 @@
 # IntelliDeploy
 
-## 项目简介
-本项目由两个部分组成：
-- `backend/`：基于 FastAPI 的后端服务
-- `frontend/`：基于 Expo + React Native 的前端项目
+用自然语言描述需求，平台检索并复用开源代码或生成应用，自动验证、修复并部署为Web应用。支持继续对话调整、社区共享及独立副本。
 
-## 环境要求
-请先确保本机已安装以下工具：
-- Python 3.13 或兼容版本
-- Node.js 24 或兼容版本
-- npm 11 或兼容版本
+一期正在按[实施总计划](docs/superpowers/plans/2026-11-09-phase1-00-roadmap.md)开发。已实现持久应用/任务API、PostgreSQL迁移、Worker租约及共享客户端/BFF基础；真实生成、完整客户端、平台能力、云部署、社区和支付仍在实施。旧演示部署结果不算真实交付。
 
-## 项目结构
-```text
-intelli/
-├─ backend/
-└─ frontend/
-```
+| 目录 | 职责 |
+| --- | --- |
+| backend/ | FastAPI产品API、Python Worker |
+| frontend/ | 保留的Expo手机平台客户端 |
+| web/ | 新增Next.js平台Web及服务端认证代理 |
+| packages/api-client/ | 从OpenAPI生成的共享类型与请求函数 |
+| infra/ | 开发数据库及后续执行/部署配置 |
+| tests/phase1/ | 新链路的协议、数据库与后续真实验收 |
 
-## 一、后端环境配置与启动
-后端使用 Python 虚拟环境运行。
+环境：Python3.13、Node24、npm、Docker/Compose。所有命令从仓库根运行：
 
-### 1. 进入后端目录
 ```bash
-cd backend
+uv python install 3.13
+uv venv --python 3.13 .venv
+uv pip install --python .venv/bin/python -r backend/requirements.txt -r backend/requirements-dev.txt
+docker compose -p intellideploy-dev -f infra/compose.dev.yml up -d --wait postgres
+PYTHONPATH=backend .venv/bin/python -m alembic -c backend/alembic.ini upgrade head
+npm ci
+npm run api:generate
 ```
 
-### 2. 创建虚拟环境
+先按backend/.env.example设置backend/.env和随机SECRET_KEY，Web另设API_BASE_URL、WEB_ORIGIN、SESSION_SECRET；详见[开发运行指南](docs/开发运行指南.md)。根package-lock管理三个npm工作区，API启动不会自动建表或修改旧SQLite。
+
+分别在终端运行npm run dev:api、dev:web、dev:mobile。dev:worker脚本已建立，在完整pipeline实施前明确退出，不模拟任务成功。当前Web只有BFF基础；旧Expo聊天屏幕正等待07-E2接入新API。
+
+API文档：http://localhost:9000/docs。JSON登录后Authorize填Bearer token，POST /api/apps需Idempotency-Key，GET /api/jobs/{id}读取持久状态。创建返回QUEUED只说明任务已保存，不能当成应用交付。
+
 ```bash
-python -m venv .venv
+DATABASE_URL=postgresql+psycopg://intellideploy:dev-only@127.0.0.1:55432/intellideploy_test PYTHONPATH=backend .venv/bin/python -m alembic -c backend/alembic.ini upgrade head
+PYTHONPATH=backend .venv/bin/python -m pytest tests/phase1 -q
+npm --workspace @intellideploy/api-client test
+npm --workspace web test
+npm --workspace web run typecheck
+npm --workspace web run build
+npm --workspace frontend exec -- tsc --noEmit
 ```
 
-### 3. 激活虚拟环境
-Windows:
-```bash
-.venv/Scripts/activate
-```
-
-### 4. 安装依赖
-```bash
-python -m pip install -r requirements.txt
-```
-
-### 5. 启动后端服务
-```bash
-python -m uvicorn app.main:app --host 127.0.0.1 --port 9000
-```
-
-### 6. 验证后端是否启动成功
-浏览器访问：
-```text
-http://127.0.0.1:9000
-```
-
-如果启动成功，会返回：
-```json
-{"message":"IntelliDeploy API is running"}
-```
-
-## 二、前端环境配置与启动
-前端使用 npm 管理依赖。
-
-### 1. 进入前端目录
-```bash
-cd frontend
-```
-
-### 2. 安装依赖
-```bash
-npm install
-```
-
-### 3. 启动 Web 版本
-```bash
-npm run web
-```
-
-启动成功后，通常可在浏览器访问：
-```text
-http://127.0.0.1:8081
-```
-
-### 4. 启动其他平台
-启动 Expo 开发服务：
-```bash
-npm start
-```
-
-启动 Android：
-```bash
-npm run android
-```
-
-启动 iOS：
-```bash
-npm run ios
-```
-
-## 三、接口地址说明
-前端当前接口地址写在：
-- `frontend/services/api.ts`
-
-当前配置为：
-```ts
-const API_BASE_URL = 'http://localhost:9000';
-```
-
-说明：
-- 如果前端和后端都在同一台电脑上运行，并使用浏览器访问前端，通常无需修改。
-- 如果使用手机真机调试，需要把 `localhost` 改成你电脑在局域网中的 IP 地址。
-
-## 四、默认配置说明
-后端环境变量文件：
-- `backend/.env`
-
-当前包含：
-- `SECRET_KEY`
-- `DATABASE_URL`
-- `ACCESS_TOKEN_EXPIRE_MINUTES`
-- `FALLBACK_SERVICE_URL`
-
-本地开发默认使用 SQLite，并在后端进程内运行 fallback 生成：
-```text
-DATABASE_URL=sqlite:///./intellideploy.db
-FALLBACK_SERVICE_URL=local
-```
-
-共享环境仍可使用 PostgreSQL：
-```text
-DATABASE_URL=postgresql+psycopg://postgres:your_password@127.0.0.1:5432/intellideploy
-```
-
-后端首次启动时会自动创建数据库表。
-
-## 五、常见问题
-### 1. 后端启动了，但注册时报 bcrypt 相关错误
-项目依赖中已固定：
-```text
-bcrypt==4.0.1
-```
-
-如果依赖异常，可重新执行：
-```bash
-python -m pip install -r requirements.txt
-```
-
-### 2. 前端请求不到后端
-请检查：
-- 后端是否已运行在 `127.0.0.1:9000`
-- `frontend/services/api.ts` 中的 `API_BASE_URL` 是否正确
-
-### 3. 手机无法访问本地后端
-如果使用真机调试：
-- 不要使用 `localhost`
-- 改为电脑局域网 IP，例如：`http://192.168.x.x:9000`
-
-## 六、推荐启动顺序
-先启动后端：
-```bash
-cd backend
-python -m venv .venv
-.venv/Scripts/activate
-python -m pip install -r requirements.txt
-python -m uvicorn app.main:app --host 127.0.0.1 --port 9000
-```
-
-再启动前端：
-```bash
-cd frontend
-npm install
-npm run web
-```
+真实模型、隔离执行节点、Linux/Sealos、镜像仓库、三支付和原生设备按[外部资源准备清单](docs/一期外部资源准备清单.md)准备。缺条件的验收记NOT_RUN，不能以mock、Expo网页导出或构建成功声称一期完成。产品范围和交付协议见[PRD](docs/PRD.md)、[交付与测试说明](docs/一期交付与测试说明.md)。

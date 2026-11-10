@@ -1,7 +1,14 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createApiClient } from '@intellideploy/api-client';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:9000';
+
+// New persistent API; screens switch to it in 07-E2 with SecureStore auth.
+export const phase1Api = createApiClient({
+  baseUrl: API_BASE_URL,
+  getToken: () => AsyncStorage.getItem('token'),
+});
 
 const api = axios.create({
   baseURL: API_BASE_URL,

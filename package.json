@@ -1,0 +1,16 @@
+{
+  "name": "intellideploy",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "web",
+    "packages/api-client"
+  ],
+  "scripts": {
+    "api:generate": "PYTHONPATH=backend .venv/bin/python scripts/export_openapi.py && npm --workspace @intellideploy/api-client run generate && npm --workspace @intellideploy/api-client run build",
+    "dev:api": "PYTHONPATH=backend .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 9000",
+    "dev:worker": "PYTHONPATH=backend .venv/bin/python -m app.jobs.worker",
+    "dev:web": "npm --workspace web run dev -- --port 3000",
+    "dev:mobile": "npm --workspace frontend start"
+  }
+}

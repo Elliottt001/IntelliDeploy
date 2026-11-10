@@ -1,0 +1,40 @@
+import { afterEach, expect, test, vi } from 'vitest';
+import { NextRequest } from 'next/server';
+import { GET, POST } from '../app/api/[...path]/route';
+import { sealSession, SESSION_COOKIE } from '../lib/session';
+
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+
+test('BFF sets a private cookie and omits upstream bearer token from login response', async () => {
+  vi.stubEnv('SESSION_SECRET','s'.repeat(40));
+  vi.stubGlobal('fetch',vi.fn(async () => new Response(JSON.stringify({access_token:'upstream-token',token_type:'bearer'}),{status:200})));
+  const response=await POST(new NextRequest('http://localhost:3000/api/auth/login',{method:'POST',headers:{Origin:'http://localhost:3000','Content-Type':'application/json'},body:JSON.stringify({username:'owner',password:'test-only'})}),{params:Promise.resolve({path:['auth','login']})});
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ok:true});
+  const cookie=response.headers.get('set-cookie');
+  expect(cookie).toContain('HttpOnly');
+  expect(cookie).not.toContain('upstream-token');
+});
+
+test('unauthenticated or foreign origin requests never reach upstream',async () => {
+  const transport=vi.fn();vi.stubGlobal('fetch',transport);
+  const response=await POST(new NextRequest('http://localhost:3000/api/apps',{method:'POST',headers:{Origin:'http://attacker.test'},body:'{}'}),{params:Promise.resolve({path:['apps']})});
+  expect(response.status).toBe(403);
+  const read=await GET(new NextRequest('http://localhost:3000/api/apps'),{params:Promise.resolve({path:['apps']})});
+  expect(read.status).toBe(401);
+  expect(transport).not.toHaveBeenCalled();
+});
+
+test('SSE proxy preserves named events and the reconnect cursor',async () => {
+  vi.stubEnv('SESSION_SECRET','s'.repeat(40));
+  const transport=vi.fn(async () => new Response('id: 12\nevent: job\ndata: {}\n\n',{headers:{'Content-Type':'text/event-stream'}}));
+  vi.stubGlobal('fetch',transport);
+  const cookie=sealSession('test-token','s'.repeat(40));
+  const response=await GET(new NextRequest('http://localhost:3000/api/jobs/job-1/events?after_id=10',{headers:{Cookie:`${SESSION_COOKIE}=${cookie}`,'Last-Event-ID':'11'}}),{params:Promise.resolve({path:['jobs','job-1','events']})});
+  expect(response.headers.get('content-type')).toBe('text/event-stream');
+  expect(await response.text()).toContain('event: job');
+  const [url,options]=transport.mock.calls[0] as unknown as [string,RequestInit];
+  expect(url).toBe('http://127.0.0.1:9000/api/jobs/job-1/events?after_id=10');
+  expect(new Headers(options.headers).get('Last-Event-ID')).toBe('11');
+  expect(new Headers(options.headers).get('Authorization')).toBe('Bearer test-token');
+});
