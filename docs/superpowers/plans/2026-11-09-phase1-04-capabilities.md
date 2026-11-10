@@ -19,7 +19,7 @@
 
 ### Task 04-C1: 平台身份与可信能力上下文
 
-**Files:** Create backend/app/capabilities/{__init__,identity,models,router}.py、backend/alembic/versions/0006_app_login_codes.py、tests/phase1/test_capability_identity.py；完善 scaffolds/nextjs-prisma/lib/platform/identity.ts。Modify backend/app/main.py、backend/app/config.py。
+**Files:** Create backend/app/capabilities/{__init__,identity,models,router}.py、backend/alembic/versions/0006_app_login_codes.py、tests/phase1/test_capability_identity.py；为生成应用创建 fallback/templates/common/platform_identity.py.template。Modify backend/app/main.py、backend/app/config.py。
 
 **Interfaces:** issue_app_identity(user_id: int, app_id: str, instance_id: str) -> str；verify_app_identity(token: str, app_id, instance_id) -> int；resolve_context(session, instance_id, user_token, instance_token) -> CapabilityContext。共享策略尚未创建时只允许实例拥有者；05-W2 注册后允许 SPONSOR/VISITOR 策略。
 
@@ -47,7 +47,7 @@ if claims['instance_id'] != instance_id:
 return int(claims['sub'])
 ```
 
-AppLoginCode 在 capabilities/models.py 保存 code_hash、instance_id、user_id、callback、expires_at、consumed_at，数据库事务保证一次消费。resolve_context 从可信实例记录和公开策略决定 payer_id；客户端不能直接提交任意 payer_id。实例凭据只授权当前实例，允许匿名的赞助调用受实例配置限额约束。固定脚手架通过 TypeScript 客户端接入平台身份，业务接口以可信 user_id 查询 Prisma 数据并增加两账号测试，不能只在入口加登录就宣布隔离成功。
+AppLoginCode 在 capabilities/models.py 保存 code_hash、instance_id、user_id、callback、expires_at、consumed_at，数据库事务保证一次消费。resolve_context 从可信实例记录和公开策略决定 payer_id；客户端不能直接提交任意 payer_id。实例凭据只授权当前实例，允许匿名的赞助调用受实例配置限额约束。已存在仓库的账号系统通过映射真实平台身份接入，修改代码时增加两账号测试，不能只在入口加登录就宣布隔离成功。
 
 - [ ] **Step 4: 绿测。** 覆盖过期 token、错误 audience/instance、code 重放、未登记 callback、匿名赞助额度限制和伪造 payer_id。
 - [ ] **Step 5: 提交。** `feat: scope platform identity and capability authorization`。
@@ -74,7 +74,7 @@ def test_update_does_not_recreate_database(data_store):
 ```
 
 - [ ] **Step 2: 红测。** test_instance_data.py；数据库角色隔离必须用 PostgreSQL，不能用字典代替。
-- [ ] **Step 3: 实现实例范围资源。** 数据库名和角色名由服务器生成，仅用 psycopg.sql.Identifier 构造管理 SQL；应用角色不能连接控制面库或其他实例库。生成随机凭据，部署时通过 Secret/env_refs 引用。一期应用统一 Prisma/PostgreSQL，验证环境另建临时数据空间，不将生产数据和凭据复制进生成工作区。
+- [ ] **Step 3: 实现实例范围资源。** 数据库名和角色名由服务器生成，仅用 psycopg.sql.Identifier 构造管理 SQL；应用角色不能连接控制面库或其他实例库。生成随机凭据，部署时通过 Secret/env_refs 引用。已有仓库的其他数据库记录由部署器管理，不能静默换成 PostgreSQL。
 
 ```python
 path = files_root / context.instance_id / uuid.uuid4().hex

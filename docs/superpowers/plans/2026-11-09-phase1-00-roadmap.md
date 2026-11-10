@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 从固定成熟脚手架生成完整 Web 应用，支持真实交付、继续调整、社区使用与按额度收费。
+**Goal:** 完成可真实交付、继续调整、社区使用及按额度收费的一期 Web 平台。
 
 **Architecture:** 一个 FastAPI 产品后端、一个独立 Python Worker、一个 Next.js Web 前端。直接调用 DeepSeek API；任务、版本和额度持久保存到 PostgreSQL，镜像发布到平台现有 Linux 或 Sealos 目标。
 
-**Tech Stack:** Python 3.13、Node.js 24、PostgreSQL 17、FastAPI、SQLAlchemy、Alembic、OpenAI Python SDK、Next.js、TypeScript、Prisma、Playwright、Docker/BuildKit、Kubernetes。
+**Tech Stack:** 平台为 Python/FastAPI + Next.js；直接 DeepSeek API、PostgreSQL、Docker/BuildKit/Kubernetes、Playwright。D 的成熟脚手架为 Next.js + TypeScript + PostgreSQL + Prisma；A/B/C 保留实际项目栈。
 
 **Spec:** [一期技术设计](../specs/2026-11-09-intellideploy-phase1-design.md)，[PRD](../../PRD.md)。整体设计已获用户确认。
 
@@ -28,7 +28,7 @@ backend/app/
   core/types.py                 公共 Pydantic 契约和枚举
   apps/{models,service,router}.py 需求、对话、应用与版本记录
   jobs/{models,store,events,worker}.py 租约、检查点、恢复、事件
-  agent/{deepseek,tools,loop,scaffold,workspace}.py 模型与单一脚手架生成
+  agent/{deepseek,tools,loop,retrieval,routing,scaffold,workspace}.py 模型与四条路径
   runtime/{manifest,validation,build,linux,kubernetes,releases,router}.py 验证和发布
   capabilities/{identity,data,files,ai,search,router}.py 平台能力
   community/{models,service,router}.py 发布、访问策略、独立副本
@@ -37,19 +37,19 @@ backend/app/
 backend/alembic/                正式数据库迁移
 frontend/                      改造为 Next.js Web；复用现有素材
 infra/                         本地开发与任务执行环境配置
-scaffolds/nextjs-prisma/        一套经过验证、锁定版本的应用脚手架
+scaffolds/nextjs-prisma/        D 专用、锁定版本的成熟应用脚手架
 tests/phase1/                  新主链路的独立验收目录
 scripts/                       只读审计、可恢复迁移、真实样本执行
 ```
 
-这些模块属于同一后端，不拆微服务。公共模型集中一次定义；数据库各实体仍按所属模块组织。已有 Dockerfile 校验和 K8s 代码优先检查后复用。一期不接 GitHub 检索、任意仓库改造或多项目拼接，不为后续路径预建抽象框架。
+这些模块属于同一后端，不拆微服务。公共模型集中一次定义；数据库各实体仍按所属模块组织。已有 GitHub、Dockerfile 校验和 K8s 代码优先检查后复用，禁止直接搬入旧多智能体编排。
 
 ## 2. 计划顺序和产出
 
 | 顺序 | 子计划 | 可独立验收的产出 | 依赖 |
 | --- | --- | --- | --- |
 | 01 | [状态与任务](2026-11-09-phase1-01-foundation.md) | API 创建需求，Worker 认领、保存、恢复任务，前端可补读事件 | 无 |
-| 02 | [DeepSeek 与成熟脚手架](2026-11-09-phase1-02-generation.md) | 固定 Next.js/TypeScript/PostgreSQL/Prisma 底座，实现业务并验证 | 01 |
+| 02 | [DeepSeek、检索评分与四条路径](2026-11-09-phase1-02-generation.md) | 优先复用合适项目，执行 A/B/C；无合理复用方案时 D | 01 |
 | 03 | [验证、版本与多云](2026-11-09-phase1-03-delivery.md) | 核心业务通过并部署到两种目标，调整保留数据 | 01、02 |
 | 04 | [平台能力](2026-11-09-phase1-04-capabilities.md) | 多人身份、数据、文件、AI、真实联网搜索 | 01；用量回调由 06 接入 |
 | 05 | [Web 与社区](2026-11-09-phase1-05-web-community.md) | 对话、交付、调整、共享使用、独立副本 | 01、03、04 |
@@ -58,6 +58,8 @@ scripts/                       只读审计、可恢复迁移、真实样本执�
 推荐顺序：01 → 06-F1 → 02 → 04 → 03 → 05 → 06-F2/F3/F4。在所有真实模型调用前接入用量记录。04 与 03 的独立检查可分别进行，但最终必须一起通过真实应用验收。每个任务单独提交，只提交该任务文件。迁移必须从当前唯一 Alembic head 延长；文件编号是标识，不代表能脱离依赖顺序执行，出现多 head 必须合并后继续。
 
 ## 3. 公共接口
+
+A/B/C/D 对应 DEPLOY_EXISTING、MODIFY_EXISTING、COMPOSE_COMPONENTS、GENERATE_APP。D 的技术栈限定不会覆盖其他三条。
 
 以下名称在 01-F1 定义，子计划不得另造同名但不同结构的模型：
 
@@ -77,10 +79,38 @@ class AcceptanceItem(BaseModel):
     expected: str
     private_data: bool = False
 
-class ImplementationPlan(BaseModel):
-    template_version: str
+class RepoSource(BaseModel):
+    url: str
+    commit: str
+    role: str
+
+class RoutePlan(BaseModel):
+    route: Literal['DEPLOY_EXISTING', 'MODIFY_EXISTING',
+                   'COMPOSE_COMPONENTS', 'GENERATE_APP']
+    sources: list[RepoSource] = Field(default_factory=list)
+    template_version: str | None = None
     steps: list[str]
     reason: str
+
+class CandidateEvaluation(BaseModel):
+    repo_url: str
+    match_score: float = Field(ge=0, le=100)
+    deploy_score: float = Field(ge=0, le=100)
+    quality_score: float = Field(ge=0, le=100)
+    is_web_app: bool | None = None
+    missing_core: list[str] = Field(default_factory=list)
+    unknown_fields: list[str] = Field(default_factory=list)
+    evidence: dict[str, str] = Field(default_factory=dict)
+
+    @property
+    def total(self) -> float:
+        return round(.60*self.match_score + .25*self.deploy_score + .15*self.quality_score, 2)
+
+    @property
+    def eligible_a(self) -> bool:
+        return (self.is_web_app is True and not self.missing_core and
+                not self.unknown_fields and bool(self.evidence) and
+                self.match_score >= 80 and self.deploy_score >= 70 and self.total >= 75)
 
 class ToolCall(BaseModel):
     id: str
@@ -102,10 +132,11 @@ class ModelTurn(BaseModel):
 
 class Checkpoint(BaseModel):
     messages: list[dict] = Field(default_factory=list)
-    plan: ImplementationPlan | None = None
+    route: RoutePlan | None = None
     workspace: str | None = None
     pending_calls: list[ToolCall] = Field(default_factory=list)
     completed_calls: dict[str, ToolResult] = Field(default_factory=dict)
+    route_switches: int = 0
     stalled_rounds: int = 0
 
 class CheckResult(BaseModel):
@@ -126,6 +157,7 @@ class ServiceSpec(BaseModel):
     port: int | None = None
     env_refs: dict[str, str] = Field(default_factory=dict)
     volumes: dict[str, str] = Field(default_factory=dict)
+    depends_on: list[str] = Field(default_factory=list)
     health_path: str | None = None
     memory_mb: int = 512
 
@@ -202,14 +234,14 @@ PYTHONPATH=backend .venv/bin/python -m pytest tests/phase1 -q
 - [ ] 实施开始时使用 using-git-worktrees 检查并隔离现有 WIP；当前文件结构不因计划编写而提前改动。
 - [ ] 每个任务先运行具体失败检查，再实现，再运行同一检查及必要关联检查。
 - [ ] 单元测试验证协议、状态和异常；数据库并发用真实 PostgreSQL；生成和部署最终用真实环境。
-- [ ] mock 模型结果只能验证编排，不能证明同一脚手架已完成真实业务应用。
+- [ ] mock 模型结果只能验证编排，不能证明四条路径真的生成了可用应用。
 - [ ] 每个任务执行 git diff --check，并仅提交列明文件。
 - [ ] 使用新的测试目录分阶段替换旧入口；旧测试有编码和参数漂移，需要在 06-F4 分类处理，不能直接删掉掩盖问题。
 - [ ] README、CLAUDE.md 和运行命令最终与新入口保持一致。
 
 ## 6. 真实验收所需外部条件
 
-DeepSeek Key、可写镜像仓库、已准备的 Linux 目标、Sealos kubeconfig、可用域名与 TLS、价格配置，以及所选收款渠道的商户配置。
+DeepSeek Key、GitHub 搜索额度、可写镜像仓库、已准备的 Linux 目标、Sealos kubeconfig、可用域名与 TLS、价格配置，以及所选收款渠道的商户配置。
 
 没有外部条件时，相关检查标记为未执行，并继续完成不依赖它的任务。最终一期商业验收不能用模拟结果替代外部集成。
 
@@ -218,7 +250,7 @@ DeepSeek Key、可写镜像仓库、已准备的 Linux 目标、Sealos kubeconfi
 | Spec 章节 | 实施位置 |
 | --- | --- |
 | 2 技术栈 | 01-F1、05-W1 |
-| 3 固定脚手架与状态 | 01-F1、02-G3、02-G4 |
+| 3 A/B/C/D、检索评分与状态 | 01-F1、02-G3、02-G4、02-G5 |
 | 4 工具循环与上下文 | 02-G1、02-G2、02-G4 |
 | 5 执行隔离与恢复 | 01-F2、02-G2、02-G4 |
 | 6 验证与发布 | 03-D1、03-D2、03-D5 |
@@ -235,4 +267,4 @@ DeepSeek Key、可写镜像仓库、已准备的 Linux 目标、Sealos kubeconfi
 
 计划于 2026-11-09 起草，跨日后在 2026-11-10 完成一致性自查；文件名保留起草日期以稳定引用。
 
-2026-11-10 范围修订：一期仅支持成熟脚手架生成，默认 Next.js + TypeScript + PostgreSQL + Prisma；现成仓库部署、外部仓库改造和多项目整合后置。AppManifest 一期只接受一个 Web 服务，数据库与文件通过平台能力提供。
+2026-11-10 最新范围：一期保留 A/B/C/D，GitHub 检索与证据评分是主链路；D 仅从固定成熟脚手架生成。范围按本条和当前 PRD 执行，不按中间误写的“全部需求从脚手架生成”执行。

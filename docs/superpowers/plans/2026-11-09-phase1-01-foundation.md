@@ -71,7 +71,7 @@ def test_schema_contains_recovery_columns(pg_session):
 ```
 
 - [ ] **Step 2: 运行红测。** `.venv/bin/python -m pytest tests/phase1/test_contracts.py tests/phase1/test_migrations.py -q`。首次应因新模型/迁移不存在失败。
-- [ ] **Step 3: 定义公共类型并实现实体迁移。** 复制总计划的类型，增加 AppManifest 校验：一期仅一个 Next.js Web 服务、入口存在、构建服务与入口一致、端口 1..65535、内存为正整数、卷挂载为绝对容器路径、镜像引用非空；拒绝路径穿越和保留挂载目录。SQL 表最低字段如下，JSON 使用 PostgreSQL JSONB；时间使用带时区 datetime。
+- [ ] **Step 3: 定义公共类型并实现实体迁移。** 复制总计划的类型，增加 AppManifest 校验：服务名唯一、入口存在、依赖存在且无环、端口 1..65535、内存为正整数、卷挂载为绝对容器路径、镜像引用非空；拒绝路径穿越和保留挂载目录。SQL 表最低字段如下，JSON 使用 PostgreSQL JSONB；时间使用带时区 datetime。
 
 ```python
 class Job(Base):
@@ -90,7 +90,7 @@ class Job(Base):
     error = Column(Text)
 ```
 
-新增字符串 UUID 主键用 default=lambda: str(uuid.uuid4())。App 有 owner_id、prompt、active_version_id 和 nullable source_version_id；Conversation 有 app_id 和按顺序追加的消息；RequirementRecord 保存 revision 和验收项；AppVersion 保存 template_version、manifest、validation、artifact_path、immutable 标记；Instance 保存 owner_id、app_id、version_id、target_id、status、url、data_namespace、secret_ref；JobEvent 用自增 ID；ToolCallRecord 对 (job_id, call_id) 唯一，保存 STARTED/COMPLETED/UNKNOWN、输入摘要、结果及用量。对 QUEUED/RUNNING/WAITING_USER/PAUSED_QUOTA 的 app_id 建部分唯一索引。
+新增字符串 UUID 主键用 default=lambda: str(uuid.uuid4())。App 有 owner_id、prompt、active_version_id 和 nullable source_version_id；Conversation 有 app_id 和按顺序追加的消息；RequirementRecord 保存 revision 和验收项；AppVersion 保存 sources、template_version、manifest、validation、artifact_path、immutable 标记；Instance 保存 owner_id、app_id、version_id、target_id、status、url、data_namespace、secret_ref；JobEvent 用自增 ID；ToolCallRecord 对 (job_id, call_id) 唯一，保存 STARTED/COMPLETED/UNKNOWN、输入摘要、结果及用量。对 QUEUED/RUNNING/WAITING_USER/PAUSED_QUOTA 的 app_id 建部分唯一索引。
 
 Alembic 0001 在新 PostgreSQL 建 User 和新表，正式启动不调用 create_all。保留 SQLite URL 仅给旧只读迁移脚本；新 Worker 拒绝 SQLite。开发 Compose 只启动带持久卷的 PostgreSQL 17，创建独立 dev/test 数据库；测试 URL 不指向生产库。dev 依赖包含 pytest、pytest-asyncio、Alembic 和后续 Playwright；pytest.ini 设置 asyncio_mode=auto、testpaths=tests/phase1，登记 real/sandbox/docker 标记；有效旧测试可按显式路径运行。backend/.env.example 只列配置键与开发默认值，不含实际凭据。移除 LangGraph 的动作留到引用清理时。
 
