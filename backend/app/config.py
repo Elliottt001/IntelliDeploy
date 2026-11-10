@@ -1,9 +1,17 @@
+from pathlib import Path
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
-    DATABASE_URL: str = "sqlite:///./intellideploy.db"
+    DATABASE_URL: str = "postgresql+psycopg://intellideploy:dev-only@127.0.0.1:55432/intellideploy_dev"
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8081"]
+    DEFAULT_BUDGET_UNITS: int = Field(default=10000, gt=0)
+    HARD_CAP_UNITS: int = Field(default=100000, gt=0)
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
+    DEEPSEEK_MODEL: str = "deepseek-flash"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ALGORITHM: str = "HS256"
     MODEL_API: str = ""
@@ -80,7 +88,7 @@ class Settings(BaseSettings):
     HEALING_TIMEOUT: int = 600  # 自愈总超时10分钟
 
     model_config = {
-        "env_file": ".env",
+        "env_file": str(Path(__file__).resolve().parents[1] / ".env"),
     }
 
 

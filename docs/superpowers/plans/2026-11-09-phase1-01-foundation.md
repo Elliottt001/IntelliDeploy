@@ -23,7 +23,7 @@
 
 **Interfaces:** 产生总计划第3/8节全部Pydantic类型、交付说明全部公开响应，以及JobStatus、InstanceStatus；SQL 实体 App、Conversation、RequirementRecord、AppVersion、Instance、Job、JobEvent、ToolCallRecord。User 保持整数主键，数据迁移不自动删除旧数据。
 
-- [ ] **Step 0: 准备独立测试环境。** 安装 Python 3.13、创建 .venv 并安装现有后端依赖及 pytest、pytest-asyncio、Alembic。先创建本任务的 infra/compose.dev.yml，使用 PostgreSQL 17、本地开发密码和持久卷，主数据库 intellideploy_dev，另创建 intellideploy_test。数据库可用后开始红测，不能把连接失败当业务红测。
+- [x] **Step 0: 准备独立测试环境。** 安装 Python 3.13、创建 .venv 并安装现有后端依赖及 pytest、pytest-asyncio、Alembic。先创建本任务的 infra/compose.dev.yml，使用 PostgreSQL 17、本地开发密码和持久卷，主数据库 intellideploy_dev，另创建 intellideploy_test。数据库可用后开始红测，不能把连接失败当业务红测。
 
 ```yaml
 services:
@@ -51,7 +51,7 @@ docker compose -p intellideploy-dev -f infra/compose.dev.yml exec -T postgres cr
 createdb 只在第一次执行；重跑先查数据库存在。conftest 从 TEST_DATABASE_URL 读取连接；未设置时只使用上述本地开发配置的 intellideploy_test，核对数据库名后注入 DATABASE_URL，再导入 app。创建依赖和 Compose 属于本任务环境准备，不提前实现业务模型。
 
 
-- [ ] **Step 1: 添加契约和迁移失败检查。** conftest 在导入 app 前插入仓库根和 backend 到 sys.path，设置 DATABASE_URL；pg_session 连接 TEST_DATABASE_URL，只接受数据库名 intellideploy_test，并为每个测试回滚事务。运行迁移测试时另外创建临时 schema，不改现有 SQLite。
+- [x] **Step 1: 添加契约和迁移失败检查。** conftest 在导入 app 前插入仓库根和 backend 到 sys.path，设置 DATABASE_URL；pg_session 连接 TEST_DATABASE_URL，只接受数据库名 intellideploy_test，并为每个测试回滚事务。运行迁移测试时另外创建临时 schema，不改现有 SQLite。
 
 ```python
 import pytest
@@ -70,8 +70,8 @@ def test_schema_contains_recovery_columns(pg_session):
     assert {'lease_owner', 'lease_until', 'checkpoint', 'operation_id'} <= names
 ```
 
-- [ ] **Step 2: 运行红测。** `.venv/bin/python -m pytest tests/phase1/test_contracts.py tests/phase1/test_migrations.py -q`。首次应因新模型/迁移不存在失败。
-- [ ] **Step 3: 定义公共类型并实现实体迁移。** 复制总计划的类型，增加 AppManifest 校验：服务名唯一、入口存在、依赖存在且无环、端口 1..65535、内存为正整数、卷挂载为绝对容器路径、镜像引用非空；拒绝路径穿越和保留挂载目录。SQL 表最低字段如下，JSON 使用 PostgreSQL JSONB；时间使用带时区 datetime。
+- [x] **Step 2: 运行红测。** `.venv/bin/python -m pytest tests/phase1/test_contracts.py tests/phase1/test_migrations.py -q`。首次应因新模型/迁移不存在失败。
+- [x] **Step 3: 定义公共类型并实现实体迁移。** 复制总计划的类型，增加 AppManifest 校验：服务名唯一、入口存在、依赖存在且无环、端口 1..65535、内存为正整数、卷挂载为绝对容器路径、镜像引用非空；拒绝路径穿越和保留挂载目录。SQL 表最低字段如下，JSON 使用 PostgreSQL JSONB；时间使用带时区 datetime。
 
 ```python
 class Job(Base):
@@ -96,8 +96,8 @@ Alembic 0001 在新 PostgreSQL 建 User 和新表，正式启动不调用 create
 
 配置读取固定到 backend/.env 的绝对路径，不依赖启动目录。依次完成 core/types.py、apps/models.py、jobs/models.py、Alembic revision、配置与测试 fixture 六个小改动，每个改动后检查对应导入或迁移，再运行整体绿测。
 
-- [ ] **Step 4: 绿测及迁移回退检查。** 新库 upgrade head 后通过；仅在临时 schema 验证 downgrade/upgrade，再运行契约测试。保留迁移输出但不记录凭据。
-- [ ] **Step 5: 提交本任务文件。** `git diff --check`；提交 `feat: add phase one contracts and migrations`。
+- [x] **Step 4: 绿测及迁移回退检查。** 新库 upgrade head 后通过；仅在临时 schema 验证 downgrade/upgrade，再运行契约测试。保留迁移输出但不记录凭据。
+- [x] **Step 5: 提交本任务文件。** `git diff --check`；提交 `feat: add phase one contracts and migrations`。
 
 ### Task 01-F2: 任务租约、恢复与事件
 
@@ -191,3 +191,7 @@ SSE统一event: job，data.kind描述实际业务事件，公开Schema中kind为
 公开请求字段同步：POST messages预算可选只对新ADJUST使用；WAITING_USER业务回复仅恢复原job需求整理，不擅自提高预算。POST jobs/resume可接剩余budget_units并由06-F1检查hard cap/原已计费额度，Job.reservation_id按恢复段保存历史父预留引用，子operation_id唯一避免重放扣费。01-F3响应message接受相同Idempotency-Key时返回原JobRef，不重复追加对话消息。
 
 01-F1同时在runtime/models.py定义DeploymentTarget与ResourceRecord基本字段并纳入0001迁移，使03-D3/D4能登记目标、03-D6能从第一次候选创建就记录资源，不等待08上线任务才有表。DeploymentTarget字段按08-O1定义，ResourceRecord字段按08-O2定义；08任务消费/扩展这些实体，CleanupAction在08-O2追加迁移。runtime/__init__.py不导入未实施的部署模块，避免基础迁移加载循环。
+
+## 实施证据
+
+2026-11-10，01-F1：Python 3.13.15；PostgreSQL 17独立dev/test数据库；契约与临时schema迁移往返12项通过，alembic check无schema漂移。旧单元基线在修改前58项通过。正式API入口移除create_all在01-F3完成；本任务未运行生成/云/支付。用户指定main、本agent顺序开发。
