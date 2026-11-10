@@ -88,3 +88,5 @@ frontend/playwright-report/
 .cjadk/
 # Added by CJADK
 log/app.log
+
+.codex/
