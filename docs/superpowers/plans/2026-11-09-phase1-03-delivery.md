@@ -330,3 +330,21 @@ ResourceWindow.compute_units为分配CPU/内存时长换算后的资源计费单
 03-D6：新增两轮核心检查计划编译门槛、候选 runner 隔离注册与受控服务重启、最多四次共享修复循环、需求 revision/attempt/manifest hash 证据绑定、不可变版本快照和 D5 单一发布入口。候选业务失败可携证据重试，目标凭据/平台故障不进入模型修复，取消在安全点落终态，失租 Worker 不得覆盖新 Worker；专项 11 项通过，完整 phase1 187 项通过、3 项跳过。真实 DeepSeek、专用候选 runner、registry 与远程目标均未配置，保持 NOT_RUN，不以连接失败代替业务验证。
 
 03-D7：新增实例 START/STOP/DELETE 意图队列、所有权与发布互斥、外部副作用标记和续租恢复；Linux/Kubernetes 生命周期仅经控制面适配器执行，Kubernetes 按实例标签缩放/观测全部服务，目标不可达采样为 UNKNOWN。UTC 分钟窗口按实例唯一，首次建窗固定价格版本，每个运行窗口结算后最多预留下一窗口；UNKNOWN 释放预留且不计假 0，计算额度不足排队停机并保留数据，未预留存储成本由平台承担且充值后不追扣。维护循环包含独立租约/心跳/失败断点、周期免费与套餐 grant，并为每日索引和 08-O2 清理提供同一可注入任务入口；生成/调整与实例操作双向使用 App 锁互斥，锁序统一为 App→Instance；D7 专项 27 项、完整 phase1 214 项通过，3 项真实环境检查跳过。未配置明确 dev/test/boe 目标，未执行真实 SSH/Kubernetes 操作；GitHub 日更和资源清理由 02-G7/08-O2 在具备受控依赖后接入，当前不自动发起远程调用或删除。
+
+
+## P7 默认接线补充执行清单（2026-11-10）
+
+本轮授权：补齐刚刚记录的代码缺口。用户确认目前无真实模型/镜像仓库/执行节点/两云资源，保留真实验收缺口；不搜索未知秘密或自行选择云目标。仍在main由本agent顺序开发。
+
+- [x] P7-1 写新API任务→需求整理/冻结、追问同job续接、持久模型调用重放/未知停止与用量账本失败检查。实现jobs/execution.py统一组装已有G6/G4，模型Hint映射到实际配置模型，所有付费动作先预留且受租约约束。
+- [x] P7-2 接默认generate_candidate：检索、兼容/选路、成熟脚手架或当前版本源码、受控工具、固定构建、核心检查。修复/重启沿用持久workspace/调用日志/预算，不以普通模型文本结束代替候选。
+- [x] P7-3 runner/client.py、runner/service.py、runner/docker.py与受控节点启动配置。mTLS+服务端令牌、UUID工作区、代次隔离、工具幂等日志；用户代码仅在受限容器。安装依赖经登记的内网代理，不挂控制面/宿主socket给项目。
+- [x] P7-4 runtime/configuration.py及候选身份/数据接线。Instance.kind内部区分PRODUCTION/CANDIDATE并从用户实例/托管计量过滤临时候选；新副本凭据与数据不复用，缺业务服务配置明确等待/失败。候选owner/other身份消费同job父Reservation。
+- [x] P7-5 生产发布交接：真实目标预检、实例环境/文件、源码与digest、入口授权与callback，迁移先数据副本/恢复材料，失败关闭或恢复，旧Worker不能写新发布。
+- [x] P7-6 本地相同API/Worker默认入口联调、实际PG双用户数据/恢复/费用、原生构建与本机基础检查；模型/两云实际交付及完整原生流程因用户未准备资源为NOT_RUN。
+
+新增检查位于tests/phase1/test_default_execution.py、test_runner_protocol.py、test_instance_configuration.py及相应集成检查。新增迁移从0007唯一head延长。接口仍消费core/types.py和单一pipeline，不增加第二套Agent/队列。
+
+P7-2—5勾选表示本地代码接线与协议检查已落地；节点/两云和完整数据迁移演练仍NOT_RUN。P7-6真实验收部分按规划待办R1—R5跟踪。
+
+P7本轮完成：后端248/3（PASS/缺真实环境跳过），默认入口采用真实模块和显式供应商/节点替身做编排证据；实际PG旧数据证明、共享候选父预算、独立配置、HTTP网关和持久工作区均有专项检查。R1—R5由用户确认仍缺资源/原生条件，不声明真实模型/两云/设备通过。
