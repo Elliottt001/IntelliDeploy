@@ -1,0 +1,41 @@
+export const marketingHomeEvidence = {
+  sourcePackage: 'IntelliDeploy-design-2026-11-10-2221',
+  figSha256: '5951997a694f1da0a343029dfec889b81ea377e098eb94f0e4b9d61f589e949a',
+  referenceRenders: {
+    light: { path: 'web/assets/New：Home（浅色模式）.png', sha256: '8472dfb13f9991a33d2ef4e58af61f3837c859caa3f4616a8992eb508b8a6e19' },
+    dark: { path: 'web/assets/New：Home（深色模式）.png', sha256: 'fe976e215881434fb92fd3a50d1bf025b171d81b969d2cb5890a5c8654e74f06' },
+  },
+  root: '100:4630',
+  rootSize: { width: 2025, height: 10620 },
+  contentGuide: { left: 141, right: 1884, width: 1743 },
+  sections: [
+    { key: 'navigation', node: '100:5063', width: 1704, height: 100 },
+    { key: 'hero', node: '100:5099', width: 1917, height: 602 },
+    { key: 'capabilities', node: '100:5107', width: 832.8696, height: 216 },
+    { key: 'features', node: '100:5114', width: 2231, height: 4775.6143 },
+    { key: 'community', node: '100:5329', width: 1743, height: 1243 },
+    { key: 'delivery', node: '100:5496', width: 1745, height: 1304 },
+    { key: 'pricing', node: '100:5547', width: 1745, height: 2221 },
+    { key: 'footer', node: '100:5549', width: 2025.1057, height: 3010.7813 },
+  ],
+  pricing: { frame: '100:5547', instance: '100:5548', symbol: '100:2691' },
+  featureNodes: { mibo: '100:5117', appstore: '100:5228', community: '100:5329' },
+  tokens: {
+    primary: '#7C62FF', surfaceSoft: '#EFF3FF', text: '#494A64', textMuted: '#7F80A1',
+    blue: '#94ACF6', pink: '#FFAFDC', orchid: '#EDAFF6', lavender: '#D0C7FE',
+  },
+  assets: [
+    { target: 'public/marketing/logo.svg', sha256: '343d61809dc8c954de1c0f4447793ed774581ed1f2e73477e2a136d9c8355462' },
+    { target: 'public/marketing/mibo-hero.png', sha256: 'ad03b7afea147f2f5d9ee834bb30d05da03e6adcaf0e2ed238eaaecc22f731d7' },
+    { target: 'public/marketing/mibo-small.png', sha256: 'e3b80c248897cb452585f33feb62e38c87f93a8c6b5b2673c57ac63a1b9117db' },
+    { target: 'public/marketing/feature-chat.png', sha256: '36cd893a76724aaab21308dac5986aa2413672f609a57fb176aaed28cff89a38' },
+    { target: 'public/marketing/feature-appstore.png', sha256: '59e443101bd535ac58a945cc9a5c761a556f53972ac5cbc95d0eade9ddc6e32e' },
+    { target: 'public/marketing/feature-community-primary.png', sha256: 'd378c77c14b0d4fd4cd2fbd20cc52f3538425c20bc19da655053431e962b6e98' },
+    { target: 'public/marketing/feature-community-secondary.png', sha256: '32c1b53a369ea54279653554860a6f5909d24b094f717f9494c05faad899617e' },
+  ],
+  fonts: [
+    'AlibabaPuHuiTi-3-55-Regular.ttf', 'AlibabaPuHuiTi-3-75-SemiBold.ttf',
+    'Inter-Variable.ttf', 'Geist-Variable.ttf', 'IbarraRealNova-Variable.ttf',
+    'InstrumentSans-Variable.ttf', 'PixelifySans-Variable.ttf', 'ZiTiQuanWeiJunHei-W3.ttf',
+  ].map((file) => ({ target: `assets/fonts/${file}` })),
+} as const;
