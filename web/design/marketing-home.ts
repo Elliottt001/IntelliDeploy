@@ -10,8 +10,8 @@ export const marketingHomeEvidence = {
   contentGuide: { left: 141, right: 1884, width: 1743 },
   sections: [
     { key: 'navigation', node: '100:5063', width: 1704, height: 100, x: 163, y: 68, signInNode: '100:5065', accountNodes: ['100:5085', '100:5086', '100:5087', '100:5088'] },
-    { key: 'hero', node: '100:5099', width: 1917, height: 602 },
-    { key: 'capabilities', node: '100:5107', width: 832.8696, height: 216 },
+    { key: 'hero', node: '100:5099', width: 1917, height: 602, x: 54, y: 126 },
+    { key: 'capabilities', node: '100:5107', width: 832.8696, height: 216, x: 596, y: 1194, stack: 'vertical', gap: 5 },
     { key: 'features', node: '100:5114', width: 2231, height: 4775.6143 },
     { key: 'community', node: '100:5329', width: 1743, height: 1243 },
     { key: 'delivery', node: '100:5496', width: 1745, height: 1304 },
@@ -19,7 +19,11 @@ export const marketingHomeEvidence = {
     { key: 'footer', node: '100:5549', width: 2025.1057, height: 3010.7813 },
   ],
   pricing: { frame: '100:5547', instance: '100:5548', symbol: '100:2691' },
-  featureNodes: { mibo: '100:5117', appstore: '100:5228', community: '100:5329' },
+  featureNodes: {
+    mibo: { node: '100:5117', width: 1743.472, height: 818.3071, radius: 20 },
+    appstore: { node: '100:5228', width: 1743.472, height: 818.3071, radius: 44.9928 },
+    community: { node: '100:5329', width: 1743, height: 1243, radius: 20 },
+  },
   tokens: {
     primary: '#7C62FF', surfaceSoft: '#EFF3FF', text: '#494A64', textMuted: '#7F80A1',
     blue: '#94ACF6', pink: '#FFAFDC', orchid: '#EDAFF6', lavender: '#D0C7FE',
