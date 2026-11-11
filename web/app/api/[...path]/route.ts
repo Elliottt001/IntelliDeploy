@@ -21,7 +21,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
   const secret=process.env.SESSION_SECRET ?? '';
   const cookie=request.cookies.get(SESSION_COOKIE)?.value;
   const token=cookie ? openSession(cookie,secret) : null;
-  const anonymous=path.startsWith('/auth/') && path !== '/auth/me' || path==='/api/community/apps' || /^\/api\/publications\/[^/]+$/.test(path) && request.method==='GET';
+  const anonymous=path.startsWith('/auth/') && path !== '/auth/me' || path==='/api/community/apps' || path==='/api/catalog/skus' && request.method==='GET' || /^\/api\/publications\/[^/]+$/.test(path) && request.method==='GET';
   if (!token && !anonymous) return error(401,'UNAUTHORIZED','请先登录');
   const headers=new Headers();
   for (const name of ['Content-Type','Idempotency-Key','Last-Event-ID']) {

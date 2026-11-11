@@ -4,6 +4,7 @@ import { backendPath, validOrigin } from '../lib/proxy';
 test('proxy only forwards registered product paths', () => {
   expect(backendPath(['auth','login'])).toBe('/auth/login');
   expect(backendPath(['apps','a','messages'])).toBe('/api/apps/a/messages');
+  expect(backendPath(['catalog','skus'])).toBe('/api/catalog/skus');
   expect(backendPath(['https:','evil.test'])).toBeNull();
   expect(backendPath(['apps','..','admin'])).toBeNull();
   expect(backendPath(['apps','%2f..','admin'])).toBeNull();

@@ -3,7 +3,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.billing.ledger import balance
-from app.billing.models import ProductSku, Subscription, UsageEntry
+from app.billing.catalog import list_enabled_skus
+from app.billing.models import Subscription, UsageEntry
 from app.config import settings
 from app.core.types import (
     QuotaBalance,
@@ -64,18 +65,7 @@ def usage(
 
 @router.get("/skus", response_model=list[QuotaSku])
 def skus(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return [
-        QuotaSku(
-            id=r.id,
-            name=r.name,
-            provider=r.provider,
-            currency=r.currency,
-            amount_minor=r.amount_minor,
-            units=r.units,
-            period=r.period,
-        )
-        for r in db.scalars(select(ProductSku).where(ProductSku.enabled.is_(True)))
-    ]
+    return list_enabled_skus(db)
 
 
 @router.get("/subscription", response_model=SubscriptionInfo | None)

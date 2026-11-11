@@ -33,6 +33,13 @@ test('quota methods read the shared account endpoints',async () => {
   expect(fetchImpl.mock.calls[0][0]).toBe('/api/quota/balance');
 });
 
+test('public catalog uses the anonymous catalog path', async () => {
+  const fetchImpl = vi.fn<typeof fetch>(async () => new Response(JSON.stringify([])));
+  const api = createApiClient({ baseUrl: '', fetchImpl });
+  expect(await api.listPublicSkus()).toEqual([]);
+  expect(fetchImpl.mock.calls[0][0]).toBe('/api/catalog/skus');
+});
+
 test('snapshot reads can be cancelled when a mobile screen leaves the foreground', async () => {
   const controller = new AbortController();
   const fetchImpl = vi.fn<typeof fetch>(async (_url, init) => {

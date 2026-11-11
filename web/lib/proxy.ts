@@ -5,6 +5,7 @@ const ALLOWED = [
   new RegExp(`^/api/jobs/${ID}(/(events|report|resume|cancel|diagnostics))?$`),
   new RegExp(`^/api/jobs/${ID}/report/evidence/${ID}$`),
   /^\/api\/community\/apps$/, new RegExp(`^/api/publications/${ID}(/(copies|use))?$`),
+  /^\/api\/catalog\/skus$/,
   /^\/api\/library\/(recent|favorites)$/, new RegExp(`^/api/library/favorites/${ID}$`),
   /^\/api\/quota\/(policy|balance|usage|skus|subscription|orders)$/, new RegExp(`^/api/quota/orders/${ID}$`),
   /^\/api\/quota\/subscription\/cancel$/, /^\/api\/evaluation\/targets$/,

@@ -65,6 +65,7 @@ export function createApiClient(options: ClientOptions) {
     getBalance: () => request<Schema['QuotaBalance']>('/api/quota/balance'),
     listUsage: (cursor?: string) => request<Schema['QuotaUsagePage']>('/api/quota/usage' + (cursor ? `?cursor=${id(cursor)}` : '')),
     listSkus: () => request<Schema['QuotaSku'][]>('/api/quota/skus'),
+    listPublicSkus: () => request<Schema['QuotaSku'][]>('/api/catalog/skus'),
     getSubscription: () => request<Schema['SubscriptionInfo'] | null>('/api/quota/subscription'),
     request,
   };

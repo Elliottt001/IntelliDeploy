@@ -25,6 +25,20 @@ test('unauthenticated or foreign origin requests never reach upstream',async () 
   expect(transport).not.toHaveBeenCalled();
 });
 
+test('public catalog is the only anonymous quota-shaped read', async () => {
+  const transport = vi.fn(async () => new Response(JSON.stringify([]), { headers: { 'Content-Type': 'application/json' } }));
+  vi.stubGlobal('fetch', transport);
+  const catalog = await GET(new NextRequest('http://localhost:3000/api/catalog/skus'), { params: Promise.resolve({ path: ['catalog', 'skus'] }) });
+  expect(catalog.status).toBe(200);
+  expect(transport).toHaveBeenCalledOnce();
+  expect(new Headers((transport.mock.calls[0] as unknown as [string, RequestInit])[1].headers).get('Authorization')).toBeNull();
+
+  transport.mockClear();
+  const privateSkus = await GET(new NextRequest('http://localhost:3000/api/quota/skus'), { params: Promise.resolve({ path: ['quota', 'skus'] }) });
+  expect(privateSkus.status).toBe(401);
+  expect(transport).not.toHaveBeenCalled();
+});
+
 test('SSE proxy preserves named events and the reconnect cursor',async () => {
   vi.stubEnv('SESSION_SECRET','s'.repeat(40));
   const transport=vi.fn(async () => new Response('id: 12\nevent: job\ndata: {}\n\n',{headers:{'Content-Type':'text/event-stream'}}));

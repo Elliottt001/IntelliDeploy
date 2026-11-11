@@ -940,6 +940,31 @@
         ]
       }
     },
+    "/api/catalog/skus": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Public Skus",
+        "operationId": "public_skus_api_catalog_skus_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/QuotaSku"
+                  },
+                  "type": "array",
+                  "title": "Response Public Skus Api Catalog Skus Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/instances/{instance_id}/access": {
       "get": {
         "tags": [
