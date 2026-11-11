@@ -57,9 +57,13 @@ function createCommandsBlob(ops: Array<number | [number, ...number[]]>) {
 async function createComponentFixture({
   danglingSymbol = false,
   invalidSymbolTarget = false,
+  includeOddCompound = false,
+  includePaintedLayers = false,
 }: {
   danglingSymbol?: boolean;
   invalidSymbolTarget?: boolean;
+  includeOddCompound?: boolean;
+  includePaintedLayers?: boolean;
 } = {}) {
   const temporaryRoot = await mkdtemp(
     path.join(tmpdir(), 'figma-component-evidence-'),
@@ -101,6 +105,18 @@ async function createComponentFixture({
           [2, 10, 0],
           [2, 10, 2],
           [2, 0, 2],
+          0,
+        ]),
+        createCommandsBlob([
+          [1, 0, 0],
+          [2, 10, 0],
+          [2, 10, 10],
+          [2, 0, 10],
+          0,
+          [1, 3, 3],
+          [2, 7, 3],
+          [2, 7, 7],
+          [2, 3, 7],
           0,
         ]),
       ],
@@ -146,14 +162,23 @@ async function createComponentFixture({
           ? []
           : [
               {
-                componentPropertyDefinitions: {
-                  state: {
-                    defaultValue: 'Default',
+                componentPropDefs: [
+                  {
+                    id: { localID: 9, sessionID: 9 },
+                    initialValue: {},
+                    name: 'State',
+                    preferredValues: {},
+                    sortPosition: '!',
                     type: 'VARIANT',
+                    varValue: {
+                      dataType: 'STRING',
+                      resolvedDataType: 'STRING',
+                      value: { textValue: '' },
+                    },
                   },
-                },
-                guid: { localID: 2, sessionID: 2 },
-                name: 'Settings symbol',
+                ],
+                guid: { localID: 5, sessionID: 2 },
+                name: 'Settings component',
                 opacity: 1,
                 parentIndex: {
                   guid: { localID: 0, sessionID: 0 },
@@ -169,7 +194,55 @@ async function createComponentFixture({
                   m11: 1,
                   m12: 0,
                 },
+                type: 'FRAME',
+                visible: true,
+              },
+              {
+                guid: { localID: 2, sessionID: 2 },
+                name: 'Settings symbol',
+                opacity: 1,
+                parentIndex: {
+                  guid: { localID: 5, sessionID: 2 },
+                  position: '!',
+                },
+                phase: 'CREATED',
+                size: { x: 10, y: 10 },
+                transform: {
+                  m00: 1,
+                  m01: 0,
+                  m02: 0,
+                  m10: 0,
+                  m11: 1,
+                  m12: 0,
+                },
+                variantPropSpecs: [
+                  {
+                    propDefId: { localID: 9, sessionID: 9 },
+                    value: 'Danger',
+                  },
+                ],
                 type: 'SYMBOL',
+                visible: true,
+              },
+              {
+                guid: { localID: 6, sessionID: 2 },
+                name: 'Settings icon root',
+                opacity: 1,
+                parentIndex: {
+                  guid: { localID: 2, sessionID: 2 },
+                  position: '!',
+                },
+                phase: 'CREATED',
+                size: { x: 10, y: 10 },
+                transform: {
+                  m00: 1,
+                  m01: 0,
+                  m02: 0,
+                  m10: 0,
+                  m11: 1,
+                  m12: 0,
+                },
+                type: 'FRAME',
                 visible: true,
               },
               {
@@ -188,7 +261,7 @@ async function createComponentFixture({
                 name: 'Settings face',
                 opacity: 1,
                 parentIndex: {
-                  guid: { localID: 2, sessionID: 2 },
+                  guid: { localID: 6, sessionID: 2 },
                   position: '!',
                 },
                 phase: 'CREATED',
@@ -209,7 +282,7 @@ async function createComponentFixture({
                 name: 'Settings line',
                 opacity: 0.8,
                 parentIndex: {
-                  guid: { localID: 2, sessionID: 2 },
+                  guid: { localID: 6, sessionID: 2 },
                   position: '"',
                 },
                 phase: 'CREATED',
@@ -241,6 +314,169 @@ async function createComponentFixture({
                 type: 'LINE',
                 visible: true,
               },
+              ...(includeOddCompound
+                ? [
+                    {
+                      fillGeometry: [
+                        { commandsBlob: 3, styleID: 0, windingRule: 'ODD' },
+                      ],
+                      fillPaints: [
+                        {
+                          authoredColor: {
+                            c0: 0,
+                            c1: 1,
+                            c2: 0,
+                            c3: 1,
+                            space: 'DEFAULT',
+                          },
+                          blendMode: 'NORMAL',
+                          color: { a: 1, b: 0, g: 1, r: 0 },
+                          opacity: 1,
+                          type: 'SOLID',
+                          visible: true,
+                        },
+                      ],
+                      guid: { localID: 7, sessionID: 2 },
+                      name: 'Odd fill',
+                      opacity: 1,
+                      parentIndex: {
+                        guid: { localID: 6, sessionID: 2 },
+                        position: '#',
+                      },
+                      phase: 'CREATED',
+                      size: { x: 10, y: 10 },
+                      transform: {
+                        m00: 1,
+                        m01: 0,
+                        m02: 0,
+                        m10: 0,
+                        m11: 1,
+                        m12: 0,
+                      },
+                      type: 'BOOLEAN_OPERATION',
+                      visible: true,
+                    },
+                  ]
+                : []),
+              ...(includePaintedLayers
+                ? [
+                    {
+                      fillGeometry: [
+                        { commandsBlob: 0, styleID: 0, windingRule: 'NONZERO' },
+                      ],
+                      fillPaints: [
+                        {
+                          authoredStops: [
+                            {
+                              authoredColor: {
+                                c0: 1,
+                                c1: 0,
+                                c2: 0,
+                                c3: 0.5,
+                                space: 'DEFAULT',
+                              },
+                              position: 0,
+                            },
+                            {
+                              authoredColor: {
+                                c0: 0,
+                                c1: 0,
+                                c2: 1,
+                                c3: 0.75,
+                                space: 'DEFAULT',
+                              },
+                              position: 1,
+                            },
+                          ],
+                          blendMode: 'NORMAL',
+                          interpolationColorSpace: 'DEFAULT',
+                          interpolationHueMethod: 'INCREASING',
+                          opacity: 0.6,
+                          stops: [
+                            {
+                              color: { a: 0.5, b: 0, g: 0, r: 1 },
+                              position: 0,
+                            },
+                            {
+                              color: { a: 0.75, b: 1, g: 0, r: 0 },
+                              position: 1,
+                            },
+                          ],
+                          transform: {
+                            m00: 1,
+                            m01: 0,
+                            m02: 0.1,
+                            m10: 0,
+                            m11: 1,
+                            m12: 0.2,
+                          },
+                          type: 'GRADIENT_LINEAR',
+                          visible: true,
+                        },
+                      ],
+                      guid: { localID: 8, sessionID: 2 },
+                      name: 'Gradient fill',
+                      opacity: 1,
+                      parentIndex: {
+                        guid: { localID: 6, sessionID: 2 },
+                        position: '$',
+                      },
+                      phase: 'CREATED',
+                      size: { x: 10, y: 10 },
+                      transform: {
+                        m00: 1,
+                        m01: 0,
+                        m02: 0,
+                        m10: 0,
+                        m11: 1,
+                        m12: 0,
+                      },
+                      type: 'RECTANGLE',
+                      visible: true,
+                    },
+                    {
+                      fillGeometry: [
+                        { commandsBlob: 0, styleID: 0, windingRule: 'NONZERO' },
+                      ],
+                      fillPaints: [
+                        {
+                          blendMode: 'NORMAL',
+                          opacity: 1,
+                          scaleMode: 'FILL',
+                          transform: {
+                            m00: 1,
+                            m01: 0,
+                            m02: 0,
+                            m10: 0,
+                            m11: 1,
+                            m12: 0,
+                          },
+                          type: 'IMAGE',
+                          visible: true,
+                        },
+                      ],
+                      guid: { localID: 9, sessionID: 2 },
+                      name: 'Image fill',
+                      opacity: 1,
+                      parentIndex: {
+                        guid: { localID: 6, sessionID: 2 },
+                        position: '%',
+                      },
+                      phase: 'CREATED',
+                      size: { x: 10, y: 10 },
+                      transform: {
+                        m00: 1,
+                        m01: 0,
+                        m02: 0,
+                        m10: 0,
+                        m11: 1,
+                        m12: 0,
+                      },
+                      type: 'RECTANGLE',
+                      visible: true,
+                    },
+                  ]
+                : []),
             ]),
       ],
       type: 'NODE_CHANGES',
@@ -356,6 +592,12 @@ describe('Figma component evidence', () => {
         fill: '#494A64',
         fillRule: 'nonzero',
         opacity: 1,
+        paint: {
+          color: '#494A64',
+          opacity: 1,
+          type: 'SOLID',
+          variableIds: [],
+        },
         path: 'M0.75 -1.5 C0.335786 -1.5 0 -1.164214 0 -0.75 C0 -0.335786 0.335786 0 0.75 0 L0.75 -0.75 L0.75 -1.5 Z M12.25 0 C12.664213 0 13 -0.335786 13 -0.75 C13 -1.164214 12.664213 -1.5 12.25 -1.5 L12.25 -0.75 L12.25 0 Z M0.75 -0.75 L0.75 0 L12.25 0 L12.25 -0.75 L12.25 -1.5 L0.75 -1.5 L0.75 -0.75 Z',
         sourceNodeId: '845:3508',
         strokeLinecap: 'round',
@@ -366,6 +608,12 @@ describe('Figma component evidence', () => {
         fill: '#494A64',
         fillRule: 'nonzero',
         opacity: 1,
+        paint: {
+          color: '#494A64',
+          opacity: 1,
+          type: 'SOLID',
+          variableIds: [],
+        },
         path: 'M0.75 -1.5 C0.335786 -1.5 0 -1.164214 0 -0.75 C0 -0.335786 0.335786 0 0.75 0 L0.75 -0.75 L0.75 -1.5 Z M7.711104 0 C8.125318 0 8.461104 -0.335786 8.461104 -0.75 C8.461104 -1.164214 8.125318 -1.5 7.711104 -1.5 L7.711104 -0.75 L7.711104 0 Z M0.75 -0.75 L0.75 0 L7.711104 0 L7.711104 -0.75 L7.711104 -1.5 L0.75 -1.5 L0.75 -0.75 Z',
         sourceNodeId: '845:3506',
         strokeLinecap: 'round',
@@ -376,6 +624,12 @@ describe('Figma component evidence', () => {
         fill: '#494A64',
         fillRule: 'nonzero',
         opacity: 1,
+        paint: {
+          color: '#494A64',
+          opacity: 1,
+          type: 'SOLID',
+          variableIds: [],
+        },
         path: 'M0.75 -1.5 C0.335786 -1.5 0 -1.164214 0 -0.75 C0 -0.335786 0.335786 0 0.75 0 L0.75 -0.75 L0.75 -1.5 Z M7.711104 0 C8.125318 0 8.461104 -0.335786 8.461104 -0.75 C8.461104 -1.164214 8.125318 -1.5 7.711104 -1.5 L7.711104 -0.75 L7.711104 0 Z M0.75 -0.75 L0.75 0 L7.711104 0 L7.711104 -0.75 L7.711104 -1.5 L0.75 -1.5 L0.75 -0.75 Z',
         sourceNodeId: '845:3507',
         strokeLinecap: 'round',
@@ -580,12 +834,17 @@ describe('Figma component evidence', () => {
       },
       {
         guidPath: ['2:2'],
-        property: 'componentPropertyDefinitions.state.defaultValue',
-        value: 'Default',
+        property: 'variantPropSpecs[9:9].value',
+        value: 'Danger',
       },
       {
-        guidPath: ['2:2'],
-        property: 'componentPropertyDefinitions.state.type',
+        guidPath: ['2:5'],
+        property: 'componentPropDefs[9:9].name',
+        value: 'State',
+      },
+      {
+        guidPath: ['2:5'],
+        property: 'componentPropDefs[9:9].type',
         value: 'VARIANT',
       },
     ]);
@@ -606,6 +865,12 @@ describe('Figma component evidence', () => {
         fill: '#FF0000',
         fillRule: 'nonzero',
         opacity: 0.2,
+        paint: {
+          color: '#FF0000',
+          opacity: 0.5,
+          type: 'SOLID',
+          variableIds: [],
+        },
         path: 'M0 0 L10 0 L10 2 L0 2 Z',
         sourceNodeId: '2:4',
         strokeLinecap: 'round',
@@ -616,11 +881,198 @@ describe('Figma component evidence', () => {
         fill: '#FFFFFF',
         fillRule: 'nonzero',
         opacity: 0.2,
-        path: 'M0 0 L10 0 L10 10 L0 10 Z',
+        paint: {
+          color: '#FFFFFF',
+          opacity: 0.4,
+          type: 'SOLID',
+          variableIds: [],
+        },
+        path: 'M1 1 L9 1 L9 9 L1 9 Z',
         sourceNodeId: '2:3',
         transform: 'matrix(1 0 0 1 4 5)',
       },
     ]);
+  });
+
+  test('builds symbol-backed runtime icons from effective derived geometry instead of base symbol geometry', async () => {
+    const fixture = await createComponentFixture();
+    const { extractMobileComponentEvidence } = await import(
+      '../scripts/extract-mobile-component-evidence.mjs'
+    );
+
+    await extractMobileComponentEvidence({
+      auditedRoots: { settings: ['1:1'] } as any,
+      designSource: fixture.designSource,
+      iconRoots: { settings: '2:6' } as any,
+      outputPath: fixture.outputPath,
+    });
+
+    const extracted = await loadExtractedModule(fixture.outputPath);
+    expect(extracted.figmaMobileIcons.settings.viewBox).toBe('0 0 10 10');
+    expect(extracted.figmaMobileIcons.settings.layers).toEqual([
+      {
+        fill: '#FF0000',
+        fillRule: 'nonzero',
+        opacity: 0.2,
+        paint: {
+          color: '#FF0000',
+          opacity: 0.5,
+          type: 'SOLID',
+          variableIds: [],
+        },
+        path: 'M0 0 L10 0 L10 2 L0 2 Z',
+        sourceNodeId: '2:4',
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+      },
+      {
+        fill: '#FFFFFF',
+        fillRule: 'nonzero',
+        opacity: 0.2,
+        paint: {
+          color: '#FFFFFF',
+          opacity: 0.4,
+          type: 'SOLID',
+          variableIds: [],
+        },
+        path: 'M1 1 L9 1 L9 9 L1 9 Z',
+        sourceNodeId: '2:3',
+      },
+    ]);
+  });
+
+  test('maps Kiwi ODD winding rules to SVG evenodd in controlled extracted layers', async () => {
+    const fixture = await createComponentFixture({ includeOddCompound: true });
+    const { extractMobileComponentEvidence } = await import(
+      '../scripts/extract-mobile-component-evidence.mjs'
+    );
+
+    await extractMobileComponentEvidence({
+      auditedRoots: { settings: ['1:1'] } as any,
+      designSource: fixture.designSource,
+      iconRoots: { settings: '2:6' } as any,
+      outputPath: fixture.outputPath,
+    });
+
+    const extracted = await loadExtractedModule(fixture.outputPath);
+    expect(extracted.figmaMobileIcons.settings.layers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fillRule: 'evenodd',
+          path: 'M0 0 L10 0 L10 10 L0 10 Z M3 3 L7 3 L7 7 L3 7 Z',
+          sourceNodeId: '2:7',
+        }),
+      ]),
+    );
+  });
+
+  test('preserves gradient and image-painted geometry layers instead of dropping them silently', async () => {
+    const fixture = await createComponentFixture({ includePaintedLayers: true });
+    const { extractMobileComponentEvidence } = await import(
+      '../scripts/extract-mobile-component-evidence.mjs'
+    );
+
+    await extractMobileComponentEvidence({
+      auditedRoots: { settings: ['1:1'] } as any,
+      designSource: fixture.designSource,
+      iconRoots: { settings: '2:6' } as any,
+      outputPath: fixture.outputPath,
+    });
+
+    const extracted = await loadExtractedModule(fixture.outputPath);
+    expect(extracted.figmaMobileIcons.settings.layers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          paint: expect.objectContaining({
+            gradientStops: [
+              expect.objectContaining({
+                color: '#FF0000',
+                opacity: 0.5,
+                position: 0,
+              }),
+              expect.objectContaining({
+                color: '#0000FF',
+                opacity: 0.75,
+                position: 1,
+              }),
+            ],
+            opacity: 0.6,
+            start: { x: 0.1, y: 0.2 },
+            end: { x: 1.1, y: 0.2 },
+            type: 'GRADIENT_LINEAR',
+          }),
+          sourceNodeId: '2:8',
+        }),
+        expect.objectContaining({
+          paint: expect.objectContaining({
+            opacity: 1,
+            type: 'IMAGE',
+          }),
+          sourceNodeId: '2:9',
+        }),
+      ]),
+    );
+  });
+
+  test('actual settings provenance records formal componentPropDefs and variantPropSpecs', () => {
+    expect(figmaComponentEvidence.settings.componentValues).toEqual(
+      expect.arrayContaining([
+        {
+          guidPath: ['248:20539'],
+          property: 'componentPropDefs[3042298610:1086140708].name',
+          value: 'Property 1',
+        },
+        {
+          guidPath: ['248:20539'],
+          property: 'componentPropDefs[3042298610:1086140708].type',
+          value: 'VARIANT',
+        },
+        {
+          guidPath: ['248:20538'],
+          property: 'variantPropSpecs[3042298610:1086140708].value',
+          value: 'Default',
+        },
+      ]),
+    );
+  });
+
+  test('actual audited nodes preserve evenodd fill rules and gradient-backed geometry evidence', () => {
+    expect(getFigmaMobileIcon('share').layers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fillRule: 'evenodd',
+          sourceNodeId: '845:3513',
+        }),
+      ]),
+    );
+    expect(figmaComponentEvidence.send.geometry).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fillRule: 'evenodd',
+          sourceNodeId: '845:3540',
+        }),
+      ]),
+    );
+    expect(figmaComponentEvidence.glassCard.geometry).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          paint: expect.objectContaining({
+            gradientStops: [
+              expect.objectContaining({
+                color: '#7C62FF',
+                position: 0,
+              }),
+              expect.objectContaining({
+                color: '#C05CF6',
+                position: 1,
+              }),
+            ],
+            type: 'GRADIENT_LINEAR',
+          }),
+          sourceNodeId: '825:6576',
+        }),
+      ]),
+    );
   });
 
   test('produces byte-identical output across repeated extraction runs', async () => {

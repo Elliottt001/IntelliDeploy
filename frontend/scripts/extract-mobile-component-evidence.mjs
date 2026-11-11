@@ -175,7 +175,9 @@ function toSvgMatrix(transform) {
 }
 
 function toFillRule(windingRule) {
-  return windingRule === 'EVENODD' ? 'evenodd' : 'nonzero';
+  return windingRule === 'EVENODD' || windingRule === 'ODD'
+    ? 'evenodd'
+    : 'nonzero';
 }
 
 function colorToHex(color) {
@@ -243,8 +245,27 @@ function normalizePaint(paint) {
   if (!paint || paint.visible === false) {
     return null;
   }
+  const start =
+    paint.type === 'GRADIENT_LINEAR' && paint.transform
+      ? {
+          x: Number((paint.transform.m02 ?? 0).toFixed(6)),
+          y: Number((paint.transform.m12 ?? 0).toFixed(6)),
+        }
+      : undefined;
+  const end =
+    paint.type === 'GRADIENT_LINEAR' && paint.transform
+      ? {
+          x: Number(
+            ((paint.transform.m00 ?? 0) + (paint.transform.m02 ?? 0)).toFixed(6),
+          ),
+          y: Number(
+            ((paint.transform.m10 ?? 0) + (paint.transform.m12 ?? 0)).toFixed(6),
+          ),
+        }
+      : undefined;
   return {
     color: colorToHex(paint.color ?? paint.authoredColor),
+    end,
     gradientStops: paint.stops?.map((stop, index) => ({
       color: colorToHex(stop.color ?? stop.authoredColor),
       opacity: Number(
@@ -261,6 +282,7 @@ function normalizePaint(paint) {
     opacity: paintOpacity(paint),
     styleId:
       paint.styleId?.guid != null ? nodeId(paint.styleId.guid) : undefined,
+    start,
     transform:
       paint.transform && !isIdentityTransform(paint.transform)
         ? toSvgMatrix(paint.transform)
@@ -472,6 +494,12 @@ function collectDerivedEntries(derivedSymbolData = [], blobs) {
   return sortByJson(entries);
 }
 
+function propertyIdString(id) {
+  return id?.sessionID != null && id?.localID != null
+    ? nodeId(id)
+    : undefined;
+}
+
 function parseCommandsBlob(blob) {
   const buffer = Buffer.from(blob.bytes.data, 'base64');
   const commands = [];
@@ -643,7 +671,7 @@ function collectSubtree(
     }
     const opacity = Number((inheritedOpacity * (node.opacity ?? 1)).toFixed(6));
     if (predicate(node)) {
-      collected.push({ guidPath, node, opacity, transform });
+      collected.push({ guidPath, node, opacity, rootId, transform });
     }
     for (const childId of maps.childIdsByParent.get(currentId) ?? []) {
       const child = maps.documentNodeById.get(childId);
@@ -658,6 +686,11 @@ function collectSubtree(
 
   visit(rootId, initialTransform, initialOpacity, [rootId]);
   return collected;
+}
+
+function canonicalGuidPath(guidPath, rootId, currentId) {
+  const stripped = guidPath[0] === rootId ? guidPath.slice(1) : guidPath;
+  return stripped.length > 0 ? stripped : [currentId];
 }
 
 function collectTreeStyleEvidence(rootId, maps) {
@@ -709,30 +742,41 @@ function collectNodeStyleEvidence(node) {
 function geometryLayersFromEntries(entries, blobs, derivedGeometryByPath = new Map()) {
   const layers = [];
   for (const entry of entries) {
-    const pathKey = entry.guidPath.join('/');
-    const derivedGeometry = derivedGeometryByPath.get(pathKey);
+    const currentNodeId = nodeId(entry.node.guid);
+    const pathKey = canonicalGuidPath(
+      entry.guidPath,
+      entry.rootId,
+      currentNodeId,
+    ).join('/');
+    const derivedGeometry =
+      derivedGeometryByPath.get(pathKey) ??
+      derivedGeometryByPath.get(currentNodeId);
     const fillGeometries = derivedGeometry?.fillGeometry ?? entry.node.fillGeometry ?? [];
     const strokeGeometries =
       derivedGeometry?.strokeGeometry ?? entry.node.strokeGeometry ?? [];
 
     const fillPaint = firstVisiblePaint(entry.node.fillPaints);
+    const normalizedFillPaint = normalizePaint(fillPaint);
     for (const geometry of fillGeometries) {
       const blob = blobs[geometry.commandsBlob];
       if (!blob) {
         throw new Error(
-          `Missing geometry blob ${geometry.commandsBlob} for ${nodeId(entry.node.guid)}`,
+          `Missing geometry blob ${geometry.commandsBlob} for ${currentNodeId}`,
         );
       }
-      const fill = colorToHex(fillPaint?.color ?? fillPaint?.authoredColor);
-      if (!fill) {
+      if (!normalizedFillPaint) {
         continue;
       }
       layers.push({
-        fill,
+        fill:
+          normalizedFillPaint.type === 'SOLID'
+            ? normalizedFillPaint.color
+            : undefined,
         fillRule: toFillRule(geometry.windingRule),
         opacity: Number((entry.opacity * paintOpacity(fillPaint)).toFixed(6)),
+        paint: normalizedFillPaint,
         path: parseCommandsBlob(blob),
-        sourceNodeId: nodeId(entry.node.guid),
+        sourceNodeId: currentNodeId,
         transform: isIdentityTransform(entry.transform)
           ? undefined
           : toSvgMatrix(entry.transform),
@@ -740,23 +784,27 @@ function geometryLayersFromEntries(entries, blobs, derivedGeometryByPath = new M
     }
 
     const strokePaint = firstVisiblePaint(entry.node.strokePaints);
+    const normalizedStrokePaint = normalizePaint(strokePaint);
     for (const geometry of strokeGeometries) {
       const blob = blobs[geometry.commandsBlob];
       if (!blob) {
         throw new Error(
-          `Missing geometry blob ${geometry.commandsBlob} for ${nodeId(entry.node.guid)}`,
+          `Missing geometry blob ${geometry.commandsBlob} for ${currentNodeId}`,
         );
       }
-      const fill = colorToHex(strokePaint?.color ?? strokePaint?.authoredColor);
-      if (!fill) {
+      if (!normalizedStrokePaint) {
         continue;
       }
       layers.push({
-        fill,
+        fill:
+          normalizedStrokePaint.type === 'SOLID'
+            ? normalizedStrokePaint.color
+            : undefined,
         fillRule: toFillRule(geometry.windingRule),
         opacity: Number((entry.opacity * paintOpacity(strokePaint)).toFixed(6)),
+        paint: normalizedStrokePaint,
         path: parseCommandsBlob(blob),
-        sourceNodeId: nodeId(entry.node.guid),
+        sourceNodeId: currentNodeId,
         strokeLinecap: strokeLinecapFor(entry.node),
         strokeLinejoin: strokeLinejoinFor(entry.node),
         transform: isIdentityTransform(entry.transform)
@@ -781,11 +829,84 @@ function canonicalVisualRootId(key, rootIds, maps) {
   return maps.documentNodeById.has(parentId) ? parentId : rootId;
 }
 
+function surfaceNodeIdForPrimitive(key, rootIds, maps) {
+  if (key === 'bottomNav') {
+    return canonicalVisualRootId(key, rootIds, maps);
+  }
+  if (key !== 'circleAction') {
+    return rootIds[0];
+  }
+  const candidates = collectSubtree(
+    rootIds[0],
+    maps,
+    (node) =>
+      nodeId(node.guid) !== rootIds[0] &&
+      node.type === 'ELLIPSE' &&
+      ((node.fillPaints?.length ?? 0) > 0 ||
+        (node.strokePaints?.length ?? 0) > 0 ||
+        (node.effects?.length ?? 0) > 0),
+  );
+  return candidates[0] ? nodeId(candidates[0].node.guid) : rootIds[0];
+}
+
+function findComponentPropOwner(symbolNodeId, maps) {
+  let currentId = symbolNodeId;
+  while (currentId) {
+    const node = maps.documentNodeById.get(currentId);
+    if ((node?.componentPropDefs?.length ?? 0) > 0) {
+      return { id: currentId, node };
+    }
+    const parentGuid = node?.parentIndex?.guid;
+    currentId = parentGuid ? nodeId(parentGuid) : null;
+  }
+  return null;
+}
+
+function collectComponentValueEntries(instance, symbol, maps) {
+  const entries = [
+    ...collectPropertyEntries(
+      instance.componentProperties ?? {},
+      'componentProperties',
+      [nodeId(instance.guid)],
+    ),
+  ];
+  const owner = findComponentPropOwner(nodeId(symbol.guid), maps);
+  for (const definition of owner?.node?.componentPropDefs ?? []) {
+    const definitionId = propertyIdString(definition.id);
+    if (!definitionId) {
+      continue;
+    }
+    entries.push({
+      guidPath: [owner.id],
+      property: `componentPropDefs[${definitionId}].name`,
+      value: definition.name ?? null,
+    });
+    entries.push({
+      guidPath: [owner.id],
+      property: `componentPropDefs[${definitionId}].type`,
+      value: definition.type ?? null,
+    });
+  }
+  for (const specification of symbol.variantPropSpecs ?? []) {
+    const definitionId = propertyIdString(specification.propDefId);
+    if (!definitionId) {
+      continue;
+    }
+    entries.push({
+      guidPath: [nodeId(symbol.guid)],
+      property: `variantPropSpecs[${definitionId}].value`,
+      value: flattenOverrideValue(specification.value),
+    });
+  }
+  return sortByJson(entries);
+}
+
 function extractNodePrimitive(key, rootIds, maps, blobs) {
   const canonicalRootId = canonicalVisualRootId(key, rootIds, maps);
-  const canonicalRoot = maps.documentNodeById.get(canonicalRootId);
+  const surfaceNodeId = surfaceNodeIdForPrimitive(key, rootIds, maps);
+  const canonicalRoot = maps.documentNodeById.get(surfaceNodeId);
   if (!canonicalRoot) {
-    throw new Error(`Missing canonical audited root ${canonicalRootId}`);
+    throw new Error(`Missing canonical audited root ${surfaceNodeId}`);
   }
 
   const geometryEntries = collectSubtree(
@@ -824,7 +945,7 @@ function extractNodePrimitive(key, rootIds, maps, blobs) {
     strokes: allStyles.strokes,
     surfaceEffects: surfaceStyles.effects,
     surfaceFills: surfaceStyles.fills,
-    surfaceNodeId: canonicalRootId,
+    surfaceNodeId,
     surfaceStrokes: surfaceStyles.strokes,
   };
 }
@@ -889,18 +1010,7 @@ function extractSymbolPrimitive(key, instanceId, maps, blobs) {
   );
   const symbolStyles = collectTreeStyleEvidence(symbolNodeId, maps);
   const surfaceStyles = collectNodeStyleEvidence(symbol);
-  const componentValues = sortByJson([
-    ...collectPropertyEntries(
-      instance.componentProperties ?? {},
-      'componentProperties',
-      [instanceId],
-    ),
-    ...collectPropertyEntries(
-      symbol.componentPropertyDefinitions ?? {},
-      'componentPropertyDefinitions',
-      [symbolNodeId],
-    ),
-  ]);
+  const componentValues = collectComponentValueEntries(instance, symbol, maps);
 
   return {
     borderWidths: normalizeBorderWidths(symbol),
@@ -960,13 +1070,51 @@ function collectIconLayers(rootId, maps, blobs) {
   };
 }
 
-function buildIcons(maps, blobs) {
+function collectEffectiveSymbolIconLayers(primitive, rootId, maps, blobs) {
+  const instanceId = primitive.instanceNodeIds?.[0];
+  if (!instanceId) {
+    return collectIconLayers(rootId, maps, blobs);
+  }
+  const instance = maps.documentNodeById.get(instanceId);
+  const derivedGeometryByPath = buildDerivedGeometryMap(instance?.derivedSymbolData);
+  const geometryEntries = collectSubtree(
+    rootId,
+    maps,
+    (node) =>
+      geometryNodeTypes.has(node.type) &&
+      ((node.fillGeometry?.length ?? 0) > 0 || (node.strokeGeometry?.length ?? 0) > 0),
+    {
+      initialOpacity: instance?.opacity ?? 1,
+      initialTransform: identityMatrix(),
+    },
+  );
+  const layers = geometryLayersFromEntries(
+    geometryEntries,
+    blobs,
+    derivedGeometryByPath,
+  );
+  const root = maps.documentNodeById.get(rootId);
+  return {
+    layers,
+    sourceNodeIds: [...new Set(layers.map((layer) => layer.sourceNodeId))].sort(
+      compareNodeIds,
+    ),
+    viewBox: `0 0 ${formatNumber(root?.size?.x ?? 0)} ${formatNumber(root?.size?.y ?? 0)}`,
+  };
+}
+
+function buildIcons(evidence, maps, blobs, selectedIconRoots) {
   const icons = {};
   for (const iconName of Object.keys(iconPrimitiveMap)) {
-    if (!maps.documentNodeById.has(iconRoots[iconName])) {
+    const rootId = selectedIconRoots[iconName];
+    if (!rootId || !maps.documentNodeById.has(rootId)) {
       continue;
     }
-    icons[iconName] = collectIconLayers(iconRoots[iconName], maps, blobs);
+    const primitive = evidence[iconPrimitiveMap[iconName]];
+    icons[iconName] =
+      primitive?.sourceKind === 'symbol'
+        ? collectEffectiveSymbolIconLayers(primitive, rootId, maps, blobs)
+        : collectIconLayers(rootId, maps, blobs);
   }
   return icons;
 }
@@ -984,7 +1132,7 @@ async function renameIfPresent(from, to, renamePath) {
 }
 
 function createModuleText(evidence, icons) {
-  return `export type FigmaNodeId = \`${'${number}:${number}'}\`;\nexport type MobilePrimitiveKey =\n  | 'settings' | 'back' | 'share' | 'search' | 'bell'\n  | 'microphone' | 'send' | 'arrowRight'\n  | 'home' | 'store' | 'community' | 'products'\n  | 'brandMark' | 'circleAction' | 'bottomNav' | 'glassCard';\n\nexport type FigmaVectorLayer = {\n  sourceNodeId: FigmaNodeId;\n  path: string;\n  fill?: string;\n  fillRule?: 'nonzero' | 'evenodd';\n  stroke?: string;\n  strokeWidth?: number;\n  strokeLinecap?: 'butt' | 'round' | 'square';\n  strokeLinejoin?: 'miter' | 'round' | 'bevel';\n  opacity: number;\n  transform?: string;\n};\n\nexport type FigmaGradientStopEvidence = {\n  color?: string;\n  opacity: number;\n  position: number;\n  variableIds: readonly string[];\n};\n\nexport type FigmaPaintEvidence = {\n  type: 'SOLID' | 'GRADIENT_LINEAR' | 'GRADIENT_RADIAL' | 'IMAGE';\n  color?: string;\n  gradientStops?: readonly FigmaGradientStopEvidence[];\n  opacity: number;\n  styleId?: string;\n  transform?: string;\n  variableIds: readonly string[];\n};\n\nexport type FigmaEffectEvidence = {\n  type: 'DROP_SHADOW' | 'INNER_SHADOW' | 'LAYER_BLUR' | 'BACKGROUND_BLUR';\n  radius: number;\n  blendMode?: string;\n  blurOpType?: string;\n  clipToShape?: boolean;\n  color?: string;\n  chromaticAberration?: number;\n  density?: number;\n  noiseSize?: { x: number; y: number };\n  noiseType?: string;\n  offset?: { x: number; y: number };\n  opacity?: number;\n  rawType?: string;\n  reflectionDistance?: number;\n  refractionIntensity?: number;\n  refractionRadius?: number;\n  secondaryColor?: string;\n  secondaryOpacity?: number;\n  seed?: number;\n  showShadowBehindNode?: boolean;\n  spread?: number;\n  specularAngle?: number;\n  specularIntensity?: number;\n  styleId?: string;\n};\n\nexport type FigmaOverrideEvidence = {\n  guidPath: readonly FigmaNodeId[];\n  property: string;\n  value: string | number | boolean | null;\n};\n\nexport type FigmaCornerRadiiEvidence = {\n  topLeft: number;\n  topRight: number;\n  bottomRight: number;\n  bottomLeft: number;\n};\n\nexport type FigmaBorderWidthsEvidence = {\n  top: number;\n  right: number;\n  bottom: number;\n  left: number;\n};\n\nexport type FigmaPrimitiveEvidence = {\n  key: MobilePrimitiveKey;\n  sourceKind: 'symbol' | 'node';\n  sourceNodeIds: readonly FigmaNodeId[];\n  instanceNodeIds: readonly FigmaNodeId[];\n  symbolNodeId?: FigmaNodeId;\n  noSymbolReason?: 'no-instance-or-symbol-in-audited-subtree';\n  size: { width: number; height: number };\n  geometry: readonly FigmaVectorLayer[];\n  fills: readonly FigmaPaintEvidence[];\n  strokes: readonly FigmaPaintEvidence[];\n  effects: readonly FigmaEffectEvidence[];\n  overrides: readonly FigmaOverrideEvidence[];\n  componentValues?: readonly FigmaOverrideEvidence[];\n  derivedValues?: readonly FigmaOverrideEvidence[];\n  instanceTransform?: string;\n  surfaceNodeId?: FigmaNodeId;\n  surfaceFills?: readonly FigmaPaintEvidence[];\n  surfaceStrokes?: readonly FigmaPaintEvidence[];\n  surfaceEffects?: readonly FigmaEffectEvidence[];\n  cornerRadii?: FigmaCornerRadiiEvidence;\n  borderWidths?: FigmaBorderWidthsEvidence;\n};\n\nexport const auditedMobilePrimitiveKeys = ${stableSerialize(
+  return `export type FigmaNodeId = \`${'${number}:${number}'}\`;\nexport type MobilePrimitiveKey =\n  | 'settings' | 'back' | 'share' | 'search' | 'bell'\n  | 'microphone' | 'send' | 'arrowRight'\n  | 'home' | 'store' | 'community' | 'products'\n  | 'brandMark' | 'circleAction' | 'bottomNav' | 'glassCard';\n\nexport type FigmaGradientStopEvidence = {\n  color?: string;\n  opacity: number;\n  position: number;\n  variableIds: readonly string[];\n};\n\nexport type FigmaPaintEvidence = {\n  type: 'SOLID' | 'GRADIENT_LINEAR' | 'GRADIENT_RADIAL' | 'IMAGE';\n  color?: string;\n  end?: { x: number; y: number };\n  gradientStops?: readonly FigmaGradientStopEvidence[];\n  opacity: number;\n  start?: { x: number; y: number };\n  styleId?: string;\n  transform?: string;\n  variableIds: readonly string[];\n};\n\nexport type FigmaVectorLayer = {\n  sourceNodeId: FigmaNodeId;\n  path: string;\n  fill?: string;\n  fillRule?: 'nonzero' | 'evenodd';\n  paint?: FigmaPaintEvidence;\n  stroke?: string;\n  strokeWidth?: number;\n  strokeLinecap?: 'butt' | 'round' | 'square';\n  strokeLinejoin?: 'miter' | 'round' | 'bevel';\n  opacity: number;\n  transform?: string;\n};\n\nexport type FigmaEffectEvidence = {\n  type: 'DROP_SHADOW' | 'INNER_SHADOW' | 'LAYER_BLUR' | 'BACKGROUND_BLUR';\n  radius: number;\n  blendMode?: string;\n  blurOpType?: string;\n  clipToShape?: boolean;\n  color?: string;\n  chromaticAberration?: number;\n  density?: number;\n  noiseSize?: { x: number; y: number };\n  noiseType?: string;\n  offset?: { x: number; y: number };\n  opacity?: number;\n  rawType?: string;\n  reflectionDistance?: number;\n  refractionIntensity?: number;\n  refractionRadius?: number;\n  secondaryColor?: string;\n  secondaryOpacity?: number;\n  seed?: number;\n  showShadowBehindNode?: boolean;\n  spread?: number;\n  specularAngle?: number;\n  specularIntensity?: number;\n  styleId?: string;\n};\n\nexport type FigmaOverrideEvidence = {\n  guidPath: readonly FigmaNodeId[];\n  property: string;\n  value: string | number | boolean | null;\n};\n\nexport type FigmaCornerRadiiEvidence = {\n  topLeft: number;\n  topRight: number;\n  bottomRight: number;\n  bottomLeft: number;\n};\n\nexport type FigmaBorderWidthsEvidence = {\n  top: number;\n  right: number;\n  bottom: number;\n  left: number;\n};\n\nexport type FigmaPrimitiveEvidence = {\n  key: MobilePrimitiveKey;\n  sourceKind: 'symbol' | 'node';\n  sourceNodeIds: readonly FigmaNodeId[];\n  instanceNodeIds: readonly FigmaNodeId[];\n  symbolNodeId?: FigmaNodeId;\n  noSymbolReason?: 'no-instance-or-symbol-in-audited-subtree';\n  size: { width: number; height: number };\n  geometry: readonly FigmaVectorLayer[];\n  fills: readonly FigmaPaintEvidence[];\n  strokes: readonly FigmaPaintEvidence[];\n  effects: readonly FigmaEffectEvidence[];\n  overrides: readonly FigmaOverrideEvidence[];\n  componentValues?: readonly FigmaOverrideEvidence[];\n  derivedValues?: readonly FigmaOverrideEvidence[];\n  instanceTransform?: string;\n  surfaceNodeId?: FigmaNodeId;\n  surfaceFills?: readonly FigmaPaintEvidence[];\n  surfaceStrokes?: readonly FigmaPaintEvidence[];\n  surfaceEffects?: readonly FigmaEffectEvidence[];\n  cornerRadii?: FigmaCornerRadiiEvidence;\n  borderWidths?: FigmaBorderWidthsEvidence;\n};\n\nexport const auditedMobilePrimitiveKeys = ${stableSerialize(
     primitiveOrder,
   )} as const;\n\nexport const figmaComponentEvidence = ${stableSerialize(
     evidence,
@@ -1008,6 +1156,7 @@ function validateZip(figPath) {
 
 export async function extractMobileComponentEvidence({
   designSource = defaultDesignSource,
+  iconRoots: selectedIconRoots = iconRoots,
   outputPath = defaultOutputPath,
   renamePath = rename,
   auditedRoots: selectedRoots = auditedRoots,
@@ -1084,7 +1233,7 @@ export async function extractMobileComponentEvidence({
       : extractNodePrimitive(key, roots, maps, document.blobs);
   }
 
-  const icons = buildIcons(maps, document.blobs);
+  const icons = buildIcons(evidence, maps, document.blobs, selectedIconRoots);
   const moduleText = createModuleText(evidence, icons);
   const suffix = `${process.pid}-${randomUUID()}`;
   const stagedOutput = `${outputPath}.tmp-${suffix}`;

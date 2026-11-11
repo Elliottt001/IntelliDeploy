@@ -140,8 +140,8 @@ test('shared actions expose button semantics and at least 44pt hit targets', () 
 
   const surface = propsOf(action).children as ReactElement;
   expect(propsOf(surface).colors).toEqual([
-    'rgba(255,255,255,0.20)',
-    'rgba(255,255,255,0.20)',
+    'rgba(255, 255, 255, 0.20)',
+    'rgba(255, 255, 255, 0.20)',
   ]);
 
   const error = ErrorState({ message: '网络连接失败', onRetry: vi.fn() });
@@ -298,6 +298,21 @@ test('glyph icons render normalized bounds, filled stroke outlines, and preserve
       }),
     ]),
   );
+
+  const share = MobileIcon({ name: 'share', size: 14 });
+  const sharePaths: Array<Record<string, unknown>> = [];
+  walkRenderedTree(share, (element) => {
+    if (element.type === 'Path') {
+      sharePaths.push(propsOf(element));
+    }
+  });
+  expect(sharePaths).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        fillRule: 'evenodd',
+      }),
+    ]),
+  );
 });
 
 test('corrected shared shells preserve accessibility, hit targets, and evidence-driven shell values', () => {
@@ -305,6 +320,21 @@ test('corrected shared shells preserve accessibility, hit targets, and evidence-
   const navStyle = flattenStyle(propsOf(nav).style);
   const glassCard = GlassCard({ children: 'content' });
   const glassCardStyle = flattenStyle(propsOf(glassCard).style);
+  const glassAction = CircleAction({
+    accessibilityLabel: '返回',
+    icon: 'back',
+    onPress: vi.fn(),
+  });
+  const primaryAction = CircleAction({
+    accessibilityLabel: '发送',
+    icon: 'send',
+    onPress: vi.fn(),
+    variant: 'primary',
+  });
+  const glassSurface = propsOf(glassAction).children as ReactElement;
+  const primarySurface = propsOf(primaryAction).children as ReactElement;
+  const glassSurfaceStyle = flattenStyle(propsOf(glassSurface).style);
+  const primarySurfaceStyle = flattenStyle(propsOf(primarySurface).style);
   const tabs = propsOf(nav).children as ReactElement[];
 
   expect(tabs).toHaveLength(4);
@@ -336,5 +366,45 @@ test('corrected shared shells preserve accessibility, hit targets, and evidence-
     shadowOffset: { height: 8, width: 0 },
     shadowOpacity: 0.07,
     shadowRadius: 32,
+  });
+  expect(propsOf(glassSurface).colors).toEqual([
+    'rgba(255, 255, 255, 0.20)',
+    'rgba(255, 255, 255, 0.20)',
+  ]);
+  expect(glassSurfaceStyle).toMatchObject({
+    backgroundColor: 'rgba(255, 255, 255, 0.20)',
+    borderColor: '#FFFFFF',
+    borderRadius: 55.072464,
+    borderWidth: 1.652174,
+    height: 33.04348,
+    shadowColor: '#BABABA',
+    shadowOffset: { height: 2.202899, width: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.304348,
+    width: 33.04348,
+  });
+  expect(propsOf(primarySurface).colors).toEqual([
+    'rgba(192, 92, 246, 1.00)',
+    'rgba(124, 98, 255, 1.00)',
+  ]);
+  expect(propsOf(primarySurface).locations).toEqual([0, 1]);
+  expect(propsOf(primarySurface).start).toEqual({
+    x: -0.230402,
+    y: 0.675698,
+  });
+  expect(propsOf(primarySurface).end).toEqual({
+    x: 0.486304,
+    y: -0.091011,
+  });
+  expect(primarySurfaceStyle).toMatchObject({
+    backgroundColor: 'rgba(217, 217, 217, 0.10)',
+    borderWidth: 0.5,
+    borderRadius: 43.254723,
+    height: 40,
+    shadowColor: '#939393',
+    shadowOffset: { height: 4, width: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    width: 40,
   });
 });

@@ -142,14 +142,12 @@ export function CircleAction({
     (effect) => effect.type === 'DROP_SHADOW',
   );
   const shellStroke = (surfaceStrokes ?? []).find(
-    (paint) => 'color' in paint && paint.color,
-  )?.color;
+    (paint) => paint.type === 'SOLID' && paint.color,
+  );
   const gradient = primary ? firstGradientPaint(surfaceFills ?? []) : undefined;
   const solidFill = firstSolidPaint(surfaceFills ?? []);
   const surfaceSize = shellEvidence.size.width;
-  const backgroundColor = primary
-    ? undefined
-    : toRgba(solidFill?.color, solidFill?.opacity ?? 1);
+  const backgroundColor = toRgba(solidFill?.color, solidFill?.opacity ?? 1);
   const gradientColors: [string, string, ...string[]] = gradient?.gradientStops
     ? [
         toRgba(gradient.gradientStops[0]?.color, gradient.gradientStops[0]?.opacity) ??
@@ -160,9 +158,10 @@ export function CircleAction({
           .slice(2)
           .map((stop) => toRgba(stop.color, stop.opacity) ?? '#FFFFFF'),
       ]
-    : primary
-      ? ['#C05CF6', mobileColors.primary]
-      : ['rgba(255,255,255,0.20)', 'rgba(255,255,255,0.20)'];
+    : backgroundColor
+      ? [backgroundColor, backgroundColor]
+      : ['transparent', 'transparent'];
+  const gradientLocations = gradient?.gradientStops?.map((stop) => stop.position);
 
   return (
     <Pressable
@@ -180,24 +179,27 @@ export function CircleAction({
     >
       <LinearGradient
         colors={gradientColors}
+        end={gradient?.end}
+        locations={gradientLocations}
+        start={gradient?.start}
         style={[
           styles.surface,
           {
             backgroundColor,
-            borderColor: shellStroke ?? '#FFFFFF',
-            borderRadius:
-              shellEvidence.cornerRadii?.topLeft ?? surfaceSize / 2,
-            borderWidth: shellEvidence.borderWidths?.top ?? 1.5,
+            borderColor:
+              shellStroke?.opacity === 1
+                ? shellStroke.color
+                : toRgba(shellStroke?.color, shellStroke?.opacity ?? 1),
+            borderRadius: shellEvidence.cornerRadii?.topLeft,
+            borderWidth: shellEvidence.borderWidths?.top,
             height: surfaceSize,
-            shadowColor: shadow?.color ?? (primary ? '#939393' : '#BABABA'),
-            shadowOffset:
-              toShadowOffset(shadow) ??
-              (primary ? { height: 4, width: 0 } : { height: 2, width: 0 }),
-            shadowOpacity: shadow?.opacity ?? 0.25,
-            shadowRadius: shadow?.radius ?? (primary ? 10 : 3.3),
+            opacity: gradient?.opacity,
+            shadowColor: shadow?.color,
+            shadowOffset: toShadowOffset(shadow),
+            shadowOpacity: shadow?.opacity,
+            shadowRadius: shadow?.radius,
             width: surfaceSize,
           },
-          primary && styles.primarySurface,
         ]}
       >
         <MobileIcon
@@ -224,12 +226,6 @@ const styles = StyleSheet.create({
   },
   surface: {
     alignItems: 'center',
-    borderWidth: 1.5,
     justifyContent: 'center',
-    shadowOpacity: 0.25,
-  },
-  primarySurface: {
-    borderWidth: 0,
-    shadowOpacity: 0.25,
   },
 });
