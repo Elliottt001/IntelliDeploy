@@ -8,7 +8,12 @@ import { mobileAssets } from '../../design/generated/mobileAssetManifest';
 import { authAPI } from '../../services/api';
 import { mobileFontFamilies } from '../../theme/typography';
 import { mobileColors, mobileSpacing } from '../../theme/tokens';
-import { homeCards, homeSuggestions, type HomeCardKey } from './homeContent';
+import {
+  homeCards,
+  homeFigmaEvidence,
+  homeSuggestions,
+  type HomeCardKey,
+} from './homeContent';
 
 const miboImage = mobileAssets['845:3522:114'].source;
 const cardIcons = {
@@ -17,25 +22,9 @@ const cardIcons = {
   profile: 'user',
   store: 'layout-grid',
 } as const satisfies Record<HomeCardKey, 'compass' | 'layout-grid' | 'user'>;
-const wordCloudItems = [
-  { id: 'ai', text: 'AI Copilot', style: { color: '#8A65FF', fontSize: 24, left: '32%', top: 34 } },
-  { id: 'notion', text: 'Notion 模版', style: { color: '#6598FF', fontSize: 14, left: '53%', opacity: 0.72, top: 9 } },
-  { id: 'translate', text: '同声传译', style: { color: '#54AEF3', fontSize: 8, left: '40%', opacity: 0.7, top: 5 } },
-  { id: 'retro', text: '复古像素风', style: { color: '#A3B2FF', fontSize: 10, left: '29%', top: 20 } },
-  { id: 'open', text: '开源工具', style: { color: '#D582FF', fontSize: 8, left: '60%', top: 90 } },
-  { id: 'bio', text: '生物科技', style: { color: '#A997FF', fontSize: 10, left: '53%', top: 68 } },
-  { id: 'web3', text: 'Web3.0', style: { color: '#7C62FF', fontSize: 10, left: '77%', opacity: 0.65, top: 47 } },
-  { id: 'color', text: '灵感配色', style: { color: '#7C62FF', fontSize: 10, left: '80%', opacity: 0.65, top: 84 } },
-  { id: 'paw', text: '寻爪', style: { color: '#6598FF', fontSize: 8, left: '7%', top: 17 } },
-  { id: 'vibe', text: 'Vibe Coding', style: { color: '#6598FF', fontSize: 10, left: '4%', opacity: 0.75, top: 51 } },
-  { id: 'image', text: 'image2.0', style: { color: '#94ACF6', fontSize: 10, left: '5%', top: 68 } },
-  { id: 'prompt', text: 'Prompt技巧', style: { color: '#7C62FF', fontSize: 10, left: '9%', opacity: 0.72, top: 85 } },
-  { id: 'knowledge', text: '知识管理', style: { color: '#A78BFA', fontSize: 10, left: '41%', opacity: 0.7, top: 85 } },
-  { id: 'pomodoro', text: '番茄钟', style: { color: '#7C62FF', fontSize: 10, left: '70%', top: 66 } },
-  { id: 'reading', text: '阅读清单', style: { color: '#94ACF6', fontSize: 10, left: '10%', top: 33 } },
-  { id: 'site', text: '小众网站', style: { color: '#6598FF', fontSize: 10, left: '16%', top: 3 } },
-  { id: 'workflow', text: '自动化工作流', style: { color: '#7B5CF6', fontSize: 10, left: '24%', top: 68 } },
-] as const;
+const cardEvidenceByKey = Object.fromEntries(
+  homeFigmaEvidence.cards.map((card) => [card.key, card]),
+) as Record<HomeCardKey, (typeof homeFigmaEvidence.cards)[number]>;
 const suggestionPositions = ['suggestion0', 'suggestion1', 'suggestion2'] as const;
 
 export function MobileHome() {
@@ -118,9 +107,33 @@ export function MobileHome() {
           <Text style={styles.sectionTitle}>灵感池</Text>
           <Text style={styles.sectionMeta}>当日有什么新鲜好玩的</Text>
         </View>
-        <GlassCard style={styles.wordCloud} testID="home-suggestions">
-          {wordCloudItems.map((item) => (
-            <Text key={item.id} style={[styles.wordCloudText, item.style]}>
+        <GlassCard
+          style={[
+            styles.wordCloud,
+            {
+              height: homeFigmaEvidence.wordCloud.frame.height,
+              maxWidth: homeFigmaEvidence.wordCloud.frame.width,
+              minHeight: homeFigmaEvidence.wordCloud.frame.height,
+            },
+          ]}
+          testID="home-suggestions"
+        >
+          {homeFigmaEvidence.wordCloud.items.map((item) => (
+            <Text
+              key={item.id}
+              style={[
+                styles.wordCloudText,
+                {
+                  color: item.color,
+                  fontSize: item.fontSize,
+                  left: item.x,
+                  lineHeight: item.height,
+                  opacity: item.opacity ?? 1,
+                  top: item.y,
+                  width: item.width,
+                },
+              ]}
+            >
               {item.text}
             </Text>
           ))}
@@ -148,10 +161,19 @@ export function MobileHome() {
         <View style={styles.cards}>
           {homeCards.map((card) => {
             const expanded = expandedCard === card.key;
+            const evidence = cardEvidenceByKey[card.key];
             return (
               <GlassCard
                 key={card.key}
-                style={[styles.homeCard, expanded && styles.homeCardExpanded]}
+                style={[
+                  styles.homeCard,
+                  {
+                    maxWidth: evidence.closed.width,
+                    minHeight: expanded
+                      ? evidence.expandedSurface.height
+                      : evidence.closed.height,
+                  },
+                ]}
                 testID={`home-card-${card.key}-shell`}
               >
                 <Pressable
@@ -310,11 +332,13 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   wordCloud: {
+    alignSelf: 'center',
     height: 111,
     minHeight: 111,
     overflow: 'hidden',
     padding: 0,
     position: 'relative',
+    width: '100%',
   },
   wordCloudText: {
     fontFamily: mobileFontFamilies.emphasis,
@@ -356,15 +380,14 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   homeCard: {
+    alignSelf: 'center',
     borderRadius: 30,
     minHeight: 70,
     overflow: 'hidden',
     paddingBottom: 7,
     paddingHorizontal: 24,
     paddingTop: 8,
-  },
-  homeCardExpanded: {
-    minHeight: 195,
+    width: '100%',
   },
   cardToggle: {
     alignItems: 'center',

@@ -34,3 +34,100 @@ export const homeCards = [
 }[];
 
 export type HomeCardKey = (typeof homeCards)[number]['key'];
+
+type FigmaBox = {
+  height: number;
+  id: string;
+  width: number;
+  x: number;
+  y: number;
+};
+
+type FigmaSurface = {
+  height: number;
+  id: string;
+  width: number;
+};
+
+export const homeFigmaEvidence = {
+  sourcePriority: ['kiwi-document', 'original-fig-zip', 'mobile-nodes'],
+  originalFig: {
+    present: true,
+    sha256: '5951997a694f1da0a343029dfec889b81ea377e098eb94f0e4b9d61f589e949a',
+    zipArchive: true,
+  },
+  closedHomeFrame: {
+    id: '270:26263',
+    page: 'page-02',
+    size: { height: 812, width: 375 },
+    transform: { x: 748, y: 1411 },
+  },
+  expandedHomeFrameIds: [
+    '188:16287',
+    '188:16759',
+    '266:21147',
+    '268:22904',
+    '268:23238',
+    '268:23572',
+    '268:23906',
+  ],
+  noSymbolReason: {
+    closedHome: 'kiwi/mobile nodes expose page home compositions directly; no reusable symbol instance governs the home layout',
+    expandedHomes: 'expanded page frames are direct home-state compositions; card geometry is measured from frame children',
+  },
+  wordCloud: {
+    frame: { height: 111, id: '270:26318', width: 303, x: 39, y: 277 },
+    items: [
+      { color: '#8A65FF', fontSize: 24, height: 34, id: '270:26320', text: 'AI Copilot', width: 112, x: 98, y: 36 },
+      { color: '#6598FF', fontSize: 14, height: 20, id: '270:26321', opacity: 0.72, text: 'Notion 模版', width: 77, x: 160, y: 11 },
+      { color: '#54AEF3', fontSize: 8, height: 11, id: '270:26322', opacity: 0.7, text: '同声传译', width: 32, x: 122, y: 6 },
+      { color: '#A3B2FF', fontSize: 10, height: 14, id: '270:26328', text: '复古像素风', width: 50, x: 88, y: 21 },
+      { color: '#D582FF', fontSize: 8, height: 11, id: '270:26329', text: '开源工具', width: 32, x: 182, y: 91 },
+      { color: '#A997FF', fontSize: 10, height: 14, id: '270:26330', text: '生物科技', width: 40, x: 160, y: 70 },
+      { color: '#7C62FF', fontSize: 10, height: 14, id: '270:26331', opacity: 0.65, text: 'Web3.0', width: 36, x: 233, y: 48 },
+      { color: '#7C62FF', fontSize: 10, height: 14, id: '270:26332', opacity: 0.65, text: '灵感配色', width: 40, x: 241, y: 85 },
+      { color: '#6598FF', fontSize: 10, height: 14, id: '270:26335', opacity: 0.75, text: 'Vibe Coding', width: 58, x: 12, y: 52 },
+      { color: '#7C62FF', fontSize: 10, height: 14, id: '270:26337', opacity: 0.72, text: 'Prompt技巧', width: 55, x: 28, y: 86 },
+      { color: '#A78BFA', fontSize: 10, height: 14, id: '270:26338', opacity: 0.7, text: '知识管理', width: 40, x: 125, y: 86 },
+      { color: '#7C62FF', fontSize: 10, height: 14, id: '270:26339', text: '番茄钟', width: 30, x: 213, y: 67 },
+      { color: '#6598FF', fontSize: 10, height: 14, id: '270:26343', text: '小众网站', width: 40, x: 50, y: 4 },
+      { color: '#7B5CF6', fontSize: 10, height: 14, id: '270:26344', text: '自动化工作流', width: 60, x: 73, y: 69 },
+    ] satisfies readonly (FigmaBox & {
+      color: string;
+      fontSize: number;
+      opacity?: number;
+      text: string;
+    })[],
+  },
+  cards: [
+    {
+      closed: { height: 70, id: '270:26345', width: 321, x: 28, y: 447 },
+      expandedSurface: { height: 195, id: '270:26346', width: 321 },
+      expandedState: { frameId: '268:22904', y: 328 },
+      key: 'store',
+    },
+    {
+      closed: { height: 69, id: '270:26431', width: 321, x: 28, y: 517 },
+      expandedSurface: { height: 195, id: '270:26432', width: 321 },
+      expandedState: { frameId: '268:23238', y: 401 },
+      key: 'products',
+    },
+    {
+      closed: { height: 69, id: '270:26460', width: 321, x: 28, y: 587 },
+      expandedSurface: { height: 195, id: '270:26461', width: 321 },
+      expandedState: { frameId: '268:23572', y: 465 },
+      key: 'community',
+    },
+    {
+      closed: { height: 68, id: '270:26504', width: 321, x: 28, y: 657 },
+      expandedSurface: { height: 195, id: '270:26505', width: 321 },
+      expandedState: { frameId: '268:23906', y: 544 },
+      key: 'profile',
+    },
+  ] satisfies readonly {
+    closed: FigmaBox;
+    expandedSurface: FigmaSurface;
+    expandedState: { frameId: string; y: number };
+    key: HomeCardKey;
+  }[],
+} as const;

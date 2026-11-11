@@ -47,3 +47,29 @@ test('home layout keeps controls reachable at mobile widths', async ({ page }) =
     }
   }
 });
+
+test('each home card exposes an in-bounds 44px open action when expanded', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('token', 'fixture-token'));
+  await page.route('**/auth/me', (route) =>
+    route.fulfill({ json: { id: 1, username: 'Oasis' } }),
+  );
+
+  for (const width of [320, 375, 430]) {
+    for (const card of ['store', 'products', 'community', 'profile']) {
+      await page.setViewportSize({ width, height: 812 });
+      await page.goto('/');
+      await page.getByTestId(`home-card-${card}`).click();
+      await expect(page.getByTestId(`home-card-${card}`)).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
+
+      const box = await page.getByTestId(`home-card-${card}-open`).boundingBox();
+      expect(box, `${card} open action should have a layout box at ${width}px`).not.toBeNull();
+      expect(box!.height, `${card} open action should be at least 44px tall at ${width}px`).toBeGreaterThanOrEqual(44);
+      expect(box!.width, `${card} open action should be at least 44px wide at ${width}px`).toBeGreaterThanOrEqual(44);
+      expect(box!.x, `${card} open action should not overflow left at ${width}px`).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width, `${card} open action should not overflow right at ${width}px`).toBeLessThanOrEqual(width);
+    }
+  }
+});
