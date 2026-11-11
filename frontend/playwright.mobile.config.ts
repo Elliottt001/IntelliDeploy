@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  testMatch: /mobile-[^/\\]+\.spec\.ts$/,
   timeout: 45_000,
   workers: 1,
   use: {

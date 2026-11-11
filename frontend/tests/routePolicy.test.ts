@@ -32,6 +32,7 @@ vi.mock('../components/mobile', () => ({
 import { isPublicPath, sanitizeNextPath } from '../features/navigation/routePolicy';
 import StoreRankingScreen from '../features/store/StoreRankingScreen';
 import StoreScreen from '../features/store/StoreScreen';
+import mobilePlaywrightConfig from '../playwright.mobile.config';
 
 type ElementProps = Record<string, unknown> & {
   children?: ReactNode;
@@ -190,4 +191,36 @@ test('store headers follow the page-03 and page-40 action layout', () => {
 
   (back.onPress as () => void)();
   expect(router.replace).toHaveBeenCalledWith('/store');
+});
+
+test('mobile Playwright only discovers mock mobile specs and starts one Expo server', () => {
+  expect(mobilePlaywrightConfig.testMatch).toBeInstanceOf(RegExp);
+  const testMatch = mobilePlaywrightConfig.testMatch as RegExp;
+
+  for (const path of [
+    'e2e/mobile-store.spec.ts',
+    'e2e/mobile-routing.spec.ts',
+  ]) {
+    expect(testMatch.test(path), path).toBe(true);
+  }
+
+  for (const path of [
+    'e2e/cross-client.spec.ts',
+    'e2e/community-cross-client.spec.ts',
+    'e2e/community.spec.ts',
+    'e2e/workspace.spec.ts',
+  ]) {
+    expect(testMatch.test(path), path).toBe(false);
+  }
+
+  expect(Array.isArray(mobilePlaywrightConfig.webServer)).toBe(false);
+  expect(mobilePlaywrightConfig.webServer).toMatchObject({
+    command: 'npm run web -- --port 8086',
+    env: {
+      CI: '1',
+      EXPO_PUBLIC_API_BASE_URL: 'http://127.0.0.1:9199',
+      EXPO_PUBLIC_MOBILE_UI_PREVIEW: '1',
+    },
+    url: 'http://127.0.0.1:8086',
+  });
 });
