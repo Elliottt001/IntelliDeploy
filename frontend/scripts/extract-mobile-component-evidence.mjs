@@ -1115,12 +1115,25 @@ function collectEffectiveSymbolIconLayers(primitive, rootId, maps, blobs) {
     derivedGeometryByPath,
   );
   const root = maps.documentNodeById.get(rootId);
+  // Removing canvas translation does not put a rotated/scaled root back into
+  // its original viewport. Apply the same linear transform to all four root
+  // corners so the viewport retains the glyph's orientation, scale and inset.
+  const width = root?.size?.x ?? 0;
+  const height = root?.size?.y ?? 0;
+  const corners = [[0, 0], [width, 0], [width, height], [0, height]].map(([x, y]) => ({
+    x: relativeTransform.m00 * x + relativeTransform.m01 * y,
+    y: relativeTransform.m10 * x + relativeTransform.m11 * y,
+  }));
+  const minX = Math.min(...corners.map((corner) => corner.x));
+  const minY = Math.min(...corners.map((corner) => corner.y));
+  const maxX = Math.max(...corners.map((corner) => corner.x));
+  const maxY = Math.max(...corners.map((corner) => corner.y));
   return {
     layers,
     sourceNodeIds: [...new Set(layers.map((layer) => layer.sourceNodeId))].sort(
       compareNodeIds,
     ),
-    viewBox: `0 0 ${formatNumber(root?.size?.x ?? 0)} ${formatNumber(root?.size?.y ?? 0)}`,
+    viewBox: [minX, minY, maxX - minX, maxY - minY].map(formatNumber).join(' '),
   };
 }
 

@@ -939,7 +939,7 @@ describe('Figma component evidence', () => {
     ]);
   });
 
-  test('preserves effective instance rotation and scale for runtime icons while normalizing placement translation', async () => {
+  test('keeps rotated and scaled effective icon geometry visible after removing canvas placement', async () => {
     const fixture = await createComponentFixture({ useRotatedScaledInstance: true });
     const { extractMobileComponentEvidence } = await import(
       '../scripts/extract-mobile-component-evidence.mjs'
@@ -953,7 +953,39 @@ describe('Figma component evidence', () => {
     });
 
     const extracted = await loadExtractedModule(fixture.outputPath);
-    expect(extracted.figmaMobileIcons.settings.viewBox).toBe('0 0 10 10');
+    const icon = extracted.figmaMobileIcons.settings;
+    const [viewportX, viewportY, viewportWidth, viewportHeight] = icon.viewBox
+      .split(' ')
+      .map(Number);
+    const transformedBounds = icon.layers.map((layer: { path: string; transform: string }) => {
+      const [a, b, c, d, e, f] = layer.transform
+        .slice('matrix('.length, -1)
+        .split(' ')
+        .map(Number);
+      // This fixture contains straight polygons: read its emitted vertices and
+      // apply SVG's affine matrix independently of the extractor's helpers.
+      const vertices = [...layer.path.matchAll(/[ML](-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g)]
+        .map(([, x, y]) => ({
+          x: a * Number(x) + c * Number(y) + e,
+          y: b * Number(x) + d * Number(y) + f,
+        }));
+      const bounds = {
+        minX: Math.min(...vertices.map((vertex) => vertex.x)),
+        maxX: Math.max(...vertices.map((vertex) => vertex.x)),
+        minY: Math.min(...vertices.map((vertex) => vertex.y)),
+        maxY: Math.max(...vertices.map((vertex) => vertex.y)),
+      };
+      expect(bounds.minX).toBeGreaterThanOrEqual(viewportX);
+      expect(bounds.maxX).toBeLessThanOrEqual(viewportX + viewportWidth);
+      expect(bounds.minY).toBeGreaterThanOrEqual(viewportY);
+      expect(bounds.maxY).toBeLessThanOrEqual(viewportY + viewportHeight);
+      return bounds;
+    });
+    expect(transformedBounds).toEqual([
+      { minX: -4, maxX: 0, minY: 0, maxY: 20 },
+      { minX: -18, maxX: -2, minY: 2, maxY: 18 },
+    ]);
+    expect(icon.viewBox).toBe('-20 0 20 20');
     expect(extracted.figmaMobileIcons.settings.layers).toEqual([
       {
         fill: '#FF0000',
