@@ -1,0 +1,40 @@
+[
+  {
+    "id": "route-a-private-notes",
+    "prompt": "创建一个私有笔记应用，可以新增、编辑和读取笔记，刷新后数据仍然存在。",
+    "expected_route": "A",
+    "core_checks": ["create-note", "edit-note", "persist-note"],
+    "known_repositories": ["https://github.com/dullage/flatnotes"],
+    "target": null,
+    "selection_mode": "automatic"
+  },
+  {
+    "id": "route-b-dream-analysis",
+    "prompt": "在可保存梦境历史的 Web 应用中增加 AI 梦境分析，分析结果与原梦境一起保存。",
+    "expected_route": "B",
+    "core_checks": ["save-dream", "analyze-dream", "persist-analysis"],
+    "known_repositories": ["https://github.com/usememos/memos"],
+    "target": null,
+    "selection_mode": "automatic",
+    "answers": {"记录是否公开？": "保持私有"}
+  },
+  {
+    "id": "route-c-notes-search",
+    "prompt": "把私有笔记记录和联网资料搜索整合为一个应用，搜索结果要显示来源并可保存到笔记。",
+    "expected_route": "C",
+    "core_checks": ["search-with-source", "save-search-result", "read-saved-note"],
+    "known_repositories": [],
+    "target": null,
+    "selection_mode": "automatic"
+  },
+  {
+    "id": "route-d-live-information",
+    "prompt": "从固定脚手架生成一个实时信息整理工具，用户输入主题后联网搜索，展示来源并保存查询历史。",
+    "expected_route": "D",
+    "core_checks": ["search-live-data", "show-sources", "persist-query-history"],
+    "known_repositories": [],
+    "target": null,
+    "selection_mode": "automatic",
+    "user_requested_generation": true
+  }
+]

@@ -14,4 +14,5 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     kubeconfig = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
+    is_developer = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)

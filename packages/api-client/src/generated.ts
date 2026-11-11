@@ -158,6 +158,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/jobs/{job_id}/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diagnostics */
+        get: operations["diagnostics_api_jobs__job_id__diagnostics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs/{job_id}/report/evidence/{evidence_id}": {
         parameters: {
             query?: never;
@@ -671,6 +688,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/evaluation/targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Targets */
+        get: operations["targets_api_evaluation_targets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/": {
         parameters: {
             query?: never;
@@ -864,6 +898,117 @@ export interface components {
             /** Acceptance Ids */
             acceptance_ids?: string[];
         };
+        /** EvaluationCandidate */
+        EvaluationCandidate: {
+            /** Repo Url */
+            repo_url: string;
+            /** Commit */
+            commit?: string | null;
+            /** Rank */
+            rank: number;
+            /** Stars */
+            stars?: number | null;
+            /** Match Score */
+            match_score?: number | null;
+            /** Deploy Score */
+            deploy_score?: number | null;
+            /** Quality Score */
+            quality_score?: number | null;
+        };
+        /** EvaluationRecord */
+        EvaluationRecord: {
+            /** Job Id */
+            job_id: string;
+            /** App Id */
+            app_id: string;
+            /** Version Id */
+            version_id?: string | null;
+            status: components["schemas"]["JobStatus"];
+            /** Route */
+            route?: string | null;
+            /**
+             * Source Mode
+             * @enum {string}
+             */
+            source_mode: "real" | "fixture";
+            /**
+             * Routing Mode
+             * @default automatic
+             * @enum {string}
+             */
+            routing_mode: "automatic" | "forced";
+            /** Target Id */
+            target_id?: string | null;
+            /**
+             * Target Override
+             * @default false
+             */
+            target_override: boolean;
+            /** Model */
+            model: string;
+            /** Price Version */
+            price_version: string;
+            /** Usage Units */
+            usage_units: number;
+            /** Cost Units */
+            cost_units?: number | null;
+            /**
+             * Cost Status
+             * @enum {string}
+             */
+            cost_status: "known" | "unknown";
+            /** Duration Ms */
+            duration_ms: number;
+            /** Phase Durations */
+            phase_durations?: components["schemas"]["PhaseDuration"][];
+            /** Sources */
+            sources?: components["schemas"]["EvaluationSource"][];
+            retrieval: components["schemas"]["EvaluationRetrieval"];
+            result?: components["schemas"]["DeliveryResult"] | null;
+            report: components["schemas"]["JobReport"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** EvaluationRetrieval */
+        EvaluationRetrieval: {
+            /** Queries */
+            queries?: string[];
+            /**
+             * Completed
+             * @default false
+             */
+            completed: boolean;
+            /** Index Version */
+            index_version?: string | null;
+            /** Candidates */
+            candidates?: components["schemas"]["EvaluationCandidate"][];
+        };
+        /** EvaluationSource */
+        EvaluationSource: {
+            /** Url */
+            url: string;
+            /** Commit */
+            commit: string;
+            /** Role */
+            role: string;
+        };
+        /** EvaluationTarget */
+        EvaluationTarget: {
+            /** Target Id */
+            target_id: string;
+            /** Name */
+            name: string;
+            /** Kind */
+            kind: string;
+        };
         /** FetchRequest */
         FetchRequest: {
             /** Operation Id */
@@ -1038,6 +1183,13 @@ export interface components {
             content: string;
             /** Budget Units */
             budget_units?: number | null;
+        };
+        /** PhaseDuration */
+        PhaseDuration: {
+            /** Phase */
+            phase: string;
+            /** Duration Ms */
+            duration_ms: number;
         };
         /** PublicError */
         PublicError: {
@@ -1615,6 +1767,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diagnostics_api_jobs__job_id__diagnostics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationRecord"];
                 };
             };
             /** @description Validation Error */
@@ -2668,6 +2851,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    targets_api_evaluation_targets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationTarget"][];
                 };
             };
         };

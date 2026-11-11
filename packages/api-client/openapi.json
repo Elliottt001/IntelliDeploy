@@ -499,6 +499,53 @@
         }
       }
     },
+    "/api/jobs/{job_id}/diagnostics": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Diagnostics",
+        "operationId": "diagnostics_api_jobs__job_id__diagnostics_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/jobs/{job_id}/report/evidence/{evidence_id}": {
       "get": {
         "tags": [
@@ -2328,6 +2375,36 @@
         }
       }
     },
+    "/api/evaluation/targets": {
+      "get": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "Targets",
+        "operationId": "targets_api_evaluation_targets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EvaluationTarget"
+                  },
+                  "type": "array",
+                  "title": "Response Targets Api Evaluation Targets Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
@@ -2881,6 +2958,328 @@
         ],
         "title": "DemandFact"
       },
+      "EvaluationCandidate": {
+        "properties": {
+          "repo_url": {
+            "type": "string",
+            "title": "Repo Url"
+          },
+          "commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commit"
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Rank"
+          },
+          "stars": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stars"
+          },
+          "match_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Score"
+          },
+          "deploy_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deploy Score"
+          },
+          "quality_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo_url",
+          "rank"
+        ],
+        "title": "EvaluationCandidate"
+      },
+      "EvaluationRecord": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "app_id": {
+            "type": "string",
+            "title": "App Id"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "route": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route"
+          },
+          "source_mode": {
+            "type": "string",
+            "enum": [
+              "real",
+              "fixture"
+            ],
+            "title": "Source Mode"
+          },
+          "routing_mode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "forced"
+            ],
+            "title": "Routing Mode",
+            "default": "automatic"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "target_override": {
+            "type": "boolean",
+            "title": "Target Override",
+            "default": false
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "price_version": {
+            "type": "string",
+            "title": "Price Version"
+          },
+          "usage_units": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Usage Units"
+          },
+          "cost_units": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Units"
+          },
+          "cost_status": {
+            "type": "string",
+            "enum": [
+              "known",
+              "unknown"
+            ],
+            "title": "Cost Status"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Duration Ms"
+          },
+          "phase_durations": {
+            "items": {
+              "$ref": "#/components/schemas/PhaseDuration"
+            },
+            "type": "array",
+            "title": "Phase Durations"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationSource"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "retrieval": {
+            "$ref": "#/components/schemas/EvaluationRetrieval"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeliveryResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "report": {
+            "$ref": "#/components/schemas/JobReport"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "app_id",
+          "status",
+          "source_mode",
+          "model",
+          "price_version",
+          "usage_units",
+          "cost_status",
+          "duration_ms",
+          "retrieval",
+          "report",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "EvaluationRecord"
+      },
+      "EvaluationRetrieval": {
+        "properties": {
+          "queries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Queries"
+          },
+          "completed": {
+            "type": "boolean",
+            "title": "Completed",
+            "default": false
+          },
+          "index_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Version"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationCandidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          }
+        },
+        "type": "object",
+        "title": "EvaluationRetrieval"
+      },
+      "EvaluationSource": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "commit": {
+            "type": "string",
+            "title": "Commit"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url",
+          "commit",
+          "role"
+        ],
+        "title": "EvaluationSource"
+      },
+      "EvaluationTarget": {
+        "properties": {
+          "target_id": {
+            "type": "string",
+            "title": "Target Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_id",
+          "name",
+          "kind"
+        ],
+        "title": "EvaluationTarget"
+      },
       "FetchRequest": {
         "properties": {
           "operation_id": {
@@ -3377,6 +3776,25 @@
           "content"
         ],
         "title": "MessageRequest"
+      },
+      "PhaseDuration": {
+        "properties": {
+          "phase": {
+            "type": "string",
+            "title": "Phase"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Duration Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "phase",
+          "duration_ms"
+        ],
+        "title": "PhaseDuration"
       },
       "PublicError": {
         "properties": {

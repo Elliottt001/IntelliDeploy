@@ -12,6 +12,9 @@ from app.core.errors import abort
 from app.core.types import JobRef, JobReport, JobSnapshot, ResumeRequest
 from app.database import get_db
 from app.jobs.events import encode_event, events_after
+from app.jobs.diagnostics import build_evaluation_record
+from app.evaluation.router import require_evaluation_user
+from app.evaluation.schemas import EvaluationRecord
 from app.models.user import User
 from app.utils.security import get_current_user
 
@@ -30,6 +33,15 @@ def report(
     job_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     return service.job_report(db, service.owned_job(db, job_id, user.id))
+
+
+@router.get("/{job_id}/diagnostics", response_model=EvaluationRecord)
+def diagnostics(
+    job_id: str,
+    user: User = Depends(require_evaluation_user),
+    db: Session = Depends(get_db),
+):
+    return build_evaluation_record(db, service.owned_job(db, job_id, user.id))
 
 
 @router.get("/{job_id}/report/evidence/{evidence_id}")

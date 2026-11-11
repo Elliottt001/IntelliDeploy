@@ -21,6 +21,7 @@ from app.billing.catalog import router as catalog_router
 from app.capabilities.router import router as capabilities_router
 from app.runtime.router import router as runtime_router
 from app.community.router import router as community_router
+from app.evaluation.router import router as evaluation_router
 
 
 def check_schema():
@@ -50,6 +51,7 @@ app.include_router(catalog_router)
 app.include_router(capabilities_router)
 app.include_router(runtime_router)
 app.include_router(community_router)
+app.include_router(evaluation_router)
 
 
 @app.middleware('http')

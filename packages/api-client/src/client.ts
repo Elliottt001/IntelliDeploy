@@ -42,6 +42,8 @@ export function createApiClient(options: ClientOptions) {
     listMyApps: (cursor?: string) => request<Schema['AppPage']>('/api/apps' + (cursor ? `?cursor=${id(cursor)}` : '')),
     getJob: (jobId: string, signal?: AbortSignal) => request<Schema['JobSnapshot']>(`/api/jobs/${id(jobId)}`, 'GET', undefined, undefined, signal),
     getReport: (jobId: string) => request<Schema['JobReport']>(`/api/jobs/${id(jobId)}/report`),
+    getDiagnostics: (jobId: string, signal?: AbortSignal) => request<Schema['EvaluationRecord']>(`/api/jobs/${id(jobId)}/diagnostics`, 'GET', undefined, undefined, signal),
+    listEvaluationTargets: () => request<Schema['EvaluationTarget'][]>('/api/evaluation/targets'),
     resumeJob: (jobId: string, operationId: string, budgetUnits?: number) => request<Schema['JobRef']>(`/api/jobs/${id(jobId)}/resume`, 'POST', { budget_units: budgetUnits }, operationId),
     cancelJob: (jobId: string, operationId: string) => request<Schema['JobRef']>(`/api/jobs/${id(jobId)}/cancel`, 'POST', undefined, operationId),
     listPublications: (cursor?: string) => request<Schema['PublicationPage']>('/api/community/apps'+(cursor?`?cursor=${id(cursor)}`:'')),

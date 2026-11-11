@@ -119,6 +119,7 @@ class DurableModel:
                     reference=operation,
                     metadata_json={
                         "request_hash": digest,
+                        "model": settings.DEEPSEEK_MODEL,
                         "price_version": settings.PRICE_VERSION,
                         "price_prefix": prefix,
                         "reservation_operation_id": parent.operation_id,
