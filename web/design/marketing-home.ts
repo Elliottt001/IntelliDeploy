@@ -9,7 +9,7 @@ export const marketingHomeEvidence = {
   rootSize: { width: 2025, height: 10620 },
   contentGuide: { left: 141, right: 1884, width: 1743 },
   sections: [
-    { key: 'navigation', node: '100:5063', width: 1704, height: 100 },
+    { key: 'navigation', node: '100:5063', width: 1704, height: 100, x: 163, y: 68, signInNode: '100:5065', accountNodes: ['100:5085', '100:5086', '100:5087', '100:5088'] },
     { key: 'hero', node: '100:5099', width: 1917, height: 602 },
     { key: 'capabilities', node: '100:5107', width: 832.8696, height: 216 },
     { key: 'features', node: '100:5114', width: 2231, height: 4775.6143 },

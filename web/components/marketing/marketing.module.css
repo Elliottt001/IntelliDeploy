@@ -1,0 +1,21 @@
+.page { --marketing-max: 1744px; --primary: #7c62ff; --text: #494a64; --muted: #7f80a1; --surface-soft: #eff3ff; min-height: 100vh; color: var(--text); background: #fff; overflow: clip; font-family: var(--font-alibaba), "PingFang SC", sans-serif; }
+:global(html[data-theme='dark']) .page { --text: #f4f0ff; --muted: #b7b0c9; --surface-soft: #191524; background: #100d18; }
+.header { width: min(1704px, calc(100% - 40px)); min-height: 100px; margin: 0 auto; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 28px; position: relative; z-index: 20; }
+.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--text); font-family: var(--font-instrument); font-size: 24px; font-weight: 600; justify-self: start; }
+.brand img { width: 42px; height: 42px; }
+.desktopNav { display: flex; align-items: center; gap: 44px; padding: 14px 28px; border: 1px solid color-mix(in srgb, var(--text) 10%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--surface-soft) 62%, transparent); backdrop-filter: blur(20px); }
+.desktopNav a, .signIn { color: var(--text); font-family: var(--font-inter); font-size: 15px; }
+.headerActions { display: flex; align-items: center; gap: 14px; justify-self: end; }
+.iconButton, .mobileTrigger { min-width: 44px; min-height: 44px; border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); border-radius: 999px; background: transparent; color: var(--text); }
+.primaryNav { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 22px; border-radius: 999px; background: var(--primary); color: #fff; box-shadow: 0 10px 30px rgba(124, 98, 255, .28); }
+.mobileMenuWrap, .mobileTrigger { display: none; }
+.mobileMenu { position: fixed; inset: 88px 16px auto; display: grid; gap: 8px; padding: 22px; border-radius: 24px; background: var(--surface-soft); box-shadow: 0 24px 80px rgba(18, 12, 37, .28); }
+.mobileMenu a { padding: 14px 16px; color: var(--text); }
+
+@media (max-width: 767px) {
+  .header { grid-template-columns: 1fr auto; min-height: 82px; width: calc(100% - 32px); }
+  .brand { font-size: 18px; }
+  .brand img { width: 36px; height: 36px; }
+  .desktopNav, .signIn, .headerActions > .primaryNav { display: none; }
+  .mobileMenuWrap, .mobileTrigger { display: block; }
+}
