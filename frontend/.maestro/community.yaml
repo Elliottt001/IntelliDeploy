@@ -1,0 +1,21 @@
+appId: cn.elliotttzhang.intellideploy
+name: Open a publication and create an independent copy
+tags:
+  - phase1
+  - community
+onFlowStart:
+  - launchApp:
+      clearState: false
+---
+- openLink: intellideploy://community/${PUBLICATION_ID}
+- assertVisible: 创建我的副本
+- tapOn:
+    id: copy-publication
+- assertVisible:
+    id: job-status
+- extendedWaitUntil:
+    visible:
+      id: open-app
+    timeout: 1800000
+- tapOn:
+    id: open-app

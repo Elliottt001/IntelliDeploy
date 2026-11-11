@@ -1,0 +1,20 @@
+appId: cn.elliotttzhang.intellideploy
+name: Recover and continue an existing application
+tags:
+  - phase1
+  - recovery
+onFlowStart:
+  - launchApp:
+      clearState: false
+---
+- openLink: intellideploy://app-detail/${APP_ID}
+- assertVisible:
+    id: job-status
+- tapOn:
+    id: refresh-job
+- tapOn:
+    id: message-input
+- inputText: ${FOLLOW_UP}
+- tapOn:
+    id: send-message
+- assertVisible: ${FOLLOW_UP}
