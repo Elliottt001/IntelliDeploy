@@ -140,7 +140,7 @@ job = Job(kind='COPY', checkpoint={'source_version_id': publication.version_id},
 
 ## 实施进度（2026-11-10）
 
-05-W1工作台基础已实现：首页创建/登录/注册、我的应用、持久对话、交付卡、继续调整、取消/额度恢复、命名SSE/快照补读、源码下载、业务验证报告及创建草稿刷新恢复。6项Playwright夹具检查通过，包含手机宽度、刷新、旧版保留、业务回答、额度暂停、刷新后原请求键重试及报告证据；Next build/typecheck与Web9项代理/会话单测通过。首次全链路/实例start-delete/社区发布/私有登录交换在03/04/05-W2及07-E2后继续联调，不将夹具URL标真实交付。本任务最终验收未完成。
+05-W1工作台基础已实现：首页创建/登录/注册、我的应用、持久对话、交付卡、继续调整、取消/额度恢复、命名SSE/快照补读、源码下载、业务验证报告及创建草稿刷新恢复。第8步已补实例start/stop/delete、社区发布/副本及私有登录交换的本地联调；私有登录code返回401会保留应用详情路径并进入登录。Web单测14项、Playwright 9项及Next build/typecheck通过。不将夹具URL标真实交付，本任务包含真实模型/云的最终验收仍未完成。
 
 
 ### 第8步本地实施与验证（2026-11-10）
@@ -151,9 +151,9 @@ job = Job(kind='COPY', checkpoint={'source_version_id': publication.version_id},
 
 Web/Expo已接社区、分享详情、直接使用、收藏/最近使用、独立副本、发布政策和取消公开；两端补实例start/stop/delete及操作轮询，删除要求DELETE与明确数据选项。客户端打开私有应用只传60秒code；D脚手架补callback、应用HttpOnly会话和逐请求平台授权。A/B/C仓库仍需在真实流水线中接入对应身份/业务权限，不假设任意项目无需改造。
 
-检查位置：tests/phase1/test_publications.py、test_copies.py、test_releases.py；packages/api-client/tests/client.test.ts；web/e2e/community.spec.ts；web/tests/platform-client.test.ts；frontend/e2e/community.spec.ts、community-cross-client.spec.ts。红测已实际执行，数据库使用intellideploy_test；浏览器/发布记录夹具显式标fixture。实际测试数量以一期实施进度为准。
+检查位置：tests/phase1/test_publications.py、test_copies.py、test_releases.py、test_mobile_acceptance_workflows.py；packages/api-client/tests/client.test.ts；web/e2e/community.spec.ts；web/tests/platform-client.test.ts；frontend/e2e/community.spec.ts、community-cross-client.spec.ts；frontend/.maestro/{generate,recover,community}.yaml。红测已实际执行，数据库使用intellideploy_test；浏览器/发布记录夹具显式标fixture。三份Maestro文件已通过结构测试但未在设备执行。实际测试数量以一期实施进度为准。
 
-Step 4保留未勾选：本地协议和浏览器绿测已执行，真实模型、runner、registry、Linux/Sealos副本/多人数据及原生设备验收仍NOT_RUN。此状态不表示重做已实现代码，也不表示第8步的真实验收已通过。
+Step 4保留未勾选：本地协议、浏览器绿测和设备流程入口已完成，真实模型、runner、registry、Linux/Sealos副本/多人数据及原生设备执行仍NOT_RUN。此状态不表示重做已实现代码，也不表示第8步的真实验收已通过。
 
 提交：05-W2 `11332ba`；05-W3 `bd80012`；双客户端、脚手架接入与文档另以第8步联调提交记录。真实验收状态仍按上述NOT_RUN边界。
 

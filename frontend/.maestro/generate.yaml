@@ -1,0 +1,33 @@
+appId: cn.elliotttzhang.intellideploy
+name: Generate and open an application
+tags:
+  - phase1
+  - delivery
+onFlowStart:
+  - launchApp:
+      clearState: true
+---
+- tapOn:
+    id: login-account
+- inputText: ${USERNAME}
+- tapOn:
+    id: login-password
+- inputText: ${PASSWORD}
+- tapOn:
+    id: login-privacy
+- tapOn:
+    id: login-submit
+- tapOn: 新建应用
+- tapOn:
+    id: create-prompt
+- inputText: ${PROMPT}
+- tapOn:
+    id: create-app
+- assertVisible:
+    id: job-status
+- extendedWaitUntil:
+    visible:
+      id: open-app
+    timeout: 1800000
+- tapOn:
+    id: open-app

@@ -89,6 +89,21 @@ test('expired login returns to the same app after logging in again', async ({ pa
   await expect(page.getByText('原有梦境记录', { exact: true })).toBeVisible();
 });
 
+test('expired private-app login code returns to login with the same app path', async ({ page }) => {
+  const app = detail('FAILED');
+  await page.route('**/api/apps/app', route => route.fulfill({ json: app }));
+  await page.route('**/api/jobs/job', route => route.fulfill({ json: app.latest_job }));
+  await page.route('**/api/instances/instance/login-code', route => route.fulfill({
+    status: 401,
+    json: { error: { code: 'UNAUTHORIZED', message: '请先登录', retryable: false } },
+  }));
+
+  await page.goto('/app-detail/app');
+  await page.getByTestId('open-app').click();
+
+  await expect(page).toHaveURL(/\/login\?next=%2Fapp-detail%2Fapp/);
+});
+
 test('leaving during a send does not leave the restored conversation permanently busy', async ({ page }) => {
   const app = detail();
   let finish!: () => void;

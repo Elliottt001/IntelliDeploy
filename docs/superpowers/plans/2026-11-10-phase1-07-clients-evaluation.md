@@ -217,9 +217,9 @@ expected_route仅是评测参考，路由不读取它。检索发现比预期D�
 
 ## 实施进度（2026-11-10）
 
-07-E1基础已实现：根npm工作区与单一lock、OpenAPI导出/ESM共享包、Web加密cookie/BFF、Origin/路径白名单/SSE转发、可取消快照读取、根启动脚本与运行指南。共享请求5项和Web代理/会话9项测试通过；协议重新生成无漂移，Next16.4.6 build/typecheck通过。后续实例/身份/社区/支付接口实施后扩充请求包并重新生成协议。
+07-E1基础已实现：根npm工作区与单一lock、OpenAPI导出/ESM共享包、Web加密cookie/BFF、Origin/路径白名单/SSE转发、可取消快照读取、根启动脚本与运行指南。第8步已扩充社区、独立副本、收藏/最近使用、单次登录code和实例操作请求；共享客户端6项、Web单测14项通过，协议重新生成无漂移，Next16.4.6 build/typecheck通过。支付请求仍按执行顺序第10步接入。
 
-07-E2基础已实现：Expo创建、我的应用、持久对话/状态、取消与额度恢复、额度查看；原生token使用SecureStore并安全迁移旧值，浏览器预览使用独立适配；草稿/app_id/原请求键按账号持久，前后台取消与立即回读、串行轮询及30秒退避。12项Vitest及6项Expo浏览器检查通过；其中跨端检查使用真实intellideploy_test/PostgreSQL/API验证Web与Expo共享app/job和持久对话，追问状态是fixture、报告为NOT_RUN。Web/iOS/Android bundle导出通过。iOS/Android开发构建、设备SecureStore/前后台操作及完整交付、身份、社区、实例、支付联调未执行，详见[原生客户端验收记录](../../原生客户端验收记录.md)，本记录不将07-E2整项最终验收标完成。
+07-E2基础已实现：Expo创建、我的应用、持久对话/状态、取消与额度恢复、额度查看；原生token使用SecureStore并安全迁移旧值，浏览器预览使用独立适配；草稿/app_id/原请求键按账号持久，前后台取消与立即回读、串行轮询及30秒退避。12项Vitest及第8步完整Expo浏览器/跨端10项通过；跨端检查使用真实intellideploy_test/PostgreSQL/API验证Web与Expo共享app/job、Publication/收藏及COPY状态，发布材料和追问状态是fixture、报告为NOT_RUN。Web/iOS/Android bundle导出通过。iOS/Android开发构建、设备SecureStore/前后台操作、真实云交付及支付联调未执行，详见[原生客户端验收记录](../../原生客户端验收记录.md)，本记录不将07-E2整项最终验收标完成。
 
 
 ### 第8步客户端回补（2026-11-10）
@@ -228,4 +228,4 @@ expected_route仅是评测参考，路由不读取它。检索发现比预期D�
 
 07-E2新增公开社区/详情、收藏/最近使用、固定来源副本、发布/取消公开与赞助设置、私有应用code打开和实例管理。实例操作复用前后台串行轮询机制，QUEUED/202只显示处理中，读取终态再回读实例；原键草稿支持副本和实例操作重试。Expo社区允许匿名浏览，个人额度/收藏/副本按需登录。Web与Expo通过实际PG/API读取同一Publication/收藏和COPY app/job/instance；发布版本与云地址仍为明确的fixture材料，不能计真实交付。
 
-原生开发构建/设备流程及支付消费仍未完成；07-E2 Step 3/4整体保持未勾选。D脚手架callback和能力请求与04的code/实例凭据协议一致，后续真实生成前按一期实施进度补02/03默认依赖接线。
+原生开发构建/设备流程及支付消费仍未完成；07-E2 Step 3/4整体保持未勾选。已新增生成、恢复、社区副本三份Maestro流程和结构测试，使用运行时环境变量且不保存凭据；Maestro CLI/设备执行仍为NOT_RUN。D脚手架callback和能力请求与04的code/实例凭据协议一致，02/03默认依赖接线状态按一期实施进度记录。
