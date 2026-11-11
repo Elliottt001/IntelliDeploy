@@ -40,6 +40,7 @@ const testArt = {
   workingCat: { uri: "working-cat" },
   successCat: { uri: "success-cat" },
 };
+const figmaSource = process.env.INTELLIDEPLOY_FIGMA_SOURCE;
 
 const job = (
   status: Job["status"],
@@ -308,6 +309,48 @@ test("Mibo shared robot and ripple layers use measured Kiwi geometry", () => {
   }
 });
 
+test.each([
+  [320, -27.5],
+  [375, 0],
+  [430, 27.5],
+] as const)(
+  "Mibo keeps its unscaled 375pt art canvas centered in a %ipt viewport",
+  (viewportWidth, expectedCanvasLeft) => {
+    const stage = MiboStage({ state: getJobVisualState(null), art: testArt });
+    const viewport = findByTestId(stage, "mibo-art-viewport");
+    const canvas = findByTestId(stage, "mibo-art-canvas");
+    const viewportStyle = flattenStyle(propsOf(viewport!).style);
+    const canvasStyle = flattenStyle(propsOf(canvas!).style);
+
+    expect(viewportStyle).toMatchObject({ overflow: "hidden", width: "100%" });
+    expect(canvasStyle).toMatchObject({
+      left: "50%",
+      marginLeft: -187.5,
+      width: 375,
+    });
+
+    const canvasLeft = viewportWidth / 2 + Number(canvasStyle.marginLeft);
+    const canvasRight = canvasLeft + Number(canvasStyle.width);
+    expect(canvasLeft).toBe(expectedCanvasLeft);
+
+    const leftClip = Math.max(0, -canvasLeft);
+    const rightClip = Math.max(0, canvasRight - viewportWidth);
+    const leftGutter = Math.max(0, canvasLeft);
+    const rightGutter = Math.max(0, viewportWidth - canvasRight);
+    expect(leftClip).toBe(rightClip);
+    expect(leftGutter).toBe(rightGutter);
+
+    for (const testID of ["mibo-ripple", "mibo-robot"] as const) {
+      const layerStyle = flattenStyle(
+        propsOf(findByTestId(stage, testID)!).style,
+      );
+      const centroid =
+        canvasLeft + Number(layerStyle.left) + Number(layerStyle.width) / 2;
+      expect(centroid).toBe(viewportWidth / 2);
+    }
+  },
+);
+
 test("composer blocks busy, disabled, and blank submission while preserving 44pt controls", () => {
   const onSubmit = vi.fn();
   for (const props of [
@@ -376,93 +419,97 @@ test("composer shell uses measured Kiwi surface geometry and remains fluid", () 
   );
 });
 
-test("runtime Mibo evidence matches direct Kiwi nodes and raw assets", () => {
-  const sourceRoot =
-    "/Users/bytedance/Downloads/IntelliDeploy-design-2026-11-10-2221";
-  const document = JSON.parse(
-    fs.readFileSync(
-      path.join(sourceRoot, "design-data/document.kiwi.json"),
-      "utf8",
-    ),
-  ) as { nodeChanges: Array<Record<string, any>> };
-  const rawAssets = JSON.parse(
-    fs.readFileSync(
-      path.join(sourceRoot, "design-data/raw-assets.json"),
-      "utf8",
-    ),
-  ) as Array<{ archive_path: string; local_path: string }>;
-  const id = (node: Record<string, any>) =>
-    `${node.guid?.sessionID}:${node.guid?.localID}`;
-  const parentId = (node: Record<string, any>) =>
-    `${node.parentIndex?.guid?.sessionID}:${node.parentIndex?.guid?.localID}`;
-  const nodes = new Map(document.nodeChanges.map((node) => [id(node), node]));
-  const children = new Map<string, Array<Record<string, any>>>();
-  document.nodeChanges.forEach((node) => {
-    const siblings = children.get(parentId(node)) ?? [];
-    siblings.push(node);
-    children.set(parentId(node), siblings);
-  });
-  const descendants = (rootId: string) => {
-    const result: Array<Record<string, any>> = [];
-    const pending = [...(children.get(rootId) ?? [])];
-    while (pending.length > 0) {
-      const node = pending.shift()!;
-      result.push(node);
-      pending.push(...(children.get(id(node)) ?? []));
-    }
-    return result;
-  };
-
-  expect(miboStageFigmaEvidence.frameIds).toEqual([
-    "845:3479",
-    "846:3544",
-    "849:3608",
-    "849:3705",
-    "849:3794",
-    "849:3883",
-    "849:3972",
-    "852:4061",
-    "852:4150",
-    "852:4242",
-    "852:4391",
-  ]);
-  for (const frameId of miboStageFigmaEvidence.frameIds) {
-    expect(nodes.get(frameId)?.size).toEqual({ x: 375, y: 812 });
-    expect(
-      descendants(frameId).filter((node) =>
-        ["INSTANCE", "SYMBOL"].includes(String(node.type)),
+test.skipIf(!figmaSource)(
+  "external Figma provenance audit (NOT_RUN unless INTELLIDEPLOY_FIGMA_SOURCE is set)",
+  () => {
+    const sourceRoot = figmaSource!;
+    const document = JSON.parse(
+      fs.readFileSync(
+        path.join(sourceRoot, "design-data/document.kiwi.json"),
+        "utf8",
       ),
-    ).toEqual([]);
-  }
-  for (const art of Object.values(miboStageFigmaEvidence.art)) {
-    const node = nodes.get(art.nodeId)!;
-    expect({
-      height: node.size.y,
-      width: node.size.x,
-      x: node.transform.m02,
-      y: node.transform.m12,
-    }).toEqual(art.box);
-    expect(node.fillPaints[0].type).toBe("IMAGE");
-    expect(
-      Buffer.from(node.fillPaints[0].image.hash.data, "base64").toString("hex"),
-    ).toBe(art.assetHash);
-    expect(
-      rawAssets.some((asset) => asset.archive_path.endsWith(art.assetHash)),
-    ).toBe(true);
-  }
+    ) as { nodeChanges: Array<Record<string, any>> };
+    const rawAssets = JSON.parse(
+      fs.readFileSync(
+        path.join(sourceRoot, "design-data/raw-assets.json"),
+        "utf8",
+      ),
+    ) as Array<{ archive_path: string; local_path: string }>;
+    const id = (node: Record<string, any>) =>
+      `${node.guid?.sessionID}:${node.guid?.localID}`;
+    const parentId = (node: Record<string, any>) =>
+      `${node.parentIndex?.guid?.sessionID}:${node.parentIndex?.guid?.localID}`;
+    const nodes = new Map(document.nodeChanges.map((node) => [id(node), node]));
+    const children = new Map<string, Array<Record<string, any>>>();
+    document.nodeChanges.forEach((node) => {
+      const siblings = children.get(parentId(node)) ?? [];
+      siblings.push(node);
+      children.set(parentId(node), siblings);
+    });
+    const descendants = (rootId: string) => {
+      const result: Array<Record<string, any>> = [];
+      const pending = [...(children.get(rootId) ?? [])];
+      while (pending.length > 0) {
+        const node = pending.shift()!;
+        result.push(node);
+        pending.push(...(children.get(id(node)) ?? []));
+      }
+      return result;
+    };
 
-  const composerShell = nodes.get(chatComposerFigmaEvidence.shellNodeId)!;
-  expect(composerShell.size).toEqual({
-    x: chatComposerFigmaEvidence.width,
-    y: chatComposerFigmaEvidence.height,
-  });
-  expect(composerShell.cornerRadius).toBeCloseTo(
-    chatComposerFigmaEvidence.cornerRadius,
-  );
-  expect(composerShell.fillPaints[0].opacity).toBeCloseTo(
-    chatComposerFigmaEvidence.fillOpacity,
-  );
-  expect(
-    composerShell.effects.map((effect: Record<string, any>) => effect.type),
-  ).toEqual(["DROP_SHADOW", "GLASS"]);
-});
+    expect(miboStageFigmaEvidence.frameIds).toEqual([
+      "845:3479",
+      "846:3544",
+      "849:3608",
+      "849:3705",
+      "849:3794",
+      "849:3883",
+      "849:3972",
+      "852:4061",
+      "852:4150",
+      "852:4242",
+      "852:4391",
+    ]);
+    for (const frameId of miboStageFigmaEvidence.frameIds) {
+      expect(nodes.get(frameId)?.size).toEqual({ x: 375, y: 812 });
+      expect(
+        descendants(frameId).filter((node) =>
+          ["INSTANCE", "SYMBOL"].includes(String(node.type)),
+        ),
+      ).toEqual([]);
+    }
+    for (const art of Object.values(miboStageFigmaEvidence.art)) {
+      const node = nodes.get(art.nodeId)!;
+      expect({
+        height: node.size.y,
+        width: node.size.x,
+        x: node.transform.m02,
+        y: node.transform.m12,
+      }).toEqual(art.box);
+      expect(node.fillPaints[0].type).toBe("IMAGE");
+      expect(
+        Buffer.from(node.fillPaints[0].image.hash.data, "base64").toString(
+          "hex",
+        ),
+      ).toBe(art.assetHash);
+      expect(
+        rawAssets.some((asset) => asset.archive_path.endsWith(art.assetHash)),
+      ).toBe(true);
+    }
+
+    const composerShell = nodes.get(chatComposerFigmaEvidence.shellNodeId)!;
+    expect(composerShell.size).toEqual({
+      x: chatComposerFigmaEvidence.width,
+      y: chatComposerFigmaEvidence.height,
+    });
+    expect(composerShell.cornerRadius).toBeCloseTo(
+      chatComposerFigmaEvidence.cornerRadius,
+    );
+    expect(composerShell.fillPaints[0].opacity).toBeCloseTo(
+      chatComposerFigmaEvidence.fillOpacity,
+    );
+    expect(
+      composerShell.effects.map((effect: Record<string, any>) => effect.type),
+    ).toEqual(["DROP_SHADOW", "GLASS"]);
+  },
+);

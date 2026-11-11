@@ -121,35 +121,41 @@ export function MiboStage({
 
   return (
     <View style={styles.stage} testID="mibo-stage">
-      <View accessibilityElementsHidden style={styles.artboard}>
-        <Image
-          source={sources.rippleLarge}
-          style={styles.rippleLarge}
-          testID="mibo-ripple-large"
-        />
-        <Image
-          source={sources.ripple}
-          style={styles.ripple}
-          testID="mibo-ripple"
-        />
-        <Image
-          source={sources.robot}
-          style={styles.robot}
-          testID="mibo-robot"
-        />
-        <Image
-          source={cat}
-          style={[
-            styles.cat,
-            {
-              height: catBox.height,
-              left: catBox.x,
-              top: catBox.y - miboStageFigmaEvidence.art.rippleLarge.box.y,
-              width: catBox.width,
-            },
-          ]}
-          testID="mibo-cat"
-        />
+      <View
+        accessibilityElementsHidden
+        style={styles.artViewport}
+        testID="mibo-art-viewport"
+      >
+        <View style={styles.artCanvas} testID="mibo-art-canvas">
+          <Image
+            source={sources.rippleLarge}
+            style={styles.rippleLarge}
+            testID="mibo-ripple-large"
+          />
+          <Image
+            source={sources.ripple}
+            style={styles.ripple}
+            testID="mibo-ripple"
+          />
+          <Image
+            source={sources.robot}
+            style={styles.robot}
+            testID="mibo-robot"
+          />
+          <Image
+            source={cat}
+            style={[
+              styles.cat,
+              {
+                height: catBox.height,
+                left: catBox.x,
+                top: catBox.y - miboStageFigmaEvidence.art.rippleLarge.box.y,
+                width: catBox.width,
+              },
+            ]}
+            testID="mibo-cat"
+          />
+        </View>
       </View>
       <Text accessibilityRole="header" style={styles.title}>
         {state.title}
@@ -176,15 +182,21 @@ const styles = StyleSheet.create({
   stage: {
     alignItems: "center",
     alignSelf: "center",
-    maxWidth: 375,
     width: "100%",
   },
-  artboard: {
+  artViewport: {
     height: 330,
-    maxWidth: 375,
     overflow: "hidden",
     position: "relative",
     width: "100%",
+  },
+  artCanvas: {
+    height: 330,
+    left: "50%",
+    marginLeft: -187.5,
+    position: "absolute",
+    top: 0,
+    width: 375,
   },
   rippleLarge: {
     height: 336,
@@ -215,8 +227,10 @@ const styles = StyleSheet.create({
     fontFamily: mobileFontFamilies.emphasis,
     fontSize: 24,
     lineHeight: 34,
+    maxWidth: 375,
     paddingHorizontal: 24,
     textAlign: "center",
+    width: "100%",
   },
   detail: {
     color: mobileColors.text,
@@ -224,8 +238,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     marginTop: 12,
+    maxWidth: 375,
     paddingHorizontal: 24,
     textAlign: "center",
+    width: "100%",
   },
   error: {
     color: mobileColors.danger,
@@ -233,7 +249,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     marginTop: 12,
+    maxWidth: 375,
     paddingHorizontal: 24,
     textAlign: "center",
+    width: "100%",
   },
 });
