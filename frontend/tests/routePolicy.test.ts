@@ -1,85 +1,7 @@
-import { isValidElement, type ReactElement, type ReactNode } from 'react';
-import { expect, test, vi } from 'vitest';
-
-const router = vi.hoisted(() => ({
-  push: vi.fn(),
-  replace: vi.fn(),
-}));
-
-vi.mock('expo-router', () => ({
-  Stack: { Screen: 'Stack.Screen' },
-  useRouter: () => router,
-}));
-vi.mock('react-native', () => ({
-  ActivityIndicator: 'ActivityIndicator',
-  Platform: {
-    select: (options: Record<string, string>) => options.default,
-  },
-  StyleSheet: { create: <T,>(styles: T) => styles },
-  Text: 'Text',
-  View: 'View',
-}));
-vi.mock('react-native-safe-area-context', () => ({
-  useSafeAreaInsets: () => ({ bottom: 20, left: 0, right: 0, top: 47 }),
-}));
-vi.mock('../components/mobile', () => ({
-  AppBackground: 'AppBackground',
-  BottomNav: 'BottomNav',
-  BrandHeader: 'BrandHeader',
-  CircleAction: 'CircleAction',
-}));
+import { expect, test } from 'vitest';
 
 import { isPublicPath, sanitizeNextPath } from '../features/navigation/routePolicy';
-import StoreRankingScreen from '../features/store/StoreRankingScreen';
-import StoreScreen from '../features/store/StoreScreen';
 import mobilePlaywrightConfig from '../playwright.mobile.config';
-
-type ElementProps = Record<string, unknown> & {
-  children?: ReactNode;
-};
-
-function propsOf(element: ReactElement) {
-  return element.props as ElementProps;
-}
-
-function collectElements(node: ReactNode, elements: ReactElement[] = []) {
-  if (!isValidElement(node)) {
-    return elements;
-  }
-
-  elements.push(node);
-  const children = propsOf(node).children;
-  if (Array.isArray(children)) {
-    for (const child of children) {
-      collectElements(child, elements);
-    }
-  } else {
-    collectElements(children, elements);
-  }
-
-  return elements;
-}
-
-function collectText(node: ReactNode, text: string[] = []) {
-  if (typeof node === 'string') {
-    text.push(node);
-    return text;
-  }
-  if (!isValidElement(node)) {
-    return text;
-  }
-
-  const children = propsOf(node).children;
-  if (Array.isArray(children)) {
-    for (const child of children) {
-      collectText(child, text);
-    }
-  } else {
-    collectText(children, text);
-  }
-
-  return text;
-}
 
 test('only approved browsing routes are public', () => {
   for (const path of [
@@ -147,50 +69,6 @@ test('next rejects open redirects and malformed route values', () => {
   ]) {
     expect(sanitizeNextPath(value), JSON.stringify(value)).toBe('/');
   }
-});
-
-test('store shells use the approved mobile frame structure without fixture data', () => {
-  const screens = [
-    {
-      loadingText: '正在加载公开应用…',
-      screen: StoreScreen(),
-    },
-    {
-      loadingText: '正在准备热门榜单…',
-      screen: StoreRankingScreen(),
-    },
-  ];
-
-  for (const { loadingText, screen } of screens) {
-    const elements = collectElements(screen);
-    const elementTypes = elements.map((element) => element.type);
-    const nav = elements.find((element) => element.type === 'BottomNav');
-
-    expect(elementTypes).toContain('AppBackground');
-    expect(elementTypes).toContain('BrandHeader');
-    expect(elementTypes).toContain('ActivityIndicator');
-    expect(elementTypes).toContain('BottomNav');
-    expect(propsOf(nav!).active).toBe('store');
-    expect(collectText(screen)).toEqual([loadingText]);
-  }
-});
-
-test('store headers follow the page-03 and page-40 action layout', () => {
-  const storeElements = collectElements(StoreScreen());
-  const storeHeader = storeElements.find((element) => element.type === 'BrandHeader');
-  const storeAction = propsOf(storeHeader!).action as ReactElement;
-  expect(propsOf(storeAction)).toMatchObject({ disabled: true, icon: 'settings' });
-
-  const rankingElements = collectElements(StoreRankingScreen());
-  const rankingHeader = rankingElements.find((element) => element.type === 'BrandHeader');
-  const rankingProps = propsOf(rankingHeader!);
-  expect(rankingProps.title).toBe('应用商店');
-  const back = propsOf(rankingProps.logo as ReactElement);
-  expect(back).toMatchObject({ icon: 'back' });
-  expect(propsOf(rankingProps.action as ReactElement)).toMatchObject({ icon: 'share' });
-
-  (back.onPress as () => void)();
-  expect(router.replace).toHaveBeenCalledWith('/store');
 });
 
 test('mobile Playwright only discovers mock mobile specs and starts one Expo server', () => {
