@@ -15,10 +15,10 @@ export const marketingHomeEvidence = {
     { key: 'features', node: '100:5114', width: 2231, height: 4775.6143 },
     { key: 'community', node: '100:5329', width: 1743, height: 1243 },
     { key: 'delivery', node: '100:5496', width: 1745, height: 1304, x: 141.2109, y: 5400, radius: 20 },
-    { key: 'pricing', node: '100:5547', width: 1745, height: 2221 },
-    { key: 'footer', node: '100:5549', width: 2025.1057, height: 3010.7813 },
+    { key: 'pricing', node: '100:5547', width: 1745, height: 2221, x: 140, y: 7196, radius: 20 },
+    { key: 'footer', node: '100:5549', width: 2025.1057, height: 3010.7813, x: -0.0508, y: 9610.0654 },
   ],
-  pricing: { frame: '100:5547', instance: '100:5548', symbol: '100:2691' },
+  pricing: { frame: '100:5547', instance: '100:5548', symbol: '100:2691', instanceSize: { width: 1872.9583, height: 2233.0605 }, symbolSize: { width: 1440, height: 1747 } },
   featureNodes: {
     mibo: { node: '100:5117', width: 1743.472, height: 818.3071, radius: 20 },
     appstore: { node: '100:5228', width: 1743.472, height: 818.3071, radius: 44.9928 },
