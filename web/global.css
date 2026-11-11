@@ -2,23 +2,23 @@
 
 :root { color-scheme: light; }
 body { margin: 0; background: #eff3ff; color: #40405d; font-family: system-ui, sans-serif; }
-main { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; }
-header { background: #fff; border-bottom: 1px solid #dadaea; }
-nav { max-width: 960px; padding: 20px; margin: auto; display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
+.platform-shell { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; }
+.platform-header { background: #fff; border-bottom: 1px solid #dadaea; }
+.platform-header nav { max-width: 960px; padding: 20px; margin: auto; display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
 a { color: #7056e0; text-decoration: none; }
 a:hover { text-decoration: underline; }
-h1 { font-size: clamp(24px, 5vw, 38px); font-weight: 700; margin: 0 0 24px; }
-h2 { font-size: 20px; font-weight: 650; margin-bottom: 16px; }
-p { line-height: 1.7; }
-section, .card { padding: 24px; background: white; border: 1px solid #dadaea; border-radius: 20px; margin: 20px 0; }
-input, textarea { width: 100%; border: 1px solid #bfc1d8; border-radius: 12px; padding: 12px; background: white; margin-top: 8px; box-sizing: border-box; }
-textarea { min-height: 120px; resize: vertical; }
-label { display: block; margin: 16px 0; }
-button, .primary { border-radius: 12px; padding: 12px 20px; border: 0; background: #7c62ff; color: white; cursor: pointer; display: inline-block; }
-button:disabled { opacity: .55; cursor: wait; }
-button.secondary { background: #eff3ff; color: #7056e0; }
-.actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
-.muted { color: #7f80a1; }
-.error { color: #a13146; }
-.message { background: #f6f4ff; border-radius: 12px; padding: 12px 16px; margin: 12px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.platform-shell h1 { font-size: clamp(24px, 5vw, 38px); font-weight: 700; margin: 0 0 24px; }
+.platform-shell h2 { font-size: 20px; font-weight: 650; margin-bottom: 16px; }
+.platform-shell p { line-height: 1.7; }
+.platform-shell section, .platform-shell .card { padding: 24px; background: white; border: 1px solid #dadaea; border-radius: 20px; margin: 20px 0; }
+.platform-shell input, .platform-shell textarea { width: 100%; border: 1px solid #bfc1d8; border-radius: 12px; padding: 12px; background: white; margin-top: 8px; box-sizing: border-box; }
+.platform-shell textarea { min-height: 120px; resize: vertical; }
+.platform-shell label { display: block; margin: 16px 0; }
+.platform-shell button, .platform-shell .primary { border-radius: 12px; padding: 12px 20px; border: 0; background: #7c62ff; color: white; cursor: pointer; display: inline-block; }
+.platform-shell button:disabled { opacity: .55; cursor: wait; }
+.platform-shell button.secondary { background: #eff3ff; color: #7056e0; }
+.platform-shell .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+.platform-shell .muted { color: #7f80a1; }
+.platform-shell .error { color: #a13146; }
+.platform-shell .message { background: #f6f4ff; border-radius: 12px; padding: 12px 16px; margin: 12px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 *:focus-visible { outline: 3px solid #aa92ff; outline-offset: 3px; }

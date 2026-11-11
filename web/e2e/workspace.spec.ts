@@ -79,8 +79,32 @@ test('verification report displays business checks and protected evidence links'
 });
 
 test('a creation draft is restored after refresh before submitting', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/create');
   await page.getByLabel('你想做什么应用？').fill('记录梦境并保存历史');
   await page.reload();
   await expect(page.getByLabel('你想做什么应用？')).toHaveValue('记录梦境并保存历史');
+});
+
+test('an anonymous creation returns through login without losing the draft', async ({ page }) => {
+  await page.route('**/api/apps', route => route.fulfill({ status: 401, json: { error: { code: 'UNAUTHORIZED', message: '请先登录', retryable: false } } }));
+  await page.goto('/create');
+  await page.getByLabel('你想做什么应用？').fill('整理客户访谈并保留历史');
+  await page.getByRole('button', { name: '开始创建' }).click();
+  await expect(page).toHaveURL(/\/login\?next=%2Fcreate$/);
+
+  await page.route('**/api/auth/login', route => route.fulfill({ json: { ok: true } }));
+  await page.getByLabel('用户名').fill('owner');
+  await page.getByLabel('密码').fill('password-for-test');
+  await page.getByRole('button', { name: '登录' }).click();
+  await expect(page).toHaveURL(/\/create$/);
+  await expect(page.getByLabel('你想做什么应用？')).toHaveValue('整理客户访谈并保留历史');
+});
+
+test('login rejects an external next target', async ({ page }) => {
+  await page.route('**/api/auth/login', route => route.fulfill({ json: { ok: true } }));
+  await page.goto('/login?next=%2F%2Fevil.test');
+  await page.getByLabel('用户名').fill('owner');
+  await page.getByLabel('密码').fill('password-for-test');
+  await page.getByRole('button', { name: '登录' }).click();
+  await expect(page).toHaveURL(/\/apps$/);
 });

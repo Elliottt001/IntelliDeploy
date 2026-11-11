@@ -21,7 +21,9 @@
     ],
     "allowJs": true,
     "incremental": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["./*"] }
   },
   "include": [
     "**/*.ts",
