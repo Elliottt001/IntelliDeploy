@@ -5,6 +5,7 @@ export {
   CircleAction,
   MobileIcon,
   type CircleActionProps,
+  type MobileIconProps,
   type MobileIconName,
 } from './CircleAction';
 export { EmptyState } from './EmptyState';

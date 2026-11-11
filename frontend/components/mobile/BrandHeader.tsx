@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
+import {
+  type FigmaVectorLayer,
+  figmaComponentEvidence,
+} from '../../design/figmaComponentEvidence';
 import { mobileColors } from '../../theme/tokens';
 import { mobileFontFamilies } from '../../theme/typography';
 
@@ -13,33 +17,63 @@ type BrandHeaderProps = {
   title?: string;
 };
 
+const DEFAULT_SUBTITLE = 'Powered by Sealos | GitHub';
+const DEFAULT_TITLE = 'INTELLIDEPLOY';
+
 function BrandMark() {
+  const evidence = figmaComponentEvidence.brandMark;
+
   return (
-    <View style={styles.mark}>
-      <Svg
-        accessibilityElementsHidden
-        height={20}
-        viewBox="0 0 24 20"
-        width={24}
-      >
-        <Path
-          d="M7 14.5h10a4 4 0 0 0 .4-7.98A5.7 5.7 0 0 0 6.6 6.2 4.15 4.15 0 0 0 7 14.5Z"
-          fill="none"
-          stroke="#FFFFFF"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.7}
-        />
-        <Circle cx={9} cy={10.5} fill="#FFFFFF" r={1.15} />
-        <Circle cx={15} cy={10.5} fill="#FFFFFF" r={1.15} />
-        <Path
-          d="M10.5 13h3"
-          fill="none"
-          stroke="#FFFFFF"
-          strokeLinecap="round"
-          strokeWidth={1.3}
-        />
-      </Svg>
+    <Svg
+      accessibilityElementsHidden
+      height={evidence.size.height}
+      viewBox={`0 0 ${evidence.size.width} ${evidence.size.height}`}
+      width={evidence.size.width}
+    >
+      {evidence.geometry.map((definitionLayer, index) => {
+        const layer = definitionLayer as FigmaVectorLayer;
+        return (
+          <Path
+            d={layer.path}
+            fill={layer.fill ?? 'none'}
+            key={`${layer.sourceNodeId}-${index}`}
+            opacity={layer.opacity}
+            stroke={layer.stroke}
+            strokeLinecap={layer.strokeLinecap}
+            strokeLinejoin={layer.strokeLinejoin}
+            strokeWidth={layer.strokeWidth}
+            transform={layer.transform}
+          />
+        );
+      })}
+    </Svg>
+  );
+}
+
+function BrandCopy({ subtitle, title }: { subtitle: string; title: string }) {
+  return (
+    <View style={styles.brand}>
+      <View style={styles.mark}>
+        <Svg accessibilityElementsHidden height={20} viewBox="0 0 24 20" width={24}>
+          <Path
+            d="M7 14.5h10a4 4 0 0 0 .4-7.98A5.7 5.7 0 0 0 6.6 6.2 4.15 4.15 0 0 0 7 14.5Z"
+            fill="none"
+            stroke="#FFFFFF"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.7}
+          />
+          <Path d="M9 9.35h0" fill="none" stroke="#FFFFFF" strokeLinecap="round" strokeWidth={2.2} />
+          <Path d="M15 9.35h0" fill="none" stroke="#FFFFFF" strokeLinecap="round" strokeWidth={2.2} />
+          <Path d="M10.5 13h3" fill="none" stroke="#FFFFFF" strokeLinecap="round" strokeWidth={1.3} />
+        </Svg>
+      </View>
+      <View style={styles.copy}>
+        <Text accessibilityRole="header" style={styles.title}>
+          {title}
+        </Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
+      </View>
     </View>
   );
 }
@@ -47,21 +81,23 @@ function BrandMark() {
 export function BrandHeader({
   action,
   logo,
-  subtitle = 'Powered by Sealos | GitHub',
+  subtitle = DEFAULT_SUBTITLE,
   testID,
-  title = 'INTELLIDEPLOY',
+  title = DEFAULT_TITLE,
 }: BrandHeaderProps) {
+  const useDefaultMark = !logo && subtitle === DEFAULT_SUBTITLE && title === DEFAULT_TITLE;
+
   return (
     <View style={styles.header} testID={testID}>
-      <View style={styles.brand}>
-        {logo ?? <BrandMark />}
-        <View style={styles.copy}>
-          <Text accessibilityRole="header" style={styles.title}>
-            {title}
-          </Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
+      {useDefaultMark ? (
+        <View accessibilityLabel={title} style={styles.brandMarkWrapper}>
+          <BrandMark />
         </View>
-      </View>
+      ) : (
+        <>
+          {logo ?? <BrandCopy subtitle={subtitle} title={title} />}
+        </>
+      )}
       {action}
     </View>
   );
@@ -79,6 +115,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 7,
+  },
+  brandMarkWrapper: {
+    height: figmaComponentEvidence.brandMark.size.height,
+    justifyContent: 'center',
+    width: figmaComponentEvidence.brandMark.size.width,
   },
   mark: {
     alignItems: 'center',

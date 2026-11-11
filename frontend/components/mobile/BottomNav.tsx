@@ -2,6 +2,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
+  type FigmaEffectEvidence,
+  type FigmaPaintEvidence,
+  figmaComponentEvidence,
+} from '../../design/figmaComponentEvidence';
+import {
   bottomNavItems,
   getBottomNavTarget,
   type MobileNavKey,
@@ -18,8 +23,41 @@ type BottomNavProps = {
 };
 
 export function BottomNav({ active, onNavigate, testID }: BottomNavProps) {
+  const shell = figmaComponentEvidence.bottomNav;
+  const shadow = (shell.effects as readonly FigmaEffectEvidence[]).find(
+    (effect) => effect.type === 'DROP_SHADOW',
+  );
+  const shellFill = (shell.fills as readonly FigmaPaintEvidence[]).find(
+    (paint) => 'color' in paint && paint.color,
+  )?.color;
+  const shellStroke = (shell.strokes as readonly FigmaPaintEvidence[]).find(
+    (paint) => 'color' in paint && paint.color,
+  )?.color;
+  const activeSize = figmaComponentEvidence.home.size.width;
+
   return (
-    <View accessibilityRole="tablist" style={styles.shell} testID={testID}>
+    <View
+      accessibilityRole="tablist"
+      style={[
+        styles.shell,
+        {
+          backgroundColor:
+            shellFill === '#FFFFFF'
+              ? 'rgba(255, 255, 255, 0.70)'
+              : 'rgba(255, 255, 255, 0.70)',
+          borderColor: shellStroke ?? '#FFFFFF',
+          borderRadius: figmaComponentEvidence.bottomNav.size.height / 2,
+          height: figmaComponentEvidence.bottomNav.size.height,
+          maxWidth: figmaComponentEvidence.bottomNav.size.width,
+          shadowColor: shadow?.color ?? '#BABABA',
+          shadowOffset: shadow?.offset
+            ? { height: shadow.offset.y, width: shadow.offset.x }
+            : { width: 0, height: 2 },
+          shadowRadius: shadow?.radius ?? 3,
+        },
+      ]}
+      testID={testID}
+    >
       {bottomNavItems.map((item) => {
         const selected = item.key === active;
         const content = (
@@ -46,7 +84,14 @@ export function BottomNav({ active, onNavigate, testID }: BottomNavProps) {
             {selected ? (
               <LinearGradient
                 colors={['#C05CF6', mobileColors.primary]}
-                style={styles.activeItem}
+                style={[
+                  styles.activeItem,
+                  {
+                    borderRadius: activeSize / 2,
+                    height: activeSize,
+                    width: activeSize,
+                  },
+                ]}
               >
                 {content}
               </LinearGradient>
@@ -64,19 +109,11 @@ const styles = StyleSheet.create({
   shell: {
     alignItems: 'center',
     alignSelf: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.70)',
-    borderColor: '#FFFFFF',
-    borderRadius: 27,
     borderWidth: 1.3,
     flexDirection: 'row',
-    height: 54,
     justifyContent: 'space-around',
-    maxWidth: 335,
     paddingHorizontal: 13,
-    shadowColor: '#BABABA',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
-    shadowRadius: 3,
     width: '100%',
   },
   item: {
@@ -87,14 +124,11 @@ const styles = StyleSheet.create({
   },
   activeItem: {
     alignItems: 'center',
-    borderRadius: 24,
-    height: 48,
     justifyContent: 'center',
     shadowColor: '#939393',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
-    width: 48,
   },
   inactiveItem: {
     alignItems: 'center',

@@ -6,6 +6,10 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import {
+  type FigmaEffectEvidence,
+  figmaComponentEvidence,
+} from '../../design/figmaComponentEvidence';
 import { mobileRadii } from '../../theme/tokens';
 
 type GlassCardProps = PropsWithChildren<{
@@ -14,8 +18,28 @@ type GlassCardProps = PropsWithChildren<{
 }>;
 
 export function GlassCard({ children, style, testID }: GlassCardProps) {
+  const shadow = (
+    figmaComponentEvidence.glassCard.effects as readonly FigmaEffectEvidence[]
+  ).find(
+    (effect) => effect.type === 'DROP_SHADOW',
+  );
+
   return (
-    <View style={[styles.card, style]} testID={testID}>
+    <View
+      style={[
+        styles.card,
+        {
+          minHeight: figmaComponentEvidence.glassCard.size.height,
+          shadowColor: shadow?.color ?? '#1F2687',
+          shadowOffset: shadow?.offset
+            ? { height: shadow.offset.y, width: shadow.offset.x }
+            : { width: 0, height: 8 },
+          shadowRadius: shadow?.radius ?? 32,
+        },
+        style,
+      ]}
+      testID={testID}
+    >
       {children}
     </View>
   );
@@ -29,9 +53,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     elevation: 3,
     padding: mobileRadii.card.min,
-    shadowColor: '#1F2687',
-    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.07,
-    shadowRadius: 32,
   },
 });

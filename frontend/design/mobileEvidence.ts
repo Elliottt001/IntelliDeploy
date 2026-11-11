@@ -1,3 +1,6 @@
+export const mobileDesignSource =
+  '/Users/bytedance/Downloads/IntelliDeploy-design-2026-11-10-2221' as const;
+
 export const mobileEvidence = {
   login: {
     pages: ['page-01'],
@@ -71,4 +74,27 @@ export const mobileEvidence = {
     frameIds: ['168:6358', '825:6452'],
     size: [375, 812],
   },
+} as const;
+
+export const mobileApprovedFrameIds = Object.values(mobileEvidence).flatMap(
+  (evidence) => evidence.frameIds,
+);
+
+export const mobileComponentAuditedRoots = {
+  settings: ['266:21480'],
+  brandMark: ['270:26268', '270:26277'],
+  back: ['845:3503', '845:3505'],
+  share: ['845:3510', '845:3512'],
+  search: ['270:26625'],
+  bell: ['825:6482'],
+  microphone: ['845:3535'],
+  send: ['845:3539'],
+  arrowRight: ['825:7024'],
+  home: ['270:26532', '270:26534'],
+  store: ['270:26538', '270:26540'],
+  community: ['270:26546', '270:26548'],
+  products: ['270:26552', '270:26554'],
+  circleAction: ['845:3503', '845:3510'],
+  bottomNav: ['270:26531'],
+  glassCard: ['825:6575'],
 } as const;

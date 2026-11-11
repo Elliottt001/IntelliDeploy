@@ -41,6 +41,11 @@ import {
   type CircleActionProps,
 } from '../components/mobile/CircleAction';
 import { ErrorState } from '../components/mobile/ErrorState';
+import { BrandHeader, GlassCard, MobileIcon } from '../components/mobile';
+import {
+  figmaComponentEvidence,
+  getFigmaMobileIcon,
+} from '../design/figmaComponentEvidence';
 import {
   bottomNavItems,
   getBottomNavTarget,
@@ -207,4 +212,37 @@ test('bottom navigation renders four accessible tabs with 44pt targets', () => {
     expect(tabStyle.minHeight).toBeGreaterThanOrEqual(44);
   }
   expect(propsOf(tabs[2]).accessibilityState).toEqual({ selected: true });
+});
+
+test('MobileIcon renders the audited Figma layers', () => {
+  const definition = getFigmaMobileIcon('settings');
+  const icon = MobileIcon({ name: 'settings', size: 18 });
+  const renderedPaths: string[] = [];
+
+  walkRenderedTree(icon, (element) => {
+    if (element.type === 'Path' && typeof propsOf(element).d === 'string') {
+      renderedPaths.push(propsOf(element).d as string);
+    }
+  });
+
+  expect(renderedPaths).toEqual(definition.layers.map((layer) => layer.path));
+});
+
+test('corrected shared shells preserve accessibility, hit targets, and Figma source sizes', () => {
+  const nav = BottomNav({ active: 'home', onNavigate: vi.fn() });
+  const tabs = propsOf(nav).children as ReactElement[];
+
+  expect(tabs).toHaveLength(4);
+  expect(
+    tabs.every((tab) => {
+      const style = flattenStyle(propsOf(tab).style);
+      return Number(style.minWidth) >= 44 && Number(style.minHeight) >= 44;
+    }),
+  ).toBe(true);
+  expect(figmaComponentEvidence.bottomNav.size).toMatchObject({
+    height: 54,
+    width: 335,
+  });
+  expect(BrandHeader({}).type).toBe('View');
+  expect(GlassCard({ children: 'content' }).type).toBe('View');
 });
