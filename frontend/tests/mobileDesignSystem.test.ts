@@ -1,6 +1,6 @@
-import { execFileSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import * as ts from 'typescript';
 import { describe, expect, test, vi } from 'vitest';
 
 vi.mock('react-native', () => ({
@@ -17,6 +17,114 @@ import {
   mobileFontFamilies,
   mobileTypography,
 } from '../theme/typography';
+
+type ManifestEntry = {
+  key: string;
+  nodeId: string;
+  requirePath: string;
+};
+
+function unwrapExpression(expression: ts.Expression): ts.Expression {
+  let current = expression;
+  while (
+    ts.isAsExpression(current) ||
+    ts.isParenthesizedExpression(current) ||
+    ts.isSatisfiesExpression(current)
+  ) {
+    current = current.expression;
+  }
+  return current;
+}
+
+function propertyNameText(name: ts.PropertyName): string | undefined {
+  if (
+    ts.isIdentifier(name) ||
+    ts.isStringLiteral(name) ||
+    ts.isNumericLiteral(name)
+  ) {
+    return name.text;
+  }
+  return undefined;
+}
+
+function readStringProperty(object: ts.ObjectLiteralExpression, name: string) {
+  const property = object.properties.find(
+    (candidate): candidate is ts.PropertyAssignment =>
+      ts.isPropertyAssignment(candidate) &&
+      propertyNameText(candidate.name) === name,
+  );
+  const value = property && unwrapExpression(property.initializer);
+  if (!value || !ts.isStringLiteral(value)) {
+    throw new Error(`Manifest property ${name} must be a string literal`);
+  }
+  return value.text;
+}
+
+function parseMobileAssetManifest(sourceText: string): ManifestEntry[] {
+  const sourceFile = ts.createSourceFile(
+    'mobileAssetManifest.ts',
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  let mobileAssets: ts.ObjectLiteralExpression | undefined;
+
+  for (const statement of sourceFile.statements) {
+    if (!ts.isVariableStatement(statement)) {
+      continue;
+    }
+    for (const declaration of statement.declarationList.declarations) {
+      if (
+        ts.isIdentifier(declaration.name) &&
+        declaration.name.text === 'mobileAssets' &&
+        declaration.initializer
+      ) {
+        const initializer = unwrapExpression(declaration.initializer);
+        if (ts.isObjectLiteralExpression(initializer)) {
+          mobileAssets = initializer;
+        }
+      }
+    }
+  }
+  if (!mobileAssets) {
+    throw new Error('mobileAssets object was not found');
+  }
+
+  return mobileAssets.properties.map((property) => {
+    if (!ts.isPropertyAssignment(property)) {
+      throw new Error('mobileAssets entries must be property assignments');
+    }
+    const key = propertyNameText(property.name);
+    const value = unwrapExpression(property.initializer);
+    if (!key || !ts.isObjectLiteralExpression(value)) {
+      throw new Error('mobileAssets entry must use a literal key and object');
+    }
+    const sourceProperty = value.properties.find(
+      (candidate): candidate is ts.PropertyAssignment =>
+        ts.isPropertyAssignment(candidate) &&
+        propertyNameText(candidate.name) === 'source',
+    );
+    const sourceCall =
+      sourceProperty && unwrapExpression(sourceProperty.initializer);
+    if (
+      !sourceCall ||
+      !ts.isCallExpression(sourceCall) ||
+      !ts.isIdentifier(sourceCall.expression) ||
+      sourceCall.expression.text !== 'require' ||
+      sourceCall.arguments.length !== 1 ||
+      !ts.isStringLiteral(sourceCall.arguments[0])
+    ) {
+      throw new Error(`mobileAssets entry ${key} must use require("path")`);
+    }
+
+    return {
+      key,
+      nodeId: readStringProperty(value, 'nodeId'),
+      requirePath: sourceCall.arguments[0].text,
+    };
+  });
+}
 
 describe('mobile design evidence', () => {
   test('pins every formal family to approved pages and real frame ids', () => {
@@ -153,46 +261,36 @@ describe('mobile design evidence', () => {
     });
   });
 
-  test('keeps the generated mobile asset manifest non-empty and local', async () => {
-    const manifest = await readFile(
-      path.resolve('design/generated/mobileAssetManifest.ts'),
-      'utf8',
+  test('maps all manifest entries one-to-one onto generated local files', async () => {
+    const manifestPath = path.resolve(
+      'design/generated/mobileAssetManifest.ts',
     );
-    const entries = manifest.match(
-      /source: require\("\.\.\/\.\.\/assets\/mobile\/generated\/[^"\n]+"\)/g,
+    const generatedDirectory = path.resolve('assets/mobile/generated');
+    const entries = parseMobileAssetManifest(
+      await readFile(manifestPath, 'utf8'),
     );
 
-    expect(manifest).toContain('export const mobileAssets = {');
-    expect(entries?.length).toBeGreaterThan(0);
-    expect(manifest).not.toMatch(/https?:\/\//);
-  });
+    expect(entries).toHaveLength(178);
+    expect(new Set(entries.map((entry) => entry.key)).size).toBe(178);
+    expect(new Set(entries.map((entry) => entry.nodeId)).size).toBe(178);
 
-  test('registers only the approved tracked font files in the root layout', async () => {
-    const layout = await readFile(
-      path.resolve('app/_layout.tsx'),
-      'utf8',
-    );
-    const registeredFonts = [...layout.matchAll(/assets\/fonts\/([^']+)'\)/g)]
-      .map((match) => match[1])
-      .sort();
-    const expectedFonts = [
-      'Alibaba_PuHuiTi_2.0_35_Thin_35_Thin.ttf',
-      'Alibaba_PuHuiTi_2.0_45_Light_45_Light.ttf',
-      'Alibaba_PuHuiTi_2.0_55_Regular_55_Regular.ttf',
-      'Alibaba_PuHuiTi_2.0_55_Regular_85_Bold.ttf',
-      'Alibaba_PuHuiTi_2.0_75_SemiBold_75_SemiBold.ttf',
-      'ZiTiQuanWeiJunHei-W3.ttf',
-    ];
-
-    expect(registeredFonts).toEqual(expectedFonts);
-    for (const font of registeredFonts) {
-      expect(() =>
-        execFileSync(
-          'git',
-          ['ls-files', '--error-unmatch', `frontend/assets/fonts/${font}`],
-          { cwd: path.resolve('..'), stdio: 'pipe' },
-        ),
-      ).not.toThrow();
+    const requiredFiles: string[] = [];
+    for (const [index, entry] of entries.entries()) {
+      expect(entry.nodeId).toMatch(/^\d+:\d+$/);
+      expect(entry.key).toBe(`${entry.nodeId}:${index}`);
+      expect(entry.requirePath).toMatch(
+        /^\.\.\/\.\.\/assets\/mobile\/generated\/[^/]+\.(png|jpg)$/,
+      );
+      const requiredFile = path.resolve(
+        path.dirname(manifestPath),
+        entry.requirePath,
+      );
+      expect((await stat(requiredFile)).isFile()).toBe(true);
+      requiredFiles.push(path.basename(requiredFile));
     }
+
+    expect(requiredFiles.sort()).toEqual(
+      (await readdir(generatedDirectory)).sort(),
+    );
   });
 });

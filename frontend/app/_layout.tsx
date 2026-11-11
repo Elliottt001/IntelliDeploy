@@ -4,17 +4,9 @@ import { useFonts } from 'expo-font';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, LogBox, Platform, View } from 'react-native';
 import { authAPI } from '../services/api';
+import { mobileFontAssets } from '../theme/fonts';
 
 const PUBLIC_ROUTES = new Set(['/login', '/register']);
-
-const MOBILE_FONT_ASSETS = {
-  ZiTiQuanWeiJunHei: require('../assets/fonts/ZiTiQuanWeiJunHei-W3.ttf'),
-  AlibabaPuHuiTiThin: require('../assets/fonts/Alibaba_PuHuiTi_2.0_35_Thin_35_Thin.ttf'),
-  AlibabaPuHuiTiLight: require('../assets/fonts/Alibaba_PuHuiTi_2.0_45_Light_45_Light.ttf'),
-  AlibabaPuHuiTiRegular: require('../assets/fonts/Alibaba_PuHuiTi_2.0_55_Regular_55_Regular.ttf'),
-  AlibabaPuHuiTiSemiBold: require('../assets/fonts/Alibaba_PuHuiTi_2.0_75_SemiBold_75_SemiBold.ttf'),
-  AlibabaPuHuiTiBold: require('../assets/fonts/Alibaba_PuHuiTi_2.0_55_Regular_85_Bold.ttf'),
-} as const;
 
 if (Platform.OS !== 'web') {
   LogBox.ignoreLogs(['Some of the used filters are not yet supported on native platforms']);
@@ -81,7 +73,7 @@ export default function RootLayout() {
   const shouldShowAuthOverlay = isCheckingAuth && !isPublicRoute;
 
 
-  const [fontsLoaded] = useFonts(MOBILE_FONT_ASSETS);
+  const [fontsLoaded] = useFonts(mobileFontAssets);
 
   if (!fontsLoaded) {
     return (

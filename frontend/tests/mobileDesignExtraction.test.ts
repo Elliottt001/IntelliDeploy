@@ -3,6 +3,7 @@ import {
   mkdtemp,
   readdir,
   readFile,
+  rename,
   rm,
   writeFile,
 } from 'node:fs/promises';
@@ -178,6 +179,47 @@ test('an invalid approved frame leaves the previous generated output intact', as
     'previous asset',
   );
   await expect(readFile(manifest, 'utf8')).resolves.toBe('previous manifest');
+});
+
+test('restores both previous outputs when manifest installation fails', async () => {
+  const { generatedAssets, manifest, source } = await createDesignFixture();
+  await mkdir(generatedAssets, { recursive: true });
+  await mkdir(path.dirname(manifest), { recursive: true });
+  await writeFile(path.join(generatedAssets, 'keep.txt'), 'previous asset');
+  await writeFile(manifest, 'previous manifest');
+
+  let failureInjected = false;
+  const renamePath: typeof rename = async (from, to) => {
+    if (
+      !failureInjected &&
+      String(from).includes('.tmp-') &&
+      path.resolve(String(to)) === path.resolve(manifest)
+    ) {
+      failureInjected = true;
+      throw new Error('injected manifest installation failure');
+    }
+    await rename(from, to);
+  };
+
+  await expect(
+    extractMobileDesignEvidence({
+      designSource: source,
+      assetOutput: generatedAssets,
+      manifestOutput: manifest,
+      renamePath,
+      rootIds: ['1:1'],
+    }),
+  ).rejects.toThrow('injected manifest installation failure');
+  expect(failureInjected).toBe(true);
+  expect(await readdir(generatedAssets)).toEqual(['keep.txt']);
+  await expect(readFile(path.join(generatedAssets, 'keep.txt'), 'utf8')).resolves.toBe(
+    'previous asset',
+  );
+  await expect(readFile(manifest, 'utf8')).resolves.toBe('previous manifest');
+  expect(await readdir(path.dirname(generatedAssets))).toEqual(['generated']);
+  expect(await readdir(path.dirname(manifest))).toEqual([
+    'mobileAssetManifest.ts',
+  ]);
 });
 
 test('extracts only approved descendants into a require manifest', async () => {

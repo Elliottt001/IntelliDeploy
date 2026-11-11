@@ -49,9 +49,9 @@ const parentId = (node) =>
     ? `${node.parentIndex.guid.sessionID}:${node.parentIndex.guid.localID}`
     : '';
 
-async function renameIfPresent(from, to) {
+async function renameIfPresent(from, to, renamePath) {
   try {
-    await rename(from, to);
+    await renamePath(from, to);
     return true;
   } catch (error) {
     if (error?.code === 'ENOENT') {
@@ -172,6 +172,7 @@ export async function extractMobileDesignEvidence({
   designSource = source,
   assetOutput = path.resolve('assets/mobile/generated'),
   manifestOutput = path.resolve('design/generated/mobileAssetManifest.ts'),
+  renamePath = rename,
   rootIds = approvedRootIds,
 } = {}) {
   const records = await createExtractionPlan({ designSource, rootIds });
@@ -205,11 +206,19 @@ export async function extractMobileDesignEvidence({
   let newAssetsInstalled = false;
   let newManifestInstalled = false;
   try {
-    oldAssetsMoved = await renameIfPresent(assetOutput, backupAssets);
-    oldManifestMoved = await renameIfPresent(manifestOutput, backupManifest);
-    await rename(stagedAssets, assetOutput);
+    oldAssetsMoved = await renameIfPresent(
+      assetOutput,
+      backupAssets,
+      renamePath,
+    );
+    oldManifestMoved = await renameIfPresent(
+      manifestOutput,
+      backupManifest,
+      renamePath,
+    );
+    await renamePath(stagedAssets, assetOutput);
     newAssetsInstalled = true;
-    await rename(stagedManifest, manifestOutput);
+    await renamePath(stagedManifest, manifestOutput);
     newManifestInstalled = true;
   } catch (error) {
     if (newManifestInstalled) {
@@ -219,10 +228,10 @@ export async function extractMobileDesignEvidence({
       await rm(assetOutput, { recursive: true, force: true });
     }
     if (oldManifestMoved) {
-      await rename(backupManifest, manifestOutput);
+      await renamePath(backupManifest, manifestOutput);
     }
     if (oldAssetsMoved) {
-      await rename(backupAssets, assetOutput);
+      await renamePath(backupAssets, assetOutput);
     }
     await rm(stagedAssets, { recursive: true, force: true });
     await rm(stagedManifest, { force: true });
