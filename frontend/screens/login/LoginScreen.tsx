@@ -37,6 +37,7 @@ import {
   socialCircleXml,
   wordMarkXml,
 } from './generated/loginSvgAssets';
+import { sanitizeNextPath } from '../../features/navigation/routePolicy';
 import { authAPI } from '../../services/api';
 
 declare const require: <T = unknown>(moduleName: string) => T;
@@ -246,7 +247,8 @@ const DESIGN_HEIGHT = 812;
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { next } = useLocalSearchParams<{ next?: string }>();
+  const { next } = useLocalSearchParams<{ next?: string | string[] }>();
+  const safeNextPath = sanitizeNextPath(next);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [account, setAccount] = useState('');
@@ -279,7 +281,7 @@ export default function LoginScreen() {
     try {
       const response = await authAPI.login(account.trim(), password);
       await authAPI.setToken(response.data.access_token);
-      router.replace((next && /^\/(?:chatbot|app-gallery|billing|app-detail\/[A-Za-z0-9_-]+)$/.test(next) ? next : '/') as Href);
+      router.replace(safeNextPath as Href);
     } catch (error: unknown) {
       showAlert('错误', getLoginErrorMessage(error));
     } finally {
@@ -495,7 +497,7 @@ export default function LoginScreen() {
               <TText className="text-[12px] text-[#B4B4B4]" style={styles.alibabaRegular}>
                 还没有账号？
               </TText>
-              <TPressable accessibilityRole="button" onPress={() => router.push({ pathname: '/register', params: { next } })}>
+              <TPressable accessibilityRole="button" onPress={() => router.push({ pathname: '/register', params: { next: safeNextPath } })}>
                 <TText className="text-[12px] text-[#7C62FF]" style={styles.alibabaRegular}>
                   立即注册
                 </TText>

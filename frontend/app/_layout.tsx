@@ -3,10 +3,9 @@ import { Stack, usePathname, useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, LogBox, Platform, View } from 'react-native';
+import { isPublicPath } from '../features/navigation/routePolicy';
 import { authAPI } from '../services/api';
 import { mobileFontAssets } from '../theme/fonts';
-
-const PUBLIC_ROUTES = new Set(['/login', '/register']);
 
 if (Platform.OS !== 'web') {
   LogBox.ignoreLogs(['Some of the used filters are not yet supported on native platforms']);
@@ -27,8 +26,8 @@ export default function RootLayout() {
         if (isMounted) {
           setIsAuthenticated(Boolean(token));
         }
-      } catch (error) {
-        console.warn('Auth bootstrap failed', error);
+      } catch {
+        console.warn('Auth bootstrap failed');
         if (isMounted) {
           setIsAuthenticated(false);
         }
@@ -58,7 +57,7 @@ export default function RootLayout() {
       return;
     }
 
-    const isPublicRoute = (PUBLIC_ROUTES.has(pathname)||pathname==='/community'||pathname.startsWith('/community/'));
+    const isPublicRoute = isPublicPath(pathname);
 
     if (isPublicRoute) {
       return;
@@ -69,7 +68,7 @@ export default function RootLayout() {
     }
   }, [isAuthenticated, isCheckingAuth, pathname, router]);
 
-  const isPublicRoute = (PUBLIC_ROUTES.has(pathname)||pathname==='/community'||pathname.startsWith('/community/'));
+  const isPublicRoute = isPublicPath(pathname);
   const shouldShowAuthOverlay = isCheckingAuth && !isPublicRoute;
 
 
@@ -108,6 +107,8 @@ export default function RootLayout() {
         />
         <Stack.Screen name="login" options={{ title: '登录' }} />
         <Stack.Screen name="register" options={{ title: '注册' }} />
+        <Stack.Screen name="store" options={{ title: '应用商店', headerShown: false }} />
+        <Stack.Screen name="store/ranking" options={{ title: '热门榜单', headerShown: false }} />
         <Stack.Screen name="app-gallery" options={{ title: 'App Gallery' }} />
         <Stack.Screen name="chatbot" options={{ title: 'Mibo', headerShown: false }} />
         <Stack.Screen name="app-detail/[id]" options={{ title: '应用与对话', headerShown: false }} />

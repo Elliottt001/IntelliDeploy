@@ -37,6 +37,7 @@ import {
   socialCircleXml,
   wordMarkXml,
 } from '../login/generated/loginSvgAssets';
+import { sanitizeNextPath } from '../../features/navigation/routePolicy';
 import { authAPI } from '../../services/api';
 
 declare const require: <T = unknown>(moduleName: string) => T;
@@ -244,7 +245,8 @@ const DESIGN_HEIGHT = 812;
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { next } = useLocalSearchParams<{ next?: string }>();
+  const { next } = useLocalSearchParams<{ next?: string | string[] }>();
+  const safeNextPath = sanitizeNextPath(next);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('');
@@ -291,7 +293,7 @@ export default function RegisterScreen() {
       await authAPI.register(username.trim(), email.trim(), password);
       const loginResponse = await authAPI.login(username.trim(), password);
       await authAPI.setToken(loginResponse.data.access_token);
-      router.replace((next && /^\/(?:chatbot|app-gallery|billing|app-detail\/[A-Za-z0-9_-]+)$/.test(next) ? next : '/') as Href);
+      router.replace(safeNextPath as Href);
     } catch (error: unknown) {
       showAlert('错误', getRegisterErrorMessage(error));
     } finally {
@@ -519,7 +521,7 @@ export default function RegisterScreen() {
               <TText className="text-[12px] text-[#B4B4B4]" style={styles.alibabaRegular}>
                 已有账号？
               </TText>
-              <TPressable accessibilityRole="button" onPress={() => router.push({ pathname: '/login', params: { next } })}>
+              <TPressable accessibilityRole="button" onPress={() => router.push({ pathname: '/login', params: { next: safeNextPath } })}>
                 <TText className="text-[12px] text-[#7C62FF]" style={styles.alibabaRegular}>
                   立即登录
                 </TText>
