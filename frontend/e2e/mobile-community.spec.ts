@@ -68,3 +68,42 @@ test('Publication facts use formal card and featured typography at native point 
  await expect(page.getByTestId('discovery-publication-first').getByText('查看应用介绍',{exact:true})).toHaveCSS('line-height','19.5px');
  await expect(page.getByTestId('featured-publication-second').getByText('应用 second',{exact:true})).toHaveCSS('font-size','18px');
 });
+test('featured image inverse UV preserves raw aspect, local origin and source node affine in the actual SVG',async({page})=>{
+ await fixtures(page);await page.goto('/community');
+ const node=page.getByTestId('community-decoration');const image=node.locator('image');await expect(image).toBeAttached();
+ const dimensions=await image.evaluate(element=>{
+  const image=element as unknown as SVGGraphicsElement;const parent=image.parentElement as unknown as SVGGraphicsElement;
+  const box=image.getBBox();const relative=parent.getScreenCTM()!.inverse().multiply(image.getScreenCTM()!);const origin=new DOMPoint(0,0).matrixTransform(relative);const right=new DOMPoint(box.width,0).matrixTransform(relative);const bottom=new DOMPoint(0,box.height).matrixTransform(relative);
+  const decoration=parent.parentElement as unknown as SVGGraphicsElement;const affine=(decoration.parentElement as unknown as SVGGraphicsElement).getScreenCTM()!.inverse().multiply(decoration.getScreenCTM()!);
+  return {width:Math.hypot(right.x-origin.x,right.y-origin.y),height:Math.hypot(bottom.x-origin.x,bottom.y-origin.y),x:origin.x,y:origin.y,rotation:Math.atan2(affine.b,affine.a)*180/Math.PI,nodeX:affine.e,nodeY:affine.f};
+ });
+ expect(dimensions.width).toBeCloseTo(74.062501,4);expect(dimensions.height).toBeCloseTo(160,4);expect(dimensions.width/dimensions.height).toBeCloseTo(.4628904,6);expect(dimensions.width/dimensions.height).toBeCloseTo(148/320,3);expect(dimensions.x).toBeCloseTo(42.968716,4);expect(dimensions.y).toBeCloseTo(-.000036,4);expect(dimensions.rotation).toBeCloseTo(12,4);expect(dimensions.nodeX).toBeCloseTo(33.265903,4);expect(dimensions.nodeY).toBeCloseTo(0,4);
+});
+test('actual blurred atmosphere output stops at the enabled source frame edge',async({page})=>{
+ await fixtures(page);await page.goto('/community');const svg=page.getByTestId('community-atmosphere');
+ const pixels=await svg.evaluate(async element=>{
+  const clone=element.cloneNode(true) as SVGSVGElement;clone.setAttribute('width','375');clone.setAttribute('height','812');clone.removeAttribute('style');clone.querySelector(':scope > rect')!.remove();
+  const image=new Image();image.src=`data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(clone))}`;await image.decode();const canvas=document.createElement('canvas');canvas.width=375;canvas.height=812;const context=canvas.getContext('2d')!;context.drawImage(image,0,0);const data=context.getImageData(0,0,375,812).data;
+  let below=0,inside=0;for(let x=0;x<375;x++){below+=data[(700*375+x)*4+3];inside+=data[(600*375+x)*4+3];}return {below,inside};
+ });
+ expect(pixels.inside).toBeGreaterThan(0);expect(pixels.below).toBe(0);
+ await expect(svg.locator('clipPath rect')).toHaveAttribute('height','611.3303833007812');
+});
+test('one native grouped card action exposes all honest facts including unavailable state',async({page})=>{
+ await fixtures(page);await page.route('**/api/community/apps**',r=>r.fulfill({json:{items:[publication('first',false)],next_cursor:null}}));await page.goto('/community');
+ for(const id of ['discovery-publication-first','featured-publication-first'])await expect(page.getByTestId(id)).toHaveAccessibleName('查看应用 first，作者 first，查看应用介绍，暂不可用');
+ await expect(page.getByTestId('featured-publication-first').getByText('作者 first',{exact:true})).toHaveCSS('color','rgb(102, 70, 198)');
+});
+test('delayed double activation sends one page request and late results cannot overwrite a returned focus',async({page})=>{
+ await fixtures(page);let initialReads=0,pages=0;let release!:()=>void;const delayed=new Promise<void>(resolve=>{release=resolve;});
+ await page.route('**/api/library/favorites**',route=>route.fulfill({json:{items:[],next_cursor:null}}));
+ await page.route('**/api/community/apps**',async route=>{
+  if(new URL(route.request().url()).searchParams.has('cursor')){pages++;await delayed;await route.fulfill({json:{items:[publication('stale')],next_cursor:null}});}
+  else{initialReads++;await route.fulfill({json:{items:[publication(initialReads===1?'first':'fresh')],next_cursor:'page-2'}});}
+ });
+ await page.goto('/community');await page.getByTestId('community-load-more').dblclick();await expect.poll(()=>pages).toBe(1);
+ await page.getByTestId('discovery-publication-first').click();await expect(page).toHaveURL(/\/community\/first$/);
+ await page.getByRole('button',{name:'应用社区',exact:true}).click();await expect(page.getByTestId('discovery-publication-fresh')).toBeVisible();
+ const response=page.waitForResponse(response=>new URL(response.url()).searchParams.get('cursor')==='page-2');release();await response;await page.waitForLoadState('networkidle');
+ expect(pages).toBe(1);await expect(page.getByTestId('discovery-publication-stale')).toHaveCount(0);await expect(page.getByTestId('discovery-publication-fresh')).toBeVisible();
+});

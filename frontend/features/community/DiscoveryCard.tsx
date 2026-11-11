@@ -28,7 +28,7 @@ export function PublicationPreview({card,tall=false}:{card:DiscoveryCardModel;ta
 }
 export default function DiscoveryCard({card,kind='tall',onOpen}:{card:DiscoveryCardModel;kind?:'tall'|'standard'|'square';onOpen:()=>void}) {
  const definition=source[kind];const tall=kind==='tall';
- return <Pressable accessibilityRole="button" accessibilityLabel={`查看${card.title}`} onPress={onOpen} testID={`discovery-publication-${card.id}`} style={[communitySurface(definition),styles.card,{width:definition.size.width,height:definition.size.height}]}>
+ return <Pressable accessibilityRole="button" accessibilityLabel={`查看${card.title}，${card.creator}，${card.summary}，${card.availability}`} onPress={onOpen} testID={`discovery-publication-${card.id}`} style={[communitySurface(definition),styles.card,{width:definition.size.width,height:definition.size.height}]}>
   <Text numberOfLines={tall?2:1} style={styles.title}>{card.title}</Text>
   <Text numberOfLines={1} style={styles.creator}>{card.creator}</Text>
   <Text numberOfLines={tall?5:2} style={styles.summary}>{card.summary}</Text>
@@ -43,6 +43,6 @@ export const communityCardStyles=StyleSheet.create({
  availability:{fontFamily:mobileFontFamilies.pingFang,fontSize:source.creatorLine.fontSize,lineHeight:source.creatorLine.lineHeight.value,color:source.creatorLine.textColor},
  featuredTitle:{fontFamily:mobileFontFamilies.pingFang,fontWeight:'500',fontSize:source.featuredTitle.fontSize,lineHeight:source.featuredTitle.lineHeight.value,color:source.featuredTitle.textColor},
  featuredSummary:{fontFamily:mobileFontFamilies.pingFang,fontWeight:'500',fontSize:source.featuredSummary.fontSize,lineHeight:source.featuredSummary.lineHeight.value,color:source.featuredSummary.textColor},
- featuredCaption:{fontFamily:mobileFontFamilies.pingFang,fontSize:source.featuredCaption.fontSize,lineHeight:source.featuredCaption.lineHeight.value,color:source.creatorLine.textColor},
+ featuredCaption:{fontFamily:mobileFontFamilies.pingFang,fontSize:source.featuredCaption.fontSize,lineHeight:source.featuredCaption.lineHeight.value,color:source.featuredCaption.textColor},
 });
 const styles=StyleSheet.create({...communityCardStyles,card:{padding:17,minWidth:44,minHeight:44},title:{...communityCardStyles.title,marginBottom:3},summary:{...communityCardStyles.summary,marginTop:12},availability:{...communityCardStyles.availability,marginTop:'auto'},preview:{width:64,height:64}});
