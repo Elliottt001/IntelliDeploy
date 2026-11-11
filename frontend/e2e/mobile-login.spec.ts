@@ -9,7 +9,11 @@ test('login preserves input after a public backend error and keeps providers dis
       json: { error: { message: '账号或密码错误' } },
     }),
   );
-  page.once('dialog', (dialog) => dialog.dismiss());
+  const dialogs: string[] = [];
+  page.on('dialog', async (dialog) => {
+    dialogs.push(dialog.message());
+    await dialog.dismiss();
+  });
 
   await page.goto('/login');
   await page.getByTestId('login-account').fill('oasis');
@@ -20,6 +24,7 @@ test('login preserves input after a public backend error and keeps providers dis
   await expect(page.getByTestId('login-error')).toHaveText('账号或密码错误');
   await expect(page.getByTestId('login-account')).toHaveValue('oasis');
   await expect(page.getByTestId('login-password')).toHaveValue('wrong');
+  expect(dialogs).toEqual([]);
 
   for (const provider of ['google', 'github', 'apple']) {
     const button = page.getByTestId(`login-${provider}`);
