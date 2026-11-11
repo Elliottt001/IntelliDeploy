@@ -26,6 +26,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
+import { loginOptions } from '../../features/auth/loginOptions';
 import {
   atmosphereXml,
   catXml,
@@ -77,37 +78,44 @@ interface MotionLayerProps {
 interface SocialLoginOption {
   id: 'google' | 'github' | 'apple';
   label: string;
+  enabled: boolean;
+  providerName: string;
   imageSource: ImageSourcePropType;
   imageClassName: string;
   imageStyle?: ImageProps['style'];
 }
 
-const socialLoginOptions: SocialLoginOption[] = [
-  {
-    id: 'google',
-    label: 'Google',
+const socialArtwork: Record<
+  (typeof loginOptions)[number]['id'],
+  Omit<SocialLoginOption, 'id' | 'label' | 'enabled'>
+> = {
+  google: {
+    providerName: 'Google',
     imageSource: googleLogo,
     imageClassName: 'absolute left-[1px] top-[6px] h-[28px] w-[38px]',
   },
-  {
-    id: 'github',
-    label: 'GitHub',
+  github: {
+    providerName: 'GitHub',
     imageSource: githubLogo,
     imageClassName: 'absolute left-[7px] top-[8px] h-[24px] w-[26px]',
     imageStyle: { transform: [{ scale: 1.15 }] },
   },
-  {
-    id: 'apple',
-    label: 'Apple',
+  apple: {
+    providerName: 'Apple',
     imageSource: appleLogo,
     imageClassName: 'absolute left-[9px] top-[8px] h-[22px] w-[22px]',
     imageStyle: { transform: [{ scale: 1.12 }] },
   },
-];
+};
+
+const socialLoginOptions: SocialLoginOption[] = loginOptions.map((option) => ({
+  ...option,
+  ...socialArtwork[option.id],
+}));
 
 function LocalSvg({ xml, className, opacity = 1 }: LocalSvgProps) {
   return (
-    <TView className={className} style={{ opacity }}>
+    <TView pointerEvents="none" className={className} style={{ opacity }}>
       <SvgXml xml={xml} width="100%" height="100%" preserveAspectRatio="none" />
     </TView>
   );
@@ -180,11 +188,15 @@ function Checkbox({ checked, onPress, testID }: CheckboxProps) {
       testID={testID}
       accessibilityState={{ checked }}
       onPress={onPress}
-      className={[
-        'h-[11px] w-[11px] rounded-[3px] border-[0.5px]',
-        checked ? 'border-[#7C62FF] bg-[#7C62FF]' : 'border-[#CECECE] bg-white/50',
-      ].join(' ')}
-    />
+      className="h-[44px] w-[44px] items-center justify-center"
+    >
+      <TView
+        className={[
+          'h-[11px] w-[11px] rounded-[3px] border-[0.5px]',
+          checked ? 'border-[#7C62FF] bg-[#7C62FF]' : 'border-[#CECECE] bg-white/50',
+        ].join(' ')}
+      />
+    </TPressable>
   );
 }
 
@@ -218,11 +230,19 @@ function SocialButton({ option }: SocialButtonProps) {
   return (
     <TPressable
       accessibilityRole="button"
-      accessibilityLabel={`${option.label} 登录`}
-      className="relative h-[40px] w-[40px] items-center justify-center overflow-hidden rounded-full active:scale-95"
+      accessibilityLabel={option.label}
+      accessibilityState={{ disabled: !option.enabled }}
+      disabled={!option.enabled}
+      testID={`login-${option.id}`}
+      className="h-[58px] w-[58px] items-center justify-center gap-[2px] rounded-[16px] opacity-75"
     >
-      <LocalSvg xml={socialCircleXml} className="absolute inset-0 h-[40px] w-[40px]" />
-      <TImage source={option.imageSource} className={option.imageClassName} resizeMode="contain" style={option.imageStyle} />
+      <TView pointerEvents="none" className="relative h-[40px] w-[40px]">
+        <LocalSvg xml={socialCircleXml} className="absolute inset-0 h-[40px] w-[40px]" />
+        <TImage source={option.imageSource} className={option.imageClassName} resizeMode="contain" style={option.imageStyle} />
+      </TView>
+      <TText className="text-[9px] text-[#7F80A1]" style={styles.alibabaRegular}>
+        暂未开放
+      </TText>
     </TPressable>
   );
 }
@@ -242,8 +262,17 @@ function getLoginErrorMessage(error: unknown): string {
   return maybeResponse.response?.data?.error?.message || maybeResponse.response?.data?.detail || '登录失败，请检查账号和密码';
 }
 
-const DESIGN_WIDTH = 375;
-const DESIGN_HEIGHT = 812;
+function getMobileLayout(screenWidth: number) {
+  const gutter = screenWidth < 360 ? 16 : 20;
+  const contentWidth = Math.min(375, Math.max(0, screenWidth - gutter * 2));
+  return {
+    contentWidth,
+    formWidth: Math.min(299, contentWidth),
+    inputWidth: Math.min(280, contentWidth),
+    heroWidth: Math.min(344, contentWidth),
+    gutter,
+  };
+}
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -256,10 +285,10 @@ export default function LoginScreen() {
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const scale = screenWidth / DESIGN_WIDTH;
-  const scaledHeight = DESIGN_HEIGHT * scale;
-  const availableHeight = Math.max(screenHeight, scaledHeight);
+  const [error, setError] = useState('');
+  const { contentWidth, formWidth, gutter, heroWidth, inputWidth } = getMobileLayout(screenWidth);
+  const heroScale = heroWidth / 344;
+  const heroHeight = 195 * heroScale;
 
   const canSubmit = useMemo(
     () => agreePrivacy && account.trim().length > 0 && password.trim().length > 0 && !loading,
@@ -268,22 +297,25 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!account.trim() || !password.trim()) {
+      setError('');
       showAlert('提示', '请输入用户名/电话号码/邮箱和密码');
       return;
     }
 
     if (!agreePrivacy) {
+      setError('');
       showAlert('提示', '请先同意隐私协议');
       return;
     }
 
+    setError('');
     setLoading(true);
     try {
       const response = await authAPI.login(account.trim(), password);
       await authAPI.setToken(response.data.access_token);
       router.replace(safeNextPath as Href);
     } catch (error: unknown) {
-      showAlert('错误', getLoginErrorMessage(error));
+      setError(getLoginErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -296,48 +328,23 @@ export default function LoginScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={[styles.scrollContent, { minHeight: availableHeight, paddingTop: insets.top, paddingBottom: insets.bottom }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            minHeight: screenHeight,
+            paddingBottom: insets.bottom + 24,
+            paddingHorizontal: gutter,
+            paddingTop: insets.top + 12,
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         bounces={false}
       >
-        <TView
-          style={[
-            styles.artboardBackground,
-            {
-              width: screenWidth,
-              height: scaledHeight,
-            },
-          ]}
-          className="relative overflow-hidden"
-        >
-          <TView
-            style={{
-              width: DESIGN_WIDTH,
-              height: DESIGN_HEIGHT,
-              transform: [{ scale }],
-              transformOrigin: 'top left',
-            }}
-            className="relative"
-          >
-            <LocalSvg xml={atmosphereXml} className="absolute left-[-101px] top-[72px] h-[611.33px] w-[658.45px]" />
+        <TView style={[styles.artboardBackground, { width: contentWidth }]} className="relative self-center overflow-hidden">
+          <LocalSvg xml={atmosphereXml} className="absolute left-[-120px] top-[48px] h-[611.33px] w-[658.45px]" />
 
-          <TView className="absolute left-[28px] top-[93px] h-[195px] w-[344px]">
-            <LocalSvg xml={rippleXml} className="absolute left-[5px] top-[55px] h-[139.74px] w-[339px]" />
-
-            <TView className="absolute left-[105px] top-[29px] h-[117.22px] w-[120.11px]">
-              <TView
-                className="absolute left-[7px] top-[8px] h-[102.96px] w-[106.96px]"
-                style={{ transform: [{ rotate: '-6.64deg' }, { skewX: '-1.93deg' }] }}
-              >
-                <SvgXml xml={catXml} width="100%" height="100%" preserveAspectRatio="none" />
-              </TView>
-            </TView>
-
-            <LocalSvg xml={layersXml} className="absolute left-[29px] top-[5px] h-[117px] w-[253px]" />
-          </TView>
-
-          <MotionLayer className="absolute left-[14px] top-[47px] h-[38px] w-[347px]" delay={0.04} fromY={-10}>
-            <TView className="h-full w-full flex-row items-end justify-between">
+          <MotionLayer className="h-[44px] w-full" delay={0.04} fromY={-10}>
+            <TView className="h-full w-full flex-row items-center justify-between">
               <TView className="relative h-[36px] w-[170.61px]">
                 <TView
                   className="absolute left-[6.78px] top-[1.04px] h-[31.3px] w-[31.3px] rounded-full border-[1.565px] border-white bg-[#7C62FF]"
@@ -351,29 +358,60 @@ export default function LoginScreen() {
                 </TView>
               </TView>
 
-              <TPressable accessibilityRole="button" accessibilityLabel="设置" className="relative h-[38px] w-[38px] active:scale-95">
-                <SvgXml xml={settingsXml} width="100%" height="100%" preserveAspectRatio="none" />
+              <TPressable
+                accessibilityRole="button"
+                accessibilityLabel="设置"
+                onPress={() => showAlert('设置', '语言与联系入口暂未开放')}
+                className="h-[44px] w-[44px] items-center justify-center active:scale-95"
+              >
+                <TView className="h-[38px] w-[38px]">
+                  <SvgXml xml={settingsXml} width="100%" height="100%" preserveAspectRatio="none" />
+                </TView>
               </TPressable>
             </TView>
           </MotionLayer>
 
-          <LocalSvg xml={purpleGlowXml} className="absolute left-[43.5px] top-[370px] h-[130px] w-[278px]" opacity={0.9} />
+          <TView style={{ height: heroHeight + 18, width: heroWidth }} className="relative mt-[22px] self-center">
+            <TView
+              className="absolute left-0 top-0 h-[195px] w-[344px]"
+              style={{ transform: [{ scale: heroScale }] }}
+            >
+              <LocalSvg xml={rippleXml} className="absolute left-[5px] top-[55px] h-[139.74px] w-[339px]" />
 
-          <MotionLayer className="absolute left-[38px] top-[203px] w-[299px]" delay={0.16} fromY={12}>
+              <TView className="absolute left-[105px] top-[29px] h-[117.22px] w-[120.11px]">
+                <TView
+                  className="absolute left-[7px] top-[8px] h-[102.96px] w-[106.96px]"
+                  style={{ transform: [{ rotate: '-6.64deg' }, { skewX: '-1.93deg' }] }}
+                >
+                  <SvgXml xml={catXml} width="100%" height="100%" preserveAspectRatio="none" />
+                </TView>
+              </TView>
+
+              <LocalSvg xml={layersXml} className="absolute left-[29px] top-[5px] h-[117px] w-[253px]" />
+            </TView>
+          </TView>
+
+          <MotionLayer className="mt-[-8px] self-center" delay={0.16} fromY={12}>
             <TView>
               <TText
-                className="absolute left-0 top-[42px] h-[54px] w-[299px] text-center text-[40px] font-extrabold opacity-10"
-                style={styles.heroTitleReflection}
+                className="absolute left-0 top-[42px] h-[54px] text-center text-[40px] font-extrabold opacity-10"
+                style={[styles.heroTitleReflection, { width: formWidth }]}
               >
                 IntelliDeploy
               </TText>
-              <TText className="h-[66px] w-[299px] text-center text-[40px] font-extrabold" style={styles.heroTitle}>
+              <TText
+                className="h-[66px] text-center text-[40px] font-extrabold"
+                style={[styles.heroTitle, { width: formWidth }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+              >
                 IntelliDeploy
               </TText>
             </TView>
           </MotionLayer>
 
-          <MotionLayer className="absolute left-[104px] top-[274px] w-[166px]" delay={0.24} fromY={12}>
+          <MotionLayer className="mt-[4px] self-center" delay={0.24} fromY={12}>
             <TView className="items-center justify-center gap-[8px]">
               <TText className="text-[18px] font-bold text-[#494A64]" style={styles.alibabaBold}>
                 欢迎回来，开发者！
@@ -384,8 +422,8 @@ export default function LoginScreen() {
             </TView>
           </MotionLayer>
 
-          <MotionLayer className="absolute left-[47px] top-[356px] h-[112px] w-[280px]" delay={0.32} fromY={18}>
-            <TView className="h-full w-full gap-[16px]">
+          <MotionLayer className="mt-[30px] self-center" delay={0.32} fromY={18}>
+            <TView className="gap-[16px]" style={{ width: inputWidth }}>
               <TTextInput
                 testID="login-account"
                 value={account}
@@ -394,8 +432,8 @@ export default function LoginScreen() {
                 placeholderTextColor="#B4B4B4"
                 autoCapitalize="none"
                 autoCorrect={false}
-                className="h-[48px] w-[280px] rounded-[12px] border-[0.3px] border-[#A3B2FF] bg-white px-[16.5px] text-[11px] text-[#545454]"
-                style={styles.inputText}
+                className="h-[48px] rounded-[12px] border-[0.3px] border-[#A3B2FF] bg-white px-[16.5px] text-[11px] text-[#545454]"
+                style={[styles.inputText, { width: inputWidth }]}
               />
               <TTextInput
                 testID="login-password"
@@ -404,47 +442,59 @@ export default function LoginScreen() {
                 placeholder="密码"
                 placeholderTextColor="#B4B4B4"
                 secureTextEntry
-                className="h-[48px] w-[280px] rounded-[12px] border-[0.3px] border-[#A3B2FF] bg-white px-[16.5px] text-[11px] text-[#545454]"
-                style={styles.inputText}
+                className="h-[48px] rounded-[12px] border-[0.3px] border-[#A3B2FF] bg-white px-[16.5px] text-[11px] text-[#545454]"
+                style={[styles.inputText, { width: inputWidth }]}
               />
             </TView>
           </MotionLayer>
 
-          <TView
-            className="absolute left-[33px] top-[512px] h-[46px] w-[299px] rounded-full border-[0.3px] border-[#CCC5E6] bg-white/75"
-            style={styles.whiteGlow}
-          />
+          {Boolean(error) && (
+            <TText
+              accessibilityRole="alert"
+              testID="login-error"
+              className="mt-[10px] self-center text-[12px] text-[#C0362C]"
+              style={[styles.alibabaRegular, { width: inputWidth }]}
+            >
+              {error}
+            </TText>
+          )}
 
-          <MotionLayer className="absolute left-[48.5px] top-[489px] h-[15px] w-[278px]" delay={0.4} fromY={12}>
-            <TView className="h-full w-full flex-row items-start justify-between">
-              <TView className="h-[15px] flex-row items-center gap-[3px]">
+          <MotionLayer className="mt-[14px] self-center" delay={0.4} fromY={12}>
+            <TView className="flex-row items-center justify-between" style={{ width: formWidth }}>
+              <TView className="min-h-[44px] flex-row items-center">
                 <Checkbox testID="login-privacy" checked={agreePrivacy} onPress={() => setAgreePrivacy((value) => !value)} />
-                <TText className="text-[10px]" style={styles.alibabaRegular}>
+                <TText className="ml-[-8px] text-[10px]" style={styles.alibabaRegular}>
                   <TText className="text-[#545454]">点击即表示同意</TText>
                   <TText className="text-[#94ACF6] underline">《隐私协议》</TText>
                 </TText>
               </TView>
 
-              <TView className="flex-row items-center gap-[6px]">
-                <Checkbox checked={rememberMe} onPress={() => setRememberMe((value) => !value)} />
-                <TText className="text-[10px] text-[#545454]" style={styles.alibabaRegular}>
+              <TView className="min-h-[44px] flex-row items-center">
+                <Checkbox testID="login-remember" checked={rememberMe} onPress={() => setRememberMe((value) => !value)} />
+                <TText className="ml-[-8px] text-[10px] text-[#545454]" style={styles.alibabaRegular}>
                   记住我
                 </TText>
               </TView>
             </TView>
           </MotionLayer>
 
-          <MotionLayer className="absolute left-[37px] top-[524px] h-[46px] w-[299px]" delay={0.48} fromY={14}>
+          <TView
+            pointerEvents="none"
+            className="absolute h-[46px] rounded-full border-[0.3px] border-[#CCC5E6] bg-white/75"
+            style={[styles.whiteGlow, { left: (contentWidth - formWidth) / 2, top: heroHeight + 390, width: formWidth }]}
+          />
+
+          <MotionLayer className="mt-[10px] self-center" delay={0.48} fromY={14}>
             <TPressable
               accessibilityRole="button"
               disabled={!canSubmit}
               testID="login-submit"
               onPress={handleLogin}
               className={[
-                'relative h-[46px] w-[299px] items-center justify-center overflow-hidden rounded-full border-[0.5px] border-[#FDE0FF] active:scale-[0.98]',
+                'relative h-[46px] items-center justify-center overflow-hidden rounded-full border-[0.5px] border-[#FDE0FF] active:scale-[0.98]',
                 !canSubmit ? 'opacity-60' : 'opacity-100',
               ].join(' ')}
-              style={styles.loginButtonShadow}
+              style={[styles.loginButtonShadow, { width: formWidth }]}
             >
               <TLinearGradient
                 colors={['#8A6BFF', '#6E8DFF']}
@@ -462,25 +512,26 @@ export default function LoginScreen() {
           <TPressable
             accessibilityRole="button"
             onPress={() => showAlert('提示', '忘记密码流程待接入')}
-            className="absolute left-[37px] top-[590px] w-[299px]"
+            className="mt-[10px] h-[44px] justify-center self-center"
+            style={{ width: formWidth }}
           >
             <TText className="text-right text-[10px] text-[#545454]" style={styles.alibabaRegular}>
               忘记密码？
             </TText>
           </TPressable>
 
-          <MotionLayer className="absolute left-[47px] top-[619px] h-[15px] w-[289px]" delay={0.56} fromY={14}>
-            <TView className="h-full w-full flex-row items-center justify-between">
-              <TView className="h-[0.5px] w-[101px] bg-[#D8D8D8]" />
-              <TText className="text-[11px] text-[#B4B4B4]" style={styles.alibabaRegular}>
+          <MotionLayer className="mt-[10px] self-center" delay={0.56} fromY={14}>
+            <TView className="h-[44px] flex-row items-center justify-between" style={{ width: formWidth }}>
+              <TView className="h-[0.5px] flex-1 bg-[#D8D8D8]" />
+              <TText className="px-[12px] text-[11px] text-[#B4B4B4]" style={styles.alibabaRegular}>
                 其他登录方式
               </TText>
-              <TView className="h-[0.5px] w-[101px] bg-[#D8D8D8]" />
+              <TView className="h-[0.5px] flex-1 bg-[#D8D8D8]" />
             </TView>
           </MotionLayer>
 
-          <MotionLayer className="absolute left-[97px] top-[649px] h-[40px] w-[180px]" delay={0.64} fromY={14}>
-            <TView className="h-full w-full flex-row justify-between">
+          <MotionLayer className="self-center" delay={0.64} fromY={14}>
+            <TView className="min-h-[58px] flex-row justify-between" style={{ width: Math.min(216, contentWidth) }}>
               {socialLoginOptions.map((option) => (
                 <SocialButton key={option.id} option={option} />
               ))}
@@ -491,20 +542,26 @@ export default function LoginScreen() {
             colors={['rgba(172,159,203,0.10)', 'rgba(217,217,217,0)']}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
-            className="absolute left-0 top-[730px] h-[113px] w-[375px] items-center pt-[33px]"
+            className="mt-[22px] h-[90px] items-center pt-[18px]"
+            style={{ width: contentWidth }}
           >
-            <TView className="flex-row">
+            <TView className="min-h-[44px] flex-row items-center">
               <TText className="text-[12px] text-[#B4B4B4]" style={styles.alibabaRegular}>
                 还没有账号？
               </TText>
-              <TPressable accessibilityRole="button" onPress={() => router.push({ pathname: '/register', params: { next: safeNextPath } })}>
+              <TPressable
+                accessibilityRole="button"
+                testID="login-register"
+                className="min-h-[44px] min-w-[44px] justify-center"
+                onPress={() => router.push({ pathname: '/register', params: { next: safeNextPath } })}
+              >
                 <TText className="text-[12px] text-[#7C62FF]" style={styles.alibabaRegular}>
                   立即注册
                 </TText>
               </TPressable>
             </TView>
           </TLinearGradient>
-          </TView>
+          <LocalSvg xml={purpleGlowXml} className="absolute left-[44px] top-[360px] h-[130px] w-[278px]" opacity={0.9} />
         </TView>
       </ScrollView>
     </KeyboardAvoidingView>
