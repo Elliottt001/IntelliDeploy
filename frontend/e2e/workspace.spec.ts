@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
+import type { components } from '@intellideploy/api-client';
 
 const timestamp = '2026-11-10T00:00:00Z';
-function detail(status = 'WAITING_USER') {
-  const job = { id: 'job', app_id: 'app', status, kind: 'ADJUST', phase: 'clarifying', usage_units: 10, event_cursor: 0, question: status === 'WAITING_USER' ? '记录是否公开？' : null, result: null, error: status === 'FAILED' ? { code: 'CHECK_FAILED', message: '本次调整未完成', retryable: false } : null, created_at: timestamp, updated_at: timestamp };
-  return { id: 'app', name: '梦境记录', updated_at: timestamp, active_job_id: status === 'FAILED' ? null : 'job', instance_status: 'RUNNING', requirement: { prompt: '梦境记录', acceptance: [], revision: 1, facts: [], source_message_ids: [] }, conversation: [{ id: 'm1', sequence: 1, role: 'user', content: '记录并分析梦境', created_at: timestamp }], active_job: status === 'FAILED' ? null : job, latest_job: job, candidate_version_id: 'candidate', delivery: { app_id: 'app', version_id: 'old', instance_id: 'instance', url: 'https://fixture-app.example', summary: '原有梦境记录', features: ['保存记录'], report_url: '/api/jobs/old-job/report', artifact_url: '/api/apps/app/versions/old/artifact', published_at: timestamp } };
+function detail(status: components['schemas']['JobStatus'] = 'WAITING_USER'): components['schemas']['AppDetail'] {
+  const job: components['schemas']['JobSnapshot'] = { id: 'job', app_id: 'app', status, kind: 'ADJUST', phase: 'clarifying', usage_units: 10, event_cursor: 0, question: status === 'WAITING_USER' ? '记录是否公开？' : null, result: null, error: status === 'FAILED' ? { code: 'CHECK_FAILED', message: '本次调整未完成', retryable: false } : null, created_at: timestamp, updated_at: timestamp };
+  return { id: 'app', name: '梦境记录', updated_at: timestamp, active_job_id: ['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(status) ? null : 'job', instance_status: 'RUNNING', requirement: { prompt: '梦境记录', acceptance: [], revision: 1, facts: [], source_message_ids: [] }, conversation: [{ id: 'm1', sequence: 1, role: 'user', content: '记录并分析梦境', created_at: timestamp }], active_job: ['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(status) ? null : job, latest_job: job, candidate_version_id: 'candidate', delivery: { app_id: 'app', version_id: 'old', instance_id: 'instance', url: 'https://fixture-app.example', summary: '原有梦境记录', features: ['保存记录'], report_url: '/api/jobs/old-job/report', artifact_url: '/api/apps/app/versions/old/artifact', published_at: timestamp } };
 }
 
 test.beforeEach(async ({ page }) => {
@@ -125,4 +126,41 @@ test('leaving during a send does not leave the restored conversation permanently
   await page.goBack();
   await page.getByTestId('message-input').fill('增加编辑功能');
   await expect(page.getByTestId('send-message')).toBeEnabled();
+});
+
+
+test('an unknown running phase stays neutral and cannot be mistaken for success', async ({ page }) => {
+  const app = detail('RUNNING');
+  app.active_job!.phase = 'future_phase';
+  app.latest_job!.phase = 'future_phase';
+  await page.route('**/api/apps/app', route => route.fulfill({ json: app }));
+  await page.route('**/api/jobs/job', route => route.fulfill({ json: app.latest_job }));
+  await page.goto('/app-detail/app');
+  await expect(page.getByTestId('job-status')).toHaveText('正在处理需求');
+  await expect(page.getByText(/%/)).toHaveCount(0);
+  await expect(page.getByTestId('open-app')).toBeVisible();
+  await expect(page.getByTestId('mibo-stage')).toBeVisible();
+  const stages = page.locator('[data-testid^="job-progress-"]');
+  await expect(stages).toHaveCount(8);
+  const colors = await stages.evaluateAll(elements => elements.map(element => getComputedStyle(element.lastElementChild!).color));
+  expect(colors).toEqual(Array(8).fill('rgb(127, 128, 161)'));
+});
+
+test('a message conflict reads the current app once without resending or losing its draft', async ({ page }) => {
+  let app = detail();
+  let sends = 0;
+  await page.route('**/api/apps/app', route => route.fulfill({ json: app }));
+  await page.route('**/api/jobs/job', route => route.fulfill({ json: app.latest_job }));
+  await page.route('**/api/apps/app/messages', async route => {
+    sends++;
+    app = detail('RUNNING');
+    await route.fulfill({ status: 409, json: { error: { code: 'CONFLICT', message: '已有需求正在处理', retryable: false } } });
+  });
+  await page.goto('/app-detail/app');
+  await page.getByTestId('message-input').fill('保持私有');
+  await page.getByTestId('send-message').click();
+  await expect(page.getByTestId('cancel-job')).toBeVisible();
+  await expect(page.getByTestId('message-input')).toHaveValue('保持私有');
+  await expect(page.getByTestId('send-message')).toBeDisabled();
+  expect(sends).toBe(1);
 });

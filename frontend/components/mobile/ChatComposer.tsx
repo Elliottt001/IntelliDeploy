@@ -8,6 +8,11 @@ export type ChatComposerProps = {
   value: string;
   editable: boolean;
   busy: boolean;
+  canSubmit?: boolean;
+  inputTestID?: string;
+  submitTestID?: string;
+  inputLabel?: string;
+  submitLabel?: string;
   onChangeText: (value: string) => void;
   onSubmit: () => void;
 };
@@ -31,10 +36,15 @@ export function ChatComposer({
   value,
   editable,
   busy,
+  canSubmit = editable,
+  inputTestID = "message-input",
+  submitTestID = "send-message",
+  inputLabel = "继续对话",
+  submitLabel = "发送",
   onChangeText,
   onSubmit,
 }: ChatComposerProps) {
-  const disabled = !editable || busy || !value.trim();
+  const disabled = !editable || !canSubmit || busy || !value.trim();
   const submit = () => {
     if (!disabled) onSubmit();
   };
@@ -42,27 +52,28 @@ export function ChatComposer({
   return (
     <View style={styles.composer}>
       <TextInput
-        accessibilityLabel="继续对话"
+        accessibilityLabel={inputLabel}
         editable={editable && !busy}
         maxLength={20000}
         multiline
+        numberOfLines={1}
         onChangeText={onChangeText}
         onSubmitEditing={submit}
         placeholder="在这里输入你的问题……"
         placeholderTextColor={mobileColors.muted}
         style={styles.input}
-        testID="message-input"
+        testID={inputTestID}
         value={value}
       />
       <View accessibilityElementsHidden style={styles.microphone}>
         <MobileIcon color={mobileColors.muted} name="microphone" size={20} />
       </View>
       <CircleAction
-        accessibilityLabel={busy ? "正在提交" : "发送"}
+        accessibilityLabel={busy ? "正在提交" : submitLabel}
         disabled={disabled}
         icon="send"
         onPress={submit}
-        testID="send-message"
+        testID={submitTestID}
         variant="primary"
       />
     </View>

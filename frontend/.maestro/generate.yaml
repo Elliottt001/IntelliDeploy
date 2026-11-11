@@ -17,7 +17,8 @@ onFlowStart:
     id: login-privacy
 - tapOn:
     id: login-submit
-- tapOn: 新建应用
+- tapOn:
+    id: home-mibo-open
 - tapOn:
     id: create-prompt
 - inputText: ${PROMPT}

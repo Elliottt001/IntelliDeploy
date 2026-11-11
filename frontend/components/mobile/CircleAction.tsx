@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import {
+  Platform,
   Pressable,
   StyleSheet,
   type StyleProp,
@@ -85,7 +86,7 @@ export function MobileIcon({
 
   return (
     <Svg
-      accessibilityElementsHidden
+      {...(Platform.OS === 'web' ? { 'aria-hidden': true } : { accessibilityElementsHidden: true })}
       height={size}
       viewBox={definition.viewBox}
       width={size}

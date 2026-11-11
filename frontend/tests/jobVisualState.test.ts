@@ -6,7 +6,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 
 vi.mock("react-native", () => ({
   Image: "Image",
-  Platform: { select: (options: Record<string, string>) => options.default },
+  Platform: { OS: "ios", select: (options: Record<string, string>) => options.default },
   Pressable: "Pressable",
   StyleSheet: { create: <T>(styles: T) => styles },
   Text: "Text",
@@ -20,6 +20,8 @@ import {
   ChatComposer,
   chatComposerFigmaEvidence,
 } from "../components/mobile/ChatComposer";
+import { Platform } from "react-native";
+import { MobileIcon } from "../components/mobile/CircleAction";
 import { JobProgress } from "../components/mobile/JobProgress";
 import {
   MiboStage,
@@ -513,3 +515,42 @@ test.skipIf(!figmaSource)(
     ).toEqual(["DROP_SHADOW", "GLASS"]);
   },
 );
+
+test('creation composer uses custom stable IDs and its input label', () => {
+  const tree = ChatComposer({ value: '需求', editable: true, busy: false,
+    inputTestID: 'create-prompt', submitTestID: 'create-app', inputLabel: '你想做什么应用', submitLabel: '开始创建',
+    onChangeText: vi.fn(), onSubmit: vi.fn() });
+  expect(propsOf(findByTestId(tree, 'create-prompt')!).accessibilityLabel).toBe('你想做什么应用');
+  expect(propsOf(findByTestId(tree, 'create-app')!).accessibilityLabel).toBe('开始创建');
+  expect(findByTestId(tree, 'message-input')).toBeUndefined();
+});
+
+test('running composer keeps the draft editable while preventing button and keyboard submission', () => {
+  const send = vi.fn();
+  const change = vi.fn();
+  const tree = ChatComposer({ value: '下一项需求', editable: true, busy: false, canSubmit: false,
+    onChangeText: change, onSubmit: send });
+  const input = propsOf(findByTestId(tree, 'message-input')!);
+  const button = propsOf(findByTestId(tree, 'send-message')!);
+  expect(input.editable).toBe(true);
+  expect(button.disabled).toBe(true);
+  (input.onChangeText as (value: string) => void)('保存下一项需求');
+  expect(change).toHaveBeenCalledWith('保存下一项需求');
+  (input.onSubmitEditing as () => void)();
+  (button.onPress as () => void)();
+  expect(send).not.toHaveBeenCalled();
+});
+
+
+test.each(['web', 'ios', 'android'])('decorative icons preserve native hiding without leaking native props on %s', platform => {
+  const mockedPlatform = Platform as unknown as { OS: string };
+  const original = mockedPlatform.OS;
+  mockedPlatform.OS = platform;
+  try {
+    const icon = propsOf(MobileIcon({ name: 'send' }));
+    if (platform === 'web') {
+      expect(icon.accessibilityElementsHidden).toBeUndefined();
+      expect(icon['aria-hidden']).toBe(true);
+    } else expect(icon.accessibilityElementsHidden).toBe(true);
+  } finally { mockedPlatform.OS = original; }
+});

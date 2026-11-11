@@ -125,7 +125,7 @@ const webStyles = StyleSheet.create({
     alignItems: 'center',
     ...(Platform.OS === 'web'
       ? ({
-          background:
+          backgroundImage:
             'linear-gradient(211deg, rgba(239, 243, 255, 1) 6%, rgba(255, 255, 255, 1) 100%)',
         } as object)
       : {}),
@@ -133,7 +133,7 @@ const webStyles = StyleSheet.create({
   pageDark: {
     ...(Platform.OS === 'web'
       ? ({
-          background:
+          backgroundImage:
             'radial-gradient(circle at top, rgba(117, 84, 255, 0.22) 0%, rgba(15, 18, 40, 0.96) 32%, rgba(6, 8, 22, 1) 74%)',
         } as object)
       : {

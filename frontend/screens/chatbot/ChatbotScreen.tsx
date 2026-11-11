@@ -1,14 +1,15 @@
 import { useCallback, useRef, useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ApiError } from '@intellideploy/api-client';
 import { authAPI, phase1Api } from '../../services/api';
 import { clearDraft, readDraft, saveDraft } from '../../services/workspaceStorage';
-import WorkspacePage, { Action, workspaceStyles as styles } from '../../components/WorkspacePage';
+import { ChatbotPage, CreateWorkspaceView } from '../../features/chatbot/CreateWorkspaceView';
 
 export default function ChatbotScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [prompt, setPrompt] = useState('');
   const [draftKey, setDraftKey] = useState('');
   const [lastApp, setLastApp] = useState<string | null>(null);
@@ -46,5 +47,10 @@ export default function ChatbotScreen() {
       else setError(exc instanceof Error ? exc.message : '暂时无法提交，重试会保留原请求');
     } finally { submitting.current = false; setBusy(false); }
   }
-  return <WorkspacePage title="把你的想法变成应用"><View style={styles.card}><Text style={styles.text}>告诉 Mibo 你想解决什么问题，完成后会在这里提供使用入口。</Text><Text style={styles.muted}>{balance === null ? '正在读取账户额度…' : `可用额度：${balance}`}</Text>{Boolean(rule) && <Text style={styles.muted}>{rule}</Text>}<TextInput accessibilityLabel="你想做什么应用" testID="create-prompt" multiline maxLength={20000} value={prompt} editable={!busy && Boolean(draftKey)} style={styles.input} placeholder="例如：记录梦境，用 AI 分析并保存历史" onChangeText={value => { setPrompt(value); if (draftKey) void saveDraft(draftKey, value).catch(() => setError('草稿未能保存，请稍后重试')); }} />{Boolean(error) && <Text testID="workspace-error" accessibilityRole="alert" style={styles.error}>{error}</Text>}<Action label={busy ? '正在提交' : '开始创建'} testID="create-app" onPress={() => { void create(); }} disabled={busy || !draftKey || !prompt.trim()} />{lastApp && <Action label="继续上次的应用" testID="last-app" onPress={() => router.push({ pathname: '/app-detail/[id]', params: { id: lastApp } })} />}</View></WorkspacePage>;
+  return <ChatbotPage insets={insets} onBack={() => router.back()} onProducts={() => router.push('/app-gallery')} onBilling={() => router.push('/billing')}>
+    <CreateWorkspaceView prompt={prompt} quotaText={balance === null ? '正在读取账户额度…' : `可用额度：${balance}`}
+      policyText={rule} lastApp={lastApp} busy={busy} editable={Boolean(draftKey)} error={error}
+      onChangePrompt={value => { setPrompt(value); if (draftKey) void saveDraft(draftKey, value).catch(() => setError('草稿未能保存，请稍后重试')); }}
+      onCreate={() => { void create(); }} onContinue={() => { if (lastApp) router.push({ pathname: '/app-detail/[id]', params: { id: lastApp } }); }} />
+  </ChatbotPage>;
 }

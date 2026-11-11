@@ -84,3 +84,26 @@ test('expired login stops polling and requests login without deleting the job', 
   expect(onSnapshot).not.toHaveBeenCalled();
   expect(readJob).toHaveBeenCalledTimes(1);
 });
+
+test('a network failure after an unknown running snapshot keeps that snapshot until a real terminal result', async () => {
+  vi.useFakeTimers();
+  const unknown = { ...snapshot('RUNNING'), phase: 'future_phase' };
+  const seen: Snapshot[] = [];
+  let reads = 0;
+  const stop = subscribeJob('job', value => { seen.push(value); }, {
+    appState: lifecycle().source,
+    readJob: async () => {
+      reads++;
+      if (reads === 1) return unknown;
+      if (reads === 2) throw new TypeError('offline');
+      return snapshot('SUCCEEDED');
+    },
+  });
+  await vi.advanceTimersByTimeAsync(3000);
+  expect(seen).toEqual([unknown]);
+  await vi.advanceTimersByTimeAsync(6000);
+  expect(seen.map(value => value.status)).toEqual(['RUNNING', 'SUCCEEDED']);
+  await vi.advanceTimersByTimeAsync(30000);
+  expect(reads).toBe(3);
+  stop();
+});
