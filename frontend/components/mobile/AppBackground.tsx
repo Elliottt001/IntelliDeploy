@@ -2,6 +2,7 @@ import type { PropsWithChildren } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   StyleSheet,
+  useWindowDimensions,
   View,
   type StyleProp,
   type ViewStyle,
@@ -24,9 +25,11 @@ export function AppBackground({
   insets = { left: 0, right: 0 },
   style,
   testID,
-  width = 375,
+  width,
 }: AppBackgroundProps) {
-  const layout = getMobileLayout(width, insets);
+  const window = useWindowDimensions();
+  const viewportWidth = width ?? window.width;
+  const layout = getMobileLayout(viewportWidth, insets);
 
   return (
     <LinearGradient
@@ -40,12 +43,23 @@ export function AppBackground({
       <View pointerEvents="none" style={styles.ambientPurple} />
       <View
         style={[
-          styles.content,
-          { width: layout.contentWidth },
-          contentStyle,
+          styles.safeArea,
+          {
+            paddingLeft: insets.left + layout.gutter,
+            paddingRight: insets.right + layout.gutter,
+            width: viewportWidth,
+          },
         ]}
       >
-        {children}
+        <View
+          style={[
+            styles.content,
+            { width: layout.contentWidth },
+            contentStyle,
+          ]}
+        >
+          {children}
+        </View>
       </View>
     </LinearGradient>
   );
@@ -61,6 +75,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flex: 1,
     maxWidth: 560,
+  },
+  safeArea: {
+    alignItems: 'center',
+    flex: 1,
   },
   ambientPink: {
     backgroundColor: 'rgba(255, 175, 220, 0.20)',
