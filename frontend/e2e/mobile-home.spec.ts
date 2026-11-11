@@ -1,0 +1,49 @@
+import { expect, test } from '@playwright/test';
+
+test('home cards expand without changing their real destination', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('token', 'fixture-token'));
+  await page.route('**/auth/me', (route) =>
+    route.fulfill({ json: { id: 1, username: 'Oasis' } }),
+  );
+
+  await page.goto('/');
+  await expect(page.getByText('Hi！Oasis')).toBeVisible();
+  await page.getByTestId('home-card-products').click();
+  await expect(page.getByTestId('home-card-products')).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
+  await page.getByTestId('home-card-products-open').click();
+  await expect(page).toHaveURL(/\/app-gallery$/);
+});
+
+test('home layout keeps controls reachable at mobile widths', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('token', 'fixture-token'));
+  await page.route('**/auth/me', (route) =>
+    route.fulfill({ json: { id: 1, username: 'Oasis' } }),
+  );
+
+  for (const width of [320, 375, 430]) {
+    await page.setViewportSize({ width, height: 812 });
+    await page.goto('/');
+    await expect(page.getByTestId('mobile-home')).toBeVisible();
+
+    for (const target of [
+      'home-settings',
+      'home-mibo-open',
+      'home-suggestion-notes',
+      'home-card-store',
+      'home-card-products',
+      'home-card-community',
+      'home-card-profile',
+      'home-bottom-nav',
+    ]) {
+      const box = await page.getByTestId(target).boundingBox();
+      expect(box, `${target} should have a layout box at ${width}px`).not.toBeNull();
+      expect(box!.height, `${target} should be at least 44px tall at ${width}px`).toBeGreaterThanOrEqual(44);
+      expect(box!.width, `${target} should be at least 44px wide at ${width}px`).toBeGreaterThanOrEqual(44);
+      expect(box!.x, `${target} should not overflow left at ${width}px`).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width, `${target} should not overflow right at ${width}px`).toBeLessThanOrEqual(width);
+    }
+  }
+});
