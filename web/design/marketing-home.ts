@@ -39,8 +39,8 @@ export const marketingHomeEvidence = {
     { target: 'public/marketing/feature-community-secondary.png', sha256: '32c1b53a369ea54279653554860a6f5909d24b094f717f9494c05faad899617e' },
   ],
   fonts: [
-    'AlibabaPuHuiTi-3-55-Regular.ttf', 'AlibabaPuHuiTi-3-75-SemiBold.ttf',
-    'Inter-Variable.ttf', 'Geist-Variable.ttf', 'IbarraRealNova-Variable.ttf',
-    'InstrumentSans-Variable.ttf', 'PixelifySans-Variable.ttf', 'ZiTiQuanWeiJunHei-W3.ttf',
+    'AlibabaPuHuiTi-3-55-Regular-subset.woff2', 'AlibabaPuHuiTi-3-75-SemiBold-subset.woff2',
+    'Inter-Variable.ttf', 'IbarraRealNova-Variable.ttf', 'InstrumentSans-Variable.ttf',
+    'PixelifySans-Variable.ttf', 'ZiTiQuanWeiJunHei-W3-subset.woff2',
   ].map((file) => ({ target: `assets/fonts/${file}` })),
 } as const;

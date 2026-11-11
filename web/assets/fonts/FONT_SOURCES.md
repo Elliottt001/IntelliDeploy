@@ -4,14 +4,23 @@ Retrieved on 2026-11-11.
 
 ## Alibaba PuHuiTi 3.0
 
-The `AlibabaPuHuiTi-3-*.ttf` files were downloaded from Alibaba's official
-font CDN:
+The source `AlibabaPuHuiTi-3-*.ttf` files were downloaded from Alibaba's
+official font CDN:
 
 - <https://fonts.alibabagroup.com/#/font>
 - `https://fonts.alibabadesign.com/AlibabaPuHuiTi-3/<font-name>/<font-name>.ttf`
 
 Alibaba describes Alibaba PuHuiTi as permanently free for commercial use.
 Refer to the official font site for its current terms.
+
+The Web bundle contains WOFF2 subsets for the marketing page's static text:
+
+- `AlibabaPuHuiTi-3-55-Regular-subset.woff2`
+- `AlibabaPuHuiTi-3-75-SemiBold-subset.woff2`
+
+They were generated with fontTools `pyftsubset` from the source TTF files.
+Dynamic community and SKU text falls back to the system `PingFang SC` family
+when a character is outside the static subset.
 
 ## Google Fonts families
 
@@ -21,14 +30,18 @@ repository and are licensed under the SIL Open Font License 1.1 in
 
 - Inter: <https://github.com/google/fonts/tree/main/ofl/inter>
   - Copyright 2020 The Inter Project Authors (<https://github.com/rsms/inter>)
-- Geist: <https://github.com/google/fonts/tree/main/ofl/geist>
-  - Copyright 2024 The Geist Project Authors (<https://github.com/vercel/geist-font.git>)
 - Ibarra Real Nova: <https://github.com/google/fonts/tree/main/ofl/ibarrarealnova>
   - Copyright 2007 The Ibarra Real Nova Project Authors (<https://github.com/googlefonts/ibarrareal>)
 - Pixelify Sans: <https://github.com/google/fonts/tree/main/ofl/pixelifysans>
   - Copyright 2021 The Pixelify Sans Project Authors (<https://github.com/eifetx/Pixelify-Sans>)
 - Instrument Sans: <https://github.com/google/fonts/tree/main/ofl/instrumentsans>
   - Copyright 2022 The Instrument Sans Project Authors (<https://github.com/Instrument/instrument-sans>)
+
+## ZiTiQuanWeiJunHei
+
+`ZiTiQuanWeiJunHei-W3-subset.woff2` is a WOFF2 subset generated with
+fontTools `pyftsubset` from the downloaded source font and contains only the
+static marketing headline characters used by the Web homepage.
 
 ## PingFang SC
 

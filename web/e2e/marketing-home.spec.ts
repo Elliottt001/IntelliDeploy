@@ -51,3 +51,12 @@ test('reduced motion removes meaningful animation durations', async ({ page }) =
   });
   expect(maxDurationMs).toBeLessThanOrEqual(0.01);
 });
+
+test('marketing fonts do not preload on platform routes', async ({ page }) => {
+  await page.goto('/create');
+  const platformPreloads = await page.locator('link[rel="preload"][as="font"]').count();
+  expect(platformPreloads).toBe(0);
+  await page.goto('/');
+  const homepagePreloads = await page.locator('link[rel="preload"][as="font"]').count();
+  expect(homepagePreloads).toBeLessThanOrEqual(1);
+});
