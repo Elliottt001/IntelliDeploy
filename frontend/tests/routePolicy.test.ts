@@ -194,23 +194,24 @@ test('store headers follow the page-03 and page-40 action layout', () => {
 });
 
 test('mobile Playwright only discovers mock mobile specs and starts one Expo server', () => {
-  expect(mobilePlaywrightConfig.testMatch).toBeInstanceOf(RegExp);
-  const testMatch = mobilePlaywrightConfig.testMatch as RegExp;
+  expect(Array.isArray(mobilePlaywrightConfig.testMatch)).toBe(true);
+  const testMatch = mobilePlaywrightConfig.testMatch as RegExp[];
+  const matches = (path: string) => testMatch.some((pattern) => pattern.test(path));
 
   for (const path of [
     'e2e/mobile-store.spec.ts',
     'e2e/mobile-routing.spec.ts',
+    'e2e/community.spec.ts',
+    'e2e/workspace.spec.ts',
   ]) {
-    expect(testMatch.test(path), path).toBe(true);
+    expect(matches(path), path).toBe(true);
   }
 
   for (const path of [
     'e2e/cross-client.spec.ts',
     'e2e/community-cross-client.spec.ts',
-    'e2e/community.spec.ts',
-    'e2e/workspace.spec.ts',
   ]) {
-    expect(testMatch.test(path), path).toBe(false);
+    expect(matches(path), path).toBe(false);
   }
 
   expect(Array.isArray(mobilePlaywrightConfig.webServer)).toBe(false);
