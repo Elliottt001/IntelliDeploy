@@ -174,6 +174,14 @@ function toSvgMatrix(transform) {
   ].join(' ')})`;
 }
 
+function withoutTranslation(transform) {
+  return {
+    ...transform,
+    m02: 0,
+    m12: 0,
+  };
+}
+
 function toFillRule(windingRule) {
   return windingRule === 'EVENODD' || windingRule === 'ODD'
     ? 'evenodd'
@@ -1076,6 +1084,19 @@ function collectEffectiveSymbolIconLayers(primitive, rootId, maps, blobs) {
     return collectIconLayers(rootId, maps, blobs);
   }
   const instance = maps.documentNodeById.get(instanceId);
+  const symbolNodeId =
+    primitive.symbolNodeId ??
+    (instance?.symbolData?.symbolID ? nodeId(instance.symbolData.symbolID) : undefined);
+  const symbol = symbolNodeId ? maps.documentNodeById.get(symbolNodeId) : undefined;
+  const relativeTransform =
+    instance && symbol
+      ? withoutTranslation(
+          multiplyTransforms(
+            instance.transform ?? identityMatrix(),
+            invertTransform(symbol.transform ?? identityMatrix()),
+          ),
+        )
+      : identityMatrix();
   const derivedGeometryByPath = buildDerivedGeometryMap(instance?.derivedSymbolData);
   const geometryEntries = collectSubtree(
     rootId,
@@ -1085,7 +1106,7 @@ function collectEffectiveSymbolIconLayers(primitive, rootId, maps, blobs) {
       ((node.fillGeometry?.length ?? 0) > 0 || (node.strokeGeometry?.length ?? 0) > 0),
     {
       initialOpacity: instance?.opacity ?? 1,
-      initialTransform: identityMatrix(),
+      initialTransform: relativeTransform,
     },
   );
   const layers = geometryLayersFromEntries(

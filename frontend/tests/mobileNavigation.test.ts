@@ -140,8 +140,8 @@ test('shared actions expose button semantics and at least 44pt hit targets', () 
 
   const surface = propsOf(action).children as ReactElement;
   expect(propsOf(surface).colors).toEqual([
-    'rgba(255, 255, 255, 0.20)',
-    'rgba(255, 255, 255, 0.20)',
+    'transparent',
+    'transparent',
   ]);
 
   const error = ErrorState({ message: '网络连接失败', onRetry: vi.fn() });
@@ -368,8 +368,8 @@ test('corrected shared shells preserve accessibility, hit targets, and evidence-
     shadowRadius: 32,
   });
   expect(propsOf(glassSurface).colors).toEqual([
-    'rgba(255, 255, 255, 0.20)',
-    'rgba(255, 255, 255, 0.20)',
+    'transparent',
+    'transparent',
   ]);
   expect(glassSurfaceStyle).toMatchObject({
     backgroundColor: 'rgba(255, 255, 255, 0.20)',
@@ -383,6 +383,9 @@ test('corrected shared shells preserve accessibility, hit targets, and evidence-
     shadowRadius: 3.304348,
     width: 33.04348,
   });
+  expect(propsOf(glassSurface).locations).toBeUndefined();
+  expect(propsOf(glassSurface).start).toBeUndefined();
+  expect(propsOf(glassSurface).end).toBeUndefined();
   expect(propsOf(primarySurface).colors).toEqual([
     'rgba(192, 92, 246, 1.00)',
     'rgba(124, 98, 255, 1.00)',

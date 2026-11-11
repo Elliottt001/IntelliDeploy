@@ -158,10 +158,14 @@ export function CircleAction({
           .slice(2)
           .map((stop) => toRgba(stop.color, stop.opacity) ?? '#FFFFFF'),
       ]
-    : backgroundColor
-      ? [backgroundColor, backgroundColor]
-      : ['transparent', 'transparent'];
-  const gradientLocations = gradient?.gradientStops?.map((stop) => stop.position);
+    : ['transparent', 'transparent'];
+  const gradientLocations = gradient?.gradientStops
+    ? (gradient.gradientStops.map((stop) => stop.position) as [
+        number,
+        number,
+        ...number[],
+      ])
+    : undefined;
 
   return (
     <Pressable

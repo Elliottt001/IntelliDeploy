@@ -59,11 +59,13 @@ async function createComponentFixture({
   invalidSymbolTarget = false,
   includeOddCompound = false,
   includePaintedLayers = false,
+  useRotatedScaledInstance = false,
 }: {
   danglingSymbol?: boolean;
   invalidSymbolTarget?: boolean;
   includeOddCompound?: boolean;
   includePaintedLayers?: boolean;
+  useRotatedScaledInstance?: boolean;
 } = {}) {
   const temporaryRoot = await mkdtemp(
     path.join(tmpdir(), 'figma-component-evidence-'),
@@ -81,6 +83,9 @@ async function createComponentFixture({
     : invalidSymbolTarget
       ? { localID: 3, sessionID: 2 }
       : { localID: 2, sessionID: 2 };
+  const instanceTransform = useRotatedScaledInstance
+    ? { m00: 0, m01: -2, m02: 40, m10: 2, m11: 0, m12: 50 }
+    : { m00: 1, m01: 0, m02: 4, m10: 0, m11: 1, m12: 5 };
 
   await writeFile(
     path.join(designData, 'document.kiwi.json'),
@@ -154,7 +159,7 @@ async function createComponentFixture({
             symbolOverrides: [],
             uniformScaleFactor: 1,
           },
-          transform: { m00: 1, m01: 0, m02: 4, m10: 0, m11: 1, m12: 5 },
+          transform: instanceTransform,
           type: 'INSTANCE',
           visible: true,
         },
@@ -502,14 +507,7 @@ async function createComponentFixture({
             symbolOverrides: [],
             uniformScaleFactor: 1,
           },
-          transform: {
-            m00: 1,
-            m01: 0,
-            m02: 4,
-            m10: 0,
-            m11: 1,
-            m12: 5,
-          },
+          transform: instanceTransform,
           type: 'INSTANCE',
           visible: true,
         },
@@ -937,6 +935,55 @@ describe('Figma component evidence', () => {
         },
         path: 'M1 1 L9 1 L9 9 L1 9 Z',
         sourceNodeId: '2:3',
+      },
+    ]);
+  });
+
+  test('preserves effective instance rotation and scale for runtime icons while normalizing placement translation', async () => {
+    const fixture = await createComponentFixture({ useRotatedScaledInstance: true });
+    const { extractMobileComponentEvidence } = await import(
+      '../scripts/extract-mobile-component-evidence.mjs'
+    );
+
+    await extractMobileComponentEvidence({
+      auditedRoots: { settings: ['1:1'] } as any,
+      designSource: fixture.designSource,
+      iconRoots: { settings: '2:6' } as any,
+      outputPath: fixture.outputPath,
+    });
+
+    const extracted = await loadExtractedModule(fixture.outputPath);
+    expect(extracted.figmaMobileIcons.settings.viewBox).toBe('0 0 10 10');
+    expect(extracted.figmaMobileIcons.settings.layers).toEqual([
+      {
+        fill: '#FF0000',
+        fillRule: 'nonzero',
+        opacity: 0.2,
+        paint: {
+          color: '#FF0000',
+          opacity: 0.5,
+          type: 'SOLID',
+          variableIds: [],
+        },
+        path: 'M0 0 L10 0 L10 2 L0 2 Z',
+        sourceNodeId: '2:4',
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        transform: 'matrix(0 2 -2 0 0 0)',
+      },
+      {
+        fill: '#FFFFFF',
+        fillRule: 'nonzero',
+        opacity: 0.2,
+        paint: {
+          color: '#FFFFFF',
+          opacity: 0.4,
+          type: 'SOLID',
+          variableIds: [],
+        },
+        path: 'M1 1 L9 1 L9 9 L1 9 Z',
+        sourceNodeId: '2:3',
+        transform: 'matrix(0 2 -2 0 0 0)',
       },
     ]);
   });
