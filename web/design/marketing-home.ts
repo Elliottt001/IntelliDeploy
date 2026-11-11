@@ -14,7 +14,7 @@ export const marketingHomeEvidence = {
     { key: 'capabilities', node: '100:5107', width: 832.8696, height: 216, x: 596, y: 1194, stack: 'vertical', gap: 5 },
     { key: 'features', node: '100:5114', width: 2231, height: 4775.6143 },
     { key: 'community', node: '100:5329', width: 1743, height: 1243 },
-    { key: 'delivery', node: '100:5496', width: 1745, height: 1304 },
+    { key: 'delivery', node: '100:5496', width: 1745, height: 1304, x: 141.2109, y: 5400, radius: 20 },
     { key: 'pricing', node: '100:5547', width: 1745, height: 2221 },
     { key: 'footer', node: '100:5549', width: 2025.1057, height: 3010.7813 },
   ],
