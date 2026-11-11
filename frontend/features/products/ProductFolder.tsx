@@ -62,7 +62,7 @@ export function ProductFolder({ id, title, items, expanded, hasMore, onToggle }:
     </G>;
   };
   return <Pressable accessibilityRole="button" accessibilityLabel={`${title}文件夹`} accessibilityState={{ expanded }} aria-expanded={expanded}
-    onPress={onToggle} style={styles.folder} testID={`product-folder-${id}`}>
+    onPress={onToggle} style={[styles.folder, expanded && styles.expandedFolder]} testID={`product-folder-${id}`}>
     <Svg {...(Platform.OS === 'web' ? { 'aria-hidden': true } : { accessibilityElementsHidden: true })} width="100%" height={expanded ? 345 : 240} viewBox={expanded ? '0 -30 280 345' : '0 0 280 240'}>
       <G transform={expanded ? localMatrix(back, 10, 0) : 'translate(10 0)'}>
         <FolderShape kind={expanded ? 'openBack' : 'closed'} gradientId={`folder-gradient-${id}`} />
@@ -131,6 +131,8 @@ const styles = StyleSheet.create({
   collection: { alignSelf: 'flex-start', height: source.collection.size.y, width: source.collection.size.x },
   subtitle: { marginTop: 7, fontFamily: mobileFontFamilies.pingFang, fontSize: 12, lineHeight: 17, color: mobileColors.muted },
   folder: { alignItems: 'center', alignSelf: 'center', marginTop: 69, minHeight: 44, minWidth: 44, width: 280, maxWidth: '100%' },
+  // The expanded viewBox starts at -30: move its layout box up 30pt to keep the source rear anchored.
+  expandedFolder: { marginTop: 39 },
   folderCount: { marginTop: 20, fontFamily: mobileFontFamilies.body, fontSize: 12, lineHeight: 18, color: mobileColors.muted },
   rowArt: { backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 12, width: 44, height: 44 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 20, marginBottom: 12 },

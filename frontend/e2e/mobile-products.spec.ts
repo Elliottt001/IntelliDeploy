@@ -163,3 +163,41 @@ test('formal Kiwi paint maps the upper-left to pink and lower-right to purple', 
   expect(samples[1]).toBeCloseTo(-0.293444, 5);
   expect(samples[1]).toBeLessThan(0);
 });
+
+test('closed and expanded folder origins stay at formal screen coordinates across mobile widths', async ({ page }) => {
+  await apps(page);
+  for (const width of [375, 320, 430]) {
+    await page.setViewportSize({ width, height: 812 });
+    await page.goto('/app-gallery');
+    const folder = page.getByTestId('product-folder-created');
+    await expect(folder).toHaveAttribute('aria-expanded', 'false');
+    const origins = async () => {
+      const rear = await folder.locator('path').first().evaluate(element => {
+        const transform = (element as unknown as SVGGraphicsElement).getScreenCTM()!;
+        const point = new DOMPoint(0, 0).matrixTransform(transform);
+        return { x: point.x, y: point.y };
+      });
+      const front = await folder.locator('path[fill="#FFFFFF"][opacity="0.1"]').evaluate(element => {
+        const transform = (element as unknown as SVGGraphicsElement).getScreenCTM()!;
+        const point = new DOMPoint(0, 0).matrixTransform(transform);
+        return { x: point.x, y: point.y };
+      });
+      const svg = await folder.locator('svg').boundingBox();
+      return { rear, front, svg };
+    };
+    const closed = await origins();
+    expect(closed.rear.y, `closed rear at ${width}`).toBeCloseTo(255, 2);
+    expect(closed.front.y, `closed front at ${width}`).toBeCloseTo(310, 2);
+    expect(closed.rear.x).toBeCloseTo((width - 260) / 2, 2);
+    expect(closed.svg!.y).toBeCloseTo(255, 2);
+    await folder.click();
+    const open = await origins();
+    expect(open.rear.y, `expanded rear at ${width}`).toBeCloseTo(255, 2);
+    expect(open.front.y, `expanded front at ${width}`).toBeCloseTo(355, 2);
+    expect(open.rear.x).toBeCloseTo(closed.rear.x, 2);
+    expect(open.front.x).toBeCloseTo(closed.front.x, 2);
+    expect(open.svg!.y, `preview viewport includes 30pt above rear at ${width}`).toBeCloseTo(225, 2);
+    await folder.click();
+    expect((await origins()).rear.y).toBeCloseTo(255, 2);
+  }
+});

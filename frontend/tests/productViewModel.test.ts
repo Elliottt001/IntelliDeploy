@@ -158,3 +158,20 @@ test.skipIf(!designSource)('actual Figma source independently confirms paths, pa
   // Example imagery exists, but AppSummary has no icon contract: it must stay outside products runtime.
   expect(readFileSync(join(import.meta.dirname, '../features/products/ProductFolder.tsx'), 'utf8')).not.toContain(imageHash);
 });
+
+test('regeneration computes complete frame trees and rejects new Instance/Symbol descendants', async () => {
+  const { auditProductFrames } = await import('../features/products/extractProductFolderEvidence.mjs');
+  const node = (key: string, type: string, parent?: string) => {
+    const guid = (value: string) => { const [sessionID, localID] = value.split(':').map(Number); return { sessionID, localID }; };
+    return { guid: guid(key), type, ...(parent ? { parentIndex: { guid: guid(parent) } } : {}) };
+  };
+  const tree = [node('168:6299', 'FRAME'), node('380:147', 'FRAME'), node('1:1', 'FRAME', '168:6299'), node('1:2', 'VECTOR', '1:1'), node('1:3', 'TEXT', '380:147')];
+  expect(auditProductFrames(tree)).toEqual([
+    { sourceNodeId: '168:6299', nodeCount: 3, instanceCount: 0, noSymbolReason: 'no-instance-or-symbol-in-audited-subtree' },
+    { sourceNodeId: '380:147', nodeCount: 2, instanceCount: 0, noSymbolReason: 'no-instance-or-symbol-in-audited-subtree' },
+  ]);
+  expect(auditProductFrames([...tree, node('1:4', 'VECTOR', '1:2')])[0].nodeCount).toBe(4);
+  expect(() => auditProductFrames([...tree, node('1:5', 'INSTANCE', '1:2')])).toThrow(/168:6299.*Instance\/Symbol/);
+  expect(() => auditProductFrames([...tree, node('1:6', 'SYMBOL', '1:3')])).toThrow(/380:147.*Instance\/Symbol/);
+  expect(() => auditProductFrames(tree.filter(item => item.guid.sessionID !== 380))).toThrow(/Missing formal frame 380:147/);
+});

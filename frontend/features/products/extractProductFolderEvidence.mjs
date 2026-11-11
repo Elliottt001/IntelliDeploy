@@ -2,9 +2,32 @@
 import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { extractMobileComponentEvidence } from '../../scripts/extract-mobile-component-evidence.mjs';
 
+const nodeId = guid => `${guid.sessionID}:${guid.localID}`;
+
+export function auditProductFrames(nodeChanges) {
+  const nodes = new Map(nodeChanges.map(node => [nodeId(node.guid), node]));
+  const children = new Map();
+  for (const node of nodeChanges) {
+    if (!node.parentIndex?.guid) continue;
+    const parent = nodeId(node.parentIndex.guid);
+    if (!children.has(parent)) children.set(parent, []);
+    children.get(parent).push(nodeId(node.guid));
+  }
+  return ['168:6299', '380:147'].map(sourceNodeId => {
+    if (nodes.get(sourceNodeId)?.type !== 'FRAME') throw new Error(`Missing formal frame ${sourceNodeId}`);
+    const subtree = new Set([sourceNodeId]);
+    for (const current of subtree) for (const child of children.get(current) ?? []) subtree.add(child);
+    const instanceCount = [...subtree].filter(key => nodes.get(key).type === 'INSTANCE').length;
+    const symbolCount = [...subtree].filter(key => nodes.get(key).type === 'SYMBOL').length;
+    if (instanceCount || symbolCount) throw new Error(`Formal frame ${sourceNodeId} contains Instance/Symbol descendants; resolve their sources before regeneration`);
+    return { sourceNodeId, nodeCount: subtree.size, instanceCount, noSymbolReason: 'no-instance-or-symbol-in-audited-subtree' };
+  });
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
 const designSource = process.env.INTELLIDEPLOY_FIGMA_SOURCE;
 if (!designSource) throw new Error('Set INTELLIDEPLOY_FIGMA_SOURCE to the full local Figma package');
 const temporary = await mkdtemp(path.join(tmpdir(), 'product-folder-'));
@@ -14,7 +37,6 @@ try {
   const module = await readFile(outputPath, 'utf8');
   const primitives = JSON.parse(module.match(/export const figmaComponentEvidence = ([\s\S]*?) as const satisfies/)[1]);
   const document = JSON.parse(await readFile(path.join(designSource, 'design-data/document.kiwi.json'), 'utf8'));
-  const nodeId = guid => `${guid.sessionID}:${guid.localID}`;
   const nodes = new Map(document.nodeChanges.map(node => [nodeId(node.guid), node]));
   // Text has no reusable Symbol. Preserve actual glyph outlines, avoiding font replacement.
   function glyphPath(blobIndex) {
@@ -43,7 +65,7 @@ try {
     }) };
   }
   const result = {
-    frames: ['168:6299', '380:147'].map(sourceNodeId => ({ sourceNodeId, nodeCount: 31, instanceCount: 0, noSymbolReason: 'no-instance-or-symbol-in-audited-subtree' })),
+    frames: auditProductFrames(document.nodeChanges),
     rawGlassEffects: Object.fromEntries([['closed', '280:26959'], ['closedFront', '280:26962'], ['openBack', '380:190'], ['openFront', '380:196']].map(([key, sourceId]) => [key, nodes.get(sourceId).effects ?? []])),
     closed: primitives.products, closedFront: primitives.send, openBack: primitives.back, openFront: primitives.share,
     closedFrontTransform: nodes.get('280:26962').transform,
@@ -58,3 +80,5 @@ try {
   await writeFile(destination, `// Generated from formal Kiwi nodes via extractProductFolderEvidence.mjs. No source imagery.\nexport const productFolderEvidence = ${JSON.stringify(result, null, 2)} as const;\n`);
   console.log('Extracted actual custom folder paths, paints, GLASS effects, glyphs and open geometry.');
 } finally { await rm(temporary, { recursive: true, force: true }); }
+
+}
