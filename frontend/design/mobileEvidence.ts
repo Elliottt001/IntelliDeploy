@@ -96,5 +96,5 @@ export const mobileComponentAuditedRoots = {
   products: ['270:26552', '270:26554'],
   circleAction: ['845:3503', '845:3510'],
   bottomNav: ['270:26531'],
-  glassCard: ['825:6575'],
+  glassCard: ['825:6570', '825:6575'],
 } as const;

@@ -9,8 +9,9 @@ import Svg, { Path } from 'react-native-svg';
 
 import {
   type FigmaEffectEvidence,
-  type FigmaVectorLayer,
   type FigmaPaintEvidence,
+  type FigmaPrimitiveEvidence,
+  type FigmaVectorLayer,
   figmaComponentEvidence,
   figmaMobileIcons,
   getFigmaMobileIcon,
@@ -30,6 +31,32 @@ function toShadowOffset(effect?: FigmaEffectEvidence) {
   return effect?.offset
     ? { height: effect.offset.y, width: effect.offset.x }
     : undefined;
+}
+
+function toRgba(color?: string, opacity = 1) {
+  if (!color) {
+    return undefined;
+  }
+  const normalized = color.replace('#', '');
+  if (normalized.length !== 6) {
+    return color;
+  }
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${opacity.toFixed(2)})`;
+}
+
+function firstSolidPaint(paints: readonly FigmaPaintEvidence[]) {
+  return paints.find((paint) => paint.type === 'SOLID' && paint.color);
+}
+
+function firstGradientPaint(paints: readonly FigmaPaintEvidence[]) {
+  return paints.find(
+    (paint) =>
+      paint.type === 'GRADIENT_LINEAR' &&
+      (paint.gradientStops?.length ?? 0) >= 2,
+  );
 }
 
 function iconUsesSingleColor(name: MobileIconName) {
@@ -68,6 +95,7 @@ export function MobileIcon({
           <Path
             d={layer.path}
             fill={layer.fill ? overrideColor ?? layer.fill : 'none'}
+            fillRule={layer.fillRule}
             key={`${layer.sourceNodeId}-${index}`}
             opacity={layer.opacity}
             stroke={layer.stroke ? overrideColor ?? layer.stroke : undefined}
@@ -102,16 +130,39 @@ export function CircleAction({
   variant = 'glass',
 }: CircleActionProps) {
   const primary = variant === 'primary';
-  const shellEvidence = primary
+  const shellEvidence = (primary
     ? figmaComponentEvidence.send
-    : figmaComponentEvidence.circleAction;
-  const surfaceSize = primary ? 40 : 34;
-  const shadow = (shellEvidence.effects as readonly FigmaEffectEvidence[]).find(
+    : figmaComponentEvidence.circleAction) as FigmaPrimitiveEvidence;
+  const surfaceFills = shellEvidence.surfaceFills as readonly FigmaPaintEvidence[] | undefined;
+  const surfaceStrokes =
+    shellEvidence.surfaceStrokes as readonly FigmaPaintEvidence[] | undefined;
+  const surfaceEffects =
+    shellEvidence.surfaceEffects as readonly FigmaEffectEvidence[] | undefined;
+  const shadow = (surfaceEffects ?? []).find(
     (effect) => effect.type === 'DROP_SHADOW',
   );
-  const shellStroke = (shellEvidence.strokes as readonly FigmaPaintEvidence[]).find(
+  const shellStroke = (surfaceStrokes ?? []).find(
     (paint) => 'color' in paint && paint.color,
   )?.color;
+  const gradient = primary ? firstGradientPaint(surfaceFills ?? []) : undefined;
+  const solidFill = firstSolidPaint(surfaceFills ?? []);
+  const surfaceSize = shellEvidence.size.width;
+  const backgroundColor = primary
+    ? undefined
+    : toRgba(solidFill?.color, solidFill?.opacity ?? 1);
+  const gradientColors: [string, string, ...string[]] = gradient?.gradientStops
+    ? [
+        toRgba(gradient.gradientStops[0]?.color, gradient.gradientStops[0]?.opacity) ??
+          '#FFFFFF',
+        toRgba(gradient.gradientStops[1]?.color, gradient.gradientStops[1]?.opacity) ??
+          '#FFFFFF',
+        ...gradient.gradientStops
+          .slice(2)
+          .map((stop) => toRgba(stop.color, stop.opacity) ?? '#FFFFFF'),
+      ]
+    : primary
+      ? ['#C05CF6', mobileColors.primary]
+      : ['rgba(255,255,255,0.20)', 'rgba(255,255,255,0.20)'];
 
   return (
     <Pressable
@@ -128,21 +179,21 @@ export function CircleAction({
       testID={testID}
     >
       <LinearGradient
-        colors={
-          primary
-            ? ['#C05CF6', mobileColors.primary]
-            : ['rgba(255,255,255,0.20)', 'rgba(255,255,255,0.20)']
-        }
+        colors={gradientColors}
         style={[
           styles.surface,
           {
+            backgroundColor,
             borderColor: shellStroke ?? '#FFFFFF',
-            borderRadius: surfaceSize / 2,
+            borderRadius:
+              shellEvidence.cornerRadii?.topLeft ?? surfaceSize / 2,
+            borderWidth: shellEvidence.borderWidths?.top ?? 1.5,
             height: surfaceSize,
             shadowColor: shadow?.color ?? (primary ? '#939393' : '#BABABA'),
             shadowOffset:
               toShadowOffset(shadow) ??
               (primary ? { height: 4, width: 0 } : { height: 2, width: 0 }),
+            shadowOpacity: shadow?.opacity ?? 0.25,
             shadowRadius: shadow?.radius ?? (primary ? 10 : 3.3),
             width: surfaceSize,
           },

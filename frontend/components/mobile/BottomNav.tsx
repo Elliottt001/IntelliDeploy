@@ -22,17 +22,36 @@ type BottomNavProps = {
   testID?: string;
 };
 
+function toRgba(color?: string, opacity = 1) {
+  if (!color) {
+    return undefined;
+  }
+  const normalized = color.replace('#', '');
+  if (normalized.length !== 6) {
+    return color;
+  }
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${opacity.toFixed(2)})`;
+}
+
 export function BottomNav({ active, onNavigate, testID }: BottomNavProps) {
   const shell = figmaComponentEvidence.bottomNav;
-  const shadow = (shell.effects as readonly FigmaEffectEvidence[]).find(
+  const surfaceFills = shell.surfaceFills as readonly FigmaPaintEvidence[] | undefined;
+  const surfaceStrokes =
+    shell.surfaceStrokes as readonly FigmaPaintEvidence[] | undefined;
+  const surfaceEffects =
+    shell.surfaceEffects as readonly FigmaEffectEvidence[] | undefined;
+  const shadow = (surfaceEffects ?? []).find(
     (effect) => effect.type === 'DROP_SHADOW',
   );
-  const shellFill = (shell.fills as readonly FigmaPaintEvidence[]).find(
+  const shellFill = (surfaceFills ?? []).find(
     (paint) => 'color' in paint && paint.color,
-  )?.color;
-  const shellStroke = (shell.strokes as readonly FigmaPaintEvidence[]).find(
+  );
+  const shellStroke = (surfaceStrokes ?? []).find(
     (paint) => 'color' in paint && paint.color,
-  )?.color;
+  );
   const activeSize = figmaComponentEvidence.home.size.width;
 
   return (
@@ -42,17 +61,19 @@ export function BottomNav({ active, onNavigate, testID }: BottomNavProps) {
         styles.shell,
         {
           backgroundColor:
-            shellFill === '#FFFFFF'
-              ? 'rgba(255, 255, 255, 0.70)'
-              : 'rgba(255, 255, 255, 0.70)',
-          borderColor: shellStroke ?? '#FFFFFF',
-          borderRadius: figmaComponentEvidence.bottomNav.size.height / 2,
+            toRgba(shellFill?.color, shellFill?.opacity ?? 1) ??
+            'rgba(255, 255, 255, 0.70)',
+          borderColor: shellStroke?.color ?? '#FFFFFF',
+          borderRadius:
+            shell.cornerRadii?.topLeft ?? figmaComponentEvidence.bottomNav.size.height / 2,
+          borderWidth: shell.borderWidths?.top ?? 1.3,
           height: figmaComponentEvidence.bottomNav.size.height,
           maxWidth: figmaComponentEvidence.bottomNav.size.width,
           shadowColor: shadow?.color ?? '#BABABA',
           shadowOffset: shadow?.offset
             ? { height: shadow.offset.y, width: shadow.offset.x }
             : { width: 0, height: 2 },
+          shadowOpacity: shadow?.opacity ?? 0.25,
           shadowRadius: shadow?.radius ?? 3,
         },
       ]}
@@ -109,11 +130,9 @@ const styles = StyleSheet.create({
   shell: {
     alignItems: 'center',
     alignSelf: 'center',
-    borderWidth: 1.3,
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingHorizontal: 13,
-    shadowOpacity: 0.25,
     width: '100%',
   },
   item: {

@@ -228,8 +228,83 @@ test('MobileIcon renders the audited Figma layers', () => {
   expect(renderedPaths).toEqual(definition.layers.map((layer) => layer.path));
 });
 
-test('corrected shared shells preserve accessibility, hit targets, and Figma source sizes', () => {
+test('BrandHeader renders the audited brand graphic in both default and custom-copy branches', () => {
+  const defaultHeader = BrandHeader({});
+  const customHeader = BrandHeader({
+    subtitle: 'Custom subtitle',
+    title: 'Custom title',
+  });
+  const expectedPaths = figmaComponentEvidence.brandMark.geometry.map(
+    (layer) => layer.path,
+  );
+  const defaultPaths: string[] = [];
+  const customPaths: string[] = [];
+  const customText: string[] = [];
+
+  walkRenderedTree(defaultHeader, (element) => {
+    if (element.type === 'Path' && typeof propsOf(element).d === 'string') {
+      defaultPaths.push(propsOf(element).d as string);
+    }
+  });
+
+  walkRenderedTree(customHeader, (element) => {
+    if (element.type === 'Path' && typeof propsOf(element).d === 'string') {
+      customPaths.push(propsOf(element).d as string);
+    }
+    const children = propsOf(element).children;
+    if (typeof children === 'string') {
+      customText.push(children);
+    }
+  });
+
+  expect(defaultPaths).toEqual(expectedPaths);
+  expect(customPaths).toEqual(expectedPaths);
+  expect(customText).toEqual(
+    expect.arrayContaining(['Custom title', 'Custom subtitle']),
+  );
+});
+
+test('glyph icons render normalized bounds, filled stroke outlines, and preserved opacity', () => {
+  const back = MobileIcon({ name: 'back', size: 13 });
+  const backProps = propsOf(back);
+  const backPaths: Array<Record<string, unknown>> = [];
+
+  walkRenderedTree(back, (element) => {
+    if (element.type === 'Path') {
+      backPaths.push(propsOf(element));
+    }
+  });
+
+  expect(backProps.viewBox).toBe('0 0 13.000041 13.5');
+  expect(backPaths).toHaveLength(3);
+  expect(backPaths.every((layer) => layer.stroke === undefined)).toBe(true);
+  expect(backPaths.every((layer) => layer.fill === '#494A64')).toBe(true);
+  expect(backPaths.every((layer) => layer.fillRule === 'nonzero')).toBe(true);
+
+  const bell = MobileIcon({ name: 'bell', size: 15 });
+  const bellPaths: Array<Record<string, unknown>> = [];
+
+  walkRenderedTree(bell, (element) => {
+    if (element.type === 'Path') {
+      bellPaths.push(propsOf(element));
+    }
+  });
+
+  expect(bellPaths).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        fill: '#000000',
+        opacity: 0.0001,
+      }),
+    ]),
+  );
+});
+
+test('corrected shared shells preserve accessibility, hit targets, and evidence-driven shell values', () => {
   const nav = BottomNav({ active: 'home', onNavigate: vi.fn() });
+  const navStyle = flattenStyle(propsOf(nav).style);
+  const glassCard = GlassCard({ children: 'content' });
+  const glassCardStyle = flattenStyle(propsOf(glassCard).style);
   const tabs = propsOf(nav).children as ReactElement[];
 
   expect(tabs).toHaveLength(4);
@@ -243,6 +318,23 @@ test('corrected shared shells preserve accessibility, hit targets, and Figma sou
     height: 54,
     width: 335,
   });
-  expect(BrandHeader({}).type).toBe('View');
-  expect(GlassCard({ children: 'content' }).type).toBe('View');
+  expect(navStyle).toMatchObject({
+    backgroundColor: 'rgba(255, 255, 255, 0.70)',
+    borderRadius: 44.653347,
+    borderWidth: 1.339601,
+    height: 54,
+    shadowOpacity: 0.25,
+  });
+  expect(glassCard.type).toBe('View');
+  expect(glassCardStyle).toMatchObject({
+    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    borderColor: 'rgba(255, 255, 255, 0.40)',
+    borderRadius: 24,
+    borderWidth: 1,
+    minHeight: 200.5,
+    shadowColor: '#1F2687',
+    shadowOffset: { height: 8, width: 0 },
+    shadowOpacity: 0.07,
+    shadowRadius: 32,
+  });
 });
