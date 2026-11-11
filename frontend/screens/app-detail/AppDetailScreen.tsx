@@ -1,3 +1,5 @@
+import { VisualPendingSection } from '../../components/mobile/VisualPendingSection';
+import { BrandHeader } from '../../components/mobile/BrandHeader';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -137,9 +139,9 @@ export default function AppDetailScreen({ appId }: { appId: string }) {
         onSend={() => { void send(); }} onRefresh={() => setEpoch(value => value + 1)}
         onResume={() => { void action('resume'); }} onCancel={() => { void action('cancel'); }}
         onBilling={() => router.push('/billing')} onRestart={() => router.push('/chatbot')} />
-      <View testID="app-detail-secondary" style={{ gap: 14 }}>
+      <VisualPendingSection label="应用交付与管理" route="/app-detail/[id]:secondary"><View testID="app-detail-secondary" style={{ gap: 14 }}><BrandHeader testID="secondary-brand-header" />
         <DeliveryCard app={app} /><InstanceControls app={app} reload={reload} /><PublicationSettings app={app} reload={reload} />
-      </View>
+      </View></VisualPendingSection>
     </>}
   </ChatbotPage>;
 }

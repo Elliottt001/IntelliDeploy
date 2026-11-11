@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import {
@@ -25,7 +25,7 @@ function BrandMark() {
 
   return (
     <Svg
-      accessibilityElementsHidden
+      {...(Platform.OS === 'web' ? { 'aria-hidden': true } : { accessibilityElementsHidden: true })}
       height={evidence.size.height}
       viewBox={`0 0 ${evidence.size.width} ${evidence.size.height}`}
       width={evidence.size.width}
