@@ -1,10 +1,20 @@
-import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import {
+  access,
+  copyFile,
+  mkdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const source =
   '/Users/bytedance/Downloads/IntelliDeploy-design-2026-11-10-2221';
 
-const rootIds = [
+export const approvedRootIds = [
   '119:76618',
   '270:26263',
   '188:16287',
@@ -33,97 +43,213 @@ const rootIds = [
   '825:6452',
 ];
 
-const nodeData = JSON.parse(
-  await readFile(path.join(source, 'design-data/移动端UI.nodes.json'), 'utf8'),
-);
-const rawAssets = JSON.parse(
-  await readFile(path.join(source, 'design-data/raw-assets.json'), 'utf8'),
-);
-const nodes = nodeData.nodes;
-
 const nodeId = (node) => `${node.guid.sessionID}:${node.guid.localID}`;
 const parentId = (node) =>
   node.parentIndex?.guid
     ? `${node.parentIndex.guid.sessionID}:${node.parentIndex.guid.localID}`
     : '';
 
-const nodesById = new Map(nodes.map((node) => [nodeId(node), node]));
-const childrenByParent = new Map();
-for (const node of nodes) {
-  const parent = parentId(node);
-  childrenByParent.set(parent, [
-    ...(childrenByParent.get(parent) ?? []),
-    node,
-  ]);
-}
-
-const selected = [];
-const visit = (node) => {
-  selected.push(node);
-  for (const child of childrenByParent.get(nodeId(node)) ?? []) {
-    visit(child);
-  }
-};
-
-for (const rootId of rootIds) {
-  const root = nodesById.get(rootId);
-  if (!root) {
-    throw new Error(`Missing approved frame ${rootId}`);
-  }
-  if (root.size?.x !== 375 || root.size?.y !== 812) {
-    throw new Error(
-      `Approved frame ${rootId} has unexpected size ${root.size?.x}x${root.size?.y}`,
-    );
-  }
-  visit(root);
-}
-
-const rawAssetByHash = new Map(
-  rawAssets.map((asset) => [path.basename(asset.archive_path), asset.local_path]),
-);
-const output = path.resolve('assets/mobile/generated');
-const manifest = path.resolve('design/generated/mobileAssetManifest.ts');
-await rm(output, { recursive: true, force: true });
-await mkdir(output, { recursive: true });
-await mkdir(path.dirname(manifest), { recursive: true });
-
-const records = [];
-for (const node of selected) {
-  for (const paint of node.fillPaints ?? []) {
-    if (paint.type !== 'IMAGE' || !paint.image?.hash?.data) {
-      continue;
+async function renameIfPresent(from, to) {
+  try {
+    await rename(from, to);
+    return true;
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return false;
     }
-
-    const hash = Buffer.from(paint.image.hash.data, 'base64').toString('hex');
-    const relativeSource = rawAssetByHash.get(hash);
-    if (!relativeSource) {
-      throw new Error(`Missing raw asset ${hash} for ${nodeId(node)}`);
-    }
-
-    const extension = path.extname(relativeSource);
-    const fileName = `${nodeId(node).replace(':', '-')}-${hash}${extension}`;
-    await copyFile(
-      path.join(source, relativeSource),
-      path.join(output, fileName),
-    );
-    records.push({
-      key: `${nodeId(node)}:${records.length}`,
-      nodeId: nodeId(node),
-      name: node.name,
-      file: `../../assets/mobile/generated/${fileName}`,
-    });
+    throw error;
   }
 }
 
-const entries = records
-  .map(
-    (record) =>
-      `  ${JSON.stringify(record.key)}: { nodeId: ${JSON.stringify(record.nodeId)}, name: ${JSON.stringify(record.name)}, source: require(${JSON.stringify(record.file)}) },`,
-  )
-  .join('\n');
-const moduleText = `declare const require: (path: string) => number;\nexport const mobileAssets = {\n${entries}\n} as const;\n`;
-await writeFile(manifest, moduleText);
+function createManifest(records, manifestOutput, assetOutput) {
+  const entries = records
+    .map((record) => {
+      const relativeAsset = path
+        .relative(
+          path.dirname(manifestOutput),
+          path.join(assetOutput, record.fileName),
+        )
+        .split(path.sep)
+        .join('/');
+      const requirePath = relativeAsset.startsWith('.')
+        ? relativeAsset
+        : `./${relativeAsset}`;
+      return `  ${JSON.stringify(record.key)}: { nodeId: ${JSON.stringify(record.nodeId)}, name: ${JSON.stringify(record.name)}, source: require(${JSON.stringify(requirePath)}) },`;
+    })
+    .join('\n');
 
-console.log(
-  `Extracted ${records.length} image paints from ${rootIds.length} approved frames.`,
-);
+  return `declare const require: (path: string) => number;\nexport const mobileAssets = {\n${entries}\n} as const;\n`;
+}
+
+async function createExtractionPlan({ designSource, rootIds }) {
+  const nodeData = JSON.parse(
+    await readFile(
+      path.join(designSource, 'design-data/移动端UI.nodes.json'),
+      'utf8',
+    ),
+  );
+  const rawAssets = JSON.parse(
+    await readFile(
+      path.join(designSource, 'design-data/raw-assets.json'),
+      'utf8',
+    ),
+  );
+  if (!Array.isArray(nodeData.nodes) || !Array.isArray(rawAssets)) {
+    throw new Error('Design evidence must contain nodes and raw asset arrays');
+  }
+
+  const nodesById = new Map(
+    nodeData.nodes.map((node) => [nodeId(node), node]),
+  );
+  const childrenByParent = new Map();
+  for (const node of nodeData.nodes) {
+    const parent = parentId(node);
+    childrenByParent.set(parent, [
+      ...(childrenByParent.get(parent) ?? []),
+      node,
+    ]);
+  }
+
+  const selected = [];
+  const visit = (node) => {
+    selected.push(node);
+    for (const child of childrenByParent.get(nodeId(node)) ?? []) {
+      visit(child);
+    }
+  };
+
+  for (const rootId of rootIds) {
+    const root = nodesById.get(rootId);
+    if (!root) {
+      throw new Error(`Missing approved frame ${rootId}`);
+    }
+    if (root.size?.x !== 375 || root.size?.y !== 812) {
+      throw new Error(
+        `Approved frame ${rootId} has unexpected size ${root.size?.x}x${root.size?.y}`,
+      );
+    }
+    visit(root);
+  }
+
+  const rawAssetByHash = new Map(
+    rawAssets.map((asset) => [
+      path.basename(asset.archive_path),
+      asset.local_path,
+    ]),
+  );
+  const records = [];
+  for (const node of selected) {
+    for (const paint of node.fillPaints ?? []) {
+      if (paint.type !== 'IMAGE' || !paint.image?.hash?.data) {
+        continue;
+      }
+
+      const hash = Buffer.from(paint.image.hash.data, 'base64').toString('hex');
+      const relativeSource = rawAssetByHash.get(hash);
+      if (!relativeSource) {
+        throw new Error(`Missing raw asset mapping ${hash} for ${nodeId(node)}`);
+      }
+
+      const sourcePath = path.join(designSource, relativeSource);
+      records.push({
+        key: `${nodeId(node)}:${records.length}`,
+        nodeId: nodeId(node),
+        name: node.name,
+        sourcePath,
+        fileName: `${nodeId(node).replace(':', '-')}-${hash}${path.extname(relativeSource)}`,
+      });
+    }
+  }
+
+  const sourcePaths = [
+    ...new Set(records.map((record) => record.sourcePath)),
+  ];
+  await Promise.all(sourcePaths.map((sourcePath) => access(sourcePath)));
+  return records;
+}
+
+export async function extractMobileDesignEvidence({
+  designSource = source,
+  assetOutput = path.resolve('assets/mobile/generated'),
+  manifestOutput = path.resolve('design/generated/mobileAssetManifest.ts'),
+  rootIds = approvedRootIds,
+} = {}) {
+  const records = await createExtractionPlan({ designSource, rootIds });
+  const moduleText = createManifest(records, manifestOutput, assetOutput);
+  const suffix = `${process.pid}-${randomUUID()}`;
+  const stagedAssets = `${assetOutput}.tmp-${suffix}`;
+  const stagedManifest = `${manifestOutput}.tmp-${suffix}`;
+  const backupAssets = `${assetOutput}.backup-${suffix}`;
+  const backupManifest = `${manifestOutput}.backup-${suffix}`;
+
+  await mkdir(path.dirname(assetOutput), { recursive: true });
+  await mkdir(path.dirname(manifestOutput), { recursive: true });
+  await mkdir(stagedAssets, { recursive: true });
+
+  try {
+    for (const record of records) {
+      await copyFile(
+        record.sourcePath,
+        path.join(stagedAssets, record.fileName),
+      );
+    }
+    await writeFile(stagedManifest, moduleText);
+  } catch (error) {
+    await rm(stagedAssets, { recursive: true, force: true });
+    await rm(stagedManifest, { force: true });
+    throw error;
+  }
+
+  let oldAssetsMoved = false;
+  let oldManifestMoved = false;
+  let newAssetsInstalled = false;
+  let newManifestInstalled = false;
+  try {
+    oldAssetsMoved = await renameIfPresent(assetOutput, backupAssets);
+    oldManifestMoved = await renameIfPresent(manifestOutput, backupManifest);
+    await rename(stagedAssets, assetOutput);
+    newAssetsInstalled = true;
+    await rename(stagedManifest, manifestOutput);
+    newManifestInstalled = true;
+  } catch (error) {
+    if (newManifestInstalled) {
+      await rm(manifestOutput, { force: true });
+    }
+    if (newAssetsInstalled) {
+      await rm(assetOutput, { recursive: true, force: true });
+    }
+    if (oldManifestMoved) {
+      await rename(backupManifest, manifestOutput);
+    }
+    if (oldAssetsMoved) {
+      await rename(backupAssets, assetOutput);
+    }
+    await rm(stagedAssets, { recursive: true, force: true });
+    await rm(stagedManifest, { force: true });
+    throw error;
+  }
+
+  await rm(backupAssets, { recursive: true, force: true });
+  await rm(backupManifest, { force: true });
+  return {
+    assets: records.map(({ key, nodeId, name, fileName }) => ({
+      key,
+      nodeId,
+      name,
+      fileName,
+    })),
+    frameCount: rootIds.length,
+    recordCount: records.length,
+  };
+}
+
+const isEntryPoint =
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+
+if (isEntryPoint) {
+  const result = await extractMobileDesignEvidence();
+  console.log(
+    `Extracted ${result.recordCount} image paints from ${result.frameCount} approved frames.`,
+  );
+}
