@@ -69,6 +69,7 @@ test('create uses the persistent API and keeps the same app after leaving the sc
   await expect(page).toHaveURL(/\/app-detail\/app/);
   await expect(page.getByTestId('open-app')).toHaveCount(0);
   await page.goto('/app-gallery');
+  await page.getByTestId('product-folder-created').click();
   await page.getByText('梦境记录', { exact: true }).click();
   await expect(page).toHaveURL(/\/app-detail\/app/);
   expect(creates).toBe(1);

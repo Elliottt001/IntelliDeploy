@@ -1,27 +1,70 @@
-import { useCallback, useState } from 'react';
-import { Text, View } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { type components } from '@intellideploy/api-client';
+import { useCallback, useRef, useState } from 'react';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { ApiError, type components } from '@intellideploy/api-client';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { phase1Api } from '../../services/api';
-import WorkspacePage, { Action, workspaceStyles as styles } from '../../components/WorkspacePage';
+import { ProductAction, ProductActions, ProductFolder, ProductMessage, ProductPage } from '../../features/products/ProductFolder';
+import { ProductList } from '../../features/products/ProductList';
+import { getAppStatusLabel, partitionApps } from '../../features/products/productViewModel';
 
+type AppPage = components['schemas']['AppPage'];
 export default function AppGalleryScreen() {
   const router = useRouter();
-  const [category,setCategory]=useState<'created'|'copies'>('created');
-  const [data, setData] = useState<components['schemas']['AppPage'] | null>(null);
+  const insets = useSafeAreaInsets();
+  const [category, setCategory] = useState<'created' | 'copies'>('created');
+  const [expanded, setExpanded] = useState(false);
+  const [data, setData] = useState<AppPage | null>(null);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const epoch = useRef(0);
+  const load = useCallback(async () => {
+    const request = ++epoch.current;
+    setLoading(true); setError(''); setBusy(false);
+    try {
+      const value = await phase1Api.listMyApps();
+      if (request === epoch.current) setData(value);
+    } catch (cause) {
+      if (request !== epoch.current) return;
+      if (cause instanceof ApiError && cause.status === 401) router.replace({ pathname: '/login', params: { next: '/app-gallery' } });
+      else setError('应用暂时无法加载，请重试');
+    } finally { if (request === epoch.current) setLoading(false); }
+  }, [router]);
   useFocusEffect(useCallback(() => {
-    let active = true;
-    phase1Api.listMyApps().then(value => { if (active) { setData(value); setError(''); } }).catch(exc => { if (active) setError(exc.message ?? '无法读取应用'); });
-    return () => { active = false; };
-  }, []));
+    void load();
+    return () => { epoch.current++; };
+  }, [load]));
   async function more() {
-    if (busy || !data?.next_cursor) return;
-    setBusy(true);
-    try { const next = await phase1Api.listMyApps(data.next_cursor); setData({ ...next, items: [...data.items, ...next.items] }); }
-    catch (exc) { setError(exc instanceof Error ? exc.message : '无法读取更多应用'); }
-    finally { setBusy(false); }
+    if (busy || loading || !data?.next_cursor) return;
+    const request = epoch.current;
+    setBusy(true); setError('');
+    try {
+      const next = await phase1Api.listMyApps(data.next_cursor);
+      if (request === epoch.current) setData({ ...next, items: [...data.items, ...next.items] });
+    } catch (cause) {
+      if (request !== epoch.current) return;
+      if (cause instanceof ApiError && cause.status === 401) router.replace({ pathname: '/login', params: { next: '/app-gallery' } });
+      else setError('更多应用加载失败，可再次加载');
+    } finally { if (request === epoch.current) setBusy(false); }
   }
-  return <WorkspacePage title="我的应用"><View style={styles.actions}><Action label="我创建的" onPress={()=>setCategory('created')}/><Action label="我的副本" onPress={()=>setCategory('copies')}/><Action label="最近使用" onPress={()=>router.push({pathname:'/library/[kind]',params:{kind:'recent'}})}/><Action label="我的收藏" onPress={()=>router.push({pathname:'/library/[kind]',params:{kind:'favorites'}})}/></View>{Boolean(error) && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}{!data && !error && <Text style={styles.text}>正在读取应用…</Text>}{data?.items.length === 0 && <Text style={styles.text}>还没有应用，先描述一个想解决的问题。</Text>}{data?.items.filter(app=>category==='copies'?!!app.source_version_id:!app.source_version_id).map(app => <View key={app.id} style={styles.card}><Action label={app.name} onPress={() => router.push({ pathname: '/app-detail/[id]', params: { id: app.id } })} /><Text style={styles.muted}>{app.active_job_id ? '正在处理需求' : app.instance_status === 'RUNNING' ? '应用正在运行' : app.instance_status === 'STOPPED' ? '应用已停止，数据仍保留' : '查看状态与结果'}</Text></View>)}{data?.next_cursor && <Action label="加载更多" disabled={busy} onPress={() => { void more(); }} />}</WorkspacePage>;
+  const items = partitionApps(data?.items ?? [])[category];
+  function select(next: 'created' | 'copies') { setCategory(next); setExpanded(false); }
+  return <>
+    <Stack.Screen options={{ headerShown: false }} />
+    <ProductPage title="我的产品" subtitle={category === 'created' ? '点击查看我创建的应用' : '点击查看我的应用副本'} insets={insets} onBack={() => router.push('/')} testID="mobile-products">
+      {loading && <ProductMessage>正在读取应用…</ProductMessage>}
+      {Boolean(error) && <ProductMessage alert>{error}</ProductMessage>}
+      {!loading && Boolean(error) && !data && <ProductAction label="重试" onPress={() => void load()} />}
+      {data && <ProductFolder id={category} title={category === 'created' ? '我创建的' : '我的副本'} items={items} expanded={expanded} hasMore={Boolean(data.next_cursor)} onToggle={() => setExpanded(value => !value)} />}
+      <ProductActions>
+        <ProductAction label="我创建的" selected={category === 'created'} onPress={() => select('created')} />
+        <ProductAction label="我的副本" selected={category === 'copies'} onPress={() => select('copies')} />
+        <ProductAction label="我的收藏" onPress={() => router.push({ pathname: '/library/[kind]', params: { kind: 'favorites' } })} />
+        <ProductAction label="最近使用" onPress={() => router.push({ pathname: '/library/[kind]', params: { kind: 'recent' } })} />
+      </ProductActions>
+      {data && expanded && <ProductList items={items.map(app => ({ id: app.id, name: app.name, status: getAppStatusLabel(app) }))} onOpen={id => router.push({ pathname: '/app-detail/[id]', params: { id } })} />}
+      {Boolean(data?.next_cursor) && <ProductActions><ProductAction label={busy ? '加载中…' : '加载更多'} disabled={busy || loading} onPress={() => void more()} testID="products-load-more" /></ProductActions>}
+      <ProductActions><ProductAction label="新建应用" onPress={() => router.push('/chatbot')} /></ProductActions>
+    </ProductPage>
+  </>;
 }
