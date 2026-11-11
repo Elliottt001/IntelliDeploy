@@ -75,14 +75,14 @@ export default function StoreScreen() {
   useEffect(() => {
     let active = true;
     void load();
-    void authAPI.getToken().then((token) => {
-      if (!active || !token) return;
-      void readFavoriteIds()
-        .then((ids) => {
-          if (active) setFavoriteIds(ids);
-        })
-        .catch(() => undefined);
-    });
+    void authAPI
+      .getToken()
+      .then(async (token) => {
+        if (!active || !token) return;
+        const ids = await readFavoriteIds();
+        if (active) setFavoriteIds(ids);
+      })
+      .catch(() => undefined);
     return () => {
       active = false;
     };
@@ -163,7 +163,7 @@ export default function StoreScreen() {
         />
 
         <View style={styles.main}>
-          <View style={styles.searchShell}>
+          <View style={styles.searchShell} testID="store-search-surface">
             <TextInput
               accessibilityLabel="搜索已加载的应用"
               onChangeText={setQuery}
@@ -260,13 +260,17 @@ const styles = StyleSheet.create({
   searchShell: {
     alignItems: 'center',
     alignSelf: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderColor: '#FFFFFF',
     borderRadius: mobileRadii.pill,
-    borderWidth: 1,
+    borderWidth: 1.6521741151809692,
     flexDirection: 'row',
     minHeight: mobileSpacing.controlMin,
     paddingHorizontal: 16,
+    shadowColor: '#BABABA',
+    shadowOffset: { width: 0, height: 2.2028987407684326 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.3043482303619385,
     width: '88%',
   },
   searchInput: {

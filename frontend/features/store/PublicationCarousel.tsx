@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react';
 import {
   FlatList,
+  Platform,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -55,6 +56,30 @@ export function PublicationCarousel({
 
   return (
     <View style={[styles.viewport, { width: viewportWidth }]}>
+      <View
+        pointerEvents="none"
+        style={[
+          styles.backLayer,
+          {
+            left: (viewportWidth - cardWidth) / 2 + 18,
+            transform: [{ rotate: '10deg' }],
+            width: cardWidth,
+          },
+        ]}
+        testID="store-carousel-back-10"
+      />
+      <View
+        pointerEvents="none"
+        style={[
+          styles.backLayer,
+          {
+            left: (viewportWidth - cardWidth) / 2 + 9,
+            transform: [{ rotate: '5deg' }],
+            width: cardWidth,
+          },
+        ]}
+        testID="store-carousel-back-5"
+      />
       <FlatList
         contentContainerStyle={{
           paddingHorizontal: (viewportWidth - cardWidth) / 2,
@@ -70,6 +95,7 @@ export function PublicationCarousel({
         initialScrollIndex={selectedIndex}
         keyExtractor={(item) => item.id}
         onMomentumScrollEnd={selectAtOffset}
+        onScroll={Platform.OS === 'web' ? selectAtOffset : undefined}
         pagingEnabled
         ref={list}
         renderItem={({ item }) => (
@@ -93,6 +119,7 @@ export function PublicationCarousel({
         showsHorizontalScrollIndicator={false}
         snapToAlignment="start"
         snapToInterval={interval}
+        scrollEventThrottle={16}
         style={styles.list}
         testID="store-carousel"
       />
@@ -108,5 +135,17 @@ const styles = StyleSheet.create({
   },
   list: {
     overflow: 'visible',
+    zIndex: 1,
+  },
+  backLayer: {
+    backgroundColor: '#FCFCFC',
+    borderRadius: 30,
+    height: 399,
+    position: 'absolute',
+    shadowColor: '#897AB9',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    top: 0,
   },
 });

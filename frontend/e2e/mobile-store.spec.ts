@@ -36,6 +36,10 @@ async function mockPublications(page: Page) {
   });
 }
 
+async function authenticate(page: Page) {
+  await page.addInitScript(() => localStorage.setItem('token', 'fixture-token'));
+}
+
 test('anonymous store selects real cards, searches loaded pages, deduplicates paging, and opens detail', async ({ page }) => {
   await mockPublications(page);
   await page.goto('/store');
@@ -93,6 +97,126 @@ test('broken previews keep a stable neutral frame and a 401 favorite returns thr
   await expect(page.getByTestId('store-favorite-first').last()).not.toContainText('已收藏');
 });
 
+test('optional token storage failure neither becomes unhandled nor blocks public browsing', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  await page.addInitScript(() => {
+    const original = Storage.prototype.getItem;
+    let tokenReads = 0;
+    Storage.prototype.getItem = function (key: string) {
+      if (key === 'token' && ++tokenReads === 3) {
+        throw new Error('fixture token storage failure');
+      }
+      return original.call(this, key);
+    };
+  });
+  await mockPublications(page);
+
+  await page.goto('/store');
+
+  await expect(page.getByTestId('store-detail')).toContainText('首页应用');
+  await expect.poll(() => pageErrors).toEqual([]);
+});
+
+test('authenticated store reads every favorite page before showing saved state', async ({ page }) => {
+  await authenticate(page);
+  await mockPublications(page);
+  await page.route('**/api/library/favorites**', (route) => {
+    const cursor = new URL(route.request().url()).searchParams.get('cursor');
+    return route.fulfill({
+      json: cursor
+        ? { items: [first], next_cursor: null }
+        : { items: [second], next_cursor: 'favorites-2' },
+    });
+  });
+
+  await page.goto('/store');
+
+  await expect(page.getByTestId('store-favorite-first')).toContainText('已收藏');
+});
+
+test('successful favorite add and remove update UI only after each response', async ({ page }) => {
+  await authenticate(page);
+  await mockPublications(page);
+  await page.route('**/api/library/favorites**', (route) =>
+    route.fulfill({ json: { items: [], next_cursor: null } }),
+  );
+  let releaseMutation = () => {};
+  await page.route('**/api/library/favorites/first', async (route) => {
+    await new Promise<void>((resolve) => {
+      releaseMutation = resolve;
+    });
+    return route.fulfill({ json: { ok: true } });
+  });
+  await page.goto('/store');
+  const favorite = page.getByTestId('store-favorite-first');
+  await expect(favorite).toContainText('收藏');
+
+  await favorite.click();
+  await expect(favorite).toBeDisabled();
+  await expect(favorite).not.toContainText('已收藏');
+  releaseMutation();
+  await expect(favorite).toContainText('已收藏');
+
+  releaseMutation = () => {};
+  await favorite.click();
+  await expect(favorite).toBeDisabled();
+  await expect(favorite).toContainText('已收藏');
+  releaseMutation();
+  await expect(favorite).toContainText('收藏');
+});
+
+test('store surfaces preserve audited paints, hidden strokes, and separate back rotations', async ({ page }) => {
+  await mockPublications(page);
+  await page.goto('/store');
+
+  const selected = page.getByTestId('store-carousel-card-first');
+  await expect(selected).toHaveCSS('background-color', 'rgb(252, 252, 252)');
+  await expect(selected).toHaveCSS('border-top-width', '0px');
+  await expect(selected).toHaveCSS('box-shadow', /rgb\(137, 122, 185\)/);
+  const searchSurface = page.getByTestId('store-search-surface');
+  await expect(searchSurface).toHaveCSS(
+    'background-color',
+    'rgba(255, 255, 255, 0.2)',
+  );
+  await expect(searchSurface).toHaveCSS(
+    'box-shadow',
+    /rgba\(186, 186, 186, 0\.25\)/,
+  );
+  for (const [testId, degrees] of [
+    ['store-carousel-back-5', 5],
+    ['store-carousel-back-10', 10],
+  ] as const) {
+    const rotation = await page.getByTestId(testId).evaluate((element) => {
+      const matrix = new DOMMatrix(getComputedStyle(element).transform);
+      return (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI;
+    });
+    expect(rotation).toBeCloseTo(degrees, 3);
+  }
+
+  await page.goto('/store/ranking');
+  const rankingSurface = page.getByTestId('store-ranking-list-surface');
+  await expect(rankingSurface).toHaveCSS('border-top-width', '0px');
+  await expect(rankingSurface).toHaveCSS(
+    'box-shadow',
+    /rgb\(130, 118, 166\)/,
+  );
+});
+
+test('horizontal carousel scrolling selects the snapped card', async ({ page }) => {
+  await mockPublications(page);
+  await page.goto('/store');
+
+  await page.getByTestId('store-carousel').hover();
+  await page.mouse.wheel(350, 0);
+
+  await expect(page.getByTestId('store-carousel-card-second')).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByTestId('store-detail')).toContainText('相邻应用');
+});
+
 test('ranking is public and explains its honest recent-update order', async ({ page }) => {
   await mockPublications(page);
   await page.goto('/store/ranking');
@@ -129,6 +253,27 @@ test('store controls stay reachable and at least 44px at supported widths', asyn
       expect(box!.height, `${target} should be at least 44px tall at ${width}px`).toBeGreaterThanOrEqual(44);
       expect(box!.x, `${target} should not overflow left at ${width}px`).toBeGreaterThanOrEqual(0);
       expect(box!.x + box!.width, `${target} should not overflow right at ${width}px`).toBeLessThanOrEqual(width);
+    }
+  }
+});
+
+test('ranking controls stay reachable and at least 44px at supported widths', async ({ page }) => {
+  await mockPublications(page);
+
+  for (const width of [320, 375, 430]) {
+    await page.setViewportSize({ width, height: 812 });
+    await page.goto('/store/ranking');
+    for (const target of [
+      page.getByRole('button', { name: '返回应用商店' }),
+      page.getByRole('button', { name: '分享暂未开放' }),
+      page.getByTestId('store-ranking-row-first'),
+      page.getByTestId('store-ranking-bottom-nav'),
+    ]) {
+      const box = await target.boundingBox();
+      expect(box, `ranking target should have a layout box at ${width}px`).not.toBeNull();
+      expect(box!.height, `ranking target should be at least 44px tall at ${width}px`).toBeGreaterThanOrEqual(44);
+      expect(box!.x, `ranking target should not overflow left at ${width}px`).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width, `ranking target should not overflow right at ${width}px`).toBeLessThanOrEqual(width);
     }
   }
 });

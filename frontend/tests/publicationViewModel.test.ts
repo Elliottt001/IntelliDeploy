@@ -54,6 +54,18 @@ test('search only filters loaded items and ranking means recent update', () => {
   ).toEqual(['p', 'old']);
 });
 
+test('recent update sorting puts invalid dates last and breaks every tie by id', () => {
+  expect(
+    sortByRecentUpdate([
+      { ...publication, id: 'invalid-z', updated_at: 'not-a-date' },
+      { ...publication, id: 'tie-z', updated_at: '2026-11-10T00:00:00Z' },
+      { ...publication, id: 'invalid-a', updated_at: '' },
+      { ...publication, id: 'newest', updated_at: '2026-11-11T00:00:00Z' },
+      { ...publication, id: 'tie-a', updated_at: '2026-11-10T00:00:00Z' },
+    ]).map((item) => item.id),
+  ).toEqual(['newest', 'tie-a', 'tie-z', 'invalid-a', 'invalid-z']);
+});
+
 test('store evidence matches direct Kiwi geometry and honest no-symbol subtrees', () => {
   const source = '/Users/bytedance/Downloads/IntelliDeploy-design-2026-11-10-2221';
   const document = JSON.parse(
@@ -62,9 +74,35 @@ test('store evidence matches direct Kiwi geometry and honest no-symbol subtrees'
     nodeChanges: Array<{
       guid: { localID: number; sessionID: number };
       parentIndex?: { guid: { localID: number; sessionID: number } };
+      effects?: Array<{
+        color?: { a: number; b: number; g: number; r: number };
+        offset?: { x: number; y: number };
+        radius?: number;
+        type: string;
+        visible: boolean;
+      }>;
+      fillPaints?: Array<{
+        color: { a: number; b: number; g: number; r: number };
+        opacity: number;
+        type: string;
+        visible: boolean;
+      }>;
       size?: { x: number; y: number };
+      strokePaints?: Array<{
+        color: { a: number; b: number; g: number; r: number };
+        opacity: number;
+        type: string;
+        visible: boolean;
+      }>;
       symbolData?: { symbolID?: { localID: number; sessionID: number } };
-      transform?: { m02: number; m12: number };
+      transform?: {
+        m00: number;
+        m01: number;
+        m02: number;
+        m10: number;
+        m11: number;
+        m12: number;
+      };
       type: string;
     }>;
   };
@@ -98,6 +136,16 @@ test('store evidence matches direct Kiwi geometry and honest no-symbol subtrees'
       y: node.transform?.m12,
     };
   };
+  const parentId = (nodeId: string) => {
+    const parent = nodes.get(nodeId)?.parentIndex?.guid;
+    return parent ? `${parent.sessionID}:${parent.localID}` : null;
+  };
+  const rotation = (nodeId: string) => {
+    const transform = nodes.get(nodeId)?.transform;
+    return transform
+      ? (Math.atan2(transform.m10, transform.m00) * 180) / Math.PI
+      : null;
+  };
 
   expect(storeFigmaEvidence.sourcePriority).toEqual([
     'kiwi-document',
@@ -110,8 +158,8 @@ test('store evidence matches direct Kiwi geometry and honest no-symbol subtrees'
   expect(sourceBox(storeFigmaEvidence.detail.carousel.id)).toEqual(
     storeFigmaEvidence.detail.carousel,
   );
-  expect(sourceBox(storeFigmaEvidence.detail.activeSurface.id)).toEqual(
-    storeFigmaEvidence.detail.activeSurface,
+  expect(sourceBox(storeFigmaEvidence.detail.foregroundSurface.id)).toEqual(
+    storeFigmaEvidence.detail.foregroundSurface,
   );
   expect(sourceBox(storeFigmaEvidence.ranking.frame.id)).toEqual(
     storeFigmaEvidence.ranking.frame,
@@ -125,6 +173,79 @@ test('store evidence matches direct Kiwi geometry and honest no-symbol subtrees'
   expect(sourceBox(storeFigmaEvidence.ranking.listSurface.id)).toEqual(
     storeFigmaEvidence.ranking.listSurface,
   );
+
+  const carouselChildren = document.nodeChanges.filter(
+    (node) => parentId(id(node)) === storeFigmaEvidence.detail.carousel.id,
+  );
+  expect(id(carouselChildren.at(-1)!)).toBe('270:26712');
+  expect(parentId('270:26713')).toBe('270:26712');
+  expect(rotation('270:26713')).toBeCloseTo(0, 8);
+  expect(rotation('270:26640')).toBeCloseTo(10, 5);
+  expect(rotation('270:26675')).toBeCloseTo(5, 5);
+  expect(storeFigmaEvidence.detail.backSurfaces).toEqual([
+    { id: '270:26640', rotationDegrees: 10 },
+    { id: '270:26675', rotationDegrees: 5 },
+  ]);
+
+  const foreground = nodes.get('270:26713')!;
+  expect(foreground.fillPaints).toHaveLength(1);
+  expect(foreground.fillPaints![0]).toMatchObject({
+    color: {
+      a: 1,
+      b: 0.986985445022583,
+      g: 0.986985445022583,
+      r: 0.986985445022583,
+    },
+    opacity: 1,
+    type: 'SOLID',
+    visible: true,
+  });
+  expect(foreground.strokePaints).toBeUndefined();
+  expect(foreground.effects).toEqual([
+    expect.objectContaining({
+      color: {
+        a: 1,
+        b: 0.7266751527786255,
+        g: 0.4772217571735382,
+        r: 0.5354275703430176,
+      },
+      offset: { x: 2, y: 2 },
+      radius: 10,
+      type: 'DROP_SHADOW',
+      visible: true,
+    }),
+  ]);
+
+  const searchSurface = nodes.get('270:26624')!;
+  expect(searchSurface.fillPaints![0]).toMatchObject({
+    color: { a: 1, b: 1, g: 1, r: 1 },
+    opacity: 0.20000000298023224,
+    visible: true,
+  });
+  expect(searchSurface.effects?.map((effect) => effect.type)).toEqual([
+    'GLASS',
+    'DROP_SHADOW',
+  ]);
+  expect(storeFigmaEvidence.detail.searchGlass).toMatchObject({
+    nativeSupport: false,
+    sourceSurfaceId: '270:26624',
+  });
+
+  const rankingSurface = nodes.get('825:7026')!;
+  expect(rankingSurface.strokePaints).toEqual([
+    expect.objectContaining({
+      color: {
+        a: 1,
+        b: 0.9803921580314636,
+        g: 0.545098066329956,
+        r: 0.6549019813537598,
+      },
+      visible: false,
+    }),
+  ]);
+  expect(rankingSurface.effects?.map((effect) => effect.type)).toEqual([
+    'DROP_SHADOW',
+  ]);
 
   for (const rootId of [
     storeFigmaEvidence.detail.carousel.id,

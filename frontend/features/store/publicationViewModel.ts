@@ -22,8 +22,18 @@ export const storeFigmaEvidence = {
   detail: {
     frame: { id: '270:26597', width: 375, height: 812, x: 1189, y: 1411 },
     search: { id: '270:26623', width: 295, height: 36, x: 20.584259033203125, y: 0 },
+    searchGlass: {
+      nativeSupport: false,
+      sourceSurfaceId: '270:26624',
+      adaptation: '20% white fill, white stroke, and source drop-shadow; native GLASS optics remain unsupported',
+    },
     carousel: { id: '270:26636', width: 336.16851806640625, height: 439.9969482421875, x: 0, y: 112 },
-    activeSurface: { id: '270:26640', width: 271, height: 399, x: 69.28564453125, y: 0 },
+    foregroundGroup: { id: '270:26712', width: 271, height: 399, x: 32.58428955078125, y: 20.498291015625 },
+    foregroundSurface: { id: '270:26713', width: 271, height: 399, x: 0, y: 0.501708984375 },
+    backSurfaces: [
+      { id: '270:26640', rotationDegrees: 10 },
+      { id: '270:26675', rotationDegrees: 5 },
+    ],
     bottomActions: { id: '270:26756', width: 336.16851806640625, height: 54, x: 0, y: 578.9969482421875 },
     noSymbolReason: 'carousel 270:26636 has no INSTANCE or SYMBOL descendants; its card surfaces are direct Kiwi nodes',
   },
@@ -60,9 +70,15 @@ export const filterLoadedPublications = (items: Publication[], query: string) =>
 };
 
 export const sortByRecentUpdate = (items: Publication[]) =>
-  [...items].sort(
-    (left, right) => Date.parse(right.updated_at) - Date.parse(left.updated_at),
-  );
+  [...items].sort((left, right) => {
+    const leftTime = Date.parse(left.updated_at);
+    const rightTime = Date.parse(right.updated_at);
+    const leftValid = Number.isFinite(leftTime);
+    const rightValid = Number.isFinite(rightTime);
+    if (leftValid && rightValid && leftTime !== rightTime) return rightTime - leftTime;
+    if (leftValid !== rightValid) return leftValid ? -1 : 1;
+    return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
+  });
 
 export function mergePublicationPages(
   current: Publication[],

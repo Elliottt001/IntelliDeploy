@@ -125,16 +125,14 @@ export function PublicationCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderColor: 'rgba(167, 139, 250, 0.35)',
+    backgroundColor: '#FCFCFC',
     borderRadius: 30,
-    borderWidth: 1,
+    borderWidth: 0,
     height: 399,
-    overflow: 'hidden',
     padding: 18,
-    shadowColor: '#ADA6C4',
-    shadowOffset: { width: 2, height: 3 },
-    shadowOpacity: 0.22,
+    shadowColor: '#897AB9',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
     shadowRadius: 10,
   },
   selectedCard: {
@@ -143,8 +141,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   adjacentCard: {
-    opacity: 0.74,
-    transform: [{ scale: 0.94 }],
+    opacity: 1,
     zIndex: 1,
   },
   heading: {

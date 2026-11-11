@@ -127,6 +127,7 @@ export default function StoreRankingScreen() {
           <ScrollView
             contentContainerStyle={styles.listContent}
             style={styles.list}
+            testID="store-ranking-list-surface"
           >
             {ranked.map((item, index) => (
               <Pressable
@@ -245,10 +246,13 @@ const styles = StyleSheet.create({
   list: {
     alignSelf: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: '#A78BFA',
     borderRadius: 15,
-    borderWidth: 1,
+    borderWidth: 0,
     flex: 1,
+    shadowColor: '#8276A6',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
     width: '91%',
   },
   listContent: {
