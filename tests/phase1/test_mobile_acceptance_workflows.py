@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / "frontend" / ".maestro"
 
 
-def _commands(name: str) -> list[dict]:
+def _commands(name: str) -> list[object]:
     metadata, commands = list(yaml.safe_load_all((WORKFLOWS / name).read_text()))
     assert metadata["appId"] == "cn.elliotttzhang.intellideploy"
     assert isinstance(metadata["onFlowStart"], list)
@@ -15,19 +15,22 @@ def _commands(name: str) -> list[dict]:
     return commands
 
 
-def _tap_ids(commands: list[dict]) -> set[str]:
+def _tap_ids(commands: list[object]) -> set[str]:
     return {
         tap["id"]
         for command in commands
-        if isinstance((tap := command.get("tapOn")), dict) and "id" in tap
+        if isinstance(command, dict)
+        and isinstance((tap := command.get("tapOn")), dict)
+        and "id" in tap
     }
 
 
-def _wait_visible_ids(commands: list[dict]) -> set[str]:
+def _wait_visible_ids(commands: list[object]) -> set[str]:
     return {
         visible["id"]
         for command in commands
-        if isinstance((wait := command.get("extendedWaitUntil")), dict)
+        if isinstance(command, dict)
+        and isinstance((wait := command.get("extendedWaitUntil")), dict)
         and isinstance((visible := wait.get("visible")), dict)
         and "id" in visible
     }
