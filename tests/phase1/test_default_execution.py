@@ -436,6 +436,40 @@ async def test_uncertain_model_effect_is_not_replayed(new_job, session_factory):
 
 
 @pytest.mark.asyncio
+async def test_unknown_review_usage_is_persisted_and_not_replayed(
+    new_job, session_factory
+):
+    from app.jobs.execution import JobExecution, UncertainModelCall
+
+    job_id, _, _, generation = new_job
+
+    class UnknownUsageModel:
+        calls = 0
+
+        async def complete(self, *args):
+            self.calls += 1
+            return ModelTurn(
+                assistant_message={"role": "assistant", "content": "{}"},
+                usage_known=False,
+            )
+
+    model = UnknownUsageModel()
+    execution = JobExecution(
+        job_id,
+        "worker",
+        generation,
+        session_factory=session_factory,
+        model_client=model,
+    )
+    for _ in range(2):
+        with pytest.raises(UncertainModelCall):
+            await execution.model("review:attempt:manifest").complete(
+                [{"role": "user", "content": "review"}], [], "hint"
+            )
+    assert model.calls == 1
+
+
+@pytest.mark.asyncio
 async def test_default_worker_missing_configuration_reaches_clear_terminal_state(
     new_job, session_factory, monkeypatch
 ):
@@ -665,6 +699,24 @@ async def test_default_pipeline_assembles_existing_modules_and_reaches_bound_rel
                         ],
                     },
                     calls=[call],
+                    input_tokens=1,
+                    output_tokens=1,
+                )
+            if "independent candidate reviewer" in messages[0]["content"].lower():
+                return ModelTurn(
+                    assistant_message={
+                        "role": "assistant",
+                        "content": json.dumps({"findings": []}),
+                    },
+                    input_tokens=1,
+                    output_tokens=1,
+                )
+            if "independent security reviewer" in messages[0]["content"].lower():
+                return ModelTurn(
+                    assistant_message={
+                        "role": "assistant",
+                        "content": json.dumps({"findings": []}),
+                    },
                     input_tokens=1,
                     output_tokens=1,
                 )

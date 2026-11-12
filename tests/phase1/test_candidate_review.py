@@ -193,7 +193,7 @@ def test_clean_low_candidate_only_returns_nonblocking_warnings(tmp_path):
 async def test_execution_persists_private_reports_and_sanitized_checkpoint(
     tmp_path, monkeypatch
 ):
-    from app.agent.contracts import AlgorithmCheckpoint
+    from app.agent.contracts import AlgorithmCheckpoint, OrchestrationDecision
     from app.config import settings
     from app.jobs.execution import JobExecution
 
@@ -202,6 +202,17 @@ async def test_execution_persists_private_reports_and_sanitized_checkpoint(
     source.write_text("PRIVATE_SOURCE_MARKER = 'never expose'\n")
     state = AlgorithmCheckpoint.empty(3, "hybrid")
     state.route = route()
+    state.orchestration = OrchestrationDecision(
+        complexity="LOW",
+        risk="LOW",
+        require_llm_review=False,
+        require_security_llm=False,
+        allow_parallel_healing=False,
+        max_build_attempts=4,
+        max_route_switches=2,
+        max_parallel_candidates=1,
+        reasons=["test_low"],
+    )
     holder = SimpleNamespace(
         job_id="job-review",
         _state=state,

@@ -1006,8 +1006,7 @@ class JobExecution:
 
     async def review_candidate(self, attempt_id, draft, requirement):
         from app.agent.policy import decide_orchestration
-        from app.agent.review import review_deterministic
-        from app.agent.security import scan_security
+        from app.agent.orchestrator import AlgorithmOrchestrator
         from app.agent.contracts import EvidenceRef
         from app.core.types import RoutePlan
         from app.runtime.manifest import manifest_hash
@@ -1031,10 +1030,25 @@ class JobExecution:
             requirement, route, checkpoint.profiles, []
         )
         profile = checkpoint.profiles[0] if checkpoint.profiles else None
-        reports = [
-            review_deterministic(attempt_id, draft, requirement, route),
-            scan_security(attempt_id, draft, profile, policy),
-        ]
+        review_model = None
+        security_model = None
+        if policy.require_llm_review:
+            review_model = self.model(f"review:{attempt_id}:{digest}")
+        if policy.require_security_llm:
+            source_digest = profile.commit if profile is not None else digest
+            security_model = self.model(
+                f"security:{attempt_id}:{source_digest}"
+            )
+        reports = await AlgorithmOrchestrator(self).review_candidate(
+            attempt_id,
+            draft,
+            requirement,
+            route,
+            profile,
+            policy,
+            model=review_model,
+            security_model=security_model,
+        )
         evidence_root = Path(settings.ARTIFACTS_ROOT) / "reviews" / self.job_id
         evidence_root.mkdir(parents=True, exist_ok=True, mode=0o700)
         checkpoint = self.algorithm_checkpoint()
