@@ -1,19 +1,28 @@
 from __future__ import annotations
 
 import asyncio
-import re
+import hashlib
+from urllib.parse import urlsplit, urlunsplit
 
+from app.agent.query import deterministic_queries
+from app.agent.repository_index import RepositoryIndex, index_readme_candidates
 from app.agent_core.brains.context_rag_agent import RepositoryCandidate
 from app.agent_core.brains.github_retriever import GitHubRepositorySearchClient
-from app.core.types import Requirement, RetrievalResult
+from app.agent_core.memory.vector_store import ReadmeSearchResult
+from app.core.types import Requirement, RetrievalCandidate, RetrievalResult
 
 
 class SearchUnavailable(RuntimeError):
     retryable = True
 
 
-def normalize_candidate(candidate: RepositoryCandidate | dict) -> dict:
-    row = candidate.model_dump(mode="json") if isinstance(candidate, RepositoryCandidate) else dict(candidate)
+def normalize_candidate(
+    candidate: RepositoryCandidate | RetrievalCandidate | dict,
+) -> dict:
+    if isinstance(candidate, (RepositoryCandidate, RetrievalCandidate)):
+        row = candidate.model_dump(mode="json")
+    else:
+        row = dict(candidate)
     row["repo_url"] = row.get("repo_url") or row.get("html_url")
     row["last_commit_at"] = row.get("last_commit_at") or row.get("pushed_at")
     row["file_tree"] = row.get("file_tree") or row.get("files") or []
@@ -22,42 +31,181 @@ def normalize_candidate(candidate: RepositoryCandidate | dict) -> dict:
 
 
 def requirement_queries(requirement: Requirement) -> list[str]:
-    original = " ".join(requirement.prompt.split())
-    chinese = " ".join(re.findall(r"[\u4e00-\u9fff]{2,}|[A-Za-z0-9_.+-]+", original)[:8])
-    translations = []
-    for source, target in (("梦境", "dream journal"), ("笔记", "notes app"), ("记录", "tracker"),
-                           ("搜索", "search app"), ("实时", "real time"), ("多人", "multi user")):
-        if source in original:
-            translations.append(target)
-    english = " ".join(translations) or "web application"
-    return list(dict.fromkeys([original, f"{chinese} web app", f"{english} open source"]))
+    return deterministic_queries(requirement).github_queries
 
 
-async def retrieve_sources(requirement: Requirement, github_client=None, repository_index=None) -> RetrievalResult:
+def _canonical_url(value: str) -> str:
+    parsed = urlsplit(value.strip())
+    if parsed.scheme != "https" or parsed.netloc.lower() != "github.com":
+        return value.rstrip("/")
+    path = parsed.path.rstrip("/")
+    if path.endswith(".git"):
+        path = path[:-4]
+    return urlunsplit(("https", "github.com", path, "", ""))
+
+
+def _valid_commit(value) -> bool:
+    return isinstance(value, str) and len(value) == 40 and all(
+        character in "0123456789abcdef" for character in value.lower()
+    )
+
+
+def _readme_row(value) -> dict:
+    if isinstance(value, ReadmeSearchResult):
+        document = value.document
+        metadata = dict(document.metadata)
+        return {
+            **metadata,
+            "repo_url": metadata.get("repo_url") or document.repo_id,
+            "description": metadata.get("description") or document.description,
+            "source_scores": {"readme": value.score},
+        }
+    return normalize_candidate(value)
+
+
+def _merge_rows(rows: list[tuple[str, dict]]) -> list[RetrievalCandidate]:
+    merged: dict[str, dict] = {}
+    source_order = {"github": 0, "readme": 1, "verified_index": 2}
+    for source, raw in rows:
+        row = normalize_candidate(raw)
+        url = row.get("repo_url")
+        if not isinstance(url, str) or not url:
+            continue
+        canonical = _canonical_url(url)
+        current = merged.setdefault(
+            canonical,
+            {
+                "repo_url": canonical,
+                "commit_values": set(),
+                "description": "",
+                "stars": 0,
+                "last_commit_at": None,
+                "sources": [],
+                "source_scores": {},
+                "statuses": [],
+                "file_tree": [],
+                "key_files": {},
+                "compatibility": "UNKNOWN",
+            },
+        )
+        commit = row.get("commit")
+        if _valid_commit(commit):
+            current["commit_values"].add(commit.lower())
+        if source not in current["sources"]:
+            current["sources"].append(source)
+        current["source_scores"].update(row.get("source_scores") or {})
+        if source not in current["source_scores"]:
+            current["source_scores"][source] = float(row.get("score") or 0)
+        current["description"] = current["description"] or str(
+            row.get("description") or ""
+        )
+        current["stars"] = max(current["stars"], int(row.get("stars") or 0))
+        current["last_commit_at"] = (
+            current["last_commit_at"] or row.get("last_commit_at")
+        )
+        current["file_tree"] = current["file_tree"] or row.get("file_tree") or []
+        current["key_files"] = current["key_files"] or row.get("key_files") or {}
+        current["compatibility"] = (
+            row.get("compatibility") or current["compatibility"]
+        )
+        current["statuses"].append(row.get("enrichment_status") or "COMPLETE")
+
+    candidates = []
+    for row in merged.values():
+        commits = row.pop("commit_values")
+        statuses = row.pop("statuses")
+        commit = next(iter(commits)) if len(commits) == 1 else None
+        if "FAILED" in statuses and not commit:
+            status = "FAILED"
+        elif len(commits) != 1 or "PARTIAL" in statuses or "FAILED" in statuses:
+            status = "PARTIAL"
+        else:
+            status = "COMPLETE"
+        row["sources"].sort(key=source_order.__getitem__)
+        candidates.append(
+            RetrievalCandidate(
+                **row,
+                commit=commit,
+                enrichment_status=status,
+            )
+        )
+    return candidates
+
+
+async def retrieve_sources(
+    requirement: Requirement,
+    query_plan=None,
+    github_client=None,
+    repository_index=None,
+    readme_search=None,
+) -> RetrievalResult:
     client = github_client or GitHubRepositorySearchClient()
-    queries = requirement_queries(requirement)
-    errors: list[str] = []
-    found: dict[str, RepositoryCandidate] = {}
-    for item in getattr(repository_index, "items", []):
-        try:
-            cached = RepositoryCandidate.model_validate(item)
-            found[cached.repo_key] = cached
-        except Exception:
-            continue
-    for query in queries:
-        try:
-            rows = await client.search_repositories(query, per_page=20)
-        except Exception as exc:
-            errors.append(f"{query}: {type(exc).__name__}: {exc}")
-            continue
-        for row in rows:
-            found.setdefault(row.repo_key, row)
-    enriched = []
-    for row in found.values():
-        try:
-            enriched.append(await client.enrich_repository(row))
-        except Exception as exc:
-            errors.append(f"{row.repo_url}: {type(exc).__name__}: {exc}")
-    return RetrievalResult(queries=queries, completed=not errors,
-                           candidates=[normalize_candidate(row) for row in enriched], errors=errors)
+    plan = query_plan or deterministic_queries(requirement)
+    index = repository_index or RepositoryIndex()
+    github_queries = list(dict.fromkeys(plan.github_queries))
+    tasks = [
+        client.search_repositories(query, per_page=20) for query in github_queries
+    ]
+    if readme_search is not None:
+        tasks.append(
+            asyncio.to_thread(readme_search.search, plan.readme_queries, 20)
+        )
+    tasks.append(asyncio.to_thread(index_readme_candidates, index, plan))
+    results = await asyncio.gather(*tasks, return_exceptions=True)
 
+    errors: list[str] = []
+    collected: list[tuple[str, dict]] = []
+    github_results = results[: len(github_queries)]
+    for query, result in zip(github_queries, github_results, strict=True):
+        if isinstance(result, BaseException):
+            errors.append(f"{query}: {type(result).__name__}: {result}")
+            continue
+        for value in result:
+            row = normalize_candidate(value)
+            if not _valid_commit(row.get("commit")) and hasattr(
+                client, "enrich_repository"
+            ):
+                try:
+                    row = normalize_candidate(
+                        await client.enrich_repository(value)
+                    )
+                except Exception as exc:
+                    row["enrichment_status"] = "FAILED"
+                    errors.append(
+                        f"{row.get('repo_url')}: {type(exc).__name__}: {exc}"
+                    )
+            collected.append(("github", row))
+
+    cursor = len(github_queries)
+    if readme_search is not None:
+        readme_result = results[cursor]
+        cursor += 1
+        if isinstance(readme_result, BaseException):
+            errors.append(
+                f"readme: {type(readme_result).__name__}: {readme_result}"
+            )
+        else:
+            collected.extend(
+                ("readme", _readme_row(row)) for row in readme_result
+            )
+    index_result = results[cursor]
+    if isinstance(index_result, BaseException):
+        errors.append(f"index: {type(index_result).__name__}: {index_result}")
+    else:
+        collected.extend(
+            ("verified_index", row.model_dump(mode="json"))
+            for row in index_result
+        )
+
+    index_version = None
+    if index.items:
+        index_version = hashlib.sha256(
+            index.model_dump_json().encode("utf-8")
+        ).hexdigest()
+    return RetrievalResult(
+        queries=github_queries,
+        completed=not errors,
+        candidates=_merge_rows(collected),
+        index_version=index_version,
+        errors=errors,
+    )
