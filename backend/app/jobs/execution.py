@@ -1004,6 +1004,65 @@ class JobExecution:
             self.sync_usage(session, job)
             session.commit()
 
+    async def review_candidate(self, attempt_id, draft, requirement):
+        from app.agent.policy import decide_orchestration
+        from app.agent.review import review_deterministic
+        from app.agent.security import scan_security
+        from app.agent.contracts import EvidenceRef
+        from app.core.types import RoutePlan
+        from app.runtime.manifest import manifest_hash
+
+        checkpoint = self.algorithm_checkpoint()
+        digest = manifest_hash(draft.manifest)
+        existing = [
+            report
+            for report in checkpoint.reviews
+            if report.attempt_id == attempt_id and report.manifest_hash == digest
+        ]
+        if existing:
+            return existing
+        route = checkpoint.route or RoutePlan(
+            route="GENERATE_APP",
+            steps=["generate"],
+            reason="candidate review fallback",
+            confidence="LOW",
+        )
+        policy = checkpoint.orchestration or decide_orchestration(
+            requirement, route, checkpoint.profiles, []
+        )
+        profile = checkpoint.profiles[0] if checkpoint.profiles else None
+        reports = [
+            review_deterministic(attempt_id, draft, requirement, route),
+            scan_security(attempt_id, draft, profile, policy),
+        ]
+        evidence_root = Path(settings.ARTIFACTS_ROOT) / "reviews" / self.job_id
+        evidence_root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        checkpoint = self.algorithm_checkpoint()
+        checkpoint.orchestration = policy
+        for report in reports:
+            payload = report.model_dump_json(indent=2).encode("utf-8")
+            path = evidence_root / f"{attempt_id}-{report.reviewer_kind.lower()}.json"
+            temporary = path.with_suffix(path.suffix + ".tmp")
+            temporary.write_bytes(payload)
+            temporary.chmod(0o600)
+            temporary.replace(path)
+            path.chmod(0o600)
+            checkpoint.evidence_refs.append(
+                EvidenceRef(
+                    kind=(
+                        "SECURITY"
+                        if report.reviewer_kind == "SECURITY_RULES"
+                        else "REVIEW"
+                    ),
+                    reference=str(path),
+                    digest=hashlib.sha256(payload).hexdigest(),
+                    access="DEVELOPER",
+                )
+            )
+            checkpoint.reviews.append(report)
+        self.save_algorithm_checkpoint(checkpoint)
+        return reports
+
     async def compile_checks(self, requirement, source_tree, model=None):
         from app.runtime.check_plan import compile_browser_checks
 
@@ -1347,6 +1406,7 @@ async def build_default_dependencies(job_id, worker_id, generation, session_fact
 
         dependencies = PipelineDependencies(
             generate_candidate=execution.generate_candidate,
+            review_candidate=execution.review_candidate,
             build_candidate=execution.build_candidate,
             compile_checks=execution.compile_checks,
             start_candidate=execution.candidates.start,

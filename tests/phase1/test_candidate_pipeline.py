@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -30,6 +31,80 @@ class CheckModel:
         del requirement, source_tree, feedback
         self.calls += 1
         return self.values.pop(0)
+
+
+@pytest.mark.asyncio
+async def test_blocking_review_prevents_build(tmp_path):
+    from app.agent.contracts import ReviewFinding, ReviewReport
+    from app.jobs.models import Job
+    from app.jobs.pipeline import (
+        CandidateDraft,
+        PipelineDependencies,
+        RepairableCandidateError,
+        implement_and_build,
+    )
+
+    requirement = Requirement(
+        prompt="保存笔记",
+        acceptance=[AcceptanceItem(id="save", action="保存", expected="刷新保留")],
+    )
+    draft = CandidateDraft(
+        workspace_id=str(tmp_path),
+        manifest=AppManifest(
+            web_service="web",
+            services=[
+                ServiceSpec(
+                    name="web",
+                    image="registry.test/web@sha256:" + "a" * 64,
+                    port=3000,
+                )
+            ],
+        ),
+        source_tree=["app.py"],
+        browser_checks=[
+            BrowserCheck(
+                item_id="save",
+                actor="owner",
+                actions=[{"type": "expect_text", "selector": "#note", "text": "x"}],
+                expected="刷新保留",
+            )
+        ],
+    )
+    build = AsyncMock()
+    async def blocking_review(attempt_id, candidate_draft, frozen_requirement):
+        del frozen_requirement
+        return [
+            ReviewReport(
+                attempt_id=attempt_id,
+                requirement_revision=1,
+                manifest_hash=manifest_hash(candidate_draft.manifest),
+                reviewer_kind="DETERMINISTIC",
+                findings=[
+                    ReviewFinding(
+                        id="missing:save",
+                        severity="BLOCKING",
+                        category="REQUIREMENT",
+                        message="验收未映射",
+                        evidence_ref="review:protected",
+                        acceptance_ids=["save"],
+                    )
+                ],
+            )
+        ]
+
+    review = AsyncMock(side_effect=blocking_review)
+    dependencies = PipelineDependencies(
+        generate_candidate=AsyncMock(return_value=draft),
+        review_candidate=review,
+        build_candidate=build,
+    )
+    job = Job(id="job-review", app_id="app-review", budget_units=100)
+
+    with pytest.raises(RepairableCandidateError, match="candidate review"):
+        await implement_and_build(job, requirement, 0, [], dependencies)
+
+    review.assert_awaited_once()
+    build.assert_not_awaited()
 
 
 @pytest.mark.asyncio

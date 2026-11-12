@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Awaitable, Callable
 from uuid import uuid4
 
@@ -68,6 +68,7 @@ class CandidateDraft:
     manifest: AppManifest
     source_tree: list[str]
     browser_checks: list[BrowserCheck] | None = None
+    requirement_revision: int = 1
 
 
 @dataclass(frozen=True)
@@ -88,9 +89,39 @@ async def _default_build(workspace_id, manifest, operation_id):
     return await build_release(workspace_id, manifest, operation_id)
 
 
+async def _default_review_candidate(attempt_id, draft, requirement):
+    from app.agent.contracts import OrchestrationDecision
+    from app.agent.review import review_deterministic
+    from app.agent.security import scan_security
+    from app.core.types import RoutePlan
+
+    route = RoutePlan(
+        route="GENERATE_APP",
+        steps=["generate"],
+        reason="default candidate review",
+        confidence="MEDIUM",
+    )
+    policy = OrchestrationDecision(
+        complexity="LOW",
+        risk="LOW",
+        require_llm_review=False,
+        require_security_llm=False,
+        allow_parallel_healing=False,
+        max_build_attempts=4,
+        max_route_switches=2,
+        max_parallel_candidates=1,
+        reasons=["default_review"],
+    )
+    return [
+        review_deterministic(attempt_id, draft, requirement, route),
+        scan_security(attempt_id, draft, None, policy),
+    ]
+
+
 @dataclass
 class PipelineDependencies:
     generate_candidate: Callable[..., Awaitable[CandidateDraft]] = _unconfigured_generation
+    review_candidate: Callable[..., Awaitable[list]] = _default_review_candidate
     build_candidate: Callable[..., Awaitable[AppManifest]] = _default_build
     compile_checks: Callable[..., Awaitable[list[BrowserCheck]]] = compile_browser_checks
     start_candidate: Callable[..., Awaitable[CandidateRuntime]] = start_candidate
@@ -182,10 +213,7 @@ async def implement_and_build(
     )
     if not isinstance(draft, CandidateDraft):
         draft = CandidateDraft(**draft)
-    built = await _await(
-        dependencies.build_candidate(draft.workspace_id, draft.manifest, attempt_id)
-    )
-    built = AppManifest.model_validate(built)
+    draft = replace(draft, requirement_revision=requirement.revision)
     checks = draft.browser_checks
     if checks is None:
         checks = await _await(
@@ -193,12 +221,38 @@ async def implement_and_build(
                 requirement, draft.source_tree, dependencies.check_model
             )
         )
+        draft = replace(
+            draft,
+            browser_checks=[BrowserCheck.model_validate(item) for item in checks],
+        )
+    reports = await _await(
+        dependencies.review_candidate(attempt_id, draft, requirement)
+    )
+    expected_hash = manifest_hash(draft.manifest)
+    for raw_report in reports:
+        from app.agent.contracts import ReviewReport
+
+        report = ReviewReport.model_validate(raw_report)
+        if (
+            report.attempt_id != attempt_id
+            or report.requirement_revision != requirement.revision
+            or report.manifest_hash != expected_hash
+        ):
+            raise RepairableCandidateError("candidate review binding is invalid")
+        if any(item.severity == "BLOCKING" for item in report.findings):
+            raise RepairableCandidateError(
+                "candidate review found blocking issues"
+            )
+    built = await _await(
+        dependencies.build_candidate(draft.workspace_id, draft.manifest, attempt_id)
+    )
+    built = AppManifest.model_validate(built)
     return PipelineCandidate(
         attempt_id=attempt_id,
         workspace_id=draft.workspace_id,
         manifest=built,
         manifest_hash=manifest_hash(built),
-        browser_checks=[BrowserCheck.model_validate(item) for item in checks],
+        browser_checks=[BrowserCheck.model_validate(item) for item in draft.browser_checks],
     )
 
 
