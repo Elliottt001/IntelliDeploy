@@ -70,6 +70,6 @@
 - Web, iOS and Android Expo exports: PASS.
 - Original strict visual comparator: **10 PASS / 16 FAIL, exit 1, overall FAIL**. This exactly preserves the explicitly accepted deferred milestone; no reference, mask, threshold or baseline changed.
 - Playwright snapshot capture: all 26 actual states regenerated; command exits 1 because the deliberately unapproved Darwin snapshot baselines do not exist.
-- Main preservation check: `git diff main..HEAD -- backend web packages/api-client` is empty. Backend, Web and shared API client functionality therefore matches `main` byte-for-byte; only the four documented Expo/frontend conflict-composition files differ from `main`.
+- Main preservation check: `git diff main..HEAD -- backend web packages/api-client` is empty. Backend, Web and shared API client functionality therefore matches `main` byte-for-byte. The four documented files are specifically the overlapping frontend files resolved during the `main` merge; the branch also contains the intentional mobile Figma feature files listed by `git diff main..HEAD`.
 - `git diff --check`, unmerged-stage check and conflict-marker review: PASS.
 - Native Maestro: NOT_RUN; no newly available booted/connected matching app target was introduced by the merge.
