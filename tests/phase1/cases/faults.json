@@ -69,7 +69,8 @@
     "answers": {},
     "target": null,
     "required": true,
-    "selection_mode": "automatic"
+    "selection_mode": "automatic",
+    "release_requirements": ["multi_user_privacy"]
   },
   {
     "id": "fault-migration-rollback",
@@ -81,7 +82,8 @@
     "answers": {},
     "target": null,
     "required": true,
-    "selection_mode": "automatic"
+    "selection_mode": "automatic",
+    "release_requirements": ["platform_backup_restart_cleanup"]
   },
   {
     "id": "fault-release-switch-crash",
@@ -105,7 +107,8 @@
     "answers": {},
     "target": null,
     "required": true,
-    "selection_mode": "automatic"
+    "selection_mode": "automatic",
+    "release_requirements": ["platform_backup_restart_cleanup"]
   },
   {
     "id": "fault-instance-quota-resume",
@@ -117,7 +120,8 @@
     "answers": {},
     "target": null,
     "required": true,
-    "selection_mode": "automatic"
+    "selection_mode": "automatic",
+    "release_requirements": ["adjustment_data_retention"]
   },
   {
     "id": "fault-orphan-cleanup-protection",
@@ -129,7 +133,8 @@
     "answers": {},
     "target": null,
     "required": true,
-    "selection_mode": "automatic"
+    "selection_mode": "automatic",
+    "release_requirements": ["platform_backup_restart_cleanup"]
   },
   {
     "id": "fault-community-copy-isolation",
@@ -141,7 +146,8 @@
     "answers": {},
     "target": null,
     "required": true,
-    "selection_mode": "automatic"
+    "selection_mode": "automatic",
+    "release_requirements": ["community_copy"]
   },
   {
     "id": "fault-dual-target-delivery",
@@ -153,7 +159,8 @@
     "answers": {},
     "target": null,
     "required": true,
-    "selection_mode": "automatic"
+    "selection_mode": "automatic",
+    "release_requirements": ["linux_delivery", "sealos_delivery"]
   },
   {
     "id": "fault-duplicate-payment-callbacks",
@@ -165,6 +172,7 @@
     "answers": {},
     "target": null,
     "required": true,
-    "selection_mode": "automatic"
+    "selection_mode": "automatic",
+    "release_requirements": ["alipay", "wechat", "stripe"]
   }
 ]

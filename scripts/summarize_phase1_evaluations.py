@@ -28,6 +28,7 @@ RELEASE_EVIDENCE = {
     "web_client",
     "ios_client",
     "android_client",
+    "platform_backup_restart_cleanup",
 }
 EVIDENCE_STATUS = {"PASS", "FAIL", "NOT_RUN"}
 
@@ -105,8 +106,11 @@ def summarize(records: list[dict], reviews: list[dict]) -> dict:
     """Return strict quality metrics for persisted runner records and human reviews."""
     _case_ids(records, label="records")
     required = [record for record in records if record.get("required") is True]
-    required_ids = {record["case_id"] for record in required}
-    review_by_id = _validate_reviews(required_ids, reviews)
+    quality_required = [
+        record for record in required if record.get("suite", "quality") == "quality"
+    ]
+    quality_required_ids = {record["case_id"] for record in quality_required}
+    review_by_id = _validate_reviews(quality_required_ids, reviews)
 
     automatic_records = [
         record
@@ -123,14 +127,22 @@ def summarize(records: list[dict], reviews: list[dict]) -> dict:
     required_not_run = sum(record.get("status") == "NOT_RUN" for record in required)
     required_failures = 0
     for record in required:
-        review = review_by_id[record["case_id"]]
         if record.get("status") == "NOT_RUN":
             continue
+        review = review_by_id.get(record["case_id"])
         if (
             not record.get("real_delivery_passed")
-            or review["requirement_coverage"] != "PASS"
-            or review["usability"] != "PASS"
-            or any(blocker != "ROUTE_EXPECTATION_STALE" for blocker in review["blockers"])
+            or (
+                review is not None
+                and (
+                    review["requirement_coverage"] != "PASS"
+                    or review["usability"] != "PASS"
+                    or any(
+                        blocker != "ROUTE_EXPECTATION_STALE"
+                        for blocker in review["blockers"]
+                    )
+                )
+            )
         ):
             required_failures += 1
 
@@ -156,12 +168,9 @@ def summarize(records: list[dict], reviews: list[dict]) -> dict:
         for repository in record.get("reference_repositories") or []:
             recalled.append(bool(repository.get("recalled")))
 
-    quality_required = [
-        record for record in required if record.get("suite", "quality") == "quality"
-    ]
     delivered_required = [
         record
-        for record in required
+        for record in quality_required
         if record.get("real_delivery_passed")
         and review_by_id[record["case_id"]]["requirement_coverage"] == "PASS"
         and review_by_id[record["case_id"]]["usability"] == "PASS"
@@ -180,7 +189,7 @@ def summarize(records: list[dict], reviews: list[dict]) -> dict:
         and required_not_run == 0
         and required_failures == 0
         and unknown_cost_count == 0
-        and len(delivered_required) == len(required)
+        and len(delivered_required) == len(quality_required)
         and covered_routes == ROUTES
         and all_evidence_passed
     )

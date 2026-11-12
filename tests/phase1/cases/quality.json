@@ -45,6 +45,7 @@
     "target": null,
     "required": true,
     "selection_mode": "automatic",
+    "release_requirements": ["real_ai_search"],
     "source_hint": false
   },
   {
@@ -117,6 +118,7 @@
     "target": null,
     "required": true,
     "selection_mode": "automatic",
+    "release_requirements": ["real_ai_search"],
     "source_hint": false,
     "user_requested_generation": true
   },
@@ -130,6 +132,7 @@
     "target": null,
     "required": true,
     "selection_mode": "automatic",
+    "release_requirements": ["multi_user_privacy"],
     "source_hint": false
   },
   {
@@ -142,6 +145,7 @@
     "target": null,
     "required": true,
     "selection_mode": "automatic",
+    "release_requirements": ["multi_user_privacy", "real_ai_search"],
     "source_hint": false
   }
 ]

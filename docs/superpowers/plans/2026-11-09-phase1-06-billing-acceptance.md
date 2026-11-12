@@ -221,6 +221,6 @@ README 更新 Python/Node、迁移、API/Worker/Web 三进程与 Expo 手机入�
 
 06-F4本地实现已补只读旧SQLite审计、一致性快照、幂等且冲突安全的用户迁移及无假交付回归。实际旧库只读审计为4个用户，projects/deployments/analyses/github_accounts均为0；旧schema仅缺`is_developer`。迁移保持ID、用户名、邮箱、密码哈希、启用状态和创建时间，同步PostgreSQL用户ID序列，明确不迁移kubeconfig且默认不授开发者权限；发现旧业务表非空或目标身份/哈希冲突即整体拒绝，不覆盖、不删除源数据。实际持久库迁移未自动执行。
 
-当前`backend/app/main.py`已只挂载Phase 1产品路由，旧RAG/NL/fallback/multi-agent入口通过可执行断言保持未挂载；未使用的LangGraph依赖已移除，仍被历史GitHub/修复模块引用的Redis依赖保留。评测runner不接受case自报`release_checks`，缺真实目标保持`TARGET_UNAVAILABLE`/`NOT_RUN`且无URL；汇总器可合并多套历史报告。README、CLAUDE和CI已更新当前进程、迁移、构建、导出及验收入口。
+当前`backend/app/main.py`已只挂载Phase 1产品路由，旧RAG/NL/fallback/multi-agent入口通过可执行断言保持未挂载；未使用的LangGraph依赖已移除，仍被历史GitHub/修复模块引用的Redis依赖保留。评测runner不接受case自报`release_checks`，只依据受控`release_requirements`与实际运行结果派生PASS/FAIL/NOT_RUN；平台备份/迁移/重启/清理属于硬门槛，iOS/Android仍须独立原生证据。缺真实目标保持`TARGET_UNAVAILABLE`/`NOT_RUN`且无URL；汇总器可合并多套历史报告。README、CLAUDE和CI已更新当前进程、迁移、构建、导出及验收入口。
 
-本地验证：Phase 1后端326 passed / 3 skipped；共享客户端8项、Web单测26项、Expo单测12项及两端typecheck通过；Web E2E 29项、Expo/跨端E2E 12项、webpack生产构建和Expo Web/iOS/Android导出通过；OpenAPI再生成无漂移。Step 4仍未勾选：这些本地检查不替代07-E2两原生、07-E3/E4真实评测、08-O1/O2平台生产演练、两云及三支付商户证据。相关资源未交接，继续记录`NOT_RUN`，`release_ready=false`，不得对外声明一期全部支持。
+本地验证：Phase 1后端328 passed / 3 skipped；共享客户端8项、Web单测26项、Expo单测12项及两端typecheck通过；Web E2E 29项、Expo/跨端E2E 12项、webpack生产构建和Expo Web/iOS/Android导出通过；OpenAPI再生成无漂移。Step 4仍未勾选：这些本地检查不替代07-E2两原生、07-E3/E4真实评测、08-O1/O2平台生产演练、两云及三支付商户证据。相关资源未交接，继续记录`NOT_RUN`，`release_ready=false`，不得对外声明一期全部支持。

@@ -254,12 +254,22 @@ class AcceptanceRunner:
         self.suite = suite
 
     def _case_result(self, case: dict, payload: dict) -> dict:
+        requirements = list(case.get("release_requirements") or [])
+        status = payload.get("status")
+        if payload.get("real_delivery_passed") is True:
+            release_status = "PASS"
+        elif status in TERMINAL:
+            release_status = "FAIL"
+        else:
+            release_status = "NOT_RUN"
         return {
             **payload,
             "suite": self.suite,
             "required": bool(case.get("required", self.suite == "quality")),
-            "release_requirements": list(case.get("release_requirements") or []),
-            "release_checks": dict(payload.get("release_checks") or {}),
+            "release_requirements": requirements,
+            "release_checks": {
+                requirement: release_status for requirement in requirements
+            },
         }
 
     def download_evidence(self, case_id: str, report: dict) -> list[dict]:
@@ -335,6 +345,11 @@ class AcceptanceRunner:
         selection_mode = case.get("selection_mode", "automatic")
         if selection_mode not in {"automatic", "forced"}:
             raise ValueError("case selection_mode must be automatic or forced")
+        release_requirements = case.get("release_requirements", [])
+        if not isinstance(release_requirements, list) or not all(
+            isinstance(value, str) and value for value in release_requirements
+        ):
+            raise ValueError("case release_requirements must be a string list")
 
     def run_case(self, case: dict) -> dict:
         self._validate_case(case)

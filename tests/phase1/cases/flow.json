@@ -9,6 +9,7 @@
     "target": null,
     "required": true,
     "selection_mode": "automatic",
+    "release_requirements": ["web_client"],
     "flow": "cross_client"
   },
   {
@@ -21,6 +22,7 @@
     "target": null,
     "required": true,
     "selection_mode": "automatic",
+    "release_requirements": ["adjustment_data_retention"],
     "flow": "adjustment"
   },
   {
@@ -33,6 +35,7 @@
     "target": null,
     "required": true,
     "selection_mode": "automatic",
+    "release_requirements": ["community_copy"],
     "flow": "community_copy"
   },
   {
@@ -45,6 +48,7 @@
     "target": null,
     "required": true,
     "selection_mode": "automatic",
+    "release_requirements": ["linux_delivery", "sealos_delivery"],
     "flow": "dual_target"
   }
 ]

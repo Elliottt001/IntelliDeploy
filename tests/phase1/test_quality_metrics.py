@@ -142,6 +142,53 @@ def test_required_reviews_must_match_required_cases_exactly(metric_context):
         module.summarize(metric_context.records(), reviews)
 
 
+def test_flow_and_fault_records_do_not_require_quality_human_reviews():
+    module = _load_module()
+    records = [
+        {
+            "case_id": "quality-reviewed",
+            "suite": "quality",
+            "source_mode": "real",
+            "routing_mode": "automatic",
+            "required": True,
+            "status": "SUCCEEDED",
+            "real_delivery_passed": True,
+            "route": "GENERATE_APP",
+            "duration_ms": 1000,
+            "cost_units": 1,
+            "cost_status": "known",
+            "release_checks": {},
+        },
+        {
+            "case_id": "flow-automatic",
+            "suite": "flow",
+            "source_mode": "real",
+            "routing_mode": "automatic",
+            "required": True,
+            "status": "SUCCEEDED",
+            "real_delivery_passed": True,
+            "route": "GENERATE_APP",
+            "duration_ms": 1000,
+            "cost_units": 1,
+            "cost_status": "known",
+            "release_checks": {},
+        },
+    ]
+    reviews = [
+        {
+            "case_id": "quality-reviewed",
+            "reviewer": "human@example.test",
+            "requirement_coverage": "PASS",
+            "usability": "PASS",
+            "blockers": [],
+            "evidence": ["quality-reviewed/review.json"],
+        }
+    ]
+    report = module.summarize(records, reviews)
+    assert report["required_case_count"] == 2
+    assert report["required_failures"] == 0
+
+
 def test_unknown_cost_and_missing_release_evidence_block_readiness():
     module = _load_module()
     routes = [
@@ -198,6 +245,7 @@ def test_unknown_cost_and_missing_release_evidence_block_readiness():
     report = module.summarize(records, reviews)
     assert report["unknown_cost_count"] == 1
     assert report["release_evidence"]["android_client"] == "NOT_RUN"
+    assert "platform_backup_restart_cleanup" in report["missing_release_evidence"]
     assert report["release_ready"] is False
 
 
@@ -297,6 +345,24 @@ def test_fixed_case_suites_cover_routes_and_required_faults():
         "community_copy_isolation",
         "dual_target_delivery",
         "duplicate_payment_callbacks",
+    }
+    declared_release_requirements = {
+        requirement
+        for case in quality + flow + faults
+        for requirement in case.get("release_requirements", [])
+    }
+    assert declared_release_requirements >= {
+        "multi_user_privacy",
+        "real_ai_search",
+        "adjustment_data_retention",
+        "community_copy",
+        "linux_delivery",
+        "sealos_delivery",
+        "alipay",
+        "wechat",
+        "stripe",
+        "web_client",
+        "platform_backup_restart_cleanup",
     }
 
 

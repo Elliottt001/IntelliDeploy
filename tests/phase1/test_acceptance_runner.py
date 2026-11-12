@@ -349,7 +349,48 @@ def test_runner_preserves_suite_and_required_gate_metadata(tmp_path):
     assert record["suite"] == "quality"
     assert record["required"] is True
     assert record["release_requirements"] == ["multi_user_privacy"]
-    assert record["release_checks"] == {}
+    assert record["release_checks"] == {"multi_user_privacy": "FAIL"}
+
+
+def test_runner_derives_release_checks_from_real_case_results(tmp_path):
+    module = _load_runner_module()
+    runner = module.AcceptanceRunner(
+        FakeTransport([]),
+        output_dir=tmp_path,
+        max_polls=1,
+        poll_interval=0,
+        job_timeout=10,
+        url_checker=lambda _url: True,
+        suite="flow",
+    )
+    case = {
+        "release_requirements": ["linux_delivery", "sealos_delivery"],
+        "release_checks": {
+            "linux_delivery": "FAIL",
+            "sealos_delivery": "PASS",
+        },
+    }
+    passed = runner._case_result(
+        case,
+        {"status": "SUCCEEDED", "real_delivery_passed": True},
+    )
+    not_run = runner._case_result(case, {"status": "NOT_RUN"})
+    failed = runner._case_result(
+        case,
+        {"status": "FAILED", "real_delivery_passed": False},
+    )
+    assert passed["release_checks"] == {
+        "linux_delivery": "PASS",
+        "sealos_delivery": "PASS",
+    }
+    assert not_run["release_checks"] == {
+        "linux_delivery": "NOT_RUN",
+        "sealos_delivery": "NOT_RUN",
+    }
+    assert failed["release_checks"] == {
+        "linux_delivery": "FAIL",
+        "sealos_delivery": "FAIL",
+    }
 
 
 def test_runner_without_human_reviews_cannot_report_release_ready(tmp_path):
