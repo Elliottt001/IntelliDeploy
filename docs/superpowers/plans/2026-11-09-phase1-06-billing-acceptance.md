@@ -140,7 +140,7 @@ normalize_paid_invoice 在本模块定义，从服务端订阅记录定位 owner
 
 **Interfaces:** audit_legacy(path: Path) -> dict；migrate_users(source_snapshot, target_session) -> dict；run_case(case: dict, api_url: str) -> dict。验收报告保存 route、source commits、time、actual usage、validation、deployment target、URL和结果。
 
-- [ ] **Step 1: 写迁移与无假成功检查。** 创建临时旧 SQLite schema（缺部署列），导入四个测试 User 并保存密码哈希；新库验证同密码可登录，不输出哈希。
+- [x] **Step 1: 写迁移与无假成功检查。** 创建临时旧 SQLite schema（缺部署列），导入四个测试 User 并保存密码哈希；新库验证同密码可登录，不输出哈希。
 
 ```python
 def test_legacy_users_import_is_idempotent(legacy_snapshot, pg_session):
@@ -155,8 +155,8 @@ def test_missing_cloud_does_not_create_fake_success(acceptance_context):
     assert result.get('url') is None
 ```
 
-- [ ] **Step 2: 红测。** test_legacy_migration.py、web/e2e/phase1.spec.ts。
-- [ ] **Step 3: 审计、迁移和退休旧入口。** audit 只读旧库，输出表数量、schema 差异与可迁移项。当前旧库有 4 个用户、无项目/部署；实施前重新核对。停止旧写入后通过 SQLite backup 建一致性快照，再迁移 User 和原 ID/哈希，权限受限，不打印秘密。若发现非空旧项目/部署则报告实际内容并停止该迁移分支，不删除源数据；补充映射后再继续。
+- [x] **Step 2: 红测。** test_legacy_migration.py、web/e2e/phase1.spec.ts。
+- [x] **Step 3: 审计、迁移和退休旧入口。** audit 只读旧库，输出表数量、schema 差异与可迁移项。当前旧库有 4 个用户、无项目/部署；实施前重新核对。停止旧写入后通过 SQLite backup 建一致性快照，再迁移 User 和原 ID/哈希，权限受限，不打印秘密。若发现非空旧项目/部署则报告实际内容并停止该迁移分支，不删除源数据；补充映射后再继续。
 
 ```python
 source = sqlite3.connect(f'file:{source_path}?mode=ro', uri=True)
@@ -180,7 +180,7 @@ run_phase1_acceptance 的评测协议和入口按 07-E3 落地，06-F4 在此基
 README 更新 Python/Node、迁移、API/Worker/Web 三进程与 Expo 手机入口、配置和验收命令；CLAUDE.md 更新新入口与历史说明。CI 用 PostgreSQL service 跑 phase1 测试，Web typecheck/build 和 Expo typecheck/export；真实模型/云/支付测试由有配置的受控环境运行，报告注明环境。
 
 - [ ] **Step 4: 绿测与完整检查。** `.venv/bin/python -m pytest tests/phase1 -q`；`npm --prefix web run typecheck`；`npm --prefix web run build`；`npm --prefix web run test:e2e`。再执行07-E2原生验收、07-E3/E4真实评测及08-O1/O2生产清理演练与 `scripts/run_phase1_acceptance.py`，确认真实 case 全部 PASS，不能以默认跳过掩盖缺渠道/目标。
-- [ ] **Step 5: 提交。** `feat: cut over phase one and verify real delivery`。仅真实模型、两种部署和三支付渠道验收完成后对外声明一期全部支持。
+- [x] **Step 5: 提交。** `feat: cut over phase one and verify real delivery`。仅真实模型、两种部署和三支付渠道验收完成后对外声明一期全部支持。
 
 ## 商业上线所需配置
 
@@ -216,3 +216,11 @@ README 更新 Python/Node、迁移、API/Worker/Web 三进程与 Expo 手机入�
 真实支付宝/微信商户、Stripe test/live mode、公网通知、真实移动支付与两原生设备没有交接配置，均NOT_RUN；生产收款未开通。后续按execution-order第11步08-O1→08-O2推进，支付与07-E3真实基线、07-E2原生缺口继续保留，不越过07-E4/06-F4最终门槛。
 
 任务提交：06-F2 a5e16fd；06-F3 5c6a06a；双端与文档以`feat: connect payment flows across web and Expo clients`收口。Expo三平台导出通过；真实商户与原生Step 4继续未执行。
+
+## 第13步实施记录（2026-11-12）
+
+06-F4本地实现已补只读旧SQLite审计、一致性快照、幂等且冲突安全的用户迁移及无假交付回归。实际旧库只读审计为4个用户，projects/deployments/analyses/github_accounts均为0；旧schema仅缺`is_developer`。迁移保持ID、用户名、邮箱、密码哈希、启用状态和创建时间，同步PostgreSQL用户ID序列，明确不迁移kubeconfig且默认不授开发者权限；发现旧业务表非空或目标身份/哈希冲突即整体拒绝，不覆盖、不删除源数据。实际持久库迁移未自动执行。
+
+当前`backend/app/main.py`已只挂载Phase 1产品路由，旧RAG/NL/fallback/multi-agent入口通过可执行断言保持未挂载；未使用的LangGraph依赖已移除，仍被历史GitHub/修复模块引用的Redis依赖保留。评测runner不接受case自报`release_checks`，缺真实目标保持`TARGET_UNAVAILABLE`/`NOT_RUN`且无URL；汇总器可合并多套历史报告。README、CLAUDE和CI已更新当前进程、迁移、构建、导出及验收入口。
+
+本地验证：Phase 1后端326 passed / 3 skipped；共享客户端8项、Web单测26项、Expo单测12项及两端typecheck通过；Web E2E 29项、Expo/跨端E2E 12项、webpack生产构建和Expo Web/iOS/Android导出通过；OpenAPI再生成无漂移。Step 4仍未勾选：这些本地检查不替代07-E2两原生、07-E3/E4真实评测、08-O1/O2平台生产演练、两云及三支付商户证据。相关资源未交接，继续记录`NOT_RUN`，`release_ready=false`，不得对外声明一期全部支持。

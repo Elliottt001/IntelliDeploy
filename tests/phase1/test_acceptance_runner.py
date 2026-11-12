@@ -139,6 +139,7 @@ def test_runner_rejects_incomplete_cases_before_creating_an_app(tmp_path):
             "message": "case requires expected_route, core_checks, known_repositories and target",
             "suite": "smoke",
             "required": False,
+            "release_requirements": [],
             "release_checks": {},
         }
     ]
@@ -341,12 +342,14 @@ def test_runner_preserves_suite_and_required_gate_metadata(tmp_path):
             "known_repositories": [],
             "target": None,
             "required": True,
-            "release_checks": {"multi_user_privacy": "NOT_RUN"},
+            "release_requirements": ["multi_user_privacy"],
+            "release_checks": {"multi_user_privacy": "PASS"},
         }
     )
     assert record["suite"] == "quality"
     assert record["required"] is True
-    assert record["release_checks"] == {"multi_user_privacy": "NOT_RUN"}
+    assert record["release_requirements"] == ["multi_user_privacy"]
+    assert record["release_checks"] == {}
 
 
 def test_runner_without_human_reviews_cannot_report_release_ready(tmp_path):
@@ -404,3 +407,43 @@ def test_runner_uses_the_shared_summarizer_when_reviews_are_supplied():
     assert output["quality_summary"]["required_case_count"] == 1
     assert output["quality_summary"]["automatic"]["passed"] == 1
     assert output["quality_summary"]["release_ready"] is False
+
+
+def test_missing_deploy_target_is_not_reported_as_success(tmp_path):
+    module = _load_runner_module()
+
+    class MissingTargetTransport:
+        def request(self, method, path, **kwargs):
+            raise module.ApiFailure(
+                503,
+                {
+                    "error": {
+                        "code": "TARGET_UNAVAILABLE",
+                        "message": "No registered evaluation target",
+                    }
+                },
+            )
+
+    runner = module.AcceptanceRunner(
+        MissingTargetTransport(),
+        output_dir=tmp_path,
+        max_polls=1,
+        poll_interval=0,
+        job_timeout=10,
+        url_checker=lambda _url: True,
+    )
+    result = runner.run(
+        [
+            {
+                "id": "missing-target",
+                "prompt": "保存私有笔记",
+                "expected_route": "DEPLOY_EXISTING",
+                "core_checks": ["save-note"],
+                "known_repositories": [],
+                "target": "missing-target",
+            }
+        ]
+    )["records"][0]
+    assert result["status"] == "NOT_RUN"
+    assert result["not_run_reason"] == "TARGET_UNAVAILABLE"
+    assert result.get("url") is None

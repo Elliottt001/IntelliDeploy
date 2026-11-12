@@ -258,7 +258,8 @@ class AcceptanceRunner:
             **payload,
             "suite": self.suite,
             "required": bool(case.get("required", self.suite == "quality")),
-            "release_checks": dict(case.get("release_checks") or {}),
+            "release_requirements": list(case.get("release_requirements") or []),
+            "release_checks": dict(payload.get("release_checks") or {}),
         }
 
     def download_evidence(self, case_id: str, report: dict) -> list[dict]:
@@ -455,11 +456,14 @@ class AcceptanceRunner:
             try:
                 records.append(self.run_case(case))
             except (ApiFailure, httpx.HTTPError, KeyError, ValueError) as exc:
+                reason = type(exc).__name__
+                if isinstance(exc, ApiFailure):
+                    reason = str((exc.payload.get("error") or {}).get("code") or reason)
                 records.append(
                     self._case_result(case, {
                         "case_id": str(case.get("id") or "unknown"),
                         "status": "NOT_RUN",
-                        "not_run_reason": type(exc).__name__,
+                        "not_run_reason": reason,
                         "message": str(exc),
                     })
                 )

@@ -299,3 +299,36 @@ def test_fixed_case_suites_cover_routes_and_required_faults():
         "duplicate_payment_callbacks",
     }
 
+
+def test_multiple_suite_reports_are_combined_without_overwriting_history(tmp_path):
+    module = _load_module()
+    smoke = tmp_path / "smoke.json"
+    quality = tmp_path / "quality.json"
+    smoke.write_text(json.dumps({"records": [{"case_id": "smoke-a"}]}))
+    quality.write_text(
+        json.dumps(
+            {
+                "records": [
+                    {"case_id": "quality-a"},
+                    {"case_id": "quality-a-retry"},
+                ]
+            }
+        )
+    )
+    assert module.load_records([smoke, quality]) == [
+        {"case_id": "smoke-a"},
+        {"case_id": "quality-a"},
+        {"case_id": "quality-a-retry"},
+    ]
+    args = module.parse_args(
+        [
+            "--records",
+            str(smoke),
+            "--records",
+            str(quality),
+            "--reviews",
+            str(tmp_path / "reviews.json"),
+        ]
+    )
+    assert args.records == [smoke, quality]
+

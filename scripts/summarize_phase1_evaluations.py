@@ -222,9 +222,20 @@ def summarize(records: list[dict], reviews: list[dict]) -> dict:
     }
 
 
+def load_records(paths: list[Path]) -> list[dict]:
+    records = []
+    for path in paths:
+        payload = json.loads(Path(path).read_text())
+        rows = payload.get("records", payload) if isinstance(payload, dict) else payload
+        if not isinstance(rows, list):
+            raise ValueError(f"records file must contain a list: {path}")
+        records.extend(rows)
+    return records
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--records", required=True, type=Path)
+    parser.add_argument("--records", required=True, type=Path, action="append")
     parser.add_argument("--reviews", required=True, type=Path)
     parser.add_argument("--output", type=Path)
     return parser.parse_args(argv)
@@ -232,8 +243,7 @@ def parse_args(argv=None):
 
 def main(argv=None) -> int:
     args = parse_args(argv)
-    records_payload = json.loads(args.records.read_text())
-    records = records_payload.get("records", records_payload)
+    records = load_records(args.records)
     reviews = json.loads(args.reviews.read_text())
     report = summarize(records, reviews)
     content = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
