@@ -58,3 +58,18 @@
 - `npm --workspace frontend exec -- playwright test --config playwright.mobile.config.ts e2e/mobile-visual.spec.ts --grep 'chatbot page-(48|49|50|51|52|53|54|55|58)'` — captured all nine fresh app-detail formal states; Playwright's auxiliary `toHaveScreenshot` gate reports missing untracked Darwin snapshot baselines, so this command is not a PASS claim.
 - `npm --workspace frontend run visual:compare:mobile` — retained the documented deferred visual status. Fresh app-detail classifications match the latest feature evidence: pages 48-49 PASS; pages 50-55 and 58 remain pre-existing FAIL/VISUAL_DEFERRED. Their MAE and changed-pixel ratios differ from the latest feature evidence by at most `0.000044` and `0.000105` respectively, consistent with the same rendering; references, the `0.08/0.03/32` thresholds and masks were untouched. Other already-documented deferred families also remain failures and are not claimed as fixed.
 - Final gate: `npm --workspace @intellideploy/api-client run build && npm --workspace frontend test && npm --workspace frontend run typecheck && .venv/bin/python -m py_compile tests/phase1/payment_browser_api.py && git diff --check && ! rg -n '^(<<<<<<<|=======|>>>>>>>)' ...` — PASS: API client build succeeded; all 20 frontend unit files passed (114 passed, 9 source-dependent skips); frontend typecheck and Python syntax checks succeeded; no whitespace errors or conflict markers remained.
+
+### Controller final whole-branch gates
+
+- API client build: PASS.
+- Frontend units: 114 PASS, 9 named source-dependent skips.
+- Frontend typecheck: PASS before and after all three exports.
+- Functional mock mobile E2E (`--grep-invert @visual`): 140 PASS, 2 named source-package skips.
+- Persistent workspace/community against the local test backend: 26/26 PASS.
+- Cross-client app/community/payment and paused-job resume: 3/3 PASS.
+- Web, iOS and Android Expo exports: PASS.
+- Original strict visual comparator: **10 PASS / 16 FAIL, exit 1, overall FAIL**. This exactly preserves the explicitly accepted deferred milestone; no reference, mask, threshold or baseline changed.
+- Playwright snapshot capture: all 26 actual states regenerated; command exits 1 because the deliberately unapproved Darwin snapshot baselines do not exist.
+- Main preservation check: `git diff main..HEAD -- backend web packages/api-client` is empty. Backend, Web and shared API client functionality therefore matches `main` byte-for-byte; only the four documented Expo/frontend conflict-composition files differ from `main`.
+- `git diff --check`, unmerged-stage check and conflict-marker review: PASS.
+- Native Maestro: NOT_RUN; no newly available booted/connected matching app target was introduced by the merge.
