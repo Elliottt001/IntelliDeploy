@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     DEEPSEEK_API_KEY: str = ""
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
     DEEPSEEK_MODEL: str = "deepseek-flash"
+    ALGORITHM_MODE: Literal['baseline', 'shadow', 'hybrid'] = 'baseline'
     CAPABILITY_RESERVATION_UNITS: int = Field(default=1000, gt=0)
     CAPABILITY_HTTP_TIMEOUT_SECONDS: float = Field(default=120, gt=0)
     CAPABILITY_RETRY_DELAY_SECONDS: float = Field(default=0.25, ge=0)

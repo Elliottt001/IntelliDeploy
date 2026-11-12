@@ -4,6 +4,8 @@ from pathlib import Path
 
 from sqlalchemy import func, select, text
 
+from app.agent.checkpoint import save_algorithm_checkpoint
+from app.agent.contracts import ALGORITHM_VERSION, AlgorithmCheckpoint
 from app.apps.models import (
     App,
     AppVersion,
@@ -102,6 +104,15 @@ def select_budget(requested=None, session=None, owner_id=None):
     return budget
 
 
+def _job_checkpoint(requirement_revision: int, **values) -> dict:
+    algorithm = AlgorithmCheckpoint.empty(
+        requirement_revision=requirement_revision,
+        mode=settings.ALGORITHM_MODE,
+        algorithm_version=ALGORITHM_VERSION,
+    )
+    return save_algorithm_checkpoint(values, algorithm)
+
+
 def create_app(
     session,
     owner_id,
@@ -146,9 +157,14 @@ def create_app(
         kind="GENERATE",
         operation_id=f"{owner_id}:create:{digest}:{operation_id}",
         budget_units=select_budget(budget_units, session, owner_id),
-        checkpoint={"evaluation_target_id": evaluation_target_id}
-        if evaluation_target_id
-        else {},
+        checkpoint=_job_checkpoint(
+            1,
+            **(
+                {"evaluation_target_id": evaluation_target_id}
+                if evaluation_target_id
+                else {}
+            ),
+        ),
     )
     session.add(job)
     session.flush()
@@ -209,12 +225,17 @@ def add_message(session, app_id, owner_id, content, operation_id, budget_units=N
         active.lease_until = None
         job = active
     else:
+        latest_revision = session.scalar(
+            select(func.max(RequirementRecord.revision)).where(
+                RequirementRecord.app_id == app_id
+            )
+        )
         job = Job(
             app_id=app_id,
             kind="ADJUST",
             operation_id=f"{owner_id}:{action}:{operation_id}",
             budget_units=select_budget(budget_units, session, owner_id),
-            checkpoint={},
+            checkpoint=_job_checkpoint((latest_revision or 0) + 1),
         )
         session.add(job)
     app.updated_at = func.now()

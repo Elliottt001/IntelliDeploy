@@ -348,6 +348,10 @@ class JobExecution:
                 "\n".join(draft.questions or ["一期支持Web应用，是否接受以Web交付？"])
             )
         requirement = validate_revision(previous, draft, messages)
+        if requirement.revision != self.algorithm_checkpoint().requirement_revision:
+            raise ValueError(
+                "compiled requirement revision differs from algorithm checkpoint"
+            )
         with self.sessions() as session:
             job = self.job(session)
             persist_requirement(
@@ -415,6 +419,30 @@ class JobExecution:
         with self.sessions() as session:
             return dict(self.job(session).checkpoint or {})
 
+    def algorithm_checkpoint(self):
+        from app.agent.checkpoint import load_algorithm_checkpoint
+
+        with self.sessions() as session:
+            job = self.job(session)
+            raw = dict(job.checkpoint or {})
+            stored = raw.get("algorithm") or {}
+            revision = (
+                stored.get("requirement_revision")
+                or job.requirement_revision
+                or 1
+            )
+            return load_algorithm_checkpoint(raw, int(revision))
+
+    def save_algorithm_checkpoint(self, checkpoint):
+        from app.agent.checkpoint import save_algorithm_checkpoint
+
+        with self.sessions() as session:
+            job = self.job(session)
+            job.checkpoint = save_algorithm_checkpoint(
+                dict(job.checkpoint or {}), checkpoint
+            )
+            session.commit()
+
     def save(self, **changes):
         with self.sessions() as session:
             job = self.job(session)
@@ -422,6 +450,11 @@ class JobExecution:
             session.commit()
 
     async def choose_sources(self, requirement):
+        from app.agent.orchestrator import AlgorithmOrchestrator
+
+        return await AlgorithmOrchestrator(self).select_sources(requirement)
+
+    async def select_sources_baseline(self, requirement):
         from app.agent.retrieval import retrieve_sources, SearchUnavailable
         from app.agent.repository_index import load_index
         from app.agent.routing import choose_route, score_candidate

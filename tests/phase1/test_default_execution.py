@@ -125,6 +125,34 @@ async def test_new_api_job_is_compiled_frozen_and_metered_before_generation(
 
 
 @pytest.mark.asyncio
+async def test_compiled_requirement_must_match_frozen_algorithm_revision(
+    new_job, session_factory
+):
+    from app.jobs.execution import JobExecution
+
+    job_id, _, _, generation = new_job
+    with session_factory() as session:
+        job = session.get(Job, job_id)
+        checkpoint = json.loads(json.dumps(job.checkpoint))
+        checkpoint["algorithm"]["requirement_revision"] = 2
+        job.checkpoint = checkpoint
+        session.commit()
+
+    execution = JobExecution(
+        job_id,
+        "worker",
+        generation,
+        session_factory=session_factory,
+        model_client=RequirementModel(),
+    )
+    with pytest.raises(
+        ValueError,
+        match="compiled requirement revision differs from algorithm checkpoint",
+    ):
+        await execution.ensure_requirement()
+
+
+@pytest.mark.asyncio
 async def test_business_question_and_reply_continue_one_job(new_job, session_factory):
     from app.jobs.execution import JobExecution, WaitingForUser
     from app.apps.service import add_message

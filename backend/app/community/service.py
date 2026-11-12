@@ -4,6 +4,8 @@ from sqlalchemy import case, func, select, or_
 from sqlalchemy.dialects.postgresql import insert
 from fastapi import HTTPException
 
+from app.agent.checkpoint import save_algorithm_checkpoint
+from app.agent.contracts import ALGORITHM_VERSION, AlgorithmCheckpoint
 from app.apps.models import App, AppVersion, Instance, RequirementRecord
 from app.billing.models import Reservation, UnknownUsage
 from app.community.models import Favorite, Publication, RecentUse, SponsorReservation
@@ -153,7 +155,9 @@ def create_copy(session,publication_id,owner_id,operation_id,budget_units=None):
     instance=Instance(owner_id=owner_id,app_id=app.id,target_id=original.target_id,data_namespace='copy_'+uuid4().hex)
     session.add(instance);session.flush()
     token=provision_instance_credential(session,instance.id)
-    job=Job(app_id=app.id,kind='COPY',phase='validating',operation_id=f'{owner_id}:copy:{operation_id}',requirement_revision=1,budget_units=select_budget(budget_units,session,owner_id),checkpoint={'source_version_id':version.id})
+    algorithm=AlgorithmCheckpoint.empty(requirement_revision=1,mode=settings.ALGORITHM_MODE,algorithm_version=ALGORITHM_VERSION)
+    checkpoint=save_algorithm_checkpoint({'source_version_id':version.id},algorithm)
+    job=Job(app_id=app.id,kind='COPY',phase='validating',operation_id=f'{owner_id}:copy:{operation_id}',requirement_revision=1,budget_units=select_budget(budget_units,session,owner_id),checkpoint=checkpoint)
     session.add(job);session.flush()
     parent=reserve(session,owner_id,f'job:{job.id}',job.budget_units)
     job.reservation_id=parent.id
