@@ -396,6 +396,24 @@ def _repair_failure_evidence(job, exc, attempt_index):
     )
 
 
+async def _stop_parallel_candidate(
+    candidate_id,
+    *,
+    runtimes,
+    dependencies,
+    session_factory,
+):
+    from app.runtime.cleanup import mark_candidate_race_cleanup
+
+    runtime = runtimes.get(candidate_id)
+    if runtime is None:
+        raise RuntimeError("candidate runtime is not registered")
+    await _await(dependencies.stop_candidate(runtime.id, True))
+    with session_factory() as session:
+        mark_candidate_race_cleanup(session, candidate_id, "STOPPED")
+        session.commit()
+
+
 async def _run_parallel_repair(
     job,
     requirement,
@@ -412,7 +430,6 @@ async def _run_parallel_repair(
         race_candidates,
     )
     from app.runtime.cleanup import (
-        mark_candidate_race_cleanup,
         mark_candidate_race_outcome,
         register_candidate_race_resource,
     )
@@ -497,12 +514,13 @@ async def _run_parallel_repair(
         )
 
     async def stop(candidate_id, preserve):
-        runtime = runtimes.get(candidate_id)
-        if runtime is not None:
-            await _await(dependencies.stop_candidate(runtime.id, preserve))
-        with session_factory() as session:
-            mark_candidate_race_cleanup(session, candidate_id, "STOPPED")
-            session.commit()
+        del preserve
+        await _stop_parallel_candidate(
+            candidate_id,
+            runtimes=runtimes,
+            dependencies=dependencies,
+            session_factory=session_factory,
+        )
 
     async def reconcile(candidate_id):
         del candidate_id

@@ -3,7 +3,15 @@ import asyncio
 import pytest
 
 from app.billing.ledger import InsufficientQuota
-from test_candidate_pipeline import pipeline_context, pipeline_dependencies
+from test_candidate_pipeline import (
+    pipeline_context as _pipeline_context_fixture,
+    pipeline_dependencies,
+)
+
+
+@pytest.fixture
+def race_pipeline_context(session_factory, tmp_path):
+    return _pipeline_context_fixture.__wrapped__(session_factory, tmp_path)
 
 
 def candidate_spec(name, *, failure_class="BUILD", units=100):
@@ -191,8 +199,49 @@ def test_execution_pre_admits_both_candidate_upper_bounds():
 
 
 @pytest.mark.asyncio
+async def test_parallel_loser_without_registered_runtime_stays_unknown(
+    session_factory, race_pipeline_context
+):
+    from sqlalchemy import select
+
+    from app.jobs.pipeline import _stop_parallel_candidate
+    from app.runtime.models import ResourceRecord
+
+    dependencies = pipeline_dependencies(
+        race_pipeline_context, candidate_results=[], live_results=[]
+    )
+    candidate_id = f"{race_pipeline_context.job_id}-unregistered"
+
+    with session_factory() as session:
+        from app.runtime.cleanup import register_candidate_race_resource
+
+        register_candidate_race_resource(
+            session,
+            job_id=race_pipeline_context.job_id,
+            app_id=race_pipeline_context.app_id,
+            candidate_id=candidate_id,
+            ttl_seconds=3600,
+        )
+        session.commit()
+
+    with pytest.raises(RuntimeError, match="runtime is not registered"):
+        await _stop_parallel_candidate(
+            candidate_id,
+            runtimes={},
+            dependencies=dependencies,
+            session_factory=session_factory,
+        )
+
+    with session_factory() as session:
+        resource = session.scalar(
+            select(ResourceRecord).where(ResourceRecord.reference == candidate_id)
+        )
+        assert resource.metadata_json["cleanup_state"] == "PENDING"
+
+
+@pytest.mark.asyncio
 async def test_pipeline_parallel_repair_records_both_outcomes(
-    session_factory, pipeline_context
+    session_factory, race_pipeline_context
 ):
     from sqlalchemy import select
 
@@ -202,10 +251,10 @@ async def test_pipeline_parallel_repair_records_both_outcomes(
     from app.jobs.pipeline import _run_parallel_repair
     from app.runtime.models import ResourceRecord
     dependencies = pipeline_dependencies(
-        pipeline_context, candidate_results=[False, True], live_results=[]
+        race_pipeline_context, candidate_results=[False, True], live_results=[]
     )
     with session_factory() as session:
-        job = session.get(Job, pipeline_context.job_id)
+        job = session.get(Job, race_pipeline_context.job_id)
         record = session.scalar(
             select(RequirementRecord).where(
                 RequirementRecord.app_id == job.app_id,
