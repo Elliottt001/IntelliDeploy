@@ -556,6 +556,14 @@ class AlgorithmStageRecord(BaseModel):
 
 ## 13. 代码边界
 
+### 13.1 后端语言边界
+
+FastAPI/Python 继续作为控制面和算法编排语言。本链路的主要耗时来自模型、GitHub、依赖安装、构建、候选启动、浏览器验证和远端发布，而不是 Python 调度本身；为更换语言重写控制面不能实质缩短用户交付时间。
+
+CPU 密集或不可信工作不放进 API/Worker 事件循环：大规模 README 检索交给 PostgreSQL 全文检索、Meilisearch 或独立索引服务；AST、静态扫描、压缩、源码处理和生成项目命令交给 runner；阻塞 SDK 通过线程/进程边界调用。只有真实测量证明某个独立模块成为瓶颈时，才允许用 Go/Rust 等实现该模块，不重写整个后端。
+
+### 13.2 后端模块边界
+
 目标结构：
 
 ```text
@@ -591,7 +599,93 @@ class AlgorithmOrchestrator:
 
 搜索、仓库读取、模型、工作区、Review 工具和证据存储以 Protocol 注入，使算法可以独立测试，Baseline/Hybrid 可以复用同一 Pipeline。
 
-## 14. 旧模块迁移
+## 14. 前端与 API 边界
+
+算法融合不触发普通用户前端重写。后端、Web 和 Expo 保持独立运行边界，通过 OpenAPI、HTTP、SSE 和认证协议通信；代码继续位于同一 monorepo，以便公共协议和跨端验收在同一变更中保持一致。
+
+```text
+backend/
+  FastAPI API、Worker、算法编排、runner协议、验证与发布
+
+web/
+  Next.js Web、HttpOnly会话、服务端BFF、工作台与开发者评测页
+
+frontend/
+  Expo客户端、Bearer认证、移动创建/恢复/交付/社区流程
+
+packages/api-client/
+  OpenAPI生成类型和共享请求，不包含算法实现
+```
+
+### 14.1 后端职责
+
+- 编译和冻结需求；
+- 执行检索、Profile、评分、选路和动态Agent编排；
+- 保存Job、checkpoint、证据、阶段事件和费用；
+- 控制runner、构建、候选验证和发布；
+- 决定哪些内部算法材料可以公开；
+- 对Web、Expo和直接API调用提供相同任务事实。
+
+### 14.2 前端职责
+
+- 提交需求和少量业务回答；
+- 展示可理解的任务阶段、用量、失败原因和交付结果；
+- 在刷新、断流、切换设备或应用回到前台后恢复同一Job；
+- 普通用户界面只显示业务状态；
+- 开发者评测页显示经过脱敏的路线、来源、评分、Review触发、耗时、费用和证据状态。
+
+前端不得直接调用DeepSeek、GitHub检索、runner或部署目标，不计算候选评分，不决定Reviewer/Healing策略，不把NOT_RUN改为PASS，也不读取内部Prompt、私有源码、模型推理或受保护安全报告。
+
+### 14.3 普通用户状态
+
+内部阶段映射为稳定的用户阶段：
+
+```text
+clarifying/query planning              → 正在理解需求
+retrieval/profile/ranking/routing      → 正在查找可复用项目
+building/reviewing/security/healing    → 正在准备应用
+candidate/validation                   → 正在验证功能
+release/live validation                → 正在发布
+```
+
+用户可见特殊状态仍为等待回答、额度不足、暂时不可用、失败、取消和交付完成。UI不展示Agent投票、内部Prompt、BM25原始分数或候选竞速细节，也不使用不可证明的百分比进度。
+
+### 14.4 开发者评测界面
+
+开发者入口可以读取后端脱敏后提供的：
+
+- 实际 `baseline/shadow/hybrid` 模式和算法版本；
+- 查询覆盖和检索完整度；
+- Top候选、固定commit和评分维度；
+- 实际路线、置信度及替代路线拒绝原因；
+- Reviewer/Security触发原因和Finding计数；
+- 修复、构建、候选和路线切换次数；
+- 各阶段耗时、模型及执行费用；
+- automatic、forced、fixture、PASS、FAIL、NOT_RUN证据类型。
+
+原始私有Prompt、仓库私有内容、密钥、内部推理和完整安全报告不通过该接口返回。
+
+### 14.5 API和状态恢复
+
+- Web继续通过Next.js BFF和HttpOnly会话访问后端；Expo继续使用Bearer和SecureStore。
+- 两端使用同一生成OpenAPI客户端，不各自解释后端状态语义。
+- Job快照是当前状态事实源；SSE只负责增量通知，断流后按事件ID补发并回读快照。
+- 普通创建接口不接受由用户任意设置的 `algorithm_mode`。
+- 开发者评测接口只在授权账号和登记目标上选择模式。
+- 内部算法阶段可以增加私有事件，但公共Job协议只在客户端确有需要时扩展。
+- 公共协议变化必须重新生成API客户端，并验证生成文件无无关漂移。
+
+### 14.6 前端验收
+
+- Web和Expo对新增内部阶段均能降级为稳定业务文案；
+- SSE断流、页面刷新、Expo前后台切换后恢复同一任务；
+- WAITING_USER和PAUSED_QUOTA继续沿用同一Job；
+- 失败任务不显示交付链接，旧线上版本仍可访问；
+- 普通页面不泄露内部算法证据；
+- 开发者页面准确区分Baseline/Hybrid和真实/fixture/NOT_RUN；
+- Web、Expo、共享客户端类型检查、单测和跨端E2E继续作为每阶段回归门槛。
+
+## 15. 旧模块迁移
 
 | 原能力 | 新归属 | 处理 |
 | --- | --- | --- |
@@ -611,7 +705,7 @@ class AlgorithmOrchestrator:
 
 第一阶段不删除 `backend/app/agent_core/`、旧 services、`fallback/` 或 `src/agents/`。先为纯函数补行为测试，再迁移、对照、断开引用，最后以独立提交删除或归档。
 
-## 15. 模式与上线
+## 16. 模式与上线
 
 新增内部模式：
 
@@ -621,23 +715,23 @@ ALGORITHM_MODE=baseline|shadow|hybrid
 
 Job 创建时冻结实际模式和算法版本，运行期间不因环境变量变化切换。普通用户不能从请求参数任意选择；开发者评测入口可在授权目标上选择。
 
-### 15.1 Shadow
+### 16.1 Shadow
 
 实际仍按 Baseline 执行，Hybrid 只产生 Query、Profile、评分和 Route 对照，不调用 Builder/Reviewer，不向普通用户收费。
 
-### 15.2 Evaluation Only
+### 16.2 Evaluation Only
 
 Hybrid 仅用于开发者真实评测，运行固定 smoke/quality/flow/faults 并保存成对报告。
 
-### 15.3 Developer Allowlist
+### 16.3 Developer Allowlist
 
 仅开发者账号在登记目标使用 Hybrid，验证真实生成、runner、Linux/Kubernetes、清理、费用和恢复。
 
-### 15.4 Default
+### 16.4 Default
 
 只有满足全部门槛才切换默认：现有生产安全测试无回归；已知仓库 Recall@5 不低于旧实现；路线正确性不低于 Baseline；真实交付成功有提升或同成功率下时间/费用明显下降；LOW 算法前置 P50 不超过 90 秒；Reviewer 误报可接受；无重复计费、发布或资源泄漏；必需真实验收不再是 NOT_RUN。
 
-## 16. 实施分解
+## 17. 实施分解
 
 ### F0 契约与兼容层
 
@@ -665,7 +759,7 @@ Hybrid 仅用于开发者真实评测，运行固定 smoke/quality/flow/faults �
 
 每个阶段独立提交，先写失败检查，再实现，再运行同一检查和完整相关回归。
 
-## 17. 效果评估
+## 18. 效果评估
 
 Baseline 与 Hybrid 使用相同模型、价格、目标、脚手架、需求、答案、预算和验证规则，外部仓库固定 commit。
 
@@ -683,7 +777,7 @@ Baseline 与 Hybrid 使用相同模型、价格、目标、脚手架、需求、
 
 Hybrid 未证明收益时保持 Evaluation Only，不因投入成本而强制切换。
 
-## 18. 验收标准
+## 19. 验收标准
 
 - 新算法状态只有一个版本化事实源，旧 Job 可只读转换和恢复。
 - 检索失败、无结果和资料不完整有不同状态。
@@ -699,7 +793,7 @@ Hybrid 未证明收益时保持 Evaluation Only，不因投入成本而强制切
 - OpenAPI 只在确有公共协议变化时再生成，并验证无无关漂移。
 - 本地 PASS 与真实外部证据分开；资源缺失继续记录 NOT_RUN。
 
-## 19. 已确认决策
+## 20. 已确认决策
 
 - 采用动态编排方案，不采用强制三 Agent 共识。
 - Phase 1 生产骨架保持唯一主链。
@@ -709,3 +803,5 @@ Hybrid 未证明收益时保持 Evaluation Only，不因投入成本而强制切
 - 最多两个并行修复候选。
 - Baseline → Shadow → Evaluation Only → Developer Allowlist → Default 分阶段启用。
 - 真实收益未被证明前不切换默认 Hybrid。
+- Python继续作为控制面和算法编排语言，CPU密集及不可信工作移出API/Worker事件循环。
+- Web、Expo和后端保持独立运行及API边界，不因算法融合进行前端重写或拆分仓库。
