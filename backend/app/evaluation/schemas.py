@@ -40,6 +40,11 @@ class PhaseDuration(BaseModel):
     duration_ms: int = Field(ge=0)
 
 
+class EvaluationEvidenceGate(BaseModel):
+    status: Literal["PASS", "FAIL", "NOT_RUN"]
+    reasons: list[str] = Field(default_factory=list)
+
+
 class EvaluationRecord(BaseModel):
     job_id: str
     app_id: str
@@ -55,6 +60,7 @@ class EvaluationRecord(BaseModel):
     usage_units: int = Field(ge=0)
     cost_units: int | None = Field(default=None, ge=0)
     cost_status: Literal["known", "unknown"]
+    evidence_gate: EvaluationEvidenceGate
     duration_ms: int = Field(ge=0)
     phase_durations: list[PhaseDuration] = Field(default_factory=list)
     sources: list[EvaluationSource] = Field(default_factory=list)

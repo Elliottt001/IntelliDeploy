@@ -1,0 +1,50 @@
+[
+  {
+    "id": "cross-client-continuation",
+    "prompt": "创建一个持久任务清单，并验证 Web 发起后 Expo 读取同一应用、继续调整，API 可读取同一版本。",
+    "expected_route": "GENERATE_APP",
+    "core_checks": ["same-app-id", "same-job-id", "same-version-id", "cross-client-adjustment"],
+    "known_repositories": [],
+    "answers": {},
+    "target": null,
+    "required": true,
+    "selection_mode": "automatic",
+    "flow": "cross_client"
+  },
+  {
+    "id": "adjustment-keeps-data",
+    "prompt": "创建带持久数据的记录应用，写入记录后继续对话增加筛选功能，发布新版本时原数据必须保留。",
+    "expected_route": "GENERATE_APP",
+    "core_checks": ["seed-record", "adjust-filter", "old-version-stays-live-on-failure", "data-survives-adjustment"],
+    "known_repositories": [],
+    "answers": {},
+    "target": null,
+    "required": true,
+    "selection_mode": "automatic",
+    "flow": "adjustment"
+  },
+  {
+    "id": "community-copy-isolated",
+    "prompt": "创建可发布到社区的私有记录应用，另一用户创建独立副本后不得带入原用户数据、文件或凭据。",
+    "expected_route": "GENERATE_APP",
+    "core_checks": ["publish-community", "create-copy", "copy-has-own-instance", "copy-private-data-empty"],
+    "known_repositories": [],
+    "answers": {"是否发布？": "完成验证后发布"},
+    "target": null,
+    "required": true,
+    "selection_mode": "automatic",
+    "flow": "community_copy"
+  },
+  {
+    "id": "same-app-linux-sealos",
+    "prompt": "创建一个保存个人记录的应用，用同一验证版本分别部署到 Linux 和 Sealos，重启后记录仍可读取。",
+    "expected_route": "GENERATE_APP",
+    "core_checks": ["linux-delivery", "sealos-delivery", "same-version", "data-survives-restart"],
+    "known_repositories": [],
+    "answers": {},
+    "target": null,
+    "required": true,
+    "selection_mode": "automatic",
+    "flow": "dual_target"
+  }
+]

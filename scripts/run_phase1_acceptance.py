@@ -15,8 +15,19 @@ from uuid import uuid4
 
 import httpx
 
+try:
+    from scripts.summarize_phase1_evaluations import summarize
+except ModuleNotFoundError:  # Direct `python scripts/run_phase1_acceptance.py` execution.
+    from summarize_phase1_evaluations import summarize
+
 
 TERMINAL = {"SUCCEEDED", "FAILED", "CANCELLED"}
+CASE_FILES = {
+    "smoke": Path("tests/phase1/cases/real.json"),
+    "quality": Path("tests/phase1/cases/quality.json"),
+    "flow": Path("tests/phase1/cases/flow.json"),
+    "faults": Path("tests/phase1/cases/faults.json"),
+}
 
 
 class ApiFailure(RuntimeError):
@@ -208,6 +219,20 @@ def write_run_report(output_dir: Path, result: dict, *, run_id: str | None = Non
     return destination
 
 
+def attach_quality_summary(result: dict, reviews: list[dict] | None) -> dict:
+    output = dict(result)
+    if reviews is None:
+        output["quality_summary"] = {
+            "release_ready": False,
+            "not_run_reasons": ["MISSING_HUMAN_REVIEWS"],
+        }
+    else:
+        output["quality_summary"] = summarize(
+            list(output.get("records") or []), reviews
+        )
+    return output
+
+
 class AcceptanceRunner:
     def __init__(
         self,
@@ -218,6 +243,7 @@ class AcceptanceRunner:
         poll_interval: float,
         job_timeout: float,
         url_checker,
+        suite: str = "smoke",
     ):
         self.transport = transport
         self.output_dir = Path(output_dir)
@@ -225,6 +251,15 @@ class AcceptanceRunner:
         self.poll_interval = poll_interval
         self.job_timeout = job_timeout
         self.url_checker = url_checker
+        self.suite = suite
+
+    def _case_result(self, case: dict, payload: dict) -> dict:
+        return {
+            **payload,
+            "suite": self.suite,
+            "required": bool(case.get("required", self.suite == "quality")),
+            "release_checks": dict(case.get("release_checks") or {}),
+        }
 
     def download_evidence(self, case_id: str, report: dict) -> list[dict]:
         if not hasattr(self.transport, "download"):
@@ -320,7 +355,7 @@ class AcceptanceRunner:
         snapshots = []
         for poll in range(self.max_polls):
             if time.monotonic() - started > self.job_timeout:
-                return {
+                return self._case_result(case, {
                     "case_id": case_id,
                     "app_id": app_id,
                     "job_id": job_id,
@@ -328,7 +363,7 @@ class AcceptanceRunner:
                     "not_run_reason": "JOB_WALL_CLOCK_TIMEOUT",
                     "polls": poll,
                     "snapshots": snapshots,
-                }
+                })
             snapshot = self.transport.request("GET", f"/api/jobs/{job_id}")
             snapshots.append(
                 {
@@ -343,7 +378,7 @@ class AcceptanceRunner:
                     case, snapshot.get("question"), answer_index
                 )
                 if not answer:
-                    return {
+                    return self._case_result(case, {
                         "case_id": case_id,
                         "app_id": app_id,
                         "job_id": job_id,
@@ -351,7 +386,7 @@ class AcceptanceRunner:
                         "not_run_reason": "WAITING_USER_WITHOUT_DECLARED_ANSWER",
                         "question": snapshot.get("question"),
                         "snapshots": snapshots,
-                    }
+                    })
                 self.transport.request(
                     "POST",
                     f"/api/apps/{app_id}/messages",
@@ -359,14 +394,14 @@ class AcceptanceRunner:
                     operation_id=f"evaluation:{case_id}:answer:{answer_index}",
                 )
             elif status == "PAUSED_QUOTA":
-                return {
+                return self._case_result(case, {
                     "case_id": case_id,
                     "app_id": app_id,
                     "job_id": job_id,
                     "status": status,
                     "not_run_reason": "PAUSED_QUOTA",
                     "snapshots": snapshots,
-                }
+                })
             elif status in TERMINAL:
                 report = self.transport.request("GET", f"/api/jobs/{job_id}/report")
                 diagnostics = self.transport.request(
@@ -379,7 +414,7 @@ class AcceptanceRunner:
                     if result and result.get("url")
                     else None
                 )
-                return evaluate_record(
+                return self._case_result(case, evaluate_record(
                     {
                         **diagnostics,
                         "case_id": case_id,
@@ -400,10 +435,10 @@ class AcceptanceRunner:
                         "selection_mode", "automatic"
                     ),
                     known_repositories=list(case.get("known_repositories") or []),
-                )
+                ))
             if self.poll_interval:
                 time.sleep(self.poll_interval)
-        return {
+        return self._case_result(case, {
             "case_id": case_id,
             "app_id": app_id,
             "job_id": job_id,
@@ -411,7 +446,7 @@ class AcceptanceRunner:
             "not_run_reason": "MAX_POLLS_EXCEEDED",
             "polls": self.max_polls,
             "snapshots": snapshots,
-        }
+        })
 
     def run(self, cases: list[dict]) -> dict:
         started_at = datetime.now(timezone.utc).isoformat()
@@ -421,17 +456,18 @@ class AcceptanceRunner:
                 records.append(self.run_case(case))
             except (ApiFailure, httpx.HTTPError, KeyError, ValueError) as exc:
                 records.append(
-                    {
+                    self._case_result(case, {
                         "case_id": str(case.get("id") or "unknown"),
                         "status": "NOT_RUN",
                         "not_run_reason": type(exc).__name__,
                         "message": str(exc),
-                    }
+                    })
                 )
-        return {
+        return attach_quality_summary({
             "started_at": started_at,
             "finished_at": datetime.now(timezone.utc).isoformat(),
             "routing_mode": "automatic",
+            "suite": self.suite,
             "records": records,
             "summary": {
                 "total": len(records),
@@ -442,7 +478,7 @@ class AcceptanceRunner:
                     1 for record in records if record.get("status") == "NOT_RUN"
                 ),
             },
-        }
+        }, None)
 
 
 def _url_checker(timeout: float):
@@ -458,7 +494,9 @@ def _url_checker(timeout: float):
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cases", required=True, type=Path)
+    parser.add_argument("--suite", choices=sorted(CASE_FILES), default="smoke")
+    parser.add_argument("--cases", type=Path)
+    parser.add_argument("--reviews", type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument(
         "--api-url",
@@ -468,7 +506,10 @@ def parse_args(argv=None):
     parser.add_argument("--job-timeout", type=float, default=3600)
     parser.add_argument("--max-polls", type=int, default=720)
     parser.add_argument("--poll-interval", type=float, default=5)
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.cases is None:
+        args.cases = CASE_FILES[args.suite]
+    return args
 
 
 def main(argv=None) -> int:
@@ -496,8 +537,15 @@ def main(argv=None) -> int:
             poll_interval=args.poll_interval,
             job_timeout=args.job_timeout,
             url_checker=_url_checker(args.request_timeout),
+            suite=args.suite,
         )
         result = runner.run(cases)
+        if args.reviews:
+            reviews = json.loads(args.reviews.read_text())
+            if not isinstance(reviews, list):
+                print("reviews file must contain a JSON list", file=sys.stderr)
+                return 2
+            result = attach_quality_summary(result, reviews)
     finally:
         transport.close()
     destination = write_run_report(args.output, result, run_id=run_id)

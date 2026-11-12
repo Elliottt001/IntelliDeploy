@@ -12,6 +12,7 @@ from app.billing.models import Reservation, UnknownUsage, UsageEntry
 from app.config import settings
 from app.evaluation.schemas import (
     EvaluationCandidate,
+    EvaluationEvidenceGate,
     EvaluationRecord,
     EvaluationRetrieval,
     EvaluationSource,
@@ -215,6 +216,21 @@ def build_evaluation_record(session, job: Job) -> EvaluationRecord:
     routing_mode = (
         "forced" if checkpoint.get("routing_mode") == "forced" else "automatic"
     )
+    gate_reasons = []
+    if job.status not in {"SUCCEEDED", "FAILED", "CANCELLED"}:
+        gate_reasons.append("JOB_NOT_TERMINAL")
+    if not is_real:
+        gate_reasons.append("REAL_RELEASE_EVIDENCE_MISSING")
+    if job.status in {"SUCCEEDED", "FAILED", "CANCELLED"} and report.overall != "PASS":
+        gate_reasons.append("BUSINESS_VALIDATION_NOT_PASS")
+    if cost_status != "known":
+        gate_reasons.append("COST_UNKNOWN")
+    if not gate_reasons:
+        gate_status = "PASS"
+    elif job.status in {"FAILED", "CANCELLED"}:
+        gate_status = "FAIL"
+    else:
+        gate_status = "NOT_RUN"
     return EvaluationRecord(
         job_id=job.id,
         app_id=job.app_id,
@@ -230,6 +246,10 @@ def build_evaluation_record(session, job: Job) -> EvaluationRecord:
         usage_units=job.used_units,
         cost_units=cost_units,
         cost_status=cost_status,
+        evidence_gate=EvaluationEvidenceGate(
+            status=gate_status,
+            reasons=gate_reasons,
+        ),
         duration_ms=_milliseconds(job.created_at, job.updated_at),
         phase_durations=_phase_durations(session, job),
         sources=_sources(checkpoint),

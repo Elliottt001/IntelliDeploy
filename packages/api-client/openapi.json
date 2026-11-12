@@ -3360,6 +3360,31 @@
         ],
         "title": "EvaluationCandidate"
       },
+      "EvaluationEvidenceGate": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_RUN"
+            ],
+            "title": "Status"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "EvaluationEvidenceGate"
+      },
       "EvaluationRecord": {
         "properties": {
           "job_id": {
@@ -3461,6 +3486,9 @@
             ],
             "title": "Cost Status"
           },
+          "evidence_gate": {
+            "$ref": "#/components/schemas/EvaluationEvidenceGate"
+          },
           "duration_ms": {
             "type": "integer",
             "minimum": 0.0,
@@ -3517,6 +3545,7 @@
           "price_version",
           "usage_units",
           "cost_status",
+          "evidence_gate",
           "duration_ms",
           "retrieval",
           "report",

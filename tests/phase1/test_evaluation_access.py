@@ -240,6 +240,14 @@ def test_diagnostics_are_server_derived_and_sanitized(
     assert payload["cost_units"] is None
     assert payload["cost_status"] == "unknown"
     assert payload["model"] == "persisted-model"
+    assert payload["evidence_gate"] == {
+        "status": "NOT_RUN",
+        "reasons": [
+            "JOB_NOT_TERMINAL",
+            "REAL_RELEASE_EVIDENCE_MISSING",
+            "COST_UNKNOWN",
+        ],
+    }
     assert payload["retrieval"]["candidates"] == [
         {
             "repo_url": "https://github.com/example/notes",

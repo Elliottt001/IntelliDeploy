@@ -1062,6 +1062,16 @@ export interface components {
             /** Quality Score */
             quality_score?: number | null;
         };
+        /** EvaluationEvidenceGate */
+        EvaluationEvidenceGate: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "PASS" | "FAIL" | "NOT_RUN";
+            /** Reasons */
+            reasons?: string[];
+        };
         /** EvaluationRecord */
         EvaluationRecord: {
             /** Job Id */
@@ -1104,6 +1114,7 @@ export interface components {
              * @enum {string}
              */
             cost_status: "known" | "unknown";
+            evidence_gate: components["schemas"]["EvaluationEvidenceGate"];
             /** Duration Ms */
             duration_ms: number;
             /** Phase Durations */

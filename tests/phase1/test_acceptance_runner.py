@@ -137,6 +137,9 @@ def test_runner_rejects_incomplete_cases_before_creating_an_app(tmp_path):
             "status": "NOT_RUN",
             "not_run_reason": "ValueError",
             "message": "case requires expected_route, core_checks, known_repositories and target",
+            "suite": "smoke",
+            "required": False,
+            "release_checks": {},
         }
     ]
     assert transport.calls == []
@@ -269,3 +272,135 @@ def test_empty_case_file_is_rejected_without_opening_transport(tmp_path, monkeyp
     cases.write_text("[]")
     monkeypatch.setenv("INTELLIDEPLOY_TEST_TOKEN", "test-token")
     assert module.main(["--cases", str(cases), "--output", str(tmp_path / "out")]) == 2
+
+
+def test_suite_selects_the_canonical_case_file(tmp_path):
+    module = _load_runner_module()
+    args = module.parse_args(["--suite", "quality", "--output", str(tmp_path)])
+    assert args.suite == "quality"
+    assert args.cases == Path("tests/phase1/cases/quality.json")
+
+    custom = tmp_path / "custom.json"
+    args = module.parse_args(
+        [
+            "--suite",
+            "faults",
+            "--cases",
+            str(custom),
+            "--output",
+            str(tmp_path),
+        ]
+    )
+    assert args.suite == "faults"
+    assert args.cases == custom
+
+
+def test_runner_preserves_suite_and_required_gate_metadata(tmp_path):
+    module = _load_runner_module()
+    transport = FakeTransport(
+        [
+            {"app_id": "app-3", "job_id": "job-3", "status": "QUEUED"},
+            {
+                "id": "job-3",
+                "app_id": "app-3",
+                "status": "FAILED",
+                "phase": "failed",
+                "usage_units": 3,
+                "result": None,
+            },
+            {"job_id": "job-3", "overall": "FAIL", "checks": []},
+            {
+                "job_id": "job-3",
+                "app_id": "app-3",
+                "status": "FAILED",
+                "source_mode": "real",
+                "routing_mode": "automatic",
+                "route": "GENERATE_APP",
+                "sources": [],
+                "retrieval": {"candidates": []},
+                "result": None,
+                "report": {"overall": "FAIL", "checks": []},
+            },
+        ]
+    )
+    runner = module.AcceptanceRunner(
+        transport,
+        output_dir=tmp_path,
+        max_polls=1,
+        poll_interval=0,
+        job_timeout=10,
+        url_checker=lambda _url: True,
+        suite="quality",
+    )
+    record = runner.run_case(
+        {
+            "id": "quality-gate",
+            "prompt": "生成一个带权限的记录工具",
+            "expected_route": "GENERATE_APP",
+            "core_checks": ["save", "deny-other-user"],
+            "known_repositories": [],
+            "target": None,
+            "required": True,
+            "release_checks": {"multi_user_privacy": "NOT_RUN"},
+        }
+    )
+    assert record["suite"] == "quality"
+    assert record["required"] is True
+    assert record["release_checks"] == {"multi_user_privacy": "NOT_RUN"}
+
+
+def test_runner_without_human_reviews_cannot_report_release_ready(tmp_path):
+    module = _load_runner_module()
+    runner = module.AcceptanceRunner(
+        FakeTransport([]),
+        output_dir=tmp_path,
+        max_polls=1,
+        poll_interval=0,
+        job_timeout=10,
+        url_checker=lambda _url: True,
+        suite="quality",
+    )
+    result = runner.run([])
+    assert result["suite"] == "quality"
+    assert result["quality_summary"] == {
+        "release_ready": False,
+        "not_run_reasons": ["MISSING_HUMAN_REVIEWS"],
+    }
+
+
+def test_runner_uses_the_shared_summarizer_when_reviews_are_supplied():
+    module = _load_runner_module()
+    result = {
+        "records": [
+            {
+                "case_id": "reviewed-case",
+                "suite": "quality",
+                "required": True,
+                "source_mode": "real",
+                "routing_mode": "automatic",
+                "status": "SUCCEEDED",
+                "real_delivery_passed": True,
+                "route": "DEPLOY_EXISTING",
+                "duration_ms": 100,
+                "usage_units": 1,
+                "cost_units": 1,
+                "cost_status": "known",
+                "release_checks": {},
+            }
+        ]
+    }
+    reviews = [
+        {
+            "case_id": "reviewed-case",
+            "job_id": "job-reviewed",
+            "reviewer": "human@example.test",
+            "requirement_coverage": "PASS",
+            "usability": "PASS",
+            "blockers": [],
+            "evidence": ["artifacts/evaluations/reviewed-case/review.json"],
+        }
+    ]
+    output = module.attach_quality_summary(result, reviews)
+    assert output["quality_summary"]["required_case_count"] == 1
+    assert output["quality_summary"]["automatic"]["passed"] == 1
+    assert output["quality_summary"]["release_ready"] is False
