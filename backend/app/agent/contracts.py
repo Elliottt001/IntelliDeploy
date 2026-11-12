@@ -48,6 +48,35 @@ class Finding(BaseModel):
     evidence_ref: str
 
 
+class ComponentRole(BaseModel):
+    source: RepoSource
+    role: str
+    owned_capabilities: list[str] = Field(default_factory=list)
+
+
+class ServiceBoundary(BaseModel):
+    provider_role: str
+    consumer_role: str
+    protocol: str
+    data_contract_ref: str
+
+
+class ApiMapping(BaseModel):
+    acceptance_ids: list[str]
+    provider_role: str
+    operation: str
+
+
+class IntegrationContract(BaseModel):
+    components: list[ComponentRole]
+    service_boundaries: list[ServiceBoundary] = Field(default_factory=list)
+    identity_owner: str
+    data_owners: dict[str, str]
+    api_mappings: list[ApiMapping]
+    shared_capabilities: list[str] = Field(default_factory=list)
+    acceptance_coverage: dict[str, list[str]]
+
+
 class QueryPlan(BaseModel):
     original: str
     github_queries: list[str]
@@ -164,6 +193,7 @@ class AlgorithmCheckpoint(BaseModel):
     evaluations: list[CandidateEvaluation] = Field(default_factory=list)
     route: RoutePlan | None = None
     shadow_route: RoutePlan | None = None
+    integration_contract: IntegrationContract | None = None
     orchestration: OrchestrationDecision | None = None
     reviews: list[ReviewReport] = Field(default_factory=list)
     healing: list[HealingDecision] = Field(default_factory=list)

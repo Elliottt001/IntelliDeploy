@@ -503,9 +503,10 @@ class JobExecution:
         from app.agent.contracts import AlgorithmStageRecord
         from app.agent.profiling import profile_repository
         from app.agent.query import deterministic_queries
+        from app.agent.ranking import rank_candidate
         from app.agent.repository_index import load_index
         from app.agent.retrieval import retrieve_sources
-        from app.core.types import RepoSource, RoutePlan
+        from app.agent.routing import choose_route
 
         with self.sessions() as session:
             job = self.job(session)
@@ -573,7 +574,8 @@ class JobExecution:
                 except ValueError:
                     continue
         checkpoint.profiles = profiles
-        checkpoint.evaluations = []
+        evaluations = [rank_candidate(profile, requirement) for profile in profiles]
+        checkpoint.evaluations = evaluations
         checkpoint.stages.append(
             AlgorithmStageRecord(
                 operation_id=(
@@ -589,40 +591,77 @@ class JobExecution:
             )
         )
 
-        reusable = next(
-            (
-                profile
-                for profile in profiles
-                if profile.license_status == "ALLOWED"
-                and profile.compatibility.status == "SUPPORTED"
-                and profile.project_type not in {"unknown", "library"}
-            ),
-            None,
-        )
-        if reusable is None:
-            route = RoutePlan(
-                route="GENERATE_APP",
-                steps=["generate from the frozen requirement"],
-                reason=(
-                    "shadow retrieval incomplete"
-                    if not retrieval.completed
-                    else "shadow evidence found no complete reusable application"
-                ),
-            )
-            checkpoint.selected_sources = []
+        if retrieval.candidates:
+            retrieval.reuse_rejections = [
+                {
+                    "repo_url": evaluation.repo_url,
+                    "reasons": evaluation.rejection_reasons,
+                    "missing_core": evaluation.missing_core,
+                    "unknown_fields": evaluation.unknown_fields,
+                }
+                for evaluation in evaluations
+                if evaluation.rejection_reasons
+                or evaluation.missing_core
+                or evaluation.unknown_fields
+            ]
         else:
-            source = RepoSource(
-                url=reusable.repo_url,
-                commit=reusable.commit,
-                role="shadow complete application",
+            retrieval.reuse_rejections = [
+                {"reason": "complete search found no reusable candidates"}
+            ]
+        checkpoint.retrieval = retrieval
+        route_record = AlgorithmStageRecord(
+            operation_id=(
+                f"job:{self.job_id}:route:r{requirement.revision}:"
+                f"{stage_input_hash(evaluations)}"
+            ),
+            stage="ROUTE",
+            input_hash=stage_input_hash(
+                {
+                    "retrieval": retrieval,
+                    "profiles": profiles,
+                    "evaluations": evaluations,
+                }
+            ),
+            implementation_version="fusion-v1",
+            status="REQUESTED",
+            attempt=1,
+        )
+        checkpoint.stages.append(route_record)
+        self.save_algorithm_checkpoint(checkpoint)
+        started = time.monotonic()
+        model = (
+            self.model(f"route:{requirement.revision}")
+            if checkpoint.mode == "hybrid"
+            else None
+        )
+        try:
+            route = await choose_route(
+                requirement,
+                retrieval,
+                profiles,
+                evaluations,
+                model,
             )
-            route = RoutePlan(
-                route="DEPLOY_EXISTING",
-                sources=[source],
-                steps=["validate the shadow candidate"],
-                reason="shadow profile has allowed license and supported runtime",
-            )
-            checkpoint.selected_sources = [source]
+            if route.route == "COMPOSE_COMPONENTS":
+                from app.agent.integration import build_integration_contract
+
+                contract = await build_integration_contract(
+                    requirement,
+                    route,
+                    profiles,
+                    self.model(f"integration:{requirement.revision}"),
+                )
+                checkpoint.integration_contract = contract
+        except Exception as exc:
+            route_record.status = "FAILED"
+            route_record.duration_ms = int((time.monotonic() - started) * 1000)
+            route_record.error_code = type(exc).__name__
+            self.save_algorithm_checkpoint(checkpoint)
+            raise
+        route_record.status = "SUCCEEDED"
+        route_record.duration_ms = int((time.monotonic() - started) * 1000)
+        route_record.output_ref = stage_input_hash(route)
+        checkpoint.selected_sources = list(route.sources)
         self.save_algorithm_checkpoint(checkpoint)
         return route
 

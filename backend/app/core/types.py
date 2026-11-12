@@ -40,6 +40,14 @@ class RepoSource(BaseModel):
     commit: str
     role: str
 
+
+class RouteRejection(BaseModel):
+    route: Literal['DEPLOY_EXISTING', 'MODIFY_EXISTING',
+                   'COMPOSE_COMPONENTS', 'GENERATE_APP']
+    reason: str
+    evidence_refs: list[str] = Field(default_factory=list)
+
+
 class RoutePlan(BaseModel):
     route: Literal['DEPLOY_EXISTING', 'MODIFY_EXISTING',
                    'COMPOSE_COMPONENTS', 'GENERATE_APP']
@@ -47,6 +55,8 @@ class RoutePlan(BaseModel):
     template_version: str | None = None
     steps: list[str]
     reason: str
+    rejected_alternatives: list[RouteRejection] = Field(default_factory=list)
+    confidence: Literal['HIGH', 'MEDIUM', 'LOW'] = 'MEDIUM'
 
 class CandidateEvaluation(BaseModel):
     repo_url: str

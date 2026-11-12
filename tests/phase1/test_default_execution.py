@@ -113,6 +113,7 @@ async def test_shadow_evidence_uses_deterministic_query_without_model_or_runner(
         "QUERY_PLAN",
         "RETRIEVAL",
         "PROFILE",
+        "ROUTE",
     ]
     with session_factory() as session:
         assert session.get(Job, job_id).phase == "retrieving"
