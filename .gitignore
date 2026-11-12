@@ -72,9 +72,7 @@ fallback/artifacts/
 fallback/workspaces/
 
 docs/
-!docs/
-docs/*
-!docs/一期真实验收记录.md
+
 temp/
 background/
 
