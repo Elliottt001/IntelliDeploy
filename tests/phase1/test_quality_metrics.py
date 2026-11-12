@@ -397,3 +397,108 @@ def test_multiple_suite_reports_are_combined_without_overwriting_history(tmp_pat
         ]
     )
     assert args.records == [smoke, quality]
+
+
+def _evaluation_record(case_id, mode, source_mode="real", **overrides):
+    record = {
+        "case_id": case_id,
+        "pair_id": f"pair-{case_id}",
+        "algorithm_mode": mode,
+        "source_mode": source_mode,
+        "status": "SUCCEEDED",
+        "real_delivery_passed": True,
+        "target_id": "linux-ready",
+        "budget_units": 100,
+        "model": "deepseek-chat",
+        "price_version": "phase1-v1",
+        "cost_status": "known",
+        "cost_units": 10,
+        "route": "DEPLOY_EXISTING",
+        "route_matches_expected": True,
+        "selection_duration_ms": 10_000,
+        "first_candidate_succeeded": True,
+        "build_count": 1,
+        "duplicate_effect_count": 0,
+        "review_true_positive": 1,
+        "review_false_positive": 0,
+        "reference_repositories": [
+            {"url": "https://github.com/example/notes", "rank": 1, "recalled": True}
+        ],
+        "sources": [
+            {"url": "https://github.com/example/notes", "commit": "a" * 40}
+        ],
+        "evidence_gate": {"status": "PASS", "reasons": []},
+    }
+    record.update(overrides)
+    return record
+
+
+def _valid_pairs(**hybrid_overrides):
+    return [
+        _evaluation_record("notes", "baseline"),
+        _evaluation_record("notes", "hybrid", **hybrid_overrides),
+    ]
+
+
+def test_paired_summary_rejects_unmatched_or_fixture_runs():
+    module = _load_module()
+    baseline = _evaluation_record("notes", "baseline")
+    hybrid = _evaluation_record("different", "hybrid")
+    summary = module.summarize_pairs([baseline, hybrid])
+    assert summary["release_ready"] is False
+    assert "UNMATCHED_ALGORITHM_PAIR" in summary["not_run_reasons"]
+
+    fixture = module.summarize_pairs(
+        _valid_pairs(source_mode="fixture")
+    )
+    assert fixture["release_ready"] is False
+    assert "FIXTURE_ALGORITHM_EVIDENCE" in fixture["not_run_reasons"]
+
+
+def test_hybrid_default_gate_requires_latency_cost_safety_and_real_delivery():
+    module = _load_module()
+    summary = module.summarize_pairs(
+        _valid_pairs(selection_duration_ms=91_000)
+    )
+    assert summary["hybrid_default_ready"] is False
+    assert "LOW_SELECTION_P50_OVER_90000MS" in summary["gate_reasons"]
+
+    not_run = module.summarize_pairs(
+        _valid_pairs(status="NOT_RUN", real_delivery_passed=False)
+    )
+    assert not_run["release_ready"] is False
+    assert "REQUIRED_EXTERNAL_EVIDENCE_NOT_RUN" in not_run["not_run_reasons"]
+
+
+def test_paired_summary_reports_algorithm_quality_and_safety_metrics():
+    module = _load_module()
+    summary = module.summarize_pairs(_valid_pairs())
+    metrics = summary["hybrid_metrics"]
+    assert metrics["recall_at_5"] == 1.0
+    assert metrics["route_correctness"] == 1.0
+    assert metrics["first_candidate_success_rate"] == 1.0
+    assert metrics["build_count"] == 1
+    assert metrics["review_precision"] == 1.0
+    assert metrics["duplicate_effect_count"] == 0
+    assert summary["release_ready"] is True
+    assert summary["hybrid_default_ready"] is True
+
+
+def test_pair_resource_mismatch_is_not_comparable():
+    module = _load_module()
+    summary = module.summarize_pairs(_valid_pairs(model="different-model"))
+    assert summary["release_ready"] is False
+    assert "PAIR_RESOURCE_MISMATCH" in summary["not_run_reasons"]
+
+
+def test_missing_safety_metrics_are_not_reported_as_zero():
+    module = _load_module()
+    records = _valid_pairs()
+    records[1].pop("build_count")
+    records[1].pop("duplicate_effect_count")
+    summary = module.summarize_pairs(records)
+    metrics = summary["hybrid_metrics"]
+    assert metrics["build_count"] is None
+    assert metrics["duplicate_effect_count"] is None
+    assert summary["hybrid_default_ready"] is False
+    assert "ALGORITHM_METRICS_INCOMPLETE" in summary["gate_reasons"]

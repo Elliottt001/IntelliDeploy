@@ -16,9 +16,9 @@ from uuid import uuid4
 import httpx
 
 try:
-    from scripts.summarize_phase1_evaluations import summarize
+    from scripts.summarize_phase1_evaluations import summarize, summarize_pairs
 except ModuleNotFoundError:  # Direct `python scripts/run_phase1_acceptance.py` execution.
-    from summarize_phase1_evaluations import summarize
+    from summarize_phase1_evaluations import summarize, summarize_pairs
 
 
 TERMINAL = {"SUCCEEDED", "FAILED", "CANCELLED"}
@@ -27,6 +27,7 @@ CASE_FILES = {
     "quality": Path("tests/phase1/cases/quality.json"),
     "flow": Path("tests/phase1/cases/flow.json"),
     "faults": Path("tests/phase1/cases/faults.json"),
+    "algorithm": Path("tests/phase1/cases/algorithm.json"),
 }
 
 
@@ -244,6 +245,8 @@ class AcceptanceRunner:
         job_timeout: float,
         url_checker,
         suite: str = "smoke",
+        algorithm_mode: str | None = None,
+        paired: bool = False,
     ):
         self.transport = transport
         self.output_dir = Path(output_dir)
@@ -252,6 +255,8 @@ class AcceptanceRunner:
         self.job_timeout = job_timeout
         self.url_checker = url_checker
         self.suite = suite
+        self.algorithm_mode = algorithm_mode
+        self.paired = paired
 
     def _case_result(self, case: dict, payload: dict) -> dict:
         requirements = list(case.get("release_requirements") or [])
@@ -264,6 +269,20 @@ class AcceptanceRunner:
             release_status = "NOT_RUN"
         return {
             **payload,
+            **(
+                {"algorithm_mode": case["_algorithm_mode"]}
+                if case.get("_algorithm_mode")
+                else {}
+            ),
+            **({"pair_id": case["_pair_id"]} if case.get("_pair_id") else {}),
+            **(
+                {
+                    "target_id": case.get("target"),
+                    "budget_units": case.get("budget_units"),
+                }
+                if case.get("_algorithm_mode")
+                else {}
+            ),
             "suite": self.suite,
             "required": bool(case.get("required", self.suite == "quality")),
             "release_requirements": requirements,
@@ -351,19 +370,35 @@ class AcceptanceRunner:
         ):
             raise ValueError("case release_requirements must be a string list")
 
-    def run_case(self, case: dict) -> dict:
+    def run_case(
+        self,
+        case: dict,
+        *,
+        algorithm_mode: str | None = None,
+        pair_id: str | None = None,
+    ) -> dict:
         self._validate_case(case)
+        case = {
+            **case,
+            "_algorithm_mode": algorithm_mode,
+            "_pair_id": pair_id,
+        }
         case_id = str(case["id"])
         target = case.get("target")
+        endpoint = "/api/evaluation/runs" if algorithm_mode else "/api/apps"
+        body = {
+            "prompt": case["prompt"],
+            "budget_units": case.get("budget_units"),
+        }
+        if algorithm_mode:
+            body.update({"target_id": target, "algorithm_mode": algorithm_mode})
+        else:
+            body["evaluation_target_id"] = target
         created = self.transport.request(
             "POST",
-            "/api/apps",
-            json={
-                "prompt": case["prompt"],
-                "budget_units": case.get("budget_units"),
-                "evaluation_target_id": target,
-            },
-            operation_id=f"evaluation:{case_id}:{uuid4()}",
+            endpoint,
+            json=body,
+            operation_id=f"evaluation:{case_id}:{algorithm_mode or 'default'}:{uuid4()}",
         )
         app_id, job_id = created["app_id"], created["job_id"]
         started = time.monotonic()
@@ -396,6 +431,9 @@ class AcceptanceRunner:
                 if not answer:
                     return self._case_result(case, {
                         "case_id": case_id,
+                        "algorithm_mode": algorithm_mode,
+                        "pair_id": pair_id,
+                        "budget_units": case.get("budget_units"),
                         "app_id": app_id,
                         "job_id": job_id,
                         "status": "NOT_RUN",
@@ -469,7 +507,41 @@ class AcceptanceRunner:
         records = []
         for case in cases:
             try:
-                records.append(self.run_case(case))
+                if self.paired:
+                    pair_id = f"pair:{case.get('id')}:{uuid4()}"
+                    for mode in ("baseline", "hybrid"):
+                        try:
+                            records.append(
+                                self.run_case(
+                                    case, algorithm_mode=mode, pair_id=pair_id
+                                )
+                            )
+                        except (ApiFailure, httpx.HTTPError, KeyError, ValueError) as exc:
+                            reason = type(exc).__name__
+                            if isinstance(exc, ApiFailure):
+                                reason = str(
+                                    (exc.payload.get("error") or {}).get("code")
+                                    or reason
+                                )
+                            records.append(
+                                self._case_result(
+                                    {
+                                        **case,
+                                        "_algorithm_mode": mode,
+                                        "_pair_id": pair_id,
+                                    },
+                                    {
+                                        "case_id": str(case.get("id") or "unknown"),
+                                        "status": "NOT_RUN",
+                                        "not_run_reason": reason,
+                                        "message": str(exc),
+                                    },
+                                )
+                            )
+                else:
+                    records.append(
+                        self.run_case(case, algorithm_mode=self.algorithm_mode)
+                    )
             except (ApiFailure, httpx.HTTPError, KeyError, ValueError) as exc:
                 reason = type(exc).__name__
                 if isinstance(exc, ApiFailure):
@@ -482,7 +554,7 @@ class AcceptanceRunner:
                         "message": str(exc),
                     })
                 )
-        return attach_quality_summary({
+        result = {
             "started_at": started_at,
             "finished_at": datetime.now(timezone.utc).isoformat(),
             "routing_mode": "automatic",
@@ -497,7 +569,11 @@ class AcceptanceRunner:
                     1 for record in records if record.get("status") == "NOT_RUN"
                 ),
             },
-        }, None)
+        }
+        if self.paired:
+            result["quality_summary"] = summarize_pairs(records)
+            return result
+        return attach_quality_summary(result, None)
 
 
 def _url_checker(timeout: float):
@@ -525,9 +601,15 @@ def parse_args(argv=None):
     parser.add_argument("--job-timeout", type=float, default=3600)
     parser.add_argument("--max-polls", type=int, default=720)
     parser.add_argument("--poll-interval", type=float, default=5)
+    parser.add_argument(
+        "--algorithm-mode", choices=("baseline", "shadow", "hybrid")
+    )
+    parser.add_argument("--paired", action="store_true")
     args = parser.parse_args(argv)
     if args.cases is None:
         args.cases = CASE_FILES[args.suite]
+    if args.paired and args.algorithm_mode:
+        parser.error("--paired cannot be combined with --algorithm-mode")
     return args
 
 
@@ -557,6 +639,8 @@ def main(argv=None) -> int:
             job_timeout=args.job_timeout,
             url_checker=_url_checker(args.request_timeout),
             suite=args.suite,
+            algorithm_mode=args.algorithm_mode,
+            paired=args.paired,
         )
         result = runner.run(cases)
         if args.reviews:

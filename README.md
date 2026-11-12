@@ -1,8 +1,8 @@
 # IntelliDeploy
 
-IntelliDeploy 是一期中的 AI 应用生成与托管平台。当前仓库已经接通持久应用/任务、四路线检索与生成、候选验证和发布适配、实例与社区、额度与三渠道支付协议、Web/Expo 客户端、平台运维，以及固定质量/故障验收套件。
+IntelliDeploy 是一期中的 AI 应用生成与托管平台。当前仓库已经接通持久应用/任务、四路线检索与生成、候选验证和发布适配、实例与社区、额度与三渠道支付协议、Web/Expo 客户端、平台运维，以及固定质量/故障与Baseline/Hybrid paired验收套件。
 
-本地实现完成不等于真实交付完成。真实 DeepSeek、可信 runner、registry、Linux/Sealos、支付宝/微信/Stripe 商户、iOS/Android 设备和平台生产演练仍为 `NOT_RUN`，当前 `release_ready=false`。进度和证据分别见[一期实施进度](docs/一期实施进度.md)与[一期真实验收记录](docs/一期真实验收记录.md)。
+本地实现完成不等于真实交付完成。算法融合当前仅处于Shadow / Evaluation Only / Developer Allowlist阶段，Hybrid不是默认。真实 DeepSeek、GitHub、可信 runner mTLS、固定digest registry、Linux/Sealos、价格/评测预算、支付宝/微信/Stripe 商户、iOS/Android 设备和平台生产演练仍为 `NOT_RUN`，当前 `release_ready=false`、`hybrid_default_ready=false`。进度和证据分别见[一期实施进度](docs/一期实施进度.md)与[一期真实验收记录](docs/一期真实验收记录.md)。
 
 ## 目录
 
@@ -85,6 +85,10 @@ npm --workspace frontend run test:e2e
 PYTHONPATH=backend .venv/bin/python scripts/run_phase1_acceptance.py \
   --suite smoke --api-url http://127.0.0.1:9000 \
   --output artifacts/evaluations/smoke/records.json
+
+PYTHONPATH=backend .venv/bin/python scripts/run_phase1_acceptance.py \
+  --suite smoke --paired --api-url http://127.0.0.1:9000 \
+  --output artifacts/evaluations/algorithm-smoke
 
 PYTHONPATH=backend .venv/bin/python scripts/summarize_phase1_evaluations.py \
   --records artifacts/evaluations/smoke/records.json \

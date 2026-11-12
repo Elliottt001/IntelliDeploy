@@ -488,3 +488,72 @@ def test_missing_deploy_target_is_not_reported_as_success(tmp_path):
     assert result["status"] == "NOT_RUN"
     assert result["not_run_reason"] == "TARGET_UNAVAILABLE"
     assert result.get("url") is None
+
+
+def test_paired_runner_uses_developer_endpoint_and_independent_operation_ids(tmp_path):
+    module = _load_runner_module()
+    transport = FakeTransport(
+        [
+            {"app_id": "app-b", "job_id": "job-b", "status": "QUEUED"},
+            {"status": "PAUSED_QUOTA", "phase": "retrieving", "usage_units": 1},
+            {"app_id": "app-h", "job_id": "job-h", "status": "QUEUED"},
+            {"status": "PAUSED_QUOTA", "phase": "retrieving", "usage_units": 1},
+        ]
+    )
+    runner = module.AcceptanceRunner(
+        transport,
+        output_dir=tmp_path,
+        max_polls=1,
+        poll_interval=0,
+        job_timeout=10,
+        url_checker=lambda _url: True,
+        paired=True,
+    )
+    result = runner.run(
+        [
+            {
+                "id": "notes",
+                "prompt": "保存笔记",
+                "expected_route": "DEPLOY_EXISTING",
+                "core_checks": ["save"],
+                "known_repositories": [],
+                "target": "linux-ready",
+                "budget_units": 100,
+            }
+        ]
+    )
+    records = result["records"]
+    assert [record["algorithm_mode"] for record in records] == [
+        "baseline",
+        "hybrid",
+    ]
+    assert records[0]["pair_id"] == records[1]["pair_id"]
+    creates = [call for call in transport.calls if call[0] == "POST"]
+    assert [call[1] for call in creates] == [
+        "/api/evaluation/runs",
+        "/api/evaluation/runs",
+    ]
+    assert [call[2]["json"]["algorithm_mode"] for call in creates] == [
+        "baseline",
+        "hybrid",
+    ]
+    assert creates[0][2]["operation_id"] != creates[1][2]["operation_id"]
+
+
+def test_algorithm_case_suite_covers_required_adversarial_scenarios():
+    cases = json.loads((Path(__file__).parent / "cases/algorithm.json").read_text())
+    assert {case["scenario"] for case in cases} >= {
+        "chinese_vague_intent",
+        "low_star_high_match",
+        "high_star_framework",
+        "github_failure",
+        "stale_index",
+        "bad_docker_entry",
+        "multiple_lockfiles",
+        "unknown_license",
+        "different_change_costs",
+        "build_failure",
+        "cross_user_access",
+        "migration_proof_failure",
+    }
+    assert all("release_checks" not in case for case in cases)
