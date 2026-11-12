@@ -114,4 +114,6 @@ async def test_target_failure_does_not_enter_model_repair_loop(
         assert job.status == "FAILED"
         assert job.error["code"] == "TARGET_UNAVAILABLE"
         assert len(attempts) == 1
+        assert job.checkpoint["algorithm"]["healing"][-1]["failure_class"] == "TARGET"
+        assert job.checkpoint["algorithm"]["healing"][-1]["strategy"] == "STOP"
     assert calls == 1

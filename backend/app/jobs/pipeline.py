@@ -331,6 +331,69 @@ def append_repair_evidence(
         return evidence
 
 
+def _record_healing(session_factory, job_id, evidence):
+    from app.agent.checkpoint import (
+        load_algorithm_checkpoint,
+        save_algorithm_checkpoint,
+    )
+    from app.agent.contracts import OrchestrationDecision
+    from app.agent.healing import classify_failure, choose_healing
+
+    with session_factory() as session:
+        job = session.scalar(select(Job).where(Job.id == job_id).with_for_update())
+        checkpoint = load_algorithm_checkpoint(
+            dict(job.checkpoint or {}), job.requirement_revision
+        )
+        orchestration = checkpoint.orchestration or OrchestrationDecision(
+            complexity="MEDIUM",
+            risk="MEDIUM",
+            require_llm_review=True,
+            require_security_llm=False,
+            allow_parallel_healing=True,
+            max_build_attempts=4,
+            max_route_switches=2,
+            max_parallel_candidates=2,
+            reasons=["pipeline_default"],
+        )
+        decision = choose_healing(
+            classify_failure(evidence),
+            orchestration,
+            remaining_budget=max(0, job.budget_units - job.used_units),
+            runner_capacity=2,
+        )
+        checkpoint.orchestration = orchestration
+        checkpoint.healing.append(decision)
+        job.checkpoint = save_algorithm_checkpoint(
+            dict(job.checkpoint or {}), checkpoint
+        )
+        session.commit()
+        return decision
+
+
+def _repair_failure_evidence(job, exc, attempt_index):
+    from app.agent.healing import FailureEvidence
+
+    failed_ids = []
+    if exc.report is not None:
+        failed_ids = [
+            item.id for item in exc.report.checks if item.status != "PASS"
+        ]
+    lowered = " ".join(failed_ids).lower()
+    if any(value in lowered for value in ("cross-user", "access", "identity")):
+        stage, code = "identity", "CROSS_USER_ACCESS"
+    elif any(value in lowered for value in ("migration", "data-preservation")):
+        stage, code = "migration", "DATA_PROOF_FAILED"
+    else:
+        stage, code = "browser", "CORE_CHECK_FAILED"
+    return FailureEvidence(
+        stage=stage,
+        code=code,
+        message=str(exc),
+        stalled_rounds=attempt_index + 1,
+        route_switches=int((job.checkpoint or {}).get("route_switches") or 0),
+    )
+
+
 def _create_verified_version(
     session_factory,
     job_id: str,
@@ -509,15 +572,22 @@ async def run_pipeline(
                 )
                 return
             except RepairableCandidateError as exc:
-                last_message = str(exc)
+                last_message = "候选验证未通过"
                 check_lease_and_budget(
                     session_factory,
                     job_id,
                     worker_id=worker_id,
                     generation=generation,
                 )
+                decision = _record_healing(
+                    session_factory,
+                    job_id,
+                    _repair_failure_evidence(job, exc, attempt_index),
+                )
+                if decision.strategy == "STOP":
+                    break
                 repair_evidence = append_repair_evidence(
-                    session_factory, job_id, exc.report, last_message
+                    session_factory, job_id, exc.report, "candidate repair required"
                 )
             finally:
                 if runtime is not None:
@@ -542,9 +612,21 @@ async def run_pipeline(
     except WaitingForUser:
         return
     except UncertainModelCall:
+        from app.agent.healing import FailureEvidence
+        _record_healing(
+            session_factory,
+            job_id,
+            FailureEvidence(stage="model", code="UPSTREAM_UNAVAILABLE"),
+        )
         _finish_failure(session_factory,job_id,'UPSTREAM_UNAVAILABLE','模型请求结果或用量待核对，不能自动重放')
         return
     except TargetUnavailable as exc:
+        from app.agent.healing import FailureEvidence
+        _record_healing(
+            session_factory,
+            job_id,
+            FailureEvidence(stage="deploy", code="TARGET_UNAVAILABLE"),
+        )
         _finish_failure(session_factory, job_id, "TARGET_UNAVAILABLE", str(exc))
         return
     except Exception as exc:

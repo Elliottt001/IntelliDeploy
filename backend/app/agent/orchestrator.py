@@ -114,3 +114,16 @@ class AlgorithmOrchestrator:
         if calls:
             reports.extend(await asyncio.gather(*calls))
         return reports
+
+    def choose_healing(
+        self, failure, policy, *, remaining_budget, runner_capacity
+    ):
+        from app.agent.healing import choose_healing
+
+        decision = choose_healing(
+            failure, policy, remaining_budget, runner_capacity
+        )
+        checkpoint = self.execution.algorithm_checkpoint()
+        checkpoint.healing.append(decision)
+        self.execution.save_algorithm_checkpoint(checkpoint)
+        return decision
