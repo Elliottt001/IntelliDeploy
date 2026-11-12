@@ -118,6 +118,9 @@ class ContainerRuntimes:
                         "NODE_USE_ENV_PROXY": "1",
                     }
                 )
+        for value in compose['services'].values():
+            value.setdefault('labels',{}).update({'intellideploy.managed':'true','intellideploy.job_id':payload['job_id'],
+                'intellideploy.operation_id':payload['operation_id'],'intellideploy.instance_id':id})
         config = root / "compose.json"
         config.write_text(json.dumps(compose))
         config.chmod(0o600)
@@ -125,6 +128,8 @@ class ContainerRuntimes:
         saved = {
             "id": id,
             "instance_id": id,
+            "job_id": payload['job_id'],
+            "operation_id": payload['operation_id'],
             "instance_token": payload["instance_token"],
             "platform_url": payload["platform_url"],
             "public_url": public_url,
@@ -244,7 +249,26 @@ class ContainerRuntimes:
             state.write_text(json.dumps(saved))
 
     async def cleanup_expired(self):
-        for path in self.root.glob("*/runtime.json"):
-            saved = json.loads(path.read_text())
-            if saved["state"] == "RUNNING" and saved["expires_at"] < time.time():
-                await self.stop(saved["id"], True)
+        # Expiry removes browser access, but only the control plane can prove that a paused job no longer needs the runtime.
+        return [path.parent.name for path in self.root.glob('*/runtime.json')
+            if json.loads(path.read_text()).get('expires_at',float('inf'))<time.time()]
+
+    async def inspect_resource(self,id):
+        path=self.path(id)/'runtime.json'
+        if not path.is_file(): return {'exists':False}
+        saved=json.loads(path.read_text())
+        containers=(await self.command('docker','compose','-f',str(path.parent/'compose.json'),'ps','-aq')).split()
+        if containers:
+            values=json.loads(await self.command('docker','inspect',*containers))
+            for value in values:
+                labels=value.get('Config',{}).get('Labels') or {}
+                expected={'intellideploy.managed':'true','intellideploy.job_id':saved.get('job_id'),
+                    'intellideploy.operation_id':saved.get('operation_id'),'intellideploy.instance_id':id}
+                if any(labels.get(k)!=v for k,v in expected.items()): raise ValueError('Candidate labels changed')
+        return {'exists':True,'labels':{'managed':True,'job_id':saved.get('job_id'),'operation_id':saved.get('operation_id'),'instance_id':saved.get('instance_id')}}
+
+    async def remove_resource(self,id):
+        import shutil
+        await self.stop(id,True)
+        root=self.path(id)
+        if root.is_dir(): shutil.rmtree(root)

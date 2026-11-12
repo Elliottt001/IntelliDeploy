@@ -276,6 +276,10 @@ async def run_maintenance_once(
             ),
         )
     ]
+    if tasks is None:
+        from app.runtime.cleanup import run_cleanup_once
+        selected.append(MaintenanceTask('resource-cleanup',timedelta(days=1),lambda task_now:run_cleanup_once(task_now,session_factory=session_factory)))
+        selected.append(MaintenanceTask('repository-index',timedelta(days=1),refresh_repository_index))
     if include_runtime:
         selected.insert(
             0,
@@ -303,6 +307,19 @@ async def run_maintenance_once(
             or ran
         )
     return ran
+
+
+async def refresh_repository_index(now):
+    from pathlib import Path
+    import json
+    from app.agent.repository_index import update_index
+    from app.agent_core.brains.github_retriever import GitHubRepositorySearchClient
+    if not settings.REPOSITORY_SEEDS_FILE or not (settings.GITHUB_TOKEN or settings.GITHUB_SEARCH_TOKENS): return ['INDEX_NOT_CONFIGURED']
+    cases=json.loads(Path(settings.REPOSITORY_SEEDS_FILE).read_text())
+    if isinstance(cases,dict): cases=cases.get('cases',[])
+    seeds=sorted({url for case in cases for url in case.get('known_repositories',[])})
+    report=await update_index(seeds,Path(settings.REPOSITORY_INDEX_PATH),GitHubRepositorySearchClient())
+    return ['INDEX_REFRESH_FAILED'] if report.failed else []
 
 
 async def run_maintenance_loop(

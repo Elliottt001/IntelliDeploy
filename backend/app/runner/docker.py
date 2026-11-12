@@ -49,6 +49,9 @@ class ContainerCommands:
             "run",
             "--name",
             name,
+            '--label', 'intellideploy.managed=true',
+            '--label', 'intellideploy.operation_id='+operation_id,
+            '--label', 'intellideploy.job_id='+operation_id[:36],
             "--platform",
             "linux/amd64",
             "--network",
@@ -111,3 +114,22 @@ class ContainerCommands:
                 stderr=subprocess.DEVNULL,
                 env=self.environment(),
             )
+
+    def active(self,job_id):
+        return subprocess.check_output([self.docker,'ps','-q','--filter','label=intellideploy.job_id='+job_id],env=self.environment(),text=True).split()
+
+    def inspect_resource(self,type,reference):
+        if type=='EXECUTION_CONTAINER' and not re.fullmatch(r'id-exec-[0-9a-f]{32}',reference): raise ValueError('Invalid execution container identity')
+        if type=='CACHE_IMAGE' and not re.fullmatch(r'.+@sha256:[0-9a-f]{64}',reference): raise ValueError('Cache image must be digest pinned')
+        kind='container' if type=='EXECUTION_CONTAINER' else 'image'
+        result=subprocess.run([self.docker,kind,'inspect',reference],env=self.environment(),capture_output=True,text=True)
+        if result.returncode:
+            # A failed daemon/transport is not proof of absence.
+            if re.search(r'No such (image|container):',result.stderr): return {'exists':False}
+            raise RuntimeError('Resource observation is unavailable')
+        labels=json.loads(result.stdout)[0].get('Config',{}).get('Labels') or {}
+        return {'exists':True,'labels':{'managed':labels.get('intellideploy.managed')=='true','job_id':labels.get('intellideploy.job_id'),'operation_id':labels.get('intellideploy.operation_id')}}
+
+    def remove_resource(self,type,reference):
+        args=['rm','-f',reference] if type=='EXECUTION_CONTAINER' else ['image','rm',reference]
+        subprocess.run([self.docker,*args],env=self.environment(),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=True)

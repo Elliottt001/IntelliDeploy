@@ -225,6 +225,10 @@ async def _await(value):
 
 def _claim_operation(session_factory, worker_id: str, lease_seconds: int = 60):
     with session_factory() as session:
+        from app.admin.service import claims_paused
+        if claims_paused(session):
+            session.commit()
+            return None
         operation = session.scalar(
             select(InstanceOperation)
             .where(

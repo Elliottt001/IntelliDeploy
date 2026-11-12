@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 from uuid import uuid4
@@ -16,6 +17,7 @@ from app.core.types import (
     ValidationReport,
 )
 from app.database import SessionLocal
+from app.config import settings
 from app.jobs.models import Job, JobEvent
 from app.jobs.store import LeaseLost, leased_job
 from app.jobs.execution import WaitingForUser, UncertainModelCall
@@ -306,6 +308,10 @@ def _create_verified_version(
         session.add(version)
         session.flush()
         app.candidate_version_id = version.id
+        from app.runtime.cleanup import register_resource
+        register_resource(session,'EVIDENCE','evidence:'+job.id+':'+candidate.attempt_id,
+            str(Path(settings.ARTIFACTS_ROOT)/'validation'/candidate.attempt_id),
+            job_id=job.id,app_id=app.id,version_id=version.id,metadata={'attempt_id':candidate.attempt_id})
         session.commit()
         return version.id
 
@@ -418,6 +424,12 @@ async def run_pipeline(
                 )
                 if runtime.manifest_hash != candidate.manifest_hash:
                     raise RepairableCandidateError("candidate runtime digest changed")
+                from app.runtime.cleanup import register_resource
+                with session_factory() as session:
+                    register_resource(session,'EVIDENCE','evidence:'+job.id+':'+candidate.attempt_id,
+                        str(Path(settings.ARTIFACTS_ROOT)/'validation'/candidate.attempt_id),job_id=job.id,app_id=job.app_id,
+                        metadata={'attempt_id':candidate.attempt_id})
+                    session.commit()
                 report = await _await(
                     dependencies.validate_candidate(
                         runtime.base_url,

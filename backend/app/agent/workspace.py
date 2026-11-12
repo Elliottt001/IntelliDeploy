@@ -22,6 +22,11 @@ class WorkspaceManager:
         if not re.fullmatch(r"[A-Za-z0-9_-]+", job_id):
             raise ValueError("invalid job id")
         path = self.root / job_id
+        self.root.mkdir(parents=True,exist_ok=True)
+        from app.config import settings
+        if not path.exists() and shutil.disk_usage(self.root).free < settings.WORKSPACE_MIN_FREE_MB*1024*1024:
+            raise ValueError('Execution storage is full; preserved tasks cannot be evicted')
+        if path.is_symlink(): raise ValueError('Workspace identity cannot be a symbolic link')
         path.mkdir(parents=True, exist_ok=True)
         (path / ".tool-results").mkdir(exist_ok=True)
         return str(path)
