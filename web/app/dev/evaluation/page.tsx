@@ -5,7 +5,7 @@ import type { components } from '@intellideploy/api-client';
 import { ApiError } from '@intellideploy/api-client';
 import EvaluationResult from '@/components/EvaluationResult';
 import PlatformHeader from '@/components/PlatformHeader';
-import { api } from '@/lib/api';
+import { api, type AlgorithmMode } from '@/lib/api';
 
 type Target = components['schemas']['EvaluationTarget'];
 
@@ -14,6 +14,7 @@ export default function EvaluationPage() {
   const [prompt, setPrompt] = useState('');
   const [budget, setBudget] = useState('');
   const [targetId, setTargetId] = useState('');
+  const [algorithmMode, setAlgorithmMode] = useState<AlgorithmMode>('baseline');
   const [run, setRun] = useState<{ appId: string; jobId: string } | null>(null);
   const [error, setError] = useState('');
   const [unavailable, setUnavailable] = useState(false);
@@ -33,11 +34,12 @@ export default function EvaluationPage() {
     setError('');
     const operationId = crypto.randomUUID();
     try {
-      const created = await api.createApp(
+      const created = await api.createEvaluationRun(
         prompt,
         budget ? Number(budget) : undefined,
-        operationId,
         targetId || undefined,
+        algorithmMode,
+        operationId,
       );
       setRun({ appId: created.app_id, jobId: created.job_id });
     } catch (exc) {
@@ -73,6 +75,13 @@ export default function EvaluationPage() {
                 <select id="evaluation-target" value={targetId} onChange={event => setTargetId(event.target.value)} disabled={busy || targets === null}>
                   <option value="">自动选择</option>
                   {(targets ?? []).map(target => <option value={target.target_id} key={target.target_id}>{target.name} · {target.kind}</option>)}
+                </select>
+              </label>
+              <label htmlFor="evaluation-algorithm-mode">算法模式
+                <select id="evaluation-algorithm-mode" value={algorithmMode} onChange={event => setAlgorithmMode(event.target.value as AlgorithmMode)} disabled={busy}>
+                  <option value="baseline">Baseline</option>
+                  <option value="shadow">Shadow</option>
+                  <option value="hybrid">Hybrid</option>
                 </select>
               </label>
             </div>

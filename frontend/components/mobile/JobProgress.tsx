@@ -9,7 +9,7 @@ import { mobileFontFamilies } from "../../theme/typography";
 
 const stages: ReadonlyArray<{ kind: JobVisualKind; label: string }> = [
   { kind: "clarifying", label: "理解需求" },
-  { kind: "retrieving", label: "准备应用" },
+  { kind: "retrieving", label: "查找可复用项目" },
   { kind: "implementing", label: "分析并实现" },
   { kind: "building", label: "构建应用" },
   { kind: "validating", label: "验证功能" },

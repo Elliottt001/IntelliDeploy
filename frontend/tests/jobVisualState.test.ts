@@ -123,7 +123,7 @@ test.each([
   [
     job("RUNNING", "retrieving"),
     "retrieving",
-    "正在准备应用",
+    "正在查找可复用项目",
     false,
     true,
     false,
@@ -193,6 +193,15 @@ test.each([
     });
   },
 );
+
+test("new internal selection work stays in stable business phases", () => {
+  expect(getJobVisualState(job("RUNNING", "retrieving")).title).toBe(
+    "正在查找可复用项目",
+  );
+  expect(getJobVisualState(job("RUNNING", "profiling")).title).toBe(
+    "正在处理需求",
+  );
+});
 
 test("unknown phases stay neutral and expose no fake build details", () => {
   expect(getJobVisualState(job("RUNNING", "future_phase"))).toEqual({

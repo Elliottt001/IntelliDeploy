@@ -9,7 +9,7 @@ import DeliveryCard from './DeliveryCard';
 import InstanceControls from './InstanceControls';
 import PublicationSettings from './PublicationSettings';
 
-const phases:Record<string,string>={clarifying:'正在理解需求',retrieving:'正在准备应用',implementing:'正在实现应用',building:'正在准备应用',validating:'正在验证功能',deploying:'正在发布应用',verifying_live:'正在验证使用入口',completed:'应用已交付'};
+const phases:Record<string,string>={clarifying:'正在理解需求',retrieving:'正在查找可复用项目',implementing:'正在实现应用',building:'正在构建应用',validating:'正在验证功能',deploying:'正在发布应用',verifying_live:'正在验证使用入口',completed:'应用已交付'};
 export default function AppConversation({appId}:{appId:string}){
   const router=useRouter();const [app,setApp]=useState<components['schemas']['AppDetail']|null>(null);const [content,setContent]=useState('');const [error,setError]=useState('');const [busy,setBusy]=useState(false);const messageKey=useRef<string|null>(null);
   const load=useCallback(async()=>{try{setApp(await api.getApp(appId));}catch(exc){if(exc instanceof ApiError&&exc.status===401)router.push('/login?next='+encodeURIComponent('/apps/'+appId));else setError(exc instanceof Error?exc.message:'无法读取应用');}},[appId,router]);

@@ -31,7 +31,7 @@ export type JobVisualState = {
 
 const runningTitles = {
   clarifying: "正在理解需求",
-  retrieving: "正在准备应用",
+  retrieving: "正在查找可复用项目",
   implementing: "正在分析并实现需求",
   building: "正在构建应用",
   validating: "正在验证功能",

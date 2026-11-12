@@ -62,6 +62,11 @@ export default function EvaluationResult({ appId, jobId }: { appId: string; jobI
         ? <p className="evaluation-warning">测试夹具，不计入真实交付指标</p>
         : <p className="evaluation-real">已绑定真实发布与业务验证证据</p>}
       <dl className="diagnostic-list">
+        <div><dt>算法</dt><dd>{diagnostics.algorithm.mode.charAt(0).toUpperCase() + diagnostics.algorithm.mode.slice(1)} · {diagnostics.algorithm.version}</dd></div>
+        <div><dt>算法路线</dt><dd>{diagnostics.algorithm.route ? `${diagnostics.algorithm.route} · ${diagnostics.algorithm.route_confidence ?? 'UNKNOWN'}` : '尚未选路'}</dd></div>
+        <div><dt>检索</dt><dd>{diagnostics.algorithm.retrieval_complete ? '已完成' : '未完成'}</dd></div>
+        <div><dt>评审发现</dt><dd>阻断 {diagnostics.algorithm.review.blocking_count} · 警告 {diagnostics.algorithm.review.warning_count} · 信息 {diagnostics.algorithm.review.info_count}</dd></div>
+        <div><dt>修复</dt><dd>{diagnostics.algorithm.healing.attempt_count} 次尝试 · {diagnostics.algorithm.healing.candidate_count} 个候选</dd></div>
         <div><dt>实际路线</dt><dd>{diagnostics.route ?? '尚未选路'}</dd></div>
         <div><dt>路由模式</dt><dd>{diagnostics.routing_mode}</dd></div>
         <div><dt>目标</dt><dd>{diagnostics.target_id ?? '自动选择'}</dd></div>
@@ -71,12 +76,19 @@ export default function EvaluationResult({ appId, jobId }: { appId: string; jobI
         <div><dt>总耗时</dt><dd>{Math.round(diagnostics.duration_ms / 1000)} 秒</dd></div>
       </dl>
       <div className={diagnostics.evidence_gate.status === 'PASS' ? 'evaluation-real' : 'evaluation-warning'}>
+        <strong>{diagnostics.source_mode} / {diagnostics.evidence_gate.status}</strong>
         <strong>单次证据状态：{diagnostics.evidence_gate.status}</strong>
         {(diagnostics.evidence_gate.reasons ?? []).length > 0 && <ul className="evaluation-compact-list">
           {(diagnostics.evidence_gate.reasons ?? []).map(reason => <li key={reason}>{reason}</li>)}
         </ul>}
       </div>
-      {diagnostics.result && <div className="evaluation-links">
+      {(diagnostics.algorithm.healing.reasons ?? []).length > 0 && <div>
+        <h3>修复原因</h3>
+        <ul className="evaluation-compact-list">
+          {(diagnostics.algorithm.healing.reasons ?? []).map(reason => <li key={reason}>{reason}</li>)}
+        </ul>
+      </div>}
+      {diagnostics.status === 'SUCCEEDED' && diagnostics.result && <div className="evaluation-links">
         <a href={diagnostics.result.url} rel="noreferrer" target="_blank">打开交付 URL</a>
         <a href={diagnostics.result.report_url}>查看验证报告</a>
         <a href={diagnostics.result.artifact_url}>下载交付产物</a>
