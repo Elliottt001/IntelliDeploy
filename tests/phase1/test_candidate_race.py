@@ -3,6 +3,7 @@ import asyncio
 import pytest
 
 from app.billing.ledger import InsufficientQuota
+from app.runtime.build import BuildFailed
 from test_candidate_pipeline import (
     pipeline_context as _pipeline_context_fixture,
     pipeline_dependencies,
@@ -297,3 +298,153 @@ async def test_pipeline_parallel_repair_records_both_outcomes(
             "FAILED",
             "SUCCEEDED",
         }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "build_error",
+    [BuildFailed("application compile failed"), ValueError("invalid build context")],
+)
+async def test_build_failure_recomputes_policy_and_reaches_parallel_repair(
+    session_factory, race_pipeline_context, build_error
+):
+    import asyncio
+
+    from sqlalchemy import select
+
+    from app.jobs.models import Job
+    from app.jobs.pipeline import (
+        CandidateDraft,
+        PipelineDependencies,
+        PipelinePolicy,
+        run_pipeline,
+    )
+    from app.runtime.models import ResourceRecord
+
+    context = race_pipeline_context
+    with session_factory() as session:
+        job = session.get(Job, context.job_id)
+        job.budget_units = 10_000
+        session.commit()
+
+    build_calls = 0
+
+    async def generate(**kwargs):
+        return CandidateDraft(
+            workspace_id=str(context.workspaces[0]),
+            manifest=context.manifest_one,
+            source_tree=["app.py"],
+        )
+
+    async def build(workspace_id, manifest, operation_id):
+        nonlocal build_calls
+        del workspace_id, operation_id
+        build_calls += 1
+        if build_calls == 1:
+            raise build_error
+        return manifest
+
+    async def checks(requirement, source_tree, model):
+        del requirement, source_tree, model
+        from app.core.types import BrowserCheck
+
+        return [
+            BrowserCheck(
+                item_id="save",
+                actor="owner",
+                actions=[
+                    {
+                        "type": "expect_text",
+                        "selector": "#note",
+                        "text": "saved",
+                    }
+                ],
+                expected="刷新后仍存在",
+            )
+        ]
+
+    async def start(job_id, attempt_id, manifest, requirement):
+        del job_id, requirement
+        from app.core.types import CandidateRuntime
+        from app.runtime.manifest import manifest_hash
+
+        return CandidateRuntime(
+            id=attempt_id,
+            base_url=f"https://{attempt_id}.candidate.test.invalid",
+            manifest_hash=manifest_hash(manifest),
+            data_namespace=f"data-{attempt_id}",
+            identity_refs={"owner": "owner", "other": "other"},
+        )
+
+    async def validate(base_url, requirement, browser_checks, controller, **kwargs):
+        del base_url, browser_checks, controller
+        from app.core.types import CheckResult, ValidationReport
+
+        passed = kwargs["attempt_id"].endswith("race-2")
+        await asyncio.sleep(0.02 if passed else 0.01)
+        return ValidationReport(
+            checks=[
+                CheckResult(
+                    id="save",
+                    status="PASS" if passed else "FAIL",
+                    evidence=f"evidence/{kwargs['attempt_id']}",
+                )
+            ],
+            required_ids=["save"],
+            requirement_revision=requirement.revision,
+            attempt_id=kwargs["attempt_id"],
+            manifest_hash=kwargs["manifest_hash"],
+        )
+
+    async def stop(*args, **kwargs):
+        del args, kwargs
+
+    async def deployer(**kwargs):
+        from app.core.types import CheckResult, DeploymentResult, ValidationReport
+        from app.runtime.manifest import manifest_hash
+
+        return DeploymentResult(
+            operation_id=kwargs["operation_id"],
+            instance_id=kwargs["instance_id"],
+            url="https://new.apps.test.invalid",
+            report=ValidationReport(
+                checks=[CheckResult(id="save", status="PASS", evidence="live")],
+                required_ids=["save"],
+                requirement_revision=kwargs["requirement"].revision,
+                attempt_id=kwargs["operation_id"],
+                manifest_hash=manifest_hash(kwargs["manifest"]),
+            ),
+        )
+
+    dependencies = PipelineDependencies(
+        generate_candidate=generate,
+        build_candidate=build,
+        compile_checks=checks,
+        start_candidate=start,
+        stop_candidate=stop,
+        validate_candidate=validate,
+        runtime_controller=lambda runtime_id: object(),
+        deployer=deployer,
+    )
+
+    await run_pipeline(
+        context.job_id,
+        session_factory=session_factory,
+        dependencies=dependencies,
+        policy=PipelinePolicy(max_attempts=2),
+    )
+
+    with session_factory() as session:
+        job = session.get(Job, context.job_id)
+        resources = list(
+            session.scalars(
+                select(ResourceRecord).where(
+                    ResourceRecord.job_id == job.id,
+                    ResourceRecord.type == "CANDIDATE_RUNTIME",
+                )
+            )
+        )
+        assert job.status == "SUCCEEDED"
+        assert job.checkpoint["algorithm"]["healing"][0]["failure_class"] == "BUILD"
+        assert job.checkpoint["algorithm"]["healing"][0]["strategy"] == "REPAIR_PARALLEL"
+        assert len(resources) == 2

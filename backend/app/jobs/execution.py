@@ -511,7 +511,7 @@ class JobExecution:
         from app.agent.checkpoint import stage_input_hash
         from app.agent.contracts import AlgorithmStageRecord
         from app.agent.profiling import profile_repository
-        from app.agent.query import deterministic_queries
+        from app.agent.query import plan_queries
         from app.agent.ranking import rank_candidate
         from app.agent.repository_index import load_index
         from app.agent.retrieval import retrieve_sources
@@ -524,7 +524,12 @@ class JobExecution:
 
         checkpoint = self.algorithm_checkpoint()
         started = time.monotonic()
-        query_plan = deterministic_queries(requirement)
+        query_plan = await plan_queries(
+            requirement,
+            self.model(f"query:{requirement.revision}")
+            if checkpoint.mode == "hybrid"
+            else None,
+        )
         checkpoint.query_plan = query_plan
         checkpoint.stages.append(
             AlgorithmStageRecord(
@@ -1012,7 +1017,6 @@ class JobExecution:
             session.commit()
 
     async def review_candidate(self, attempt_id, draft, requirement):
-        from app.agent.policy import decide_orchestration
         from app.agent.orchestrator import AlgorithmOrchestrator
         from app.agent.contracts import EvidenceRef
         from app.core.types import RoutePlan
@@ -1033,7 +1037,8 @@ class JobExecution:
             reason="candidate review fallback",
             confidence="LOW",
         )
-        policy = checkpoint.orchestration or decide_orchestration(
+        orchestrator = AlgorithmOrchestrator(self)
+        policy = checkpoint.orchestration or orchestrator.decide_orchestration(
             requirement, route, checkpoint.profiles, []
         )
         profile = checkpoint.profiles[0] if checkpoint.profiles else None
@@ -1046,7 +1051,7 @@ class JobExecution:
             security_model = self.model(
                 f"security:{attempt_id}:{source_digest}"
             )
-        reports = await AlgorithmOrchestrator(self).review_candidate(
+        reports = await orchestrator.review_candidate(
             attempt_id,
             draft,
             requirement,

@@ -165,6 +165,152 @@ async def test_shadow_evidence_uses_deterministic_query_without_model_or_runner(
         assert session.get(Job, job_id).phase == "retrieving"
 
 
+@pytest.mark.asyncio
+async def test_hybrid_selection_uses_durable_model_query_overlay(
+    new_job, session_factory, monkeypatch, tmp_path
+):
+    from app.core.types import Requirement, RetrievalResult, RoutePlan
+    from app.jobs.execution import JobExecution
+    from app.config import settings
+
+    job_id, _, _, generation = new_job
+    with session_factory() as session:
+        job = session.get(Job, job_id)
+        checkpoint = json.loads(json.dumps(job.checkpoint))
+        checkpoint["algorithm"]["mode"] = "hybrid"
+        job.checkpoint = checkpoint
+        session.commit()
+
+    class QueryModel:
+        def __init__(self):
+            self.calls = 0
+
+        async def complete(self, messages, tools, model):
+            del tools, model
+            self.calls += 1
+            assert "Return QueryPlan JSON" in messages[0]["content"]
+            return ModelTurn(
+                assistant_message={
+                    "role": "assistant",
+                    "content": json.dumps(
+                        {
+                            "original": "ignored replacement",
+                            "github_queries": ["ancient text collation web app"],
+                            "readme_queries": ["critical edition"],
+                            "translated_terms": ["textual criticism"],
+                            "categories": ["research"],
+                            "required_capabilities": [],
+                            "constraints": {},
+                        }
+                    ),
+                },
+                input_tokens=1,
+                output_tokens=1,
+            )
+
+    captured = {}
+
+    async def retrieve(requirement, query_plan, **kwargs):
+        del requirement, kwargs
+        captured["plan"] = query_plan
+        return RetrievalResult(queries=query_plan.github_queries, completed=True)
+
+    async def choose_route(*args, **kwargs):
+        del args, kwargs
+        return RoutePlan(
+            route="GENERATE_APP",
+            steps=["generate"],
+            reason="no reusable source",
+        )
+
+    monkeypatch.setattr("app.agent.retrieval.retrieve_sources", retrieve)
+    monkeypatch.setattr("app.agent.routing.choose_route", choose_route)
+    monkeypatch.setattr(settings, "REPOSITORY_INDEX_PATH", str(tmp_path / "index.json"))
+    model = QueryModel()
+    execution = JobExecution(
+        job_id,
+        "worker",
+        generation,
+        session_factory=session_factory,
+        model_client=model,
+    )
+
+    await execution.select_sources_hybrid(
+        Requirement(prompt="做一个古籍校勘工具", acceptance=[])
+    )
+
+    assert model.calls == 1
+    assert "ancient text collation web app" in captured["plan"].github_queries
+    assert captured["plan"].constraints["planning_mode"] == "deterministic+model"
+
+
+@pytest.mark.asyncio
+async def test_candidate_review_uses_orchestrator_policy_entrypoint(
+    new_job, session_factory, monkeypatch
+):
+    from app.agent.orchestrator import AlgorithmOrchestrator
+    from app.core.types import (
+        AppManifest,
+        Requirement,
+        RoutePlan,
+        ServiceSpec,
+    )
+    from app.jobs.execution import JobExecution
+    from app.jobs.pipeline import CandidateDraft
+
+    job_id, _, _, generation = new_job
+    with session_factory() as session:
+        job = session.get(Job, job_id)
+        checkpoint = json.loads(json.dumps(job.checkpoint))
+        checkpoint["algorithm"]["route"] = RoutePlan(
+            route="DEPLOY_EXISTING",
+            steps=["deploy"],
+            reason="complete application",
+            confidence="HIGH",
+        ).model_dump(mode="json")
+        job.checkpoint = checkpoint
+        session.commit()
+
+    calls = []
+    original = AlgorithmOrchestrator.decide_orchestration
+
+    def tracked(self, requirement, route, profiles, prior_failures):
+        calls.append(list(prior_failures))
+        return original(self, requirement, route, profiles, prior_failures)
+
+    monkeypatch.setattr(AlgorithmOrchestrator, "decide_orchestration", tracked)
+    execution = JobExecution(
+        job_id,
+        "worker",
+        generation,
+        session_factory=session_factory,
+    )
+    manifest = AppManifest(
+        web_service="web",
+        services=[
+            ServiceSpec(
+                name="web",
+                image="registry.test/web@sha256:" + "a" * 64,
+                port=3000,
+                health_path="/health",
+            )
+        ],
+    )
+
+    await execution.review_candidate(
+        "attempt-policy",
+        CandidateDraft(
+            workspace_id="workspace",
+            manifest=manifest,
+            source_tree=["app.py"],
+            browser_checks=[],
+        ),
+        Requirement(prompt="部署现成网站", acceptance=[]),
+    )
+
+    assert calls == [[]]
+
+
 @pytest.fixture
 def new_job(session_factory):
     from app.apps.service import create_app

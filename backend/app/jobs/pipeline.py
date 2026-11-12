@@ -14,6 +14,7 @@ from app.core.types import (
     BrowserCheck,
     CandidateRuntime,
     Requirement,
+    RoutePlan,
     ValidationReport,
 )
 from app.database import SessionLocal
@@ -48,9 +49,18 @@ class PipelineCancelled(PipelineFailure):
 
 
 class RepairableCandidateError(PipelineFailure):
-    def __init__(self, message: str, report: ValidationReport | None = None):
+    def __init__(
+        self,
+        message: str,
+        report: ValidationReport | None = None,
+        *,
+        stage: str | None = None,
+        code: str | None = None,
+    ):
         super().__init__(message)
         self.report = report
+        self.stage = stage
+        self.code = code
 
 
 @dataclass(frozen=True)
@@ -245,9 +255,21 @@ async def implement_and_build(
             raise RepairableCandidateError(
                 "candidate review found blocking issues"
             )
-    built = await _await(
-        dependencies.build_candidate(draft.workspace_id, draft.manifest, attempt_id)
-    )
+    try:
+        built = await _await(
+            dependencies.build_candidate(draft.workspace_id, draft.manifest, attempt_id)
+        )
+    except Exception as exc:
+        from app.runner.client import RunnerBuildFailed
+        from app.runtime.build import BuildFailed
+
+        if not isinstance(exc, (BuildFailed, RunnerBuildFailed, ValueError)):
+            raise
+        raise RepairableCandidateError(
+            "candidate build failed",
+            stage="build",
+            code="BUILD_FAILED",
+        ) from exc
     built = AppManifest.model_validate(built)
     return PipelineCandidate(
         attempt_id=attempt_id,
@@ -338,33 +360,57 @@ def _record_healing(session_factory, job_id, evidence):
         load_algorithm_checkpoint,
         save_algorithm_checkpoint,
     )
-    from app.agent.contracts import OrchestrationDecision
-    from app.agent.healing import classify_failure, choose_healing
+    from app.agent.orchestrator import AlgorithmOrchestrator
+    from app.agent.healing import classify_failure
+
+    class CheckpointState:
+        def __init__(self, checkpoint):
+            self.checkpoint = checkpoint
+
+        def algorithm_checkpoint(self):
+            return self.checkpoint.model_copy(deep=True)
+
+        def save_algorithm_checkpoint(self, checkpoint):
+            self.checkpoint = checkpoint.model_copy(deep=True)
 
     with session_factory() as session:
         job = session.scalar(select(Job).where(Job.id == job_id).with_for_update())
         checkpoint = load_algorithm_checkpoint(
             dict(job.checkpoint or {}), job.requirement_revision
         )
-        orchestration = checkpoint.orchestration or OrchestrationDecision(
-            complexity="MEDIUM",
-            risk="MEDIUM",
-            require_llm_review=True,
-            require_security_llm=False,
-            allow_parallel_healing=True,
-            max_build_attempts=4,
-            max_route_switches=2,
-            max_parallel_candidates=2,
-            reasons=["pipeline_default"],
+        requirement_record = session.scalar(
+            select(RequirementRecord).where(
+                RequirementRecord.app_id == job.app_id,
+                RequirementRecord.revision == job.requirement_revision,
+            )
         )
-        decision = choose_healing(
-            classify_failure(evidence),
+        if requirement_record is None:
+            app = session.get(App, job.app_id)
+            requirement = Requirement(prompt=app.prompt, acceptance=[])
+        else:
+            requirement = Requirement.model_validate(requirement_record.requirement)
+        route = checkpoint.route or RoutePlan(
+            route="GENERATE_APP",
+            steps=["generate"],
+            reason="healing fallback",
+            confidence="MEDIUM",
+        )
+        failure = classify_failure(evidence)
+        state = CheckpointState(checkpoint)
+        orchestrator = AlgorithmOrchestrator(state)
+        orchestration = orchestrator.decide_orchestration(
+            requirement,
+            route,
+            checkpoint.profiles,
+            [*checkpoint.healing, failure],
+        )
+        decision = orchestrator.choose_healing(
+            failure,
             orchestration,
             remaining_budget=max(0, job.budget_units - job.used_units),
             runner_capacity=2,
         )
-        checkpoint.orchestration = orchestration
-        checkpoint.healing.append(decision)
+        checkpoint = state.algorithm_checkpoint()
         job.checkpoint = save_algorithm_checkpoint(
             dict(job.checkpoint or {}), checkpoint
         )
@@ -376,15 +422,19 @@ def _repair_failure_evidence(job, exc, attempt_index):
     from app.agent.healing import FailureEvidence
 
     failed_ids = []
-    if exc.report is not None:
+    if exc.stage and exc.code:
+        stage, code = exc.stage, exc.code
+    elif exc.report is not None:
         failed_ids = [
             item.id for item in exc.report.checks if item.status != "PASS"
         ]
-    lowered = " ".join(failed_ids).lower()
-    if any(value in lowered for value in ("cross-user", "access", "identity")):
-        stage, code = "identity", "CROSS_USER_ACCESS"
-    elif any(value in lowered for value in ("migration", "data-preservation")):
-        stage, code = "migration", "DATA_PROOF_FAILED"
+        lowered = " ".join(failed_ids).lower()
+        if any(value in lowered for value in ("cross-user", "access", "identity")):
+            stage, code = "identity", "CROSS_USER_ACCESS"
+        elif any(value in lowered for value in ("migration", "data-preservation")):
+            stage, code = "migration", "DATA_PROOF_FAILED"
+        else:
+            stage, code = "browser", "CORE_CHECK_FAILED"
     else:
         stage, code = "browser", "CORE_CHECK_FAILED"
     return FailureEvidence(

@@ -113,3 +113,98 @@ def test_runner_configuration_requires_https_and_mutual_tls(monkeypatch):
     monkeypatch.setattr(settings, "RUNNER_URL", "http://runner.test")
     with pytest.raises(RunnerUnavailable):
         RunnerClient.from_settings()
+
+
+@pytest.mark.asyncio
+async def test_runner_client_preserves_repairable_build_failure_code():
+    from app.core.types import AppManifest, ServiceSpec
+    from app.runner.client import RunnerBuildFailed, RunnerClient
+
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(
+            422,
+            json={
+                "detail": {
+                    "code": "BUILD_FAILED",
+                    "message": "candidate build failed",
+                }
+            },
+        )
+    )
+    client = httpx.AsyncClient(
+        transport=transport,
+        base_url="https://runner.test",
+    )
+    runner = RunnerClient(client)
+    manifest = AppManifest(
+        web_service="web",
+        services=[ServiceSpec(name="web", image="build-locally", port=3000)],
+    )
+
+    with pytest.raises(RunnerBuildFailed, match="candidate build failed"):
+        await runner.build("job", "attempt", manifest, 1)
+
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_runner_service_returns_sanitized_build_failure_code(
+    tmp_path, monkeypatch
+):
+    from app.runner.service import RunnerService, create_app
+
+    class FailingBuilder:
+        async def build(self, argv):
+            del argv
+            raise RuntimeError("private build output")
+
+        async def resolve(self, image):
+            del image
+            raise AssertionError("resolve is not used for a local build")
+
+    archive = BytesIO()
+    with zipfile.ZipFile(archive, "w") as output:
+        output.writestr("Dockerfile", "FROM scratch\n")
+        output.writestr("app.py", 'print("safe")')
+    monkeypatch.setenv("BUILD_REGISTRY", "registry.test/apps")
+    app = create_app(
+        RunnerService(tmp_path, builder=FailingBuilder()),
+        "test-rpc-token",
+    )
+    headers = {
+        "Authorization": "Bearer test-rpc-token",
+        "X-Lease-Generation": "1",
+    }
+    job = "12345678-1234-1234-1234-123456789abc"
+    path = f"/v1/jobs/{job}"
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="https://runner.test",
+    ) as client:
+        assert (
+            await client.post(
+                path + "/workspace",
+                content=archive.getvalue(),
+                headers=headers,
+            )
+        ).status_code == 200
+        response = await client.post(
+            path + "/build/attempt",
+            headers=headers,
+            json={
+                "web_service": "web",
+                "services": [
+                    {"name": "web", "image": "build-locally", "port": 3000}
+                ],
+                "builds": [
+                    {"service": "web", "context": ".", "dockerfile": "Dockerfile"}
+                ],
+            },
+        )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == {
+        "code": "BUILD_FAILED",
+        "message": "candidate build failed",
+    }
+    assert "private build output" not in response.text

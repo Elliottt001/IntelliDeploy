@@ -14,6 +14,10 @@ class RunnerConflict(RunnerUnavailable):
     pass
 
 
+class RunnerBuildFailed(RuntimeError):
+    pass
+
+
 class RunnerClient:
     def __init__(self, client):
         self.client = client
@@ -68,6 +72,14 @@ class RunnerClient:
         if response.status_code == 409:
             raise RunnerConflict("执行节点操作冲突或结果待核对")
         if response.status_code >= 400:
+            try:
+                detail = response.json().get("detail")
+            except (ValueError, AttributeError):
+                detail = None
+            if isinstance(detail, dict) and detail.get("code") == "BUILD_FAILED":
+                raise RunnerBuildFailed(
+                    str(detail.get("message") or "candidate build failed")
+                )
             raise RunnerUnavailable("执行节点拒绝操作或尚未就绪")
         return response
 

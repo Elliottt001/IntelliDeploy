@@ -18,7 +18,7 @@ from app.agent.tools import execute_tool
 from app.agent.workspace import safe_path
 from app.core.types import AppManifest, ToolCall, ToolResult
 from app.runtime.artifacts import source_archive, unpack_source
-from app.runtime.build import build_release
+from app.runtime.build import BuildFailed, build_release
 
 
 class ToolRequest(BaseModel):
@@ -299,12 +299,21 @@ def create_app(service, token):
             if service.builder is None:
                 raise HTTPException(503, "dedicated builder is not configured")
             started = time.monotonic()
-            manifest = await build_release(
-                service.job_root(job) / "source",
-                body,
-                attempt,
-                build_executor=service.builder,
-            )
+            try:
+                manifest = await build_release(
+                    service.job_root(job) / "source",
+                    body,
+                    attempt,
+                    build_executor=service.builder,
+                )
+            except (BuildFailed, ValueError) as exc:
+                raise HTTPException(
+                    422,
+                    {
+                        "code": "BUILD_FAILED",
+                        "message": "candidate build failed",
+                    },
+                ) from exc
             return {
                 "manifest": manifest.model_dump(mode="json"),
                 "duration_ms": max(1, int((time.monotonic() - started) * 1000)),
