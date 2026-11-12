@@ -108,7 +108,10 @@ def _merge_rows(rows: list[tuple[str, dict]]) -> list[RetrievalCandidate]:
         current["compatibility"] = (
             row.get("compatibility") or current["compatibility"]
         )
-        current["statuses"].append(row.get("enrichment_status") or "COMPLETE")
+        current["statuses"].append(
+            row.get("enrichment_status")
+            or ("COMPLETE" if _valid_commit(commit) else "PARTIAL")
+        )
 
     candidates = []
     for row in merged.values():

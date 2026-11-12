@@ -116,3 +116,10 @@ def test_profile_cache_is_immutable_validated_and_private(tmp_path):
     with open(evidence.reference, "w", encoding="utf-8") as handle:
         handle.write("{}")
     assert cache.load(profile.repo_url, profile.commit, PROFILER_VERSION) is None
+
+    foreign = profile.model_copy(
+        update={"repo_url": "https://github.com/example/foreign", "commit": "b" * 40}
+    )
+    with open(evidence.reference, "w", encoding="utf-8") as handle:
+        handle.write(foreign.model_dump_json())
+    assert cache.load(profile.repo_url, profile.commit, PROFILER_VERSION) is None

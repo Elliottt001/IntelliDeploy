@@ -24,8 +24,17 @@ def validate_integration_contract(
     selected = {(source.url, source.commit): source for source in plan.sources}
     profiled = {(profile.repo_url, profile.commit) for profile in profiles}
     components = {(item.source.url, item.source.commit): item for item in contract.components}
-    if set(components) != set(selected) or not set(selected) <= profiled:
-        raise ValueError("integration components must match selected profiled sources")
+    if (
+        len(contract.components) != len(selected)
+        or set(components) != set(selected)
+        or not set(selected) <= profiled
+        or any(
+            components[key].role != selected[key].role for key in selected
+        )
+    ):
+        raise ValueError(
+            "each selected source must appear exactly once with its selected role"
+        )
     roles = [item.role for item in contract.components]
     role_set = set(roles)
     if len(role_set) != len(roles) or len(role_set) < 2:

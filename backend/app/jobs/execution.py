@@ -323,12 +323,21 @@ class JobExecution:
                 job.kind == "COPY"
                 or job.checkpoint.get("requirements_source_sequence") == stamp
             ):
+                from app.agent.checkpoint import load_algorithm_checkpoint
+
                 record = session.scalar(
                     select(RequirementRecord).where(
                         RequirementRecord.app_id == job.app_id,
                         RequirementRecord.revision == job.requirement_revision,
                     )
                 )
+                algorithm = load_algorithm_checkpoint(
+                    dict(job.checkpoint or {}), record.revision
+                )
+                if record.revision != algorithm.requirement_revision:
+                    raise ValueError(
+                        "frozen requirement revision differs from algorithm checkpoint"
+                    )
                 return Requirement.model_validate(record.requirement)
             previous = session.scalar(
                 select(RequirementRecord)

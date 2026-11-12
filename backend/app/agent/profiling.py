@@ -282,9 +282,15 @@ class ProfileCache:
         if not path.is_file():
             return None
         try:
-            return RepositoryProfile.model_validate_json(path.read_text())
+            profile = RepositoryProfile.model_validate_json(path.read_text())
         except Exception:
             return None
+        if (
+            _canonical_url(profile.repo_url) != _canonical_url(repo_url)
+            or profile.commit.lower() != commit.lower()
+        ):
+            return None
+        return profile
 
     def store(self, profile: RepositoryProfile) -> EvidenceRef:
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)

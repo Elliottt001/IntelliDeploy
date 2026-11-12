@@ -14,19 +14,29 @@ class AlgorithmOrchestrator:
             route = await self.execution.select_sources_baseline(requirement)
             checkpoint = self.execution.algorithm_checkpoint()
             checkpoint.route = route
+            checkpoint.selected_sources = list(route.sources)
             self.execution.save_algorithm_checkpoint(checkpoint)
             return route
         if checkpoint.mode == "hybrid":
             route = await self.hybrid_selector(requirement)
             checkpoint = self.execution.algorithm_checkpoint()
             checkpoint.route = route
+            checkpoint.selected_sources = list(route.sources)
             self.execution.save_algorithm_checkpoint(checkpoint)
             return route
 
         baseline = await self.execution.select_sources_baseline(requirement)
-        hybrid = await self.hybrid_selector(requirement)
+        try:
+            hybrid = await self.hybrid_selector(requirement)
+        except Exception:
+            checkpoint = self.execution.algorithm_checkpoint()
+            checkpoint.route = baseline
+            checkpoint.selected_sources = list(baseline.sources)
+            self.execution.save_algorithm_checkpoint(checkpoint)
+            return baseline
         checkpoint = self.execution.algorithm_checkpoint()
         checkpoint.route = baseline
         checkpoint.shadow_route = hybrid
+        checkpoint.selected_sources = list(baseline.sources)
         self.execution.save_algorithm_checkpoint(checkpoint)
         return baseline

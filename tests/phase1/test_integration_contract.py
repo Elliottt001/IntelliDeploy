@@ -101,3 +101,20 @@ async def test_contract_rejects_unselected_provider_and_missing_acceptance():
             [profile(route.sources[0]), profile(route.sources[1])],
             model=FakeContractModel(payload),
         )
+
+
+@pytest.mark.asyncio
+async def test_contract_rejects_duplicate_source_with_rewritten_role():
+    payload = valid_contract_json()
+    duplicate = dict(payload["components"][0])
+    duplicate["role"] = "audit"
+    payload["components"].append(duplicate)
+    route = component_route()
+
+    with pytest.raises(ValueError, match="exactly once with its selected role"):
+        await build_integration_contract(
+            record_search_requirement(),
+            route,
+            [profile(route.sources[0]), profile(route.sources[1])],
+            model=FakeContractModel(payload),
+        )

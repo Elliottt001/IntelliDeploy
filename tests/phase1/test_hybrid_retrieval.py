@@ -147,6 +147,21 @@ async def test_conflicting_commits_and_stale_index_are_partial():
 
 
 @pytest.mark.asyncio
+async def test_missing_commit_from_any_source_keeps_merged_candidate_partial():
+    url = "https://github.com/example/notes"
+    result = await retrieve_sources(
+        requirement("私人笔记"),
+        query_plan("notes app"),
+        FakeGitHub({"notes app": [candidate(url, "a" * 40)]}),
+        RepositoryIndex(),
+        FakeReadmeSearch([candidate(url, None)]),
+    )
+
+    assert result.candidates[0].commit == "a" * 40
+    assert result.candidates[0].enrichment_status == "PARTIAL"
+
+
+@pytest.mark.asyncio
 async def test_failed_enrichment_is_not_complete_but_keeps_candidate():
     class GitHub(FakeGitHub):
         async def enrich_repository(self, row):

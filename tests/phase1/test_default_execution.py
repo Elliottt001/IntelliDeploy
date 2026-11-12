@@ -61,8 +61,54 @@ async def test_shadow_records_hybrid_evidence_but_returns_baseline_route():
     checkpoint = execution.algorithm_checkpoint()
     assert checkpoint.shadow_route == hybrid
     assert checkpoint.route == baseline
+    assert checkpoint.selected_sources == baseline.sources
     execution.select_sources_baseline.assert_awaited_once()
     hybrid_selector.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_shadow_hybrid_failure_does_not_change_baseline_result():
+    from app.agent.contracts import AlgorithmCheckpoint
+    from app.agent.orchestrator import AlgorithmOrchestrator
+    from app.core.types import Requirement, RoutePlan, RepoSource
+
+    baseline = RoutePlan(
+        route="MODIFY_EXISTING",
+        sources=[
+            RepoSource(
+                url="https://github.com/example/baseline",
+                commit="a" * 40,
+                role="principal",
+            )
+        ],
+        steps=["modify"],
+        reason="baseline",
+    )
+
+    class Execution:
+        def __init__(self):
+            self.saved = AlgorithmCheckpoint.empty(1, "shadow")
+            self.select_sources_baseline = AsyncMock(return_value=baseline)
+
+        def algorithm_checkpoint(self):
+            return self.saved.model_copy(deep=True)
+
+        def save_algorithm_checkpoint(self, checkpoint):
+            self.saved = checkpoint.model_copy(deep=True)
+
+    async def fail_hybrid(requirement):
+        raise ConnectionError("shadow github unavailable")
+
+    execution = Execution()
+    result = await AlgorithmOrchestrator(
+        execution, hybrid_selector=fail_hybrid
+    ).select_sources(Requirement(prompt="笔记", acceptance=[]))
+
+    assert result == baseline
+    checkpoint = execution.algorithm_checkpoint()
+    assert checkpoint.route == baseline
+    assert checkpoint.shadow_route is None
+    assert checkpoint.selected_sources == baseline.sources
 
 
 @pytest.mark.asyncio
@@ -256,6 +302,35 @@ async def test_compiled_requirement_must_match_frozen_algorithm_revision(
     with pytest.raises(
         ValueError,
         match="compiled requirement revision differs from algorithm checkpoint",
+    ):
+        await execution.ensure_requirement()
+
+
+@pytest.mark.asyncio
+async def test_replayed_frozen_requirement_must_match_algorithm_revision(
+    new_job, session_factory
+):
+    from app.jobs.execution import JobExecution
+
+    job_id, _, _, generation = new_job
+    execution = JobExecution(
+        job_id,
+        "worker",
+        generation,
+        session_factory=session_factory,
+        model_client=RequirementModel(),
+    )
+    await execution.ensure_requirement()
+    with session_factory() as session:
+        job = session.get(Job, job_id)
+        checkpoint = json.loads(json.dumps(job.checkpoint))
+        checkpoint["algorithm"]["requirement_revision"] = 2
+        job.checkpoint = checkpoint
+        session.commit()
+
+    with pytest.raises(
+        ValueError,
+        match="frozen requirement revision differs from algorithm checkpoint",
     ):
         await execution.ensure_requirement()
 
