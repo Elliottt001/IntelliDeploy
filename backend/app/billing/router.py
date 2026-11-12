@@ -102,6 +102,22 @@ async def wechat_notice(request: Request, db: Session = Depends(get_db)):
     return {'code': 'SUCCESS', 'message': '成功'}
 
 
+@router.post('/payments/stripe/notify')
+async def stripe_notice(request: Request, signature: Annotated[str, Header(alias='Stripe-Signature')], db: Session = Depends(get_db)):
+    from app.billing.stripe_payments import handle_stripe_event
+    handle_stripe_event(await request.body(), signature, db)
+    db.commit()
+    return {'received': True}
+
+
+@router.post('/subscription/cancel', response_model=SubscriptionInfo)
+def cancel_subscription(key: Key, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.billing.stripe_payments import cancel_subscription as cancel
+    row = cancel(db, user.id, key)
+    return SubscriptionInfo(id=row.id, sku_id=row.sku_id, provider=row.provider, status=row.status,
+        period_end=row.period_end, cancelled=row.cancelled)
+
+
 @router.get("/policy", response_model=QuotaPolicy)
 def policy(user: User = Depends(get_current_user)):
     return QuotaPolicy(
