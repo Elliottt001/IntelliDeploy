@@ -20,7 +20,7 @@ test('Web and Expo share real PostgreSQL app, job and conversation IDs', async (
     await web.getByLabel('密码').fill(password);
     await web.getByRole('button', { name: '登录', exact: true }).click();
     await expect(web).toHaveURL(/\/apps$/);
-    await web.goto('http://127.0.0.1:3105/');
+    await web.goto('http://127.0.0.1:3105/create');
     await web.getByLabel('你想做什么应用？').fill('记录梦境并保存历史');
     await web.getByRole('button', { name: '开始创建' }).click();
     await expect(web).toHaveURL(/\/apps\/[a-f0-9-]+$/);

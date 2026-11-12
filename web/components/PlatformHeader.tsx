@@ -7,6 +7,7 @@ export default function PlatformHeader() {
       <Link href="/create">创建应用</Link>
       <Link href="/apps">我的应用</Link>
       <Link href="/community">应用社区</Link>
+      <Link href="/billing">额度与用量</Link>
       <Link href="/login">登录</Link>
     </nav>
   </header>;
