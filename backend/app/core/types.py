@@ -58,6 +58,10 @@ class CandidateEvaluation(BaseModel):
     unknown_fields: list[str] = Field(default_factory=list)
     evidence: dict[str, str] = Field(default_factory=dict)
     compatibility: Literal['SUPPORTED', 'UNKNOWN', 'UNSUPPORTED'] = 'UNKNOWN'
+    change_cost: float = Field(default=100, ge=0, le=100)
+    evidence_confidence: float = Field(default=0, ge=0, le=100)
+    reuse_roles: list[str] = Field(default_factory=list)
+    rejection_reasons: list[str] = Field(default_factory=list)
 
     @property
     def total(self) -> float:
@@ -67,6 +71,7 @@ class CandidateEvaluation(BaseModel):
     def eligible_a(self) -> bool:
         return (self.is_web_app is True and self.compatibility == 'SUPPORTED' and not self.missing_core and
                 not self.unknown_fields and bool(self.evidence) and
+                not self.rejection_reasons and
                 self.match_score >= 80 and self.deploy_score >= 70 and self.total >= 75)
 
 class ToolCall(BaseModel):

@@ -12,26 +12,12 @@ from app.core.types import CandidateEvaluation, RepoSource, Requirement, Retriev
 
 
 def score_candidate(profile: dict, requirement: Requirement) -> CandidateEvaluation:
-    row = normalize_candidate(profile)
-    text = " ".join([row.get("description") or "", *(row.get("key_files") or {}).values()]).lower()
-    facts = [item for item in re.findall(r"[\u4e00-\u9fff]{2,}|[a-z0-9]+", requirement.prompt.lower()) if len(item) > 1]
-    matched = sum(1 for fact in facts if fact in text)
-    match = min(100, 55 + 45 * matched / max(1, len(facts))) if text else 0
-    files = set(row.get("file_tree") or [])
-    manifests = {"package.json", "requirements.txt", "pyproject.toml", "pom.xml", "go.mod", "Dockerfile", "docker-compose.yml"}
-    has_manifest = any(Path(path).name in manifests for path in files)
-    is_web = any(name in text for name in ["web", "next", "react", "fastapi", "flask", "express"]) or has_manifest
-    unknown = []
-    if not row.get("key_files"): unknown.append("key_files")
-    if not files: unknown.append("file_tree")
-    if not any(Path(name).name.lower() in {"license", "license.md", "notice"} for name in (row.get("key_files") or {})):
-        unknown.append("license")
-    compatibility = row.get("compatibility", "SUPPORTED" if has_manifest else "UNKNOWN")
-    evidence = {"files": ",".join(sorted(files)[:8])} if files else {}
-    return CandidateEvaluation(repo_url=row["repo_url"], match_score=match,
-        deploy_score=80 if has_manifest else 20, quality_score=min(100, 40 + len(row.get("key_files") or {}) * 10),
-        is_web_app=is_web if text or files else None, missing_core=[], unknown_fields=unknown,
-        evidence=evidence, compatibility=compatibility)
+    from app.agent.profiling import profile_repository
+    from app.agent.ranking import rank_candidate
+    from app.core.types import RetrievalCandidate
+
+    candidate = RetrievalCandidate.model_validate(normalize_candidate(profile))
+    return rank_candidate(profile_repository(candidate, requirement), requirement)
 
 
 def _content(turn) -> dict:
