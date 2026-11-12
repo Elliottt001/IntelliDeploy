@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.agent.policy import decide_orchestration
+from app.agent.contracts import RepositoryProfile
 from app.core.types import Requirement, RoutePlan
 
 
@@ -40,3 +42,18 @@ class AlgorithmOrchestrator:
         checkpoint.selected_sources = list(baseline.sources)
         self.execution.save_algorithm_checkpoint(checkpoint)
         return baseline
+
+    def decide_orchestration(
+        self,
+        requirement: Requirement,
+        route: RoutePlan,
+        profiles: list[RepositoryProfile],
+        prior_failures: list[object],
+    ):
+        decision = decide_orchestration(
+            requirement, route, profiles, prior_failures
+        )
+        checkpoint = self.execution.algorithm_checkpoint()
+        checkpoint.orchestration = decision
+        self.execution.save_algorithm_checkpoint(checkpoint)
+        return decision

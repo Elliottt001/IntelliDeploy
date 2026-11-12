@@ -959,6 +959,31 @@ class JobExecution:
             if parent.used_units + (max_units * n + d - 1) // d > parent.max_units:
                 raise InsufficientQuota()
 
+    def admit_stage(self, stage, estimated_upper_units):
+        from app.agent.policy import StageBudgetPolicy, budget_group
+
+        if estimated_upper_units < 0:
+            raise ValueError("estimated_upper_units must be non-negative")
+        with self.sessions() as session:
+            job = self.job(session)
+            parent = self.reservation(session, job)
+            group = budget_group(stage)
+            raw_algorithm = (job.checkpoint or {}).get("algorithm") or {}
+            used_units = sum(
+                int(record.get("usage_units") or 0)
+                for record in raw_algorithm.get("stages") or []
+                if budget_group(str(record.get("stage") or "")) == group
+            )
+            policy = StageBudgetPolicy(parent.max_units)
+            if not policy.allows(
+                group,
+                used_units=used_units,
+                estimated_upper_units=estimated_upper_units,
+            ):
+                raise InsufficientQuota()
+            if parent.used_units + estimated_upper_units > parent.max_units:
+                raise InsufficientQuota()
+
     def record_resource(self, action, kind, units):
         if units is None or not isinstance(units, int) or units < 0:
             raise UncertainModelCall("执行资源用量待核对")
