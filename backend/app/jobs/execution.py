@@ -984,6 +984,13 @@ class JobExecution:
             if parent.used_units + estimated_upper_units > parent.max_units:
                 raise InsufficientQuota()
 
+    def admit_candidate_race(self, specs):
+        from app.runtime.candidate_race import validate_candidate_race
+
+        total = sum(item.estimated_upper_units for item in specs)
+        validate_candidate_race(specs, remaining_budget=total)
+        self.admit_stage("BUILD", total)
+
     def record_resource(self, action, kind, units):
         if units is None or not isinstance(units, int) or units < 0:
             raise UncertainModelCall("执行资源用量待核对")

@@ -50,6 +50,31 @@ def test_cleanup_preserves_paused_tasks_version_sources_and_all_user_data(cleanu
         assert plan_cleanup(session,now)==[]
 
 
+def test_candidate_race_resource_has_ttl_and_cleanup_state(cleanup_context):
+    from app.runtime.cleanup import (
+        mark_candidate_race_cleanup,
+        register_candidate_race_resource,
+    )
+
+    factory, job, _, _ = cleanup_context
+    with factory() as session:
+        resource = register_candidate_race_resource(
+            session,
+            job_id=job.id,
+            app_id=job.app_id,
+            candidate_id="candidate-one",
+            ttl_seconds=600,
+        )
+        session.commit()
+        assert resource.type == "CANDIDATE_RUNTIME"
+        assert resource.metadata_json["race_candidate"] is True
+        assert resource.metadata_json["ttl_seconds"] == 600
+        mark_candidate_race_cleanup(session, "candidate-one", "STOPPED")
+        session.commit()
+        assert resource.state == "STOPPED"
+        assert resource.metadata_json["cleanup_state"] == "STOPPED"
+
+
 @pytest.mark.asyncio
 async def test_new_version_reference_cancels_a_preplanned_cleanup(cleanup_context):
     from app.runtime.cleanup import plan_cleanup,execute_cleanup

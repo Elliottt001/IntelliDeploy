@@ -33,6 +33,72 @@ def register_resource(session,type,operation_id,reference,*,job_id=None,app_id=N
     return row
 
 
+def register_candidate_race_resource(
+    session, *, job_id, app_id, candidate_id, ttl_seconds
+):
+    if ttl_seconds <= 0:
+        raise ValueError("candidate race TTL must be positive")
+    row = register_resource(
+        session,
+        "CANDIDATE_RUNTIME",
+        f"candidate-race:{job_id}:{candidate_id}",
+        candidate_id,
+        job_id=job_id,
+        app_id=app_id,
+        metadata={
+            "race_candidate": True,
+            "ttl_seconds": ttl_seconds,
+            "cleanup_state": "PENDING",
+            "instance_id": candidate_id,
+        },
+    )
+    row.state = "REQUESTED"
+    return row
+
+
+def mark_candidate_race_cleanup(session, candidate_id, state):
+    if state not in {"PRESERVED", "STOPPED", "UNKNOWN"}:
+        raise ValueError("invalid candidate cleanup state")
+    row = session.scalar(
+        select(ResourceRecord)
+        .where(
+            ResourceRecord.type == "CANDIDATE_RUNTIME",
+            ResourceRecord.reference == candidate_id,
+        )
+        .with_for_update()
+    )
+    if row is None or not (row.metadata_json or {}).get("race_candidate"):
+        raise ValueError("candidate race resource is not registered")
+    row.state = state
+    row.metadata_json = {**row.metadata_json, "cleanup_state": state}
+    row.last_seen_at = datetime.now(timezone.utc)
+    return row
+
+
+def mark_candidate_race_outcome(session, candidate_id, state, usage_units=None):
+    if state not in {"SUCCEEDED", "FAILED", "UNKNOWN"}:
+        raise ValueError("invalid candidate race outcome")
+    row = session.scalar(
+        select(ResourceRecord)
+        .where(
+            ResourceRecord.type == "CANDIDATE_RUNTIME",
+            ResourceRecord.reference == candidate_id,
+        )
+        .with_for_update()
+    )
+    if row is None or not (row.metadata_json or {}).get("race_candidate"):
+        raise ValueError("candidate race resource is not registered")
+    row.state = state
+    row.metadata_json = {
+        **row.metadata_json,
+        "outcome_state": state,
+        "usage_units": usage_units,
+        "cleanup_state": "PRESERVED",
+    }
+    row.last_seen_at = datetime.now(timezone.utc)
+    return row
+
+
 def _strings(value):
     if isinstance(value,str): yield value
     elif isinstance(value,dict):

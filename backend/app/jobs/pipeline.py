@@ -200,8 +200,10 @@ async def implement_and_build(
     attempt_index: int,
     repair_evidence: list[dict],
     dependencies: PipelineDependencies,
+    *,
+    attempt_id: str | None = None,
 ) -> PipelineCandidate:
-    attempt_id = f"{job.id[:8]}-{attempt_index + 1}-{uuid4().hex[:8]}"
+    attempt_id = attempt_id or f"{job.id[:8]}-{attempt_index + 1}-{uuid4().hex[:8]}"
     draft = await _await(
         dependencies.generate_candidate(
             job_id=job.id,
@@ -394,6 +396,132 @@ def _repair_failure_evidence(job, exc, attempt_index):
     )
 
 
+async def _run_parallel_repair(
+    job,
+    requirement,
+    attempt_index,
+    repair_evidence,
+    dependencies,
+    session_factory,
+    execution,
+    decision,
+):
+    from app.runtime.candidate_race import (
+        CandidateOutcome,
+        CandidateSpec,
+        race_candidates,
+    )
+    from app.runtime.cleanup import (
+        mark_candidate_race_cleanup,
+        mark_candidate_race_outcome,
+        register_candidate_race_resource,
+    )
+
+    remaining_budget = max(0, job.budget_units - job.used_units)
+    count = min(2, decision.candidate_count)
+    upper = max(1, min(1_000, remaining_budget // count))
+    specs = [
+        CandidateSpec(
+            id=f"{job.id}-{attempt_index + 1}-race-{index + 1}",
+            strategy=f"independent-repair-{index + 1}",
+            failure_class=decision.failure_class,
+            estimated_upper_units=upper,
+        )
+        for index in range(count)
+    ]
+    if execution is not None:
+        execution.admit_candidate_race(specs)
+    with session_factory() as session:
+        for spec in specs:
+            register_candidate_race_resource(
+                session,
+                job_id=job.id,
+                app_id=job.app_id,
+                candidate_id=spec.id,
+                ttl_seconds=settings.CANDIDATE_RETENTION_HOURS * 3600,
+            )
+        session.commit()
+
+    runtimes = {}
+
+    async def run(spec):
+        with session_factory() as session:
+            before = session.get(Job, job.id).used_units
+        offset = next(index for index, item in enumerate(specs) if item.id == spec.id)
+        candidate = await implement_and_build(
+            job,
+            requirement,
+            attempt_index + offset,
+            [*repair_evidence, {"strategy": spec.strategy}],
+            dependencies,
+            attempt_id=spec.id,
+        )
+        runtime = await _await(
+            dependencies.start_candidate(
+                job.id, candidate.attempt_id, candidate.manifest, requirement
+            )
+        )
+        runtimes[spec.id] = runtime
+        if runtime.manifest_hash != candidate.manifest_hash:
+            raise RepairableCandidateError("candidate runtime digest changed")
+        report = ValidationReport.model_validate(
+            await _await(
+                dependencies.validate_candidate(
+                    runtime.base_url,
+                    requirement,
+                    candidate.browser_checks,
+                    dependencies.runtime_controller(runtime.id),
+                    attempt_id=candidate.attempt_id,
+                    manifest_hash=candidate.manifest_hash,
+                )
+            )
+        )
+        persist_attempt(session_factory, job.id, candidate, report)
+        with session_factory() as session:
+            current = session.get(Job, job.id)
+            usage = max(0, current.used_units - before)
+            mark_candidate_race_outcome(
+                session,
+                spec.id,
+                "SUCCEEDED" if report.passed else "FAILED",
+                usage,
+            )
+            session.commit()
+        return CandidateOutcome(
+            id=spec.id,
+            status="SUCCEEDED" if report.passed else "FAILED",
+            validated=report.passed,
+            usage_units=usage,
+            cleanup_state="PRESERVED",
+            result=(candidate, report, runtime),
+        )
+
+    async def stop(candidate_id, preserve):
+        runtime = runtimes.get(candidate_id)
+        if runtime is not None:
+            await _await(dependencies.stop_candidate(runtime.id, preserve))
+        with session_factory() as session:
+            mark_candidate_race_cleanup(session, candidate_id, "STOPPED")
+            session.commit()
+
+    async def reconcile(candidate_id):
+        del candidate_id
+        return "UNKNOWN"
+
+    result = await race_candidates(
+        specs,
+        run,
+        stop,
+        reconcile,
+        remaining_budget=remaining_budget,
+    )
+    if result.status == "UNKNOWN":
+        raise PipelineFailure("candidate race state is unknown")
+    if result.winner is None:
+        raise RepairableCandidateError("parallel candidate repair failed")
+    return result.winner.result
+
+
 def _create_verified_version(
     session_factory,
     job_id: str,
@@ -506,6 +634,7 @@ async def run_pipeline(
     execution = None
     policy = policy or PipelinePolicy()
     repair_evidence: list[dict] = []
+    next_healing = None
     last_message = "core checks did not pass"
     is_copy = _copy_job(session_factory,job_id)
     try:
@@ -531,6 +660,28 @@ async def run_pipeline(
                     attempt_id=f'{job.id[:8]}-copy-{attempt_index+1}'
                     candidate=PipelineCandidate(attempt_id,draft.workspace_id,draft.manifest,manifest_hash(draft.manifest),draft.browser_checks)
                 else:
+                    if next_healing and next_healing.strategy == "REPAIR_PARALLEL":
+                        candidate, report, runtime = await _run_parallel_repair(
+                            job,
+                            requirement,
+                            attempt_index,
+                            repair_evidence,
+                            dependencies,
+                            session_factory,
+                            execution,
+                            next_healing,
+                        )
+                        next_healing = None
+                        check_lease_and_budget(
+                            session_factory,
+                            job_id,
+                            worker_id=worker_id,
+                            generation=generation,
+                        )
+                        await publish_verified_candidate(
+                            session_factory, job.id, candidate, report, dependencies
+                        )
+                        return
                     candidate = await implement_and_build(
                         job, requirement, attempt_index, repair_evidence, dependencies
                     )
@@ -586,6 +737,7 @@ async def run_pipeline(
                 )
                 if decision.strategy == "STOP":
                     break
+                next_healing = decision
                 repair_evidence = append_repair_evidence(
                     session_factory, job_id, exc.report, "candidate repair required"
                 )
