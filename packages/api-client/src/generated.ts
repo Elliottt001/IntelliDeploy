@@ -243,6 +243,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/quota/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Order History */
+        get: operations["order_history_api_quota_orders_get"];
+        put?: never;
+        /** Create Order */
+        post: operations["create_order_api_quota_orders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quota/orders/{order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Order */
+        get: operations["get_order_api_quota_orders__order_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quota/payments/alipay/notify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Alipay Notice */
+        post: operations["alipay_notice_api_quota_payments_alipay_notify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quota/payments/wechat/notify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Wechat Notice */
+        post: operations["wechat_notice_api_quota_payments_wechat_notify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/quota/policy": {
         parameters: {
             query?: never;
@@ -851,6 +920,16 @@ export interface components {
             job_id: string;
             status: components["schemas"]["JobStatus"];
         };
+        /** CreateOrderRequest */
+        CreateOrderRequest: {
+            /** Sku Id */
+            sku_id: string;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "alipay" | "wechat" | "stripe";
+        };
         /** DeleteInstanceRequest */
         DeleteInstanceRequest: {
             /** Confirmation */
@@ -1183,6 +1262,57 @@ export interface components {
             content: string;
             /** Budget Units */
             budget_units?: number | null;
+        };
+        /** PaymentOrderInfo */
+        PaymentOrderInfo: {
+            /** Order Id */
+            order_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "CREATED" | "PAID" | "CANCELLED" | "FAILED";
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "alipay" | "wechat" | "stripe";
+            /** Name */
+            name: string;
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "CNY" | "USD";
+            /** Amount Minor */
+            amount_minor: number;
+            /** Units */
+            units: number;
+            /** Period */
+            period?: string | null;
+            /** Checkout Url */
+            checkout_url?: string | null;
+            /** Payment Url */
+            payment_url?: string | null;
+            /** Checkout Kind */
+            checkout_kind?: ("QR" | "REDIRECT") | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Paid At */
+            paid_at?: string | null;
+            /**
+             * Refunded Amount Minor
+             * @default 0
+             */
+            refunded_amount_minor: number;
+            /**
+             * Refund Review Required
+             * @default false
+             */
+            refund_review_required: boolean;
         };
         /** PhaseDuration */
         PhaseDuration: {
@@ -1944,6 +2074,132 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    order_history_api_quota_orders_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOrderInfo"][];
+                };
+            };
+        };
+    };
+    create_order_api_quota_orders_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOrderInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_order_api_quota_orders__order_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOrderInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    alipay_notice_api_quota_payments_alipay_notify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    wechat_notice_api_quota_payments_wechat_notify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

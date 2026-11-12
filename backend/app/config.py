@@ -55,6 +55,23 @@ class Settings(BaseSettings):
     DEEPSEEK_MAX_OUTPUT_TOKENS: int = Field(default=2048,gt=0)
     DEEPSEEK_PRICE_PREFIX: str = 'model.flash'
     MAX_JOB_MODEL_CALLS: int = Field(default=40,gt=0)
+    PAYMENT_PLATFORM_ORIGIN: str = ''
+    PAYMENT_NOTIFY_BASE_URL: str = ''
+    ALIPAY_APP_ID: str = ''
+    ALIPAY_SELLER_ID: str = ''
+    ALIPAY_GATEWAY: str = 'https://openapi.alipay.com/gateway.do'
+    ALIPAY_PRIVATE_KEY_FILE: str = ''
+    ALIPAY_PUBLIC_KEY_FILE: str = ''
+    WECHAT_APP_ID: str = ''
+    WECHAT_MCH_ID: str = ''
+    WECHAT_MERCHANT_SERIAL: str = ''
+    WECHAT_PRIVATE_KEY_FILE: str = ''
+    WECHAT_PUBLIC_KEY_FILE: str = ''
+    WECHAT_PLATFORM_SERIAL: str = ''
+    WECHAT_API_V3_KEY_FILE: str = ''
+    STRIPE_SECRET_KEY_FILE: str = ''
+    STRIPE_WEBHOOK_SECRET_FILE: str = ''
+    STRIPE_API_VERSION: str = '2025-03-31.basil'
 
     # 降级生成服务地址（"inprocess" 走进程内直调，避免依赖独立 HTTP 服务）
     FALLBACK_SERVICE_URL: str = "inprocess"

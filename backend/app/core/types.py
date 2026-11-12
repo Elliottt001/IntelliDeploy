@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import datetime
 from typing import Literal
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from enum import StrEnum
 from pathlib import PurePosixPath
 
@@ -517,3 +517,27 @@ class SubscriptionInfo(BaseModel):
     status: str
     period_end: datetime
     cancelled: bool
+
+
+class CreateOrderRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    sku_id: str = Field(min_length=1, max_length=128)
+    provider: Literal['alipay', 'wechat', 'stripe']
+
+
+class PaymentOrderInfo(BaseModel):
+    order_id: str
+    status: Literal['CREATED', 'PAID', 'CANCELLED', 'FAILED']
+    provider: Literal['alipay', 'wechat', 'stripe']
+    name: str
+    currency: Literal['CNY', 'USD']
+    amount_minor: int
+    units: int
+    period: str | None = None
+    checkout_url: str | None = None
+    payment_url: str | None = None
+    checkout_kind: Literal['QR', 'REDIRECT'] | None = None
+    expires_at: datetime
+    paid_at: datetime | None = None
+    refunded_amount_minor: int = 0
+    refund_review_required: bool = False

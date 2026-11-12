@@ -208,6 +208,7 @@ def issue_periodic_grants(now: datetime, *, session_factory=SessionLocal) -> Non
                 Subscription.status.in_(("ACTIVE", "TRIALING", "PAID")),
                 Subscription.period_start <= now,
                 Subscription.period_end > now,
+                Subscription.payment_order_id.is_(None),
             )
         )
         for subscription in subscriptions:

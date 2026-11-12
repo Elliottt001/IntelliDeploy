@@ -69,6 +69,9 @@ export function createApiClient(options: ClientOptions) {
     listSkus: () => request<Schema['QuotaSku'][]>('/api/quota/skus'),
     listPublicSkus: () => request<Schema['QuotaSku'][]>('/api/catalog/skus'),
     getSubscription: () => request<Schema['SubscriptionInfo'] | null>('/api/quota/subscription'),
+    createOrder: (skuId: string, provider: Schema['CreateOrderRequest']['provider'], operationId: string) => request<Schema['PaymentOrderInfo']>('/api/quota/orders', 'POST', { sku_id: skuId, provider }, operationId),
+    getOrder: (orderId: string, signal?: AbortSignal) => request<Schema['PaymentOrderInfo']>(`/api/quota/orders/${id(orderId)}`, 'GET', undefined, undefined, signal),
+    listOrders: () => request<Schema['PaymentOrderInfo'][]>('/api/quota/orders'),
     request,
   };
 }
