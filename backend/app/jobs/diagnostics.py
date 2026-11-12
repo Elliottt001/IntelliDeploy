@@ -103,8 +103,15 @@ def _retrieval(checkpoint: dict) -> EvaluationRetrieval:
 
 
 def _sources(checkpoint: dict) -> list[EvaluationSource]:
+    algorithm = load_algorithm_checkpoint(
+        checkpoint,
+        requirement_revision=int(checkpoint.get("requirement_revision") or 1),
+    )
+    algorithm_sources = [
+        row.model_dump(mode="json") for row in algorithm.selected_sources
+    ]
     sources = []
-    for row in checkpoint.get("sources") or []:
+    for row in algorithm_sources or checkpoint.get("sources") or []:
         if not isinstance(row, dict):
             continue
         url, commit, role = row.get("url"), row.get("commit"), row.get("role")

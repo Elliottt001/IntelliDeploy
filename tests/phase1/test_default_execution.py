@@ -1,6 +1,7 @@
 from uuid import uuid4
 import json
 import pytest
+from unittest.mock import AsyncMock
 from sqlalchemy import select
 
 from app.apps.models import App, Message, RequirementRecord
@@ -9,6 +10,112 @@ from app.jobs.store import claim_job
 from app.models.user import User
 from app.core.types import ModelTurn
 from test_capability_identity import identity_keys as identity_keys
+
+
+@pytest.mark.asyncio
+async def test_shadow_records_hybrid_evidence_but_returns_baseline_route():
+    from app.agent.contracts import AlgorithmCheckpoint
+    from app.agent.orchestrator import AlgorithmOrchestrator
+    from app.core.types import Requirement, RoutePlan, RepoSource
+
+    baseline = RoutePlan(
+        route="GENERATE_APP",
+        steps=["generate"],
+        reason="baseline",
+    )
+    hybrid = RoutePlan(
+        route="DEPLOY_EXISTING",
+        sources=[
+            RepoSource(
+                url="https://github.com/example/notes",
+                commit="a" * 40,
+                role="complete application",
+            )
+        ],
+        steps=["deploy"],
+        reason="hybrid evidence",
+    )
+
+    class Execution:
+        def __init__(self):
+            self.saved = AlgorithmCheckpoint.empty(1, "shadow")
+            self.select_sources_baseline = AsyncMock(return_value=baseline)
+
+        def algorithm_checkpoint(self):
+            return self.saved.model_copy(deep=True)
+
+        def save_algorithm_checkpoint(self, checkpoint):
+            self.saved = checkpoint.model_copy(deep=True)
+
+    execution = Execution()
+    hybrid_selector = AsyncMock(return_value=hybrid)
+    orchestrator = AlgorithmOrchestrator(
+        execution, hybrid_selector=hybrid_selector
+    )
+
+    result = await orchestrator.select_sources(
+        Requirement(prompt="笔记", acceptance=[])
+    )
+
+    assert result == baseline
+    checkpoint = execution.algorithm_checkpoint()
+    assert checkpoint.shadow_route == hybrid
+    assert checkpoint.route == baseline
+    execution.select_sources_baseline.assert_awaited_once()
+    hybrid_selector.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_shadow_evidence_uses_deterministic_query_without_model_or_runner(
+    new_job, session_factory, monkeypatch, tmp_path
+):
+    from app.core.types import Requirement, RetrievalResult
+    from app.jobs.execution import JobExecution
+    from app.config import settings
+
+    job_id, _, _, generation = new_job
+
+    class ForbiddenModel:
+        async def complete(self, *args, **kwargs):
+            pytest.fail("shadow evidence called the model")
+
+    class ForbiddenRunner:
+        def __getattr__(self, name):
+            pytest.fail(f"shadow evidence accessed runner.{name}")
+
+    async def retrieve(*args, **kwargs):
+        return RetrievalResult(
+            queries=["private notes web app"],
+            completed=True,
+            candidates=[],
+        )
+
+    monkeypatch.setattr("app.agent.retrieval.retrieve_sources", retrieve)
+    monkeypatch.setattr(settings, "REPOSITORY_INDEX_PATH", str(tmp_path / "index.json"))
+    execution = JobExecution(
+        job_id,
+        "worker",
+        generation,
+        session_factory=session_factory,
+        model_client=ForbiddenModel(),
+        runner=ForbiddenRunner(),
+    )
+
+    route = await execution.select_sources_hybrid(
+        Requirement(prompt="私人笔记", acceptance=[])
+    )
+
+    assert route.route == "GENERATE_APP"
+    checkpoint = execution.algorithm_checkpoint()
+    assert checkpoint.query_plan.original == "私人笔记"
+    assert checkpoint.retrieval.completed is True
+    assert [stage.stage for stage in checkpoint.stages] == [
+        "QUERY_PLAN",
+        "RETRIEVAL",
+        "PROFILE",
+    ]
+    with session_factory() as session:
+        assert session.get(Job, job_id).phase == "retrieving"
 
 
 @pytest.fixture

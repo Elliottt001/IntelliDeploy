@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import inspect
 import json
+import time
 from pathlib import Path
 
 from sqlalchemy import func, select
@@ -486,16 +487,144 @@ class JobExecution:
                 for item in evaluations
                 if not item.eligible_a
             ]
-        self.save(
-            retrieval=result.model_dump(mode="json"),
-            evaluations=[item.model_dump(mode="json") for item in evaluations],
-        )
+        checkpoint = self.algorithm_checkpoint()
+        checkpoint.retrieval = result
+        checkpoint.evaluations = evaluations
+        self.save_algorithm_checkpoint(checkpoint)
         return await choose_route(
             requirement,
             result,
             evaluations,
             self.model(f"route:{requirement.revision}"),
         )
+
+    async def select_sources_hybrid(self, requirement):
+        from app.agent.checkpoint import stage_input_hash
+        from app.agent.contracts import AlgorithmStageRecord
+        from app.agent.profiling import profile_repository
+        from app.agent.query import deterministic_queries
+        from app.agent.repository_index import load_index
+        from app.agent.retrieval import retrieve_sources
+        from app.core.types import RepoSource, RoutePlan
+
+        with self.sessions() as session:
+            job = self.job(session)
+            job.phase = "retrieving"
+            session.commit()
+
+        checkpoint = self.algorithm_checkpoint()
+        started = time.monotonic()
+        query_plan = deterministic_queries(requirement)
+        checkpoint.query_plan = query_plan
+        checkpoint.stages.append(
+            AlgorithmStageRecord(
+                operation_id=(
+                    f"job:{self.job_id}:query:r{requirement.revision}:fusion-v1"
+                ),
+                stage="QUERY_PLAN",
+                input_hash=stage_input_hash(requirement),
+                implementation_version="fusion-v1",
+                status="SUCCEEDED",
+                output_ref=stage_input_hash(query_plan),
+                attempt=1,
+                duration_ms=int((time.monotonic() - started) * 1000),
+            )
+        )
+
+        retrieval_record = AlgorithmStageRecord(
+            operation_id=(
+                f"job:{self.job_id}:retrieval:{stage_input_hash(query_plan)}"
+            ),
+            stage="RETRIEVAL",
+            input_hash=stage_input_hash(query_plan),
+            implementation_version="fusion-v1",
+            status="REQUESTED",
+            attempt=1,
+        )
+        checkpoint.stages.append(retrieval_record)
+        self.save_algorithm_checkpoint(checkpoint)
+        started = time.monotonic()
+        try:
+            retrieval = await retrieve_sources(
+                requirement,
+                query_plan,
+                repository_index=load_index(
+                    Path(settings.REPOSITORY_INDEX_PATH)
+                ),
+            )
+        except Exception as exc:
+            retrieval_record.status = "FAILED"
+            retrieval_record.duration_ms = int((time.monotonic() - started) * 1000)
+            retrieval_record.error_code = type(exc).__name__
+            self.save_algorithm_checkpoint(checkpoint)
+            raise
+        retrieval_record.status = "SUCCEEDED" if retrieval.completed else "FAILED"
+        retrieval_record.duration_ms = int((time.monotonic() - started) * 1000)
+        retrieval_record.output_ref = stage_input_hash(retrieval)
+        retrieval_record.error_code = None if retrieval.completed else "SEARCH_INCOMPLETE"
+        checkpoint.retrieval = retrieval
+
+        started = time.monotonic()
+        profiles = []
+        for candidate in retrieval.candidates:
+            if candidate.commit:
+                try:
+                    profiles.append(profile_repository(candidate, requirement))
+                except ValueError:
+                    continue
+        checkpoint.profiles = profiles
+        checkpoint.evaluations = []
+        checkpoint.stages.append(
+            AlgorithmStageRecord(
+                operation_id=(
+                    f"job:{self.job_id}:profile:{stage_input_hash(retrieval)}"
+                ),
+                stage="PROFILE",
+                input_hash=stage_input_hash(retrieval),
+                implementation_version="profile-v1",
+                status="SUCCEEDED",
+                output_ref=stage_input_hash(profiles),
+                attempt=1,
+                duration_ms=int((time.monotonic() - started) * 1000),
+            )
+        )
+
+        reusable = next(
+            (
+                profile
+                for profile in profiles
+                if profile.license_status == "ALLOWED"
+                and profile.compatibility.status == "SUPPORTED"
+                and profile.project_type not in {"unknown", "library"}
+            ),
+            None,
+        )
+        if reusable is None:
+            route = RoutePlan(
+                route="GENERATE_APP",
+                steps=["generate from the frozen requirement"],
+                reason=(
+                    "shadow retrieval incomplete"
+                    if not retrieval.completed
+                    else "shadow evidence found no complete reusable application"
+                ),
+            )
+            checkpoint.selected_sources = []
+        else:
+            source = RepoSource(
+                url=reusable.repo_url,
+                commit=reusable.commit,
+                role="shadow complete application",
+            )
+            route = RoutePlan(
+                route="DEPLOY_EXISTING",
+                sources=[source],
+                steps=["validate the shadow candidate"],
+                reason="shadow profile has allowed license and supported runtime",
+            )
+            checkpoint.selected_sources = [source]
+        self.save_algorithm_checkpoint(checkpoint)
+        return route
 
     async def generate_candidate(
         self, *, job_id, job, requirement, attempt_index, repair_evidence
