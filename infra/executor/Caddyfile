@@ -1,0 +1,6 @@
+*.{$CANDIDATE_DOMAIN_SUFFIX} {
+    tls /run/credentials/candidate.fullchain.pem /run/credentials/candidate.key
+    reverse_proxy 127.0.0.1:9877 {
+        flush_interval -1
+    }
+}

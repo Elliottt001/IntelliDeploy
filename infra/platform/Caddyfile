@@ -1,0 +1,22 @@
+{$PLATFORM_DOMAIN} {
+    @events path /api/jobs/*/events
+    header @events Cache-Control "no-store"
+    reverse_proxy web:3000 {
+        flush_interval -1
+    }
+}
+
+{$API_DOMAIN} {
+    @hidden_docs {
+        path /docs* /redoc* /openapi.json
+        expression "'{$PUBLIC_API_DOCS:false}' != 'true'"
+    }
+    handle @hidden_docs {
+        respond "Not found" 404
+    }
+    handle {
+        reverse_proxy api:9000 {
+            flush_interval -1
+        }
+    }
+}

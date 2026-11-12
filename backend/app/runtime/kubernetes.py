@@ -6,6 +6,7 @@ import json
 import os
 import re
 import time
+from pathlib import Path
 from typing import Protocol
 
 import yaml
@@ -68,6 +69,11 @@ class DatabaseTargetProvider:
 
 class EnvironmentKubeconfigResolver:
     def resolve(self, reference: str) -> str:
+        from app.config import settings
+        if reference in settings.DEPLOYMENT_SECRET_FILES:
+            path=Path(settings.DEPLOYMENT_SECRET_FILES[reference])
+            if not path.is_absolute() or not path.is_file(): raise KubernetesTargetUnavailable('Kubeconfig file is not configured')
+            return path.read_text()
         values = json.loads(os.environ.get("DEPLOYMENT_SECRET_VALUES", "{}"))
         value = values.get(reference)
         if not isinstance(value, str) or not value.strip():

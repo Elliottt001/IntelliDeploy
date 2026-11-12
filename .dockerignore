@@ -1,0 +1,17 @@
+.git
+.venv
+**/node_modules
+**/__pycache__
+**/.env
+**/.env.*
+**/*.db
+**/*.sqlite*
+**/.next
+**/.expo
+**/test-results
+frontend/ios
+frontend/android
+artifacts
+data
+docs
+.trae

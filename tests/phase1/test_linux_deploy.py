@@ -179,23 +179,16 @@ async def test_linux_deploy_uses_argv_and_json_stdin_without_interpolating_value
         "activate",
     ]
     argv = ssh.calls[0][0]
-    assert argv[:8] == [
-        "ssh",
-        "-o",
-        "BatchMode=yes",
-        "-o",
-        "IdentitiesOnly=yes",
-        "-i",
-        "/controlled/keys/linux-test",
-        "deploy@192.0.2.10",
-    ]
-    assert argv[8:10] == [
-        "python3",
-        "-c",
-    ]
-    assert len(argv) == 11
-    assert "192.0.2.10" not in argv[10]
-    assert "instance-1" not in argv[10]
+    assert argv[0] == 'ssh'
+    assert 'BatchMode=yes' in argv and 'IdentitiesOnly=yes' in argv
+    assert 'StrictHostKeyChecking=yes' in argv
+    assert argv[argv.index('-i')+1] == '/controlled/keys/linux-test'
+    assert 'deploy@192.0.2.10' in argv
+    import shlex
+    command=shlex.split(' '.join(argv[argv.index('python3'):]))
+    assert len(command)==3 and command[:2]==['python3','-c']
+    assert "192.0.2.10" not in command[2]
+    assert "instance-1" not in command[2]
     payload_text = json.dumps(ssh.calls[1][1])
     assert "/controlled/keys/linux-test" not in payload_text
     assert "python3 -" not in payload_text

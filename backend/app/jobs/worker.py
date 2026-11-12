@@ -2,11 +2,15 @@
 import asyncio
 import logging
 import signal
+import time
+from datetime import datetime,timezone
+from sqlalchemy.dialects.postgresql import insert
 from uuid import uuid4
 
 from app.database import SessionLocal
 from app.config import settings
 from app.jobs.store import claim_job, heartbeat, expire_lease, LeaseLost
+from app.runtime.models import PlatformControl
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +23,16 @@ async def run_worker(process_job, stop=None, session_factory=SessionLocal):
     def db_action(fn, *args, **kwargs):
         with session_factory() as session:
             return fn(session, *args, **kwargs)
+    def presence(session):
+        now=datetime.now(timezone.utc)
+        session.execute(insert(PlatformControl).values(name='worker:'+worker_id,value={'process':'worker'},updated_at=now)
+            .on_conflict_do_update(index_elements=['name'],set_={'updated_at':now}))
+        session.commit()
+    last_presence=0
     while not stop.is_set():
+        if time.monotonic()-last_presence>30:
+            await asyncio.to_thread(db_action,presence)
+            last_presence=time.monotonic()
         job = await asyncio.to_thread(db_action, claim_job, worker_id)
         if job is None:
             try:
@@ -29,10 +42,12 @@ async def run_worker(process_job, stop=None, session_factory=SessionLocal):
             continue
         # The pipeline receives a fenced lease identity; HTTP never runs it.
         task = asyncio.create_task(process_job(job.id, worker_id=worker_id, generation=job.lease_generation))
+        logger.info('job started',extra={'event':'job_started','job_id':job.id,'phase':job.phase})
         async def renew():
             while True:
                 await asyncio.sleep(10)
                 await asyncio.to_thread(db_action, heartbeat, job.id, worker_id, generation=job.lease_generation)
+                await asyncio.to_thread(db_action,presence)
         renewal = asyncio.create_task(renew())
         shutdown = asyncio.create_task(stop.wait())
         try:
@@ -54,9 +69,12 @@ async def run_worker(process_job, stop=None, session_factory=SessionLocal):
                 pending.cancel()
             await asyncio.gather(task, renewal, shutdown, return_exceptions=True)
             await asyncio.to_thread(db_action, expire_lease, job.id, worker_id, generation=job.lease_generation)
+            logger.info('job checkpoint retained',extra={'event':'job_finished','job_id':job.id})
 
 
 async def main():
+    from app.core.logging import configure_logging
+    configure_logging('worker')
     from app.jobs.maintenance import run_maintenance_loop
     from app.jobs.pipeline import run_pipeline
     stop = asyncio.Event()

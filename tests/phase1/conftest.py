@@ -38,6 +38,8 @@ def session_factory(pg_engine):
     from sqlalchemy.orm import sessionmaker
     from sqlalchemy import text
     with pg_engine.begin() as connection:
+        for table in ('admin_audits','platform_controls'):
+            if connection.execute(text('SELECT to_regclass(:name)'),{'name':table}).scalar(): connection.execute(text('TRUNCATE '+table))
         connection.execute(text('TRUNCATE users, deployment_targets CASCADE'))
         if connection.execute(text("SELECT to_regclass('price_rules')")).scalar():
             connection.execute(text('TRUNCATE price_rules, product_skus CASCADE'))

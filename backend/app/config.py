@@ -1,9 +1,20 @@
 from pathlib import Path
+from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    ENVIRONMENT: Literal['development','test','production'] = 'development'
+    LOG_DIRECTORY: str = ''
+    DEPLOYMENT_SECRET_FILES: dict[str,str] = {}
+    DEPLOYMENT_KNOWN_HOSTS_FILE: str = ''
+    REPOSITORY_SEEDS_FILE: str = ''
+    WORKSPACE_RETENTION_DAYS: int = Field(default=7,ge=7)
+    EVIDENCE_RETENTION_DAYS: int = Field(default=30,ge=30)
+    TEMP_RETENTION_DAYS: int = Field(default=7,ge=7)
+    CANDIDATE_RETENTION_HOURS: int = Field(default=1,ge=1)
+    WORKSPACE_MIN_FREE_MB: int = Field(default=256,ge=0)
     SECRET_KEY: str = "your-secret-key-change-in-production"
     DATABASE_URL: str = "postgresql+psycopg://intellideploy:dev-only@127.0.0.1:55432/intellideploy_dev"
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8081"]

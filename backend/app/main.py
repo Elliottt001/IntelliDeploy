@@ -22,6 +22,7 @@ from app.capabilities.router import router as capabilities_router
 from app.runtime.router import router as runtime_router
 from app.community.router import router as community_router
 from app.evaluation.router import router as evaluation_router
+from app.core.health import router as health_router
 
 
 def check_schema():
@@ -35,6 +36,10 @@ def check_schema():
 
 @asynccontextmanager
 async def lifespan(_app):
+    from app.core.logging import configure_logging
+    configure_logging('api')
+    from app.core.health import validate_production_configuration
+    validate_production_configuration()
     check_schema()
     yield
 
@@ -52,13 +57,18 @@ app.include_router(capabilities_router)
 app.include_router(runtime_router)
 app.include_router(community_router)
 app.include_router(evaluation_router)
+app.include_router(health_router)
 
 
 @app.middleware('http')
 async def correlate(request,call_next):
+    import logging, time
+    started=time.monotonic()
     request.state.request_id=str(uuid4())
     response=await call_next(request)
     response.headers['X-Request-ID']=request.state.request_id
+    logging.getLogger('app.http').info('request',extra={'event':'http_request','request_id':request.state.request_id,
+        'status_code':response.status_code,'duration_ms':int((time.monotonic()-started)*1000),'error_code':getattr(request.state,'error_code',None)})
     return response
 
 
@@ -67,6 +77,7 @@ async def http_error(request: Request,exc):
     detail=exc.detail if isinstance(exc.detail,dict) and 'code' in exc.detail else {
         'code':{401:'UNAUTHORIZED',403:'FORBIDDEN',404:'NOT_FOUND',409:'CONFLICT',402:'QUOTA_INSUFFICIENT',503:'UNAVAILABLE'}.get(exc.status_code,'REQUEST_FAILED'),
         'message':str(exc.detail),'retryable':exc.status_code==503}
+    request.state.error_code=detail['code']
     return JSONResponse(status_code=exc.status_code,content={'error':detail,'request_id':request.state.request_id},headers=exc.headers)
 
 
