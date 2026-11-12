@@ -257,10 +257,44 @@ class CompatibilityReport(BaseModel):
     architecture: str = 'amd64'
     evidence: dict[str, str] = Field(default_factory=dict)
 
+
+class RetrievalEvidenceRef(BaseModel):
+    kind: Literal['REPOSITORY', 'PROFILE', 'REVIEW', 'VALIDATION', 'SECURITY']
+    reference: str
+    digest: str
+    access: Literal['PRIVATE', 'OWNER', 'DEVELOPER']
+
+
+class RetrievalCandidate(BaseModel):
+    repo_url: str
+    commit: str | None = None
+    description: str = ''
+    stars: int = Field(default=0, ge=0)
+    last_commit_at: datetime | None = None
+    sources: list[Literal['github', 'readme', 'verified_index']] = Field(default_factory=list)
+    source_scores: dict[str, float] = Field(default_factory=dict)
+    evidence_refs: list[RetrievalEvidenceRef] = Field(default_factory=list)
+    enrichment_status: Literal['COMPLETE', 'PARTIAL', 'FAILED'] = 'PARTIAL'
+    file_tree: list[str] = Field(default_factory=list)
+    key_files: dict[str, str] = Field(default_factory=dict)
+    compatibility: Literal['SUPPORTED', 'UNKNOWN', 'UNSUPPORTED'] = 'UNKNOWN'
+
+    def __getitem__(self, key: str):
+        return getattr(self, key)
+
+    def __setitem__(self, key: str, value) -> None:
+        if key not in type(self).model_fields:
+            raise KeyError(key)
+        setattr(self, key, value)
+
+    def get(self, key: str, default=None):
+        return getattr(self, key, default)
+
+
 class RetrievalResult(BaseModel):
     queries: list[str]
     completed: bool
-    candidates: list[dict] = Field(default_factory=list)
+    candidates: list[RetrievalCandidate] = Field(default_factory=list)
     reuse_rejections: list[dict] = Field(default_factory=list)
     index_version: str | None = None
     errors: list[str] = Field(default_factory=list)

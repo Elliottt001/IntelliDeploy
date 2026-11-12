@@ -6,6 +6,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from sqlalchemy import or_, select
 
+from app.agent.checkpoint import load_algorithm_checkpoint
 from app.apps import service
 from app.apps.models import App, Instance
 from app.billing.models import Reservation, UnknownUsage, UsageEntry
@@ -65,35 +66,38 @@ def _phase_durations(session, job: Job) -> list[PhaseDuration]:
 
 
 def _retrieval(checkpoint: dict) -> EvaluationRetrieval:
-    retrieval = checkpoint.get("retrieval") or {}
+    algorithm = load_algorithm_checkpoint(
+        checkpoint,
+        requirement_revision=int(checkpoint.get("requirement_revision") or 1),
+    )
+    retrieval = algorithm.retrieval
     evaluations = {
-        row.get("repo_url"): row
-        for row in checkpoint.get("evaluations") or []
-        if isinstance(row, dict) and row.get("repo_url")
+        row.repo_url: row
+        for row in algorithm.evaluations
     }
     candidates = []
-    for rank, row in enumerate(retrieval.get("candidates") or [], start=1):
-        if not isinstance(row, dict) or not row.get("repo_url"):
-            continue
-        safe_url = _safe_url(row["repo_url"])
+    for rank, row in enumerate(
+        retrieval.candidates if retrieval is not None else [], start=1
+    ):
+        safe_url = _safe_url(row.repo_url)
         if not safe_url:
             continue
-        scores = evaluations.get(row["repo_url"], {})
+        scores = evaluations.get(row.repo_url)
         candidates.append(
             EvaluationCandidate(
                 repo_url=safe_url,
-                commit=row.get("commit"),
+                commit=row.commit,
                 rank=rank,
-                stars=row.get("stars"),
-                match_score=scores.get("match_score"),
-                deploy_score=scores.get("deploy_score"),
-                quality_score=scores.get("quality_score"),
+                stars=row.stars,
+                match_score=scores.match_score if scores else None,
+                deploy_score=scores.deploy_score if scores else None,
+                quality_score=scores.quality_score if scores else None,
             )
         )
     return EvaluationRetrieval(
-        queries=[str(value) for value in retrieval.get("queries") or []],
-        completed=bool(retrieval.get("completed")),
-        index_version=retrieval.get("index_version"),
+        queries=list(retrieval.queries) if retrieval is not None else [],
+        completed=retrieval.completed if retrieval is not None else False,
+        index_version=retrieval.index_version if retrieval is not None else None,
         candidates=candidates,
     )
 
@@ -115,10 +119,11 @@ def _sources(checkpoint: dict) -> list[EvaluationSource]:
 
 
 def _route(checkpoint: dict) -> str | None:
-    route = ((checkpoint.get("loop") or {}).get("route") or {}).get("route")
-    if not route:
-        route = (checkpoint.get("route") or {}).get("route")
-    return route if isinstance(route, str) else None
+    algorithm = load_algorithm_checkpoint(
+        checkpoint,
+        requirement_revision=int(checkpoint.get("requirement_revision") or 1),
+    )
+    return algorithm.route.route if algorithm.route is not None else None
 
 
 def _cost(session, job: Job) -> tuple[int | None, str, str, str]:

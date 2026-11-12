@@ -57,7 +57,8 @@ async def choose_route(requirement: Requirement, search_result: RetrievalResult,
     turn = await model_client.complete([
         {"role": "system", "content": "只输出RoutePlan JSON；不得引用候选列表外的仓库。"},
         {"role": "user", "content": json.dumps({"requirement": requirement.model_dump(mode="json"),
-          "candidates": search_result.candidates, "evaluations": [row.model_dump(mode="json") for row in evaluations],
+          "candidates": [row.model_dump(mode="json") for row in search_result.candidates],
+          "evaluations": [row.model_dump(mode="json") for row in evaluations],
           "reuse_rejections": search_result.reuse_rejections}, ensure_ascii=False)},
     ], [], "route")
     plan = RoutePlan.model_validate(_content(turn))
