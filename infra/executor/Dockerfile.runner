@@ -1,0 +1,16 @@
+ARG BUILDKIT_IMAGE=moby/buildkit:latest
+ARG CRANE_IMAGE=gcr.io/go-containerregistry/crane:debug
+ARG PLATFORM_API_IMAGE=intellideploy-api:local
+ARG DOCKER_CLI_IMAGE=docker:cli
+FROM ${BUILDKIT_IMAGE} AS buildkit
+FROM ${CRANE_IMAGE} AS crane
+FROM ${DOCKER_CLI_IMAGE} AS docker-tools
+FROM ${PLATFORM_API_IMAGE}
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends e2fsprogs mount && rm -rf /var/lib/apt/lists/*
+COPY --from=docker-tools /usr/local/bin/docker /usr/local/bin/docker
+COPY --from=docker-tools /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
+COPY --from=buildkit /usr/bin/buildctl /usr/local/bin/buildctl
+COPY --from=crane /ko-app/crane /usr/local/bin/crane
+RUN docker --version && docker compose version && buildctl --version && crane version
+CMD ["python", "-m", "app.runner.service"]

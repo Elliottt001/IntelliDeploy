@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendPath, validOrigin } from '../../../lib/proxy';
-import { openSession, sealSession, SESSION_COOKIE } from '../../../lib/session';
+import { openSession, sealSession, SESSION_COOKIE, runtimeSessionSecret } from '../../../lib/session';
 
 export const runtime = 'nodejs';
 
@@ -18,7 +18,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
   const path=backendPath(parts);
   if (!path) return error(404,'NOT_FOUND','接口不存在');
   if (path === '/auth/login' && request.method !== 'POST' || path === '/auth/register' && request.method !== 'POST' || path === '/auth/me' && request.method !== 'GET') return error(405,'METHOD_NOT_ALLOWED','请求方法不允许');
-  const secret=process.env.SESSION_SECRET ?? '';
+  const secret=runtimeSessionSecret();
   const cookie=request.cookies.get(SESSION_COOKIE)?.value;
   const token=cookie ? openSession(cookie,secret) : null;
   const anonymous=path.startsWith('/auth/') && path !== '/auth/me' || path==='/api/community/apps' || path==='/api/catalog/skus' && request.method==='GET' || /^\/api\/publications\/[^/]+$/.test(path) && request.method==='GET';

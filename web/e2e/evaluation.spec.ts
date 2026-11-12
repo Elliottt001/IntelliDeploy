@@ -36,6 +36,7 @@ test('developer creates and inspects an owned evaluation task without counting f
       job_id: 'job-1', app_id: 'app-1', version_id: 'v1', status: 'SUCCEEDED', route: 'DEPLOY_EXISTING',
       source_mode: 'fixture', routing_mode: 'automatic', target_id: 'linux-ready', target_override: true,
       model: 'deepseek-flash', price_version: 'dev-v1', usage_units: 10, cost_units: null, cost_status: 'unknown',
+      evidence_gate: { status: 'NOT_RUN', reasons: ['REAL_RELEASE_EVIDENCE_MISSING', 'COST_UNKNOWN'] },
       duration_ms: 1000, phase_durations: [{ phase: 'completed', duration_ms: 1000 }],
       sources: [{ url: 'https://github.com/example/notes', commit: 'a'.repeat(40), role: '主体' }],
       retrieval: { queries: [], completed: true, index_version: null, candidates: [] },
@@ -49,6 +50,9 @@ test('developer creates and inspects an owned evaluation task without counting f
   await page.getByRole('button', { name: '启动评测' }).click();
   await expect(page.getByText('job-1')).toBeVisible();
   await expect(page.getByText('测试夹具，不计入真实交付指标')).toBeVisible();
+  await expect(page.getByText('单次证据状态：NOT_RUN')).toBeVisible();
+  await expect(page.getByText('REAL_RELEASE_EVIDENCE_MISSING')).toBeVisible();
+  await expect(page.getByText('COST_UNKNOWN')).toBeVisible();
   await expect(page.getByRole('link', { name: '打开交付 URL' })).toHaveAttribute('href', 'https://fixture.test');
   await expect(page.getByRole('link', { name: '来源 1' })).toHaveAttribute('href', 'https://github.com/example/notes');
   await expect(page.getByRole('link', { name: 'save 证据 1' })).toHaveAttribute('href', '/api/jobs/job-1/report/evidence/e1');
@@ -64,7 +68,7 @@ test('leaving evaluation stops the active job poller', async ({ page }) => {
     return route.fulfill({ json: { id: 'job-2', app_id: 'app-2', kind: 'GENERATE', status: 'RUNNING', phase: 'retrieving', event_cursor: 0, question: null, usage_units: 1, result: null, error: null, created_at: timestamp, updated_at: timestamp } });
   });
   await page.route('**/api/jobs/job-2/report', route => route.fulfill({ json: { job_id: 'job-2', overall: 'NOT_RUN', checks: [] } }));
-  await page.route('**/api/jobs/job-2/diagnostics', route => route.fulfill({ json: { job_id: 'job-2', app_id: 'app-2', version_id: null, status: 'RUNNING', route: null, source_mode: 'fixture', routing_mode: 'automatic', target_id: null, target_override: false, model: 'deepseek-flash', price_version: 'dev-v1', usage_units: 1, cost_units: null, cost_status: 'unknown', duration_ms: 100, phase_durations: [], sources: [], retrieval: { queries: [], completed: false, index_version: null, candidates: [] }, result: null, report: { job_id: 'job-2', overall: 'NOT_RUN', checks: [] }, created_at: timestamp, updated_at: timestamp } }));
+  await page.route('**/api/jobs/job-2/diagnostics', route => route.fulfill({ json: { job_id: 'job-2', app_id: 'app-2', version_id: null, status: 'RUNNING', route: null, source_mode: 'fixture', routing_mode: 'automatic', target_id: null, target_override: false, model: 'deepseek-flash', price_version: 'dev-v1', usage_units: 1, cost_units: null, cost_status: 'unknown', evidence_gate: { status: 'NOT_RUN', reasons: ['JOB_NOT_TERMINAL'] }, duration_ms: 100, phase_durations: [], sources: [], retrieval: { queries: [], completed: false, index_version: null, candidates: [] }, result: null, report: { job_id: 'job-2', overall: 'NOT_RUN', checks: [] }, created_at: timestamp, updated_at: timestamp } }));
 
   await page.goto('/dev/evaluation');
   await page.getByLabel('评测需求').fill('持续运行的评测');

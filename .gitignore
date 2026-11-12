@@ -72,6 +72,9 @@ fallback/artifacts/
 fallback/workspaces/
 
 docs/
+!docs/
+docs/*
+!docs/一期真实验收记录.md
 temp/
 background/
 
@@ -93,3 +96,6 @@ log/app.log
 .codex/
 frontend/ios/
 frontend/android/
+
+# 专有字体（不可再分发）
+frontend/assets/fonts/PingFangUI.ttc

@@ -165,7 +165,7 @@ def real_delivery_passed(record):
 
 **Interfaces:** summarize(records: list[dict], reviews: list[dict]) -> dict；review记录case_id/job_id/reviewer/requirement_coverage/usability/blockers/evidence；生成记录来自07-E3/03-D6及06-F4。CLI增加--suite smoke|quality|faults，--cases沿用明确文件；默认automatic。真实记录中source_mode=real仅由runner根据实际环境/部署证据设置，客户端不能传real绕过验证。
 
-- [ ] **Step 1: 写指标不能被漏项或强制路线抬高的检查。** 夹具records在test文件定义，统计函数不执行任何真实收费。
+- [x] **Step 1: 写指标不能被漏项或强制路线抬高的检查。** 夹具records在test文件定义，统计函数不执行任何真实收费。
 
 ```python
 def test_forced_and_not_run_are_separate(metric_context):
@@ -181,8 +181,8 @@ def test_model_report_cannot_override_missing_user_feature(metric_context):
     assert summarize(records, reviews)['release_ready'] is False
 ```
 
-- [ ] **Step 2: 红测。** pytest test_quality_metrics.py；夹具不计真实生成成功率。
-- [ ] **Step 3: 建立固定样本与计算标准。** smoke至少4个真实A/B/C/D需求（原笔记/梦境/记录检索/实时信息），并完成一次Web发起、Expo读取续接和API发起。quality至少12个独立业务需求，每路线至少3个，合计包含：个人笔记/个人任务/静态展示；现成日记加AI/现成文件库加权限/现成看板加筛选；记录与检索/上传与分析/目录与多人收藏整合；从脚手架生成实时信息/多人活动报名/私有图片分析工具。每条明确个人或多人、外部能力、数据保存、界面可观察动作、预期路线和已知候选参考。不能通过只改配色凑三个不同需求，且不得人为限定用户检索到预设仓库。
+- [x] **Step 2: 红测。** pytest test_quality_metrics.py；夹具不计真实生成成功率。
+- [x] **Step 3: 建立固定样本与计算标准。** smoke至少4个真实A/B/C/D需求（原笔记/梦境/记录检索/实时信息），并完成一次Web发起、Expo读取续接和API发起。quality至少12个独立业务需求，每路线至少3个，合计包含：个人笔记/个人任务/静态展示；现成日记加AI/现成文件库加权限/现成看板加筛选；记录与检索/上传与分析/目录与多人收藏整合；从脚手架生成实时信息/多人活动报名/私有图片分析工具。每条明确个人或多人、外部能力、数据保存、界面可观察动作、预期路线和已知候选参考。不能通过只改配色凑三个不同需求，且不得人为限定用户检索到预设仓库。
 
 case定义固定id/prompt/expected_route/core_checks/known_repositories/answers/target；core_checks来自人工逐句核对用户需求，不只采用模型生成清单。每路线至少一例不提供仓库名，验证自动检索；其他已给定仓库的要求另标source_hint=true，不混算无提示检索指标。C样本记录两个关键来源commit及业务连接，不把“装了两个npm包”算跨组件交付。每例首次生成/部署执行一次，挑选各路线一例重复3次观察波动，重复运行预算由测试负责人明确配置，runner不得自动无限重试。
 
@@ -203,7 +203,7 @@ release_ready = (required_not_run == 0 and required_failures == 0
 required_reviews必须覆盖全部必需样本，空列表不能因all([])而通过；summarize先校验expected_case_ids集合与records/reviews一致。首版发布门槛：12例必需质量样本全部交付/人工复核PASS，四条路线、多人隐私、真实AI/搜索、调整保留数据、共享/副本、Linux/Sealos、三支付、两客户端均有必需证据；失败先修复再重跑相关样本并保留旧失败记录。该门槛是固定套件通过，不等于任意需求95%成功率，宣传数字只引用标明样本数/时间/环境的统计。
 
 - [ ] **Step 4: 绿测和真实报告。** 模型PASS但漏功能、review缺案例、强制路线混算、未知费用、缺原生/支付/云证据都阻止上线门槛；运行CLI的smoke→quality→faults，将脱敏JSON/截图存artifacts/evaluations，docs/一期真实验收记录仅写索引、环境、提交版本、PASS/FAIL/NOT_RUN及限制，不提交私人内容/Key。开发者评测页展示相同指标和未执行原因。
-- [ ] **Step 5: 提交。** `test: establish representative phase one delivery acceptance`。尚未真实执行时记录“未执行”，不得将本计划已写标为样本已通过。
+- [x] **Step 5: 提交。** `test: establish representative phase one delivery acceptance`。尚未真实执行时记录“未执行”，不得将本计划已写标为样本已通过。
 
 #### 两客户端操作与评测的同步
 
@@ -229,3 +229,8 @@ expected_route仅是评测参考，路由不读取它。检索发现比预期D�
 07-E2新增公开社区/详情、收藏/最近使用、固定来源副本、发布/取消公开与赞助设置、私有应用code打开和实例管理。实例操作复用前后台串行轮询机制，QUEUED/202只显示处理中，读取终态再回读实例；原键草稿支持副本和实例操作重试。Expo社区允许匿名浏览，个人额度/收藏/副本按需登录。Web与Expo通过实际PG/API读取同一Publication/收藏和COPY app/job/instance；发布版本与云地址仍为明确的fixture材料，不能计真实交付。
 
 原生开发构建/设备流程及支付消费仍未完成；07-E2 Step 3/4整体保持未勾选。已新增生成、恢复、社区副本三份Maestro流程和结构测试，使用运行时环境变量且不保存凭据；Maestro CLI/设备执行仍为NOT_RUN。D脚手架callback和能力请求与04的code/实例凭据协议一致，02/03默认依赖接线状态按一期实施进度记录。
+
+
+### 第10步客户端支付回补（2026-11-12）
+
+06-F2/F3订单、购买记录、取消订阅和到账回读已通过共用OpenAPI接入Web/Expo；支付入口与暂停任务/欠费实例的手动恢复衔接完成本地实现。Web二维码与Expo浏览器打开、按账号保存原键/订单、回到前台后核对真实后端状态均已接入。跨端检查使用真实PG/API/测试RSA通知/账本，外部供应商替身明确标fixture。真实商户、微信移动/原生支付与iOS/Android完整设备验收仍NOT_RUN，相关最终绿测步骤不提前勾选。验证和接续入口见docs/一期实施进度.md的第10步记录。

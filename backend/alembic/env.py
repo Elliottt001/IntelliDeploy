@@ -14,6 +14,9 @@ from app.community import models as community_models
 config = context.config
 TABLES = {'users', 'apps', 'conversations', 'messages', 'requirement_records', 'app_versions', 'instances', 'jobs', 'job_events', 'tool_call_records', 'deployment_targets', 'resource_records', 'request_records'}
 TABLES |= {'price_rules','quota_grants','quota_reservations','reservation_allocations','usage_entries','unknown_usage','product_skus','subscriptions'}
+TABLES |= {'payment_orders', 'payment_receipts'}
+TABLES |= {'admin_audits', 'platform_controls'}
+TABLES |= {'cleanup_actions'}
 TABLES |= {'app_login_codes', 'instance_credentials', 'instance_data_spaces', 'file_records'}
 TABLES |= {'publications', 'publication_favorites', 'publication_recent_uses', 'sponsor_reservations', 'instance_operations', 'resource_observations', 'resource_meter_windows', 'maintenance_leases'}
 

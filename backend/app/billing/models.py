@@ -129,6 +129,7 @@ class ProductSku(Base):
     units = Column(BigInteger, nullable=False)
     period = Column(String)
     enabled = Column(Boolean, nullable=False, default=True)
+    stripe_price_id = Column(String)
 
 
 class Subscription(Base):
@@ -141,3 +142,50 @@ class Subscription(Base):
     period_start = Column(DateTime(timezone=True), nullable=False)
     period_end = Column(DateTime(timezone=True), nullable=False)
     cancelled = Column(Boolean, nullable=False, default=False)
+    payment_order_id = Column(String, ForeignKey('payment_orders.id'))
+    provider_subscription_id = Column(String, unique=True)
+    provider_customer_id = Column(String)
+
+
+class PaymentOrder(Base):
+    __tablename__ = 'payment_orders'
+    __table_args__ = (
+        UniqueConstraint('user_id', 'operation_id'),
+        CheckConstraint('amount_minor > 0 AND units > 0'),
+    )
+    id = Column(String, primary_key=True, default=new_id)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    operation_id = Column(String, nullable=False)
+    sku_id = Column(String, ForeignKey('product_skus.id'), nullable=False)
+    sku_snapshot = Column(JSONB, nullable=False)
+    provider = Column(String, nullable=False)
+    currency = Column(String, nullable=False)
+    amount_minor = Column(BigInteger, nullable=False)
+    units = Column(BigInteger, nullable=False)
+    period = Column(String)
+    period_start = Column(DateTime(timezone=True))
+    period_end = Column(DateTime(timezone=True))
+    status = Column(String, nullable=False, default='CREATED')
+    checkout_state = Column(String, nullable=False, default='PENDING')
+    checkout_url = Column(String)
+    payment_url = Column(String)
+    checkout_kind = Column(String)
+    provider_checkout_id = Column(String)
+    transaction_id = Column(String)
+    paid_at = Column(DateTime(timezone=True))
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
+    audit = Column(JSONB, nullable=False, default=dict)
+
+
+class PaymentReceipt(Base):
+    __tablename__ = 'payment_receipts'
+    __table_args__ = (UniqueConstraint('provider', 'event_id'), UniqueConstraint('provider', 'transaction_id'))
+    id = Column(String, primary_key=True, default=new_id)
+    provider = Column(String, nullable=False)
+    event_id = Column(String, nullable=False)
+    transaction_id = Column(String, nullable=False)
+    order_id = Column(String, ForeignKey('payment_orders.id'), nullable=False)
+    amount_minor = Column(BigInteger, nullable=False)
+    currency = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)

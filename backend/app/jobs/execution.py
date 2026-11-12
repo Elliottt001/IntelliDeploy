@@ -487,6 +487,12 @@ class JobExecution:
         workspace = Path(
             WorkspaceManager(settings.AGENT_WORKSPACE_ROOT).create_workspace(job_id)
         )
+        from app.runtime.cleanup import register_resource
+        with self.sessions() as session:
+            current=self.job(session)
+            register_resource(session,'WORKSPACE','workspace:'+job_id,str(workspace),job_id=job_id,app_id=current.app_id,
+                metadata={'remote_uploaded':bool(saved.get('workspace_uploaded'))})
+            session.commit()
         if saved.get("workspace_uploaded"):
             await self.runner.snapshot(job_id, workspace, self.generation)
             checkpoint = Checkpoint.model_validate(saved.get("loop") or {})
@@ -523,6 +529,9 @@ class JobExecution:
                         prepare_sources, str(workspace), plan
                     )
             await self.runner.upload(job_id, workspace, self.generation)
+            with self.sessions() as session:
+                row=register_resource(session,'WORKSPACE','workspace:'+job_id,str(workspace),job_id=job_id,app_id=job.app_id)
+                row.metadata_json={**row.metadata_json,'remote_uploaded':True}; session.commit()
             checkpoint = Checkpoint(
                 workspace=str(workspace),
                 route=plan,
@@ -642,6 +651,14 @@ class JobExecution:
         from app.agent_core.brains.github_retriever import GitHubRepositorySearchClient
         from app.agent.workspace import safe_path
         import asyncio
+        if call.name=='run_command':
+            from app.runtime.cleanup import register_resource
+            operation=self.job_id+'-'+hashlib.sha256(call.id.encode()).hexdigest()
+            name='id-exec-'+hashlib.sha256(operation.encode()).hexdigest()[:32]
+            with self.sessions() as session:
+                job=self.job(session)
+                register_resource(session,'EXECUTION_CONTAINER',operation,name,job_id=job.id,app_id=job.app_id)
+                session.commit()
 
         if call.name in {"search_repositories", "fetch_repository"}:
             saved = self.checkpoint()

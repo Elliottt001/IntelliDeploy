@@ -66,7 +66,7 @@ Job 和 capability 调用都走本账本；错误或不确定上游用量记录�
 
 支付宝/微信先实现单次购买及周期套餐订单；续期使用新订单和新的周期 grant_key，未授权免密扣款不自动扣款。API、订单和前端区分购买额度与订阅周期，不能把无限额度当付费套餐。
 
-- [ ] **Step 1: 写签名、金额和重复回调检查。** 用测试 RSA Key 签名，不访问商户真实 Key；微信 fixture 按真实 AES-GCM resource 格式加密。
+- [x] **Step 1: 写签名、金额和重复回调检查。** 用测试 RSA Key 签名，不访问商户真实 Key；微信 fixture 按真实 AES-GCM resource 格式加密。
 
 ```python
 def test_amount_mismatch_never_grants_credits(payment_context):
@@ -81,8 +81,8 @@ def test_invalid_signature_rejected(domestic_callback):
     assert domestic_callback('alipay', signature='invalid').status_code == 400
 ```
 
-- [ ] **Step 2: 红测。** test_domestic_payments.py。
-- [ ] **Step 3: 实现真实订单接口和通知。** 支付宝接 alipay.trade.precreate，生成扫码 URL；验证 RSA2 签名、app_id、seller_id、订单和 Decimal 转换后的整数分金额。仅 TRADE_SUCCESS/TRADE_FINISHED 入账。微信 Native v3 生成 code_url，验证通知头的签名、时间和平台证书序列，再用 APIv3 Key 解密 resource，核对商户、appid、trade_state、金额和 out_trade_no。
+- [x] **Step 2: 红测。** test_domestic_payments.py。
+- [x] **Step 3: 实现真实订单接口和通知。** 支付宝接 alipay.trade.precreate，生成扫码 URL；验证 RSA2 签名、app_id、seller_id、订单和 Decimal 转换后的整数分金额。仅 TRADE_SUCCESS/TRADE_FINISHED 入账。微信 Native v3 生成 code_url，验证通知头的签名、时间和平台证书序列，再用 APIv3 Key 解密 resource，核对商户、appid、trade_state、金额和 out_trade_no。
 
 ```python
 public_key.verify(base64.b64decode(signature), signed_payload,
@@ -95,7 +95,7 @@ resource = AESGCM(api_v3_key).decrypt(nonce, ciphertext, associated_data)
 同一事件或不同 event_id 的同一 transaction_id 都不得重复发额度。订单失效/取消/退款保存审计；已消费额度不能直接删除账本，退款通过明确的回收或返还记录。支付页展示服务端生成的价格、额度和周期。
 
 - [ ] **Step 4: 绿测与渠道验收。** 正确签名成功、无效/过期签名失败、币种或金额错不入账、重复通知只发一次、支付结果页刷新不发额度。真实渠道用配置好的商户测试流程验收扫码、通知和订单查询；若商户条件未就绪，该渠道保留未执行状态。
-- [ ] **Step 5: 提交。** `feat: add Alipay and WeChat quota purchases`。
+- [x] **Step 5: 提交。** `feat: add Alipay and WeChat quota purchases`。
 
 ### Task 06-F3: Stripe 与套餐周期
 
@@ -103,7 +103,7 @@ resource = AESGCM(api_v3_key).decrypt(nonce, ciphertext, associated_data)
 
 **Interfaces:** create_stripe_checkout(order: PaymentOrder, recurring: bool) -> str；handle_stripe_event(raw_body: bytes, signature: str) -> PaymentEvent|None。Checkout 与 webhook 连接同一 apply_payment；收费 SKU 存 Stripe price_id 与周期配置。
 
-- [ ] **Step 1: 写签名和周期幂等检查。** Stripe test fixture 用 webhook secret 与原始 JSON body 生成签名；测试金额不连接真实支付。
+- [x] **Step 1: 写签名和周期幂等检查。** Stripe test fixture 用 webhook secret 与原始 JSON body 生成签名；测试金额不连接真实支付。
 
 ```python
 def test_subscription_invoice_grants_cycle_once(stripe_context):
@@ -117,8 +117,8 @@ def test_browser_success_page_cannot_grant(stripe_context):
     assert stripe_context.new_grants() == []
 ```
 
-- [ ] **Step 2: 红测。** test_stripe_payments.py。
-- [ ] **Step 3: 使用官方 SDK 的 Checkout 和 webhook 校验。** 购买额度用 payment mode，订阅 SKU 用 subscription mode；操作 ID 作为请求幂等键，metadata 只引用服务端订单。校验 checkout/payment 成功状态、customer、币种、金额和 SKU；周期 invoice.paid 使用 invoice ID 和周期唯一 grant_key。取消订阅不提前清空已支付周期额度。
+- [x] **Step 2: 红测。** test_stripe_payments.py。
+- [x] **Step 3: 使用官方 SDK 的 Checkout 和 webhook 校验。** 购买额度用 payment mode，订阅 SKU 用 subscription mode；操作 ID 作为请求幂等键，metadata 只引用服务端订单。校验 checkout/payment 成功状态、customer、币种、金额和 SKU；周期 invoice.paid 使用 invoice ID 和周期唯一 grant_key。取消订阅不提前清空已支付周期额度。
 
 ```python
 event = stripe.Webhook.construct_event(raw_body, signature, webhook_secret)
@@ -132,7 +132,7 @@ normalize_paid_invoice 在本模块定义，从服务端订阅记录定位 owner
 前端显示免费、订阅和购买额度，按当前币种和配置展示三渠道入口。不要把支付成功页当回调，不把 Stripe secret 或商户私钥发送前端。暂停任务和托管实例提供明确恢复按钮。
 
 - [ ] **Step 4: 绿测和 Stripe test mode。** 支付、订阅续期、取消、重复/乱序通知、金额错误和 webhook 签名检查；真实 test mode checkout + webhook 后确认账本及周期额度。生产开通条件单独记录，不把 test mode 声称为生产收款已完成。
-- [ ] **Step 5: 提交。** `feat: support Stripe checkout and subscription cycles`。
+- [x] **Step 5: 提交。** `feat: support Stripe checkout and subscription cycles`。
 
 ### Task 06-F4: 旧数据审计、入口切换与真实总验收
 
@@ -140,7 +140,7 @@ normalize_paid_invoice 在本模块定义，从服务端订阅记录定位 owner
 
 **Interfaces:** audit_legacy(path: Path) -> dict；migrate_users(source_snapshot, target_session) -> dict；run_case(case: dict, api_url: str) -> dict。验收报告保存 route、source commits、time、actual usage、validation、deployment target、URL和结果。
 
-- [ ] **Step 1: 写迁移与无假成功检查。** 创建临时旧 SQLite schema（缺部署列），导入四个测试 User 并保存密码哈希；新库验证同密码可登录，不输出哈希。
+- [x] **Step 1: 写迁移与无假成功检查。** 创建临时旧 SQLite schema（缺部署列），导入四个测试 User 并保存密码哈希；新库验证同密码可登录，不输出哈希。
 
 ```python
 def test_legacy_users_import_is_idempotent(legacy_snapshot, pg_session):
@@ -155,8 +155,8 @@ def test_missing_cloud_does_not_create_fake_success(acceptance_context):
     assert result.get('url') is None
 ```
 
-- [ ] **Step 2: 红测。** test_legacy_migration.py、web/e2e/phase1.spec.ts。
-- [ ] **Step 3: 审计、迁移和退休旧入口。** audit 只读旧库，输出表数量、schema 差异与可迁移项。当前旧库有 4 个用户、无项目/部署；实施前重新核对。停止旧写入后通过 SQLite backup 建一致性快照，再迁移 User 和原 ID/哈希，权限受限，不打印秘密。若发现非空旧项目/部署则报告实际内容并停止该迁移分支，不删除源数据；补充映射后再继续。
+- [x] **Step 2: 红测。** test_legacy_migration.py、web/e2e/phase1.spec.ts。
+- [x] **Step 3: 审计、迁移和退休旧入口。** audit 只读旧库，输出表数量、schema 差异与可迁移项。当前旧库有 4 个用户、无项目/部署；实施前重新核对。停止旧写入后通过 SQLite backup 建一致性快照，再迁移 User 和原 ID/哈希，权限受限，不打印秘密。若发现非空旧项目/部署则报告实际内容并停止该迁移分支，不删除源数据；补充映射后再继续。
 
 ```python
 source = sqlite3.connect(f'file:{source_path}?mode=ro', uri=True)
@@ -180,7 +180,7 @@ run_phase1_acceptance 的评测协议和入口按 07-E3 落地，06-F4 在此基
 README 更新 Python/Node、迁移、API/Worker/Web 三进程与 Expo 手机入口、配置和验收命令；CLAUDE.md 更新新入口与历史说明。CI 用 PostgreSQL service 跑 phase1 测试，Web typecheck/build 和 Expo typecheck/export；真实模型/云/支付测试由有配置的受控环境运行，报告注明环境。
 
 - [ ] **Step 4: 绿测与完整检查。** `.venv/bin/python -m pytest tests/phase1 -q`；`npm --prefix web run typecheck`；`npm --prefix web run build`；`npm --prefix web run test:e2e`。再执行07-E2原生验收、07-E3/E4真实评测及08-O1/O2生产清理演练与 `scripts/run_phase1_acceptance.py`，确认真实 case 全部 PASS，不能以默认跳过掩盖缺渠道/目标。
-- [ ] **Step 5: 提交。** `feat: cut over phase one and verify real delivery`。仅真实模型、两种部署和三支付渠道验收完成后对外声明一期全部支持。
+- [x] **Step 5: 提交。** `feat: cut over phase one and verify real delivery`。仅真实模型、两种部署和三支付渠道验收完成后对外声明一期全部支持。
 
 ## 商业上线所需配置
 
@@ -199,3 +199,28 @@ README 更新 Python/Node、迁移、API/Worker/Web 三进程与 Expo 手机入�
 ## 实施进度（2026-11-10）
 
 06-F1账本基础已实现：有来源/到期的grants、整数版本价格、账户行锁、父Reservation/子Usage、结算释放、反向退款、周期grant唯一键、注册免费额度、quota政策/余额/用量/SKU/订阅读取。12项账本/额度API的实际PostgreSQL检查通过，补充验证缓存输入、非缓存输入和输出从同一父预留结算且重放不重复扣费；phase1累计63项通过。新增0003_billing延续唯一head；默认预算按可用额度约束，resume真实预留且核对累计hard cap。维护tick实际周期发放/运行采样在03-D7接入；生成/能力用量回调在02/04接入，托管停止/恢复实际验收在03完成。支付商户、真实费用与外部验收未执行，本记录不将整期或06所有任务标为完成。
+
+
+## 第10步实施记录（2026-11-12）
+
+06-F2和06-F3已完成本地代码及协议联调。Step 1/2/3/5勾选表示失败检查、实现及任务提交；两项Step 4仍未勾选，因为真实商户/Stripe test mode未执行，不能把本地绿测当真实渠道完成。
+
+06-F2：新增共用PaymentOrder/PaymentReceipt、下单SKU快照、账户锁/订单锁、唯一操作/交易约束、创建意图和UNKNOWN保护、本人订单/购买记录、支付宝RSA2 precreate/query/通知及微信Native v3/签名/解密/查询。订单关闭与退款保存审计，重复通知不重复发放或回收；已消费/预留部分记REVIEW_REQUIRED，保留原账本且不形成负余额。支付宝公钥模式、微信Native是当前适配边界，额外证书模式/H5不得据此声称支持。
+
+06-F3：使用Stripe官方SDK17.0.0，固定读取API版本2025-03-31.basil；Checkout价格/币种/周期核对、服务端回跳、订单幂等键、真实对象回查、paid invoice周期结算、customer/SKU映射、延迟/乱序/重复通知、期末取消和退款审计已实现。订阅支付从03-D7周期维护发放中排除，避免回调和维护重复授额。赠送/折扣/税费/套餐改档没有自动启用，实际配置不符将拒绝入账。
+
+07-E1新增createOrder/getOrder/listOrders/cancelSubscription及OpenAPI；05-W1/07-E2新增商品、购买记录、最近订单、二维码/浏览器支付、返回后回读订单/余额及手动恢复原任务/实例。订单与原键按账号保存；浏览器支付结果页不能授额。设备/原生全流程仍须按07-E2执行，不能用Expo浏览器替代。
+
+验证：后端完整Phase 1为283 passed / 3 skipped，支付专项13项国内＋8项Stripe；共享客户端8项、Web单测25项、Expo单测12项、两端类型检查通过。Web完整浏览器27项通过；Expo专项包括订单重访和真实PG/API/RSA/账本/同job恢复，使用外部支付替身，标fixture。Expo浏览器与跨端完整套件12项通过，既有跨端创建用例改用新版/create入口，保留全部状态和续接断言。本机开发/测试库已沿唯一head升级到0011_payment_audit；旧SQLite未修改。公开协议再生成须保持稳定。
+
+真实支付宝/微信商户、Stripe test/live mode、公网通知、真实移动支付与两原生设备没有交接配置，均NOT_RUN；生产收款未开通。后续按execution-order第11步08-O1→08-O2推进，支付与07-E3真实基线、07-E2原生缺口继续保留，不越过07-E4/06-F4最终门槛。
+
+任务提交：06-F2 a5e16fd；06-F3 5c6a06a；双端与文档以`feat: connect payment flows across web and Expo clients`收口。Expo三平台导出通过；真实商户与原生Step 4继续未执行。
+
+## 第13步实施记录（2026-11-12）
+
+06-F4本地实现已补只读旧SQLite审计、一致性快照、幂等且冲突安全的用户迁移及无假交付回归。实际旧库只读审计为4个用户，projects/deployments/analyses/github_accounts均为0；旧schema仅缺`is_developer`。迁移保持ID、用户名、邮箱、密码哈希、启用状态和创建时间，同步PostgreSQL用户ID序列，明确不迁移kubeconfig且默认不授开发者权限；发现旧业务表非空或目标身份/哈希冲突即整体拒绝，不覆盖、不删除源数据。实际持久库迁移未自动执行。
+
+当前`backend/app/main.py`已只挂载Phase 1产品路由，旧RAG/NL/fallback/multi-agent入口通过可执行断言保持未挂载；未使用的LangGraph依赖已移除，仍被历史GitHub/修复模块引用的Redis依赖保留。评测runner不接受case自报`release_checks`，只依据受控`release_requirements`与实际运行结果派生PASS/FAIL/NOT_RUN；平台备份/迁移/重启/清理属于硬门槛，iOS/Android仍须独立原生证据。缺真实目标保持`TARGET_UNAVAILABLE`/`NOT_RUN`且无URL；汇总器可合并多套历史报告。README、CLAUDE和CI已更新当前进程、迁移、构建、导出及验收入口。
+
+本地验证：Phase 1后端328 passed / 3 skipped；共享客户端8项、Web单测26项、Expo单测12项及两端typecheck通过；Web E2E 29项、Expo/跨端E2E 12项、webpack生产构建和Expo Web/iOS/Android导出通过；OpenAPI再生成无漂移。Step 4仍未勾选：这些本地检查不替代07-E2两原生、07-E3/E4真实评测、08-O1/O2平台生产演练、两云及三支付商户证据。相关资源未交接，继续记录`NOT_RUN`，`release_ready=false`，不得对外声明一期全部支持。

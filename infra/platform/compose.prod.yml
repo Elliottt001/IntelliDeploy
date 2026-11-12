@@ -1,0 +1,101 @@
+x-platform: &platform
+  image: ${PLATFORM_API_IMAGE:-intellideploy-api:local}
+  build:
+    context: ../..
+    dockerfile: infra/platform/Dockerfile.api
+    args: {POSTGRES_TOOLS_IMAGE: '${POSTGRES_TOOLS_IMAGE:-postgres:17-bookworm}'}
+  env_file: ${PLATFORM_ENV_FILE:?register private platform runtime env file}
+  environment:
+    ENVIRONMENT: production
+    ARTIFACTS_ROOT: /var/lib/intellideploy/artifacts
+    AGENT_WORKSPACE_ROOT: /var/lib/intellideploy/artifacts/agent-workspaces
+    INSTANCE_FILES_ROOT: /var/lib/intellideploy/artifacts/instance-files
+    INSTANCE_SECRETS_ROOT: /var/lib/intellideploy/artifacts/instance-secrets
+    REPOSITORY_INDEX_PATH: /var/lib/intellideploy/artifacts/repository-index/current.json
+    LOG_DIRECTORY: /var/log/intellideploy
+  volumes:
+    - artifacts:/var/lib/intellideploy
+    - logs:/var/log/intellideploy
+    - ${CREDENTIALS_DIR:?register private credential directory}:/run/credentials:ro
+  networks: [control, outbound]
+  restart: unless-stopped
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  logging:
+    driver: json-file
+    options: {max-size: 10m, max-file: '7'}
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:17}
+    environment:
+      POSTGRES_USER: intellideploy
+      POSTGRES_DB: intellideploy
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
+    secrets: [postgres-password]
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    networks: [control]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U intellideploy -d intellideploy']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api:
+    <<: *platform
+    depends_on: {postgres: {condition: service_healthy}}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health/ready',timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+  worker:
+    <<: *platform
+    command: [python, -m, app.jobs.worker]
+    depends_on: {api: {condition: service_healthy}}
+    stop_grace_period: 60s
+    healthcheck:
+      test: [CMD, python, -c, "from app.admin.service import maintenance_status; from app.database import SessionLocal; s=SessionLocal(); assert any(w['recent'] for w in maintenance_status(s)['workers']); s.close()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  web:
+    image: ${PLATFORM_WEB_IMAGE:-intellideploy-web:local}
+    build:
+      context: ../..
+      dockerfile: infra/platform/Dockerfile.web
+      args: {NODE_IMAGE: '${NODE_IMAGE:-node:24-bookworm-slim}'}
+    environment:
+      API_BASE_URL: http://api:9000
+      WEB_ORIGIN: https://${PLATFORM_DOMAIN:?register platform domain}
+      SESSION_SECRET_FILE: /run/secrets/web-session
+    secrets: [web-session]
+    networks: [control]
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+  caddy:
+    image: ${CADDY_IMAGE:-caddy:2}
+    environment:
+      PLATFORM_DOMAIN: ${PLATFORM_DOMAIN:?register platform domain}
+      API_DOMAIN: ${API_DOMAIN:?register API domain}
+      PUBLIC_API_DOCS: ${PUBLIC_API_DOCS:-false}
+    ports: ['80:80', '443:443', '443:443/udp']
+    volumes: ['./Caddyfile:/etc/caddy/Caddyfile:ro', 'caddy-data:/data', 'caddy-config:/config']
+    networks: [control, edge]
+    restart: unless-stopped
+    depends_on: [web, api]
+
+secrets:
+  postgres-password: {file: '${CREDENTIALS_DIR}/postgres.password'}
+  web-session: {file: '${CREDENTIALS_DIR}/web-session.secret'}
+volumes:
+  postgres-data: {}
+  artifacts: {}
+  logs: {}
+  caddy-data: {}
+  caddy-config: {}
+networks:
+  control: {internal: true}
+  outbound: {}
+  edge: {}

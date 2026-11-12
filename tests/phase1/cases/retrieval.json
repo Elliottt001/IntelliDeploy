@@ -2,11 +2,32 @@
   {
     "id": "notes-existing",
     "prompt": "可以保存和搜索笔记的Web应用",
-    "known_repositories": ["https://github.com/usememos/memos"]
+    "expected_route": "DEPLOY_EXISTING",
+    "core_checks": ["save-note", "search-note"],
+    "known_repositories": ["https://github.com/usememos/memos"],
+    "answers": {},
+    "target": null,
+    "source_hint": false
   },
   {
     "id": "forms-existing",
     "prompt": "可自托管的表单收集Web应用",
-    "known_repositories": ["https://github.com/heyform/heyform"]
+    "expected_route": "DEPLOY_EXISTING",
+    "core_checks": ["create-form", "submit-form", "read-submission"],
+    "known_repositories": ["https://github.com/heyform/heyform"],
+    "answers": {},
+    "target": null,
+    "source_hint": false
+  },
+  {
+    "id": "generation-reference-stale",
+    "prompt": "做一个简单的个人笔记和搜索工具，优先复用合适项目。",
+    "expected_route": "GENERATE_APP",
+    "core_checks": ["save-note", "search-note"],
+    "known_repositories": ["https://github.com/usememos/memos"],
+    "answers": {},
+    "target": null,
+    "source_hint": false,
+    "expected_route_may_be_stale": true
   }
 ]

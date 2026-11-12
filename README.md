@@ -1,48 +1,98 @@
 # IntelliDeploy
 
-一期按[实施总计划](docs/superpowers/plans/2026-11-09-phase1-00-roadmap.md)开发，现已实现持久应用/任务、额度账本、需求/检索/生成模块、候选验证与发布适配、实例管理，以及第8步社区/独立副本和双客户端协议联调。P7已补默认需求冻结/生成依赖、受控runner/实例配置与发布接线；真实外部验收仍需资源条件，见[实施进度](docs/一期实施进度.md)和[规划待办](docs/一期规划待办.md)。局部测试和旧演示结果不算真实应用交付。
+IntelliDeploy 是一期中的 AI 应用生成与托管平台。当前仓库已经接通持久应用/任务、四路线检索与生成、候选验证和发布适配、实例与社区、额度与三渠道支付协议、Web/Expo 客户端、平台运维，以及固定质量/故障验收套件。
 
-一期正在按[实施总计划](docs/superpowers/plans/2026-11-09-phase1-00-roadmap.md)开发。已实现持久应用/任务API、PostgreSQL迁移、Worker租约、共享客户端/BFF、额度账本、双客户端状态基础，以及DeepSeek协议、需求冻结、隔离工具、检索四路线、固定脚手架、索引兼容与可恢复生成循环。02目前只形成候选，平台能力、候选验证修复、云发布、社区和支付仍在实施；旧演示部署结果不算真实交付。
+本地实现完成不等于真实交付完成。真实 DeepSeek、可信 runner、registry、Linux/Sealos、支付宝/微信/Stripe 商户、iOS/Android 设备和平台生产演练仍为 `NOT_RUN`，当前 `release_ready=false`。进度和证据分别见[一期实施进度](docs/一期实施进度.md)与[一期真实验收记录](docs/一期真实验收记录.md)。
+
+## 目录
 
 | 目录 | 职责 |
 | --- | --- |
-| backend/ | FastAPI产品API、Python Worker |
-| frontend/ | 保留的Expo手机平台客户端 |
-| web/ | 新增Next.js平台Web及服务端认证代理 |
-| packages/api-client/ | 从OpenAPI生成的共享类型与请求函数 |
-| infra/ | 开发数据库及后续执行/部署配置 |
-| tests/phase1/ | 新链路的协议、数据库与后续真实验收 |
+| `backend/` | FastAPI 产品 API、Python Worker、Alembic 迁移 |
+| `web/` | Next.js Web 与服务端认证代理 |
+| `frontend/` | Expo/React Native 客户端 |
+| `packages/api-client/` | OpenAPI 生成的共享类型与请求函数 |
+| `tests/phase1/` | 一期协议、数据库、集成与验收测试 |
+| `infra/` | 本地数据库、runner 和平台运行配置 |
 
-环境：Python3.13、Node24、npm、Docker/Compose。所有命令从仓库根运行：
+## 本地环境
+
+要求 Python 3.13、Node.js 24、npm 和 Docker/Compose。所有命令从仓库根目录运行。
 
 ```bash
 uv python install 3.13
 uv venv --python 3.13 .venv
 uv pip install --python .venv/bin/python -r backend/requirements.txt -r backend/requirements-dev.txt
-docker compose -p intellideploy-dev -f infra/compose.dev.yml up -d --wait postgres
-PYTHONPATH=backend .venv/bin/python -m alembic -c backend/alembic.ini upgrade head
 npm ci
+docker compose -p intellideploy-dev -f infra/compose.dev.yml up -d --wait postgres
+DATABASE_URL=postgresql+psycopg://intellideploy:dev-only@127.0.0.1:55432/intellideploy_test \
+  PYTHONPATH=backend .venv/bin/python -m alembic -c backend/alembic.ini upgrade head
 npm run api:generate
 ```
 
-先按backend/.env.example设置backend/.env和随机SECRET_KEY，Web另设API_BASE_URL、WEB_ORIGIN、SESSION_SECRET；详见[开发运行指南](docs/开发运行指南.md)。根package-lock管理三个npm工作区，API启动不会自动建表或修改旧SQLite。
+按 `backend/.env.example` 配置 `backend/.env` 和随机 `SECRET_KEY`；Web 配置 `API_BASE_URL`、`WEB_ORIGIN`、`SESSION_SECRET`。API 启动只检查数据库是否位于唯一 Alembic head，不会自动建表或修改旧 SQLite。
 
-分别在终端运行npm run dev:api、dev:web、dev:mobile。dev:worker已加载候选/发布与维护循环，已自动组装新生成依赖；配置不完整保存明确失败，不模拟成功。当前Web和Expo已接持久应用/任务API，支持创建、对话、取消/额度恢复和离开后回读；Expo原生token迁移到SecureStore，浏览器预览使用独立存储适配。社区、副本、code身份和实例管理已接同一API；真实交付与原生验收、支付后续继续实施。
+## 启动
 
-API文档：http://localhost:9000/docs。JSON登录后Authorize填Bearer token，POST /api/apps需Idempotency-Key，GET /api/jobs/{id}读取持久状态。创建返回QUEUED只说明任务已保存，不能当成应用交付。
+分别在四个终端启动：
 
 ```bash
-DATABASE_URL=postgresql+psycopg://intellideploy:dev-only@127.0.0.1:55432/intellideploy_test PYTHONPATH=backend .venv/bin/python -m alembic -c backend/alembic.ini upgrade head
+npm run dev:api
+npm run dev:worker
+npm run dev:web
+npm run dev:mobile
+```
+
+API 文档默认位于 `http://localhost:9000/docs`。`POST /api/apps` 需要 `Idempotency-Key`；返回 `QUEUED` 只表示任务已持久化，不能当成应用已经生成或交付。
+
+## 旧数据审计与迁移
+
+先只读审计旧库。命令仅输出表计数、schema 差异和迁移阻塞项，不输出密码哈希或 kubeconfig。
+
+```bash
+PYTHONPATH=backend .venv/bin/python scripts/audit_legacy_state.py backend/intellideploy.db
+```
+
+实际迁移前必须停止旧写入、确认 `DATABASE_URL` 指向预期的非生产目标，并使用一个不存在的新快照路径。迁移会通过 SQLite backup 创建权限为 `0600` 的一致性快照；存在旧项目、部署、分析或 GitHub 账号时会拒绝继续；用户 ID、用户名、邮箱、密码哈希、启用状态和创建时间保持不变，不迁移 kubeconfig，也不授予开发者权限。
+
+```bash
+DATABASE_URL=postgresql+psycopg://... \
+  PYTHONPATH=backend .venv/bin/python scripts/migrate_legacy_users.py \
+  --source backend/intellideploy.db \
+  --snapshot /secure/path/intellideploy-legacy.snapshot.db
+```
+
+仓库自动化只在专用 `intellideploy_test` 数据库验证迁移；不会自动对持久环境运行上述迁移命令。
+
+## 验证
+
+```bash
 PYTHONPATH=backend .venv/bin/python -m pytest tests/phase1 -q
 npm --workspace @intellideploy/api-client test
 npm --workspace web test
 npm --workspace web run typecheck
 npm --workspace web run build
-npm --workspace frontend run typecheck
+npm --workspace web run test:e2e
 npm --workspace frontend test
+npm --workspace frontend run typecheck
+npm --workspace frontend exec -- expo export --platform all --output-dir dist
 npm --workspace frontend run test:e2e
 ```
 
-frontend的test:e2e会启动9105测试API、3105生产模式Web和8085 Expo浏览器预览，使用独立intellideploy_test数据库；追问/交付状态夹具不算生成证据。
+真实验收复用同一 API/Worker 流程，按 `smoke -> quality -> flow -> faults` 执行。缺外部资源时结果必须保持 `NOT_RUN`，不能使用 fixture、强制路线、构建成功或伪造 URL 补成 `PASS`。
 
-真实模型、隔离执行节点、Linux/Sealos、镜像仓库、三支付和原生设备按[外部资源准备清单](docs/一期外部资源准备清单.md)准备。缺条件的验收记NOT_RUN，不能以mock、Expo网页导出或构建成功声称一期完成。产品范围和交付协议见[PRD](docs/PRD.md)、[交付与测试说明](docs/一期交付与测试说明.md)。
+```bash
+PYTHONPATH=backend .venv/bin/python scripts/run_phase1_acceptance.py \
+  --suite smoke --api-url http://127.0.0.1:9000 \
+  --output artifacts/evaluations/smoke/records.json
+
+PYTHONPATH=backend .venv/bin/python scripts/summarize_phase1_evaluations.py \
+  --records artifacts/evaluations/smoke/records.json \
+  --records artifacts/evaluations/quality/records.json \
+  --records artifacts/evaluations/flow/records.json \
+  --records artifacts/evaluations/faults/records.json \
+  --reviews artifacts/evaluations/reviews.json \
+  --output artifacts/evaluations/summary.json
+```
+
+外部资源、支付和原生设备准备要求见[一期外部资源准备清单](docs/一期外部资源准备清单.md)，完整运行细节见[开发运行指南](docs/开发运行指南.md)和[平台上线运行指南](docs/平台上线运行指南.md)。

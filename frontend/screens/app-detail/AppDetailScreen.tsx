@@ -141,7 +141,8 @@ export default function AppDetailScreen({ appId }: { appId: string }) {
   }
 
   const changeContent=(value:string)=>{setContent(value);if(draftKey)void saveDraft(draftKey,value).catch(()=>setError('草稿未能保存，请稍后重试'));};
-  return <ChatbotPage detailActions={app?[{id:'conversation-toggle',label:'需求与调整',expanded:conversationExpanded,onPress:()=>setConversationExpanded(value=>!value)},{id:'job-phases-toggle',label:'查看任务阶段',expanded:phasesExpanded,onPress:()=>setPhasesExpanded(value=>!value)},{id:'delivery-management-toggle',label:'交付与管理',expanded:managementOpen,onPress:()=>setManagementOpen(value=>!value)}]:undefined} insets={insets} onBack={() => router.back()} onProducts={() => router.push('/app-gallery')} onBilling={() => router.push('/billing')} footer={app?<ChatComposer value={content} editable={Boolean(draftKey)} busy={busy} canSubmit={jobState.canCompose} onChangeText={changeContent} onSubmit={()=>{void send();}}/>:undefined}>
+  const openBilling=()=>app&&router.push({pathname:'/billing',params:{appId:app.id}});
+  return <ChatbotPage detailActions={app?[{id:'conversation-toggle',label:'需求与调整',expanded:conversationExpanded,onPress:()=>setConversationExpanded(value=>!value)},{id:'job-phases-toggle',label:'查看任务阶段',expanded:phasesExpanded,onPress:()=>setPhasesExpanded(value=>!value)},{id:'delivery-management-toggle',label:'交付与管理',expanded:managementOpen,onPress:()=>setManagementOpen(value=>!value)}]:undefined} insets={insets} onBack={() => router.back()} onProducts={() => router.push('/app-gallery')} onBilling={openBilling} footer={app?<ChatComposer value={content} editable={Boolean(draftKey)} busy={busy} canSubmit={jobState.canCompose} onChangeText={changeContent} onSubmit={()=>{void send();}}/>:undefined}>
     {!app && !error && <Text style={styles.caption}>正在读取应用…</Text>}
     {Boolean(error) && <Text testID="workspace-error" accessibilityRole="alert" style={styles.error}>{error}</Text>}
     {Boolean(networkError) && <Text testID="network-retry" accessibilityRole="alert" style={styles.error}>{networkError}</Text>}
@@ -157,7 +158,7 @@ export default function AppDetailScreen({ appId }: { appId: string }) {
         onChangeContent={changeContent}
         onSend={() => { void send(); }} onRefresh={() => setEpoch(value => value + 1)}
         onResume={() => { void action('resume'); }} onCancel={() => { void action('cancel'); }}
-        onBilling={() => router.push('/billing')} onRestart={() => router.push('/chatbot')} />
+        onBilling={openBilling} onRestart={() => router.push('/chatbot')} />
       <DeliveryCard app={app}/>
 
       {managementOpen&&<VisualPendingSection label="应用交付与管理" route="/app-detail/[id]:secondary"><View testID="app-detail-secondary" style={{ gap: 14 }}><BrandHeader testID="secondary-brand-header" />

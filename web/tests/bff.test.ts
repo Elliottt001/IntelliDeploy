@@ -2,6 +2,23 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET, POST } from '../app/api/[...path]/route';
 import { sealSession, SESSION_COOKIE } from '../lib/session';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+test('production login reads its session key from a mounted file without exposing it', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'intellideploy-session-'));
+  const secret = 'file-only-session-secret-over-32-characters';
+  const file = join(directory, 'session.key'); writeFileSync(file, secret, { mode: 0o600 });
+  vi.stubEnv('SESSION_SECRET', ''); vi.stubEnv('SESSION_SECRET_FILE', file);
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({access_token:'upstream-token'}))));
+  try {
+    const response = await POST(new NextRequest('http://localhost:3000/api/auth/login', {method:'POST',headers:{Origin:'http://localhost:3000'},body:'{}'}), {params:Promise.resolve({path:['auth','login']})});
+    expect(response.status).toBe(200);
+    expect(response.headers.get('set-cookie')).toContain('HttpOnly');
+    expect(JSON.stringify(await response.json())).not.toContain(secret);
+  } finally { rmSync(directory, {recursive:true}); }
+});
 
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 

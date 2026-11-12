@@ -1,5 +1,7 @@
 # 受控执行节点
 
+第11步提供`compose.yml`、`Dockerfile.runner`及候选TLS的`Caddyfile`。完整配置、shared挂载、mTLS、域名、版本与恢复步骤见[平台上线运行指南](../../docs/平台上线运行指南.md)。旧TTL仅关闭过期候选访问；实际清理由控制面的引用保护和节点归属检查决定，不直接销毁可恢复任务的候选。
+
 使用独立Linux执行节点，Docker/Compose、BuildKit、crane及ext4工具由管理员准备。项目代码只能在受限容器执行；控制面API不挂Docker socket，应用容器不接触runner证书/服务端令牌/registry管理凭据。
 
 从仓库根启动（真实值保存在节点私有环境文件，文件权限600）：

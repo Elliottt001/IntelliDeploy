@@ -1,4 +1,10 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+
+export function runtimeSessionSecret(): string {
+  try { return process.env.SESSION_SECRET_FILE ? readFileSync(process.env.SESSION_SECRET_FILE, 'utf8').trim() : process.env.SESSION_SECRET ?? ''; }
+  catch { return ''; }
+}
 
 export const SESSION_COOKIE = 'intellideploy_session';
 

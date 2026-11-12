@@ -32,3 +32,7 @@ class WorkspaceQuota:
         os.chown(source, 10001, 10001)
         source.chmod(0o700)
         return source
+
+    def destroy(self,job_root):
+        source=Path(job_root)/'source'
+        if os.path.ismount(source): subprocess.run(['umount',str(source)],check=True)

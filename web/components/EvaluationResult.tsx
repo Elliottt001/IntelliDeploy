@@ -70,6 +70,12 @@ export default function EvaluationResult({ appId, jobId }: { appId: string; jobI
         <div><dt>费用</dt><dd>{diagnostics.cost_status === 'known' ? diagnostics.cost_units : '待核对'}</dd></div>
         <div><dt>总耗时</dt><dd>{Math.round(diagnostics.duration_ms / 1000)} 秒</dd></div>
       </dl>
+      <div className={diagnostics.evidence_gate.status === 'PASS' ? 'evaluation-real' : 'evaluation-warning'}>
+        <strong>单次证据状态：{diagnostics.evidence_gate.status}</strong>
+        {(diagnostics.evidence_gate.reasons ?? []).length > 0 && <ul className="evaluation-compact-list">
+          {(diagnostics.evidence_gate.reasons ?? []).map(reason => <li key={reason}>{reason}</li>)}
+        </ul>}
+      </div>
       {diagnostics.result && <div className="evaluation-links">
         <a href={diagnostics.result.url} rel="noreferrer" target="_blank">打开交付 URL</a>
         <a href={diagnostics.result.report_url}>查看验证报告</a>

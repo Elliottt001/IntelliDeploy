@@ -1,0 +1,27 @@
+ARG POSTGRES_TOOLS_IMAGE=postgres:17-bookworm
+FROM ${POSTGRES_TOOLS_IMAGE} AS pgtools
+RUN mkdir -p /opt/pgtools/bin /opt/pgtools/lib \
+    && cp /usr/lib/postgresql/17/bin/pg_dump /usr/lib/postgresql/17/bin/pg_restore /opt/pgtools/bin/ \
+    && find /usr/lib -name libpq.so.5 -exec cp -L '{}' /opt/pgtools/lib/ \;
+
+FROM python:3.13-slim-bookworm@sha256:a5a7017efc5969e00ae2b91c8eb0631049a569652aa4ffc4501769049ae45c72
+WORKDIR /app
+ENV PYTHONPATH=/app/backend PYTHONUNBUFFERED=1 PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
+COPY backend/requirements.txt backend/requirements.txt
+RUN apt-get update && apt-get install -y --no-install-recommends openssh-client postgresql-client ca-certificates \
+    && pip install --no-cache-dir -r backend/requirements.txt \
+    && playwright install --with-deps chromium \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --uid 10001 --create-home platform \
+    && mkdir -p /var/lib/intellideploy /var/log/intellideploy \
+    && chown -R 10001:10001 /var/lib/intellideploy /var/log/intellideploy
+COPY --from=pgtools /opt/pgtools/bin/ /usr/local/bin/
+COPY --from=pgtools /opt/pgtools/lib/ /usr/local/lib/
+RUN ldconfig && pg_dump --version && pg_restore --version
+COPY backend backend
+COPY contracts contracts
+COPY prompts prompts
+COPY scaffolds scaffolds
+COPY scripts scripts
+USER 10001:10001
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9000"]

@@ -1,9 +1,20 @@
 from pathlib import Path
+from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    ENVIRONMENT: Literal['development','test','production'] = 'development'
+    LOG_DIRECTORY: str = ''
+    DEPLOYMENT_SECRET_FILES: dict[str,str] = {}
+    DEPLOYMENT_KNOWN_HOSTS_FILE: str = ''
+    REPOSITORY_SEEDS_FILE: str = ''
+    WORKSPACE_RETENTION_DAYS: int = Field(default=7,ge=7)
+    EVIDENCE_RETENTION_DAYS: int = Field(default=30,ge=30)
+    TEMP_RETENTION_DAYS: int = Field(default=7,ge=7)
+    CANDIDATE_RETENTION_HOURS: int = Field(default=1,ge=1)
+    WORKSPACE_MIN_FREE_MB: int = Field(default=256,ge=0)
     SECRET_KEY: str = "your-secret-key-change-in-production"
     DATABASE_URL: str = "postgresql+psycopg://intellideploy:dev-only@127.0.0.1:55432/intellideploy_dev"
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8081"]
@@ -55,6 +66,23 @@ class Settings(BaseSettings):
     DEEPSEEK_MAX_OUTPUT_TOKENS: int = Field(default=2048,gt=0)
     DEEPSEEK_PRICE_PREFIX: str = 'model.flash'
     MAX_JOB_MODEL_CALLS: int = Field(default=40,gt=0)
+    PAYMENT_PLATFORM_ORIGIN: str = ''
+    PAYMENT_NOTIFY_BASE_URL: str = ''
+    ALIPAY_APP_ID: str = ''
+    ALIPAY_SELLER_ID: str = ''
+    ALIPAY_GATEWAY: str = 'https://openapi.alipay.com/gateway.do'
+    ALIPAY_PRIVATE_KEY_FILE: str = ''
+    ALIPAY_PUBLIC_KEY_FILE: str = ''
+    WECHAT_APP_ID: str = ''
+    WECHAT_MCH_ID: str = ''
+    WECHAT_MERCHANT_SERIAL: str = ''
+    WECHAT_PRIVATE_KEY_FILE: str = ''
+    WECHAT_PUBLIC_KEY_FILE: str = ''
+    WECHAT_PLATFORM_SERIAL: str = ''
+    WECHAT_API_V3_KEY_FILE: str = ''
+    STRIPE_SECRET_KEY_FILE: str = ''
+    STRIPE_WEBHOOK_SECRET_FILE: str = ''
+    STRIPE_API_VERSION: str = '2025-03-31.basil'
 
     # 降级生成服务地址（"inprocess" 走进程内直调，避免依赖独立 HTTP 服务）
     FALLBACK_SERVICE_URL: str = "inprocess"

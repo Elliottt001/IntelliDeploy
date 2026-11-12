@@ -6,8 +6,12 @@ const app = { id: 'app', name: '我的应用', updated_at: stamp, active_job_id:
 async function owner(page: Page) {
   await page.addInitScript(() => localStorage.setItem('token', 'fixture-token'));
   await page.route('**/auth/me', r => r.fulfill({ json: { id: 1, username: 'owner', email: 'owner@test' } }));
-  await page.route('**/api/quota/**', r => r.fulfill({ json: { available_units: 900, reserved_units: 100, failed_usage_rule: '失败按实际用量结算', items: [] } }));
+  await page.route('**/api/quota/balance', r => r.fulfill({ json: { available_units: 900, reserved_units: 100 } }));
+  await page.route('**/api/quota/policy', r => r.fulfill({ json: { failed_usage_rule: '失败按实际用量结算' } }));
+  await page.route('**/api/quota/usage', r => r.fulfill({ json: { items: [] } }));
   await page.route('**/api/quota/subscription', r => r.fulfill({ json: null }));
+  await page.route('**/api/quota/skus', r => r.fulfill({ json: [] }));
+  await page.route('**/api/quota/orders', r => r.fulfill({ json: [] }));
   await page.route('**/api/apps/app', r => r.fulfill({ json: app }));
 }
 async function pending(page: Page, family: string) {

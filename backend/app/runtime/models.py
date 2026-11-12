@@ -46,3 +46,36 @@ class ResourceObservation(Base):
     storage_mb = Column(BigInteger, nullable=False, default=0)
     evidence = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class AdminAudit(Base):
+    __tablename__ = 'admin_audits'
+    id = Column(String, primary_key=True, default=new_id)
+    actor = Column(String, nullable=False)
+    action = Column(String, nullable=False)
+    subject = Column(String, nullable=False)
+    details = Column(JSONB, nullable=False, default=dict)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class PlatformControl(Base):
+    __tablename__ = 'platform_controls'
+    name = Column(String, primary_key=True)
+    value = Column(JSONB, nullable=False, default=dict)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class CleanupAction(Base):
+    __tablename__ = 'cleanup_actions'
+    __table_args__ = (UniqueConstraint('resource_id','action_kind'),)
+    id = Column(String, primary_key=True, default=new_id)
+    resource_id = Column(String, ForeignKey('resource_records.id'),nullable=False)
+    action_kind = Column(String,nullable=False,default='REMOVE')
+    status = Column(String,nullable=False,default='QUEUED')
+    reason = Column(String,nullable=False)
+    previous_state = Column(String)
+    error_code = Column(String)
+    lease_token = Column(String)
+    lease_until = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True),default=utcnow,nullable=False)
+    updated_at = Column(DateTime(timezone=True),default=utcnow,nullable=False)

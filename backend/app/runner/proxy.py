@@ -19,7 +19,7 @@ def destination(host, port, allowed, private_allowed):
     addresses = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
     for address in addresses:
         value = ipaddress.ip_address(address[4][0])
-        if value.is_link_local or value.is_unspecified or value.is_multicast:
+        if value.is_link_local or value.is_loopback or value.is_unspecified or value.is_multicast or value.is_reserved:
             continue
         if value.is_global or host in private_allowed:
             return address[4][0]

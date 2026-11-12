@@ -1,9 +1,9 @@
 name: Phase one foundation and client integration
 on:
   pull_request:
-    paths: ['backend/**', 'frontend/**', 'web/**', 'packages/api-client/**', 'tests/phase1/**', 'infra/**', 'scripts/export_openapi.py', 'package*.json', '.github/workflows/phase1-ci.yml']
+    paths: ['backend/**', 'frontend/**', 'web/**', 'packages/api-client/**', 'tests/phase1/**', 'infra/**', 'scripts/**', 'package*.json', '.github/workflows/phase1-ci.yml']
   push:
-    paths: ['backend/**', 'frontend/**', 'web/**', 'packages/api-client/**', 'tests/phase1/**', 'infra/**', 'scripts/export_openapi.py', 'package*.json', '.github/workflows/phase1-ci.yml']
+    paths: ['backend/**', 'frontend/**', 'web/**', 'packages/api-client/**', 'tests/phase1/**', 'infra/**', 'scripts/**', 'package*.json', '.github/workflows/phase1-ci.yml']
 permissions:
   contents: read
 jobs:
@@ -31,14 +31,22 @@ jobs:
           SECRET_KEY: ci-only-openapi-export-secret
       - run: git diff --exit-code -- packages/api-client/openapi.json packages/api-client/src/generated.ts
       - run: npm --workspace @intellideploy/api-client test
+      - run: npm --workspace web test
+      - run: npm --workspace web run typecheck
+      - run: npm --workspace web run build
       - run: npm --workspace frontend run typecheck
       - run: npm --workspace frontend test
+      - run: npm --workspace frontend exec -- expo export --platform all --output-dir dist
       - run: npm --workspace frontend exec -- playwright install --with-deps chromium
       - run: npm --workspace frontend run test:e2e
+      - run: npm --workspace web run test:e2e
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: phase1-client-integration
-          path: frontend/test-results
+          path: |
+            frontend/test-results
+            web/test-results
+            artifacts/evaluations
       - run: docker compose -p intellideploy-dev -f infra/compose.dev.yml down
         if: always()

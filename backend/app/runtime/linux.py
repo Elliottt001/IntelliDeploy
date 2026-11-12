@@ -5,8 +5,9 @@ import inspect
 import json
 import os
 import re
+import shlex
 import subprocess
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Protocol
 
 from app.core.types import AppManifest, DeploymentResult, Requirement, ValidationReport
@@ -202,6 +203,11 @@ class DatabaseTargetProvider:
 
 class EnvironmentSecretResolver:
     def resolve(self, reference: str) -> str:
+        from app.config import settings
+        if reference in settings.DEPLOYMENT_SECRET_FILES:
+            path=settings.DEPLOYMENT_SECRET_FILES[reference]
+            if not Path(path).is_file() or not Path(path).is_absolute(): raise TargetUnavailable('SSH credential file is not configured')
+            return path
         paths = json.loads(os.environ.get("DEPLOYMENT_SECRET_PATHS", "{}"))
         path = paths.get(reference)
         if not isinstance(path, str) or not path.startswith("/"):
@@ -436,8 +442,17 @@ async def _call_validator(validator, *args, **kwargs) -> ValidationReport:
 
 def _ssh_argv(target: dict, key_path: str) -> list[str]:
     capacity = target["capacity"]
+    from app.config import settings
+    known_hosts=[]
+    if settings.DEPLOYMENT_KNOWN_HOSTS_FILE:
+        path=Path(settings.DEPLOYMENT_KNOWN_HOSTS_FILE)
+        if not path.is_absolute() or not path.is_file(): raise TargetUnavailable('Registered known-hosts file is unavailable')
+        known_hosts=['-o','UserKnownHostsFile='+str(path)]
     return [
         "ssh",
+        '-p',str(capacity.get('ssh_port',22)),
+        '-o','StrictHostKeyChecking=yes',
+        *known_hosts,
         "-o",
         "BatchMode=yes",
         "-o",
@@ -447,7 +462,7 @@ def _ssh_argv(target: dict, key_path: str) -> list[str]:
         f"{capacity['ssh_user']}@{capacity['ssh_host']}",
         "python3",
         "-c",
-        REMOTE_SCRIPT,
+        shlex.quote(REMOTE_SCRIPT),
     ]
 
 

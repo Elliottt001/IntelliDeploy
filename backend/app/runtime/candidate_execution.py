@@ -176,6 +176,7 @@ class CandidateExecution:
                 reference=id,
                 state="PREPARING",
                 metadata_json={
+                    'managed':True,
                     "instance_id": id,
                     "owner_id": app.owner_id,
                     "other_id": other.id,
@@ -219,6 +220,7 @@ class CandidateExecution:
         }
         try:
             response = await self.execution.runner.start(
+                operation_id=f'candidate-runtime:{job.id}:{attempt_id}:{self.execution.generation}',
                 job_id=job_id,
                 attempt_id=attempt_id,
                 instance_id=id,
@@ -266,26 +268,36 @@ class CandidateExecution:
     async def stop(self, id, preserve_evidence=True):
         try:
             await self.execution.runner.stop(id, preserve_evidence)
-        finally:
+        except Exception:
             with self.execution.sessions() as session:
-                instance = session.get(Instance, id)
-                if instance and instance.kind == "CANDIDATE":
-                    instance.status = "DELETED"
-                    revoke_instance_credential(session, id)
-                    record = session.scalar(
-                        select(ResourceRecord).where(
-                            ResourceRecord.reference == id,
-                            ResourceRecord.type == "CANDIDATE_RUNTIME",
-                        )
-                    )
-                    if record:
-                        record.state = "STOPPED"
-                        other = session.get(User, record.metadata_json["other_id"])
-                        other.is_active = False
+                instance=session.get(Instance,id)
+                if instance and instance.kind=='CANDIDATE':
+                    instance.status='UNKNOWN'
+                    record=session.scalar(select(ResourceRecord).where(ResourceRecord.type=='CANDIDATE_RUNTIME',ResourceRecord.reference==id))
+                    if record: record.state='UNKNOWN'
                     session.commit()
-            if self.configuration.data_manager:
-                self.configuration.data_manager.destroy(id, confirmed=True)
-            self.controllers.pop(id, None)
+            raise
+        with self.execution.sessions() as session:
+            instance = session.get(Instance, id)
+            if instance and instance.kind == "CANDIDATE":
+                instance.status = "DELETED"
+                revoke_instance_credential(session, id)
+                record = session.scalar(
+                    select(ResourceRecord).where(
+                        ResourceRecord.reference == id,
+                        ResourceRecord.type == "CANDIDATE_RUNTIME",
+                    )
+                )
+                if record:
+                    record.state = "STOPPED"
+                    from datetime import datetime,timezone
+                    record.last_seen_at=datetime.now(timezone.utc)
+                    other = session.get(User, record.metadata_json["other_id"])
+                    other.is_active = False
+                session.commit()
+        if self.configuration.data_manager:
+            self.configuration.data_manager.destroy(id, confirmed=True)
+        self.controllers.pop(id, None)
 
 
 class CandidateController:

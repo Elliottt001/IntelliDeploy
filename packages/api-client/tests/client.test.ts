@@ -33,6 +33,21 @@ test('quota methods read the shared account endpoints',async () => {
   expect(fetchImpl.mock.calls[0][0]).toBe('/api/quota/balance');
 });
 
+test('payment orders and cancellation share auth and stable idempotency keys', async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const api = createApiClient({ baseUrl: '', getToken: async () => 'account-token', fetchImpl: async (input, init) => {
+    calls.push([String(input), init]); return new Response(JSON.stringify({ order_id: 'order-1', status: 'CREATED' }));
+  } });
+  expect(await api.createOrder('monthly', 'stripe', 'buy-once')).toMatchObject({ order_id: 'order-1' });
+  await api.getOrder('order-1');
+  await api.cancelSubscription('cancel-once');
+  expect(calls.map(([url]) => url)).toEqual(['/api/quota/orders', '/api/quota/orders/order-1', '/api/quota/subscription/cancel']);
+  expect(JSON.parse(calls[0][1]?.body as string)).toEqual({ sku_id: 'monthly', provider: 'stripe' });
+  expect(new Headers(calls[0][1]?.headers).get('Idempotency-Key')).toBe('buy-once');
+  expect(new Headers(calls[2][1]?.headers).get('Idempotency-Key')).toBe('cancel-once');
+  expect(calls.every(([, init]) => new Headers(init?.headers).get('Authorization') === 'Bearer account-token')).toBe(true);
+});
+
 test('public catalog uses the anonymous catalog path', async () => {
   const fetchImpl = vi.fn<typeof fetch>(async () => new Response(JSON.stringify([])));
   const api = createApiClient({ baseUrl: '', fetchImpl });

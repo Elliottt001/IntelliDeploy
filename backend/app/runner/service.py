@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import time
 from uuid import UUID
+from typing import Literal
 
 from fastapi import FastAPI, Header, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict
@@ -23,6 +24,15 @@ from app.runtime.build import build_release
 class ToolRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     call: ToolCall
+
+
+class ResourceRequest(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    type: Literal['WORKSPACE','CANDIDATE_RUNTIME','EXECUTION_CONTAINER','CACHE_IMAGE']
+    reference: str
+    job_id: str
+    operation_id: str
+    instance_id: str | None = None
 
 
 class RunnerService:
@@ -43,8 +53,48 @@ class RunnerService:
         except ValueError:
             raise HTTPException(422, "invalid job identifier")
         path = self.root / job
+        if (self.root/'tombstones'/job).exists(): raise HTTPException(410,'workspace was collected')
+        if path.is_symlink(): raise HTTPException(409,'workspace ownership is invalid')
+        existed=path.exists()
         path.mkdir(exist_ok=True, mode=0o700)
+        owner=path/'owner.json'
+        if not owner.exists():
+            if existed: raise HTTPException(409,'unregistered workspace requires administrator reconciliation')
+            self.save(owner,{'managed':True,'job_id':job,'operation_id':'workspace:'+job})
         return path
+
+    async def inspect_resource(self,payload):
+        UUID(payload.job_id)
+        if payload.type=='CANDIDATE_RUNTIME':
+            if not self.runtimes: raise HTTPException(503,'candidate service unavailable')
+            return await self.runtimes.inspect_resource(payload.reference)
+        if payload.type=='WORKSPACE':
+            root=self.root/payload.job_id
+            if root.is_symlink(): raise HTTPException(409,'workspace ownership is invalid')
+            if not root.exists(): return {'exists':False}
+            owner=root/'owner.json'
+            labels=json.loads(owner.read_text()) if owner.is_file() else {}
+            return {'exists':True,'labels':labels}
+        if not self.command_executor: raise HTTPException(503,'container service unavailable')
+        return await asyncio.to_thread(self.command_executor.inspect_resource,payload.type,payload.reference)
+
+    async def remove_resource(self,payload):
+        async with self.lock(payload.job_id):
+            state=await self.inspect_resource(payload)
+            if not state.get('exists'): return {'removed':True}
+            expected={'managed':True,'job_id':payload.job_id,'operation_id':payload.operation_id}
+            if payload.instance_id: expected['instance_id']=payload.instance_id
+            if any(state['labels'].get(k)!=v for k,v in expected.items()): raise HTTPException(409,'resource ownership changed')
+            if payload.type=='WORKSPACE':
+                if self.command_executor and await asyncio.to_thread(self.command_executor.active,payload.job_id): raise HTTPException(409,'workspace still has running containers')
+                root=self.root/payload.job_id
+                self.save(self.root/'tombstones'/payload.job_id,{'collected':True})
+                if self.quota: await asyncio.to_thread(self.quota.destroy,root)
+                import shutil
+                await asyncio.to_thread(shutil.rmtree,root)
+            elif payload.type=='CANDIDATE_RUNTIME': await self.runtimes.remove_resource(payload.reference)
+            else: await asyncio.to_thread(self.command_executor.remove_resource,payload.type,payload.reference)
+            return {'removed':True}
 
     def lock(self, job):
         return self.locks.setdefault(job, asyncio.Lock())
@@ -126,6 +176,12 @@ def create_app(service, token):
     if not token:
         raise ValueError("runner authorization is required")
     app = FastAPI(title="IntelliDeploy dedicated runner")
+
+    @app.post('/v1/resources/inspect')
+    async def inspect_resource(payload:ResourceRequest): return await service.inspect_resource(payload)
+
+    @app.post('/v1/resources/remove')
+    async def remove_resource(payload:ResourceRequest): return await service.remove_resource(payload)
 
     @app.middleware("http")
     async def authorize(request, call_next):
@@ -335,7 +391,7 @@ def main():
             )
         )
         gateway = uvicorn.Server(
-            uvicorn.Config(create_gateway(runtimes), host="0.0.0.0", port=9877)
+            uvicorn.Config(create_gateway(runtimes), host=os.environ.get('RUNNER_GATEWAY_BIND','127.0.0.1'), port=9877)
         )
 
         async def maintenance():

@@ -13,6 +13,10 @@ class LeaseLost(RuntimeError):
 def claim_job(session, worker_id, lease_seconds=60):
     if not worker_id or lease_seconds <= 0:
         raise ValueError('worker and positive lease duration required')
+    from app.admin.service import claims_paused
+    if claims_paused(session):
+        session.commit()
+        return None
     job = session.scalar(select(Job).where(or_(
         Job.status == 'QUEUED',
         and_(Job.status == 'RUNNING', Job.lease_until < func.now()),

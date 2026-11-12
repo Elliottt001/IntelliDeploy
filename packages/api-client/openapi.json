@@ -805,6 +805,269 @@
         }
       }
     },
+    "/api/quota/orders": {
+      "post": {
+        "tags": [
+          "quota"
+        ],
+        "summary": "Create Order",
+        "operationId": "create_order_api_quota_orders_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentOrderInfo"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "quota"
+        ],
+        "summary": "Order History",
+        "operationId": "order_history_api_quota_orders_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PaymentOrderInfo"
+                  },
+                  "title": "Response Order History Api Quota Orders Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quota/orders/{order_id}": {
+      "get": {
+        "tags": [
+          "quota"
+        ],
+        "summary": "Get Order",
+        "operationId": "get_order_api_quota_orders__order_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "order_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Order Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentOrderInfo"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quota/payments/alipay/notify": {
+      "post": {
+        "tags": [
+          "quota"
+        ],
+        "summary": "Alipay Notice",
+        "operationId": "alipay_notice_api_quota_payments_alipay_notify_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quota/payments/wechat/notify": {
+      "post": {
+        "tags": [
+          "quota"
+        ],
+        "summary": "Wechat Notice",
+        "operationId": "wechat_notice_api_quota_payments_wechat_notify_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quota/payments/stripe/notify": {
+      "post": {
+        "tags": [
+          "quota"
+        ],
+        "summary": "Stripe Notice",
+        "operationId": "stripe_notice_api_quota_payments_stripe_notify_post",
+        "parameters": [
+          {
+            "name": "Stripe-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stripe-Signature"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quota/subscription/cancel": {
+      "post": {
+        "tags": [
+          "quota"
+        ],
+        "summary": "Cancel Subscription",
+        "operationId": "cancel_subscription_api_quota_subscription_cancel_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionInfo"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/quota/policy": {
       "get": {
         "tags": [
@@ -2405,6 +2668,44 @@
         ]
       }
     },
+    "/health/live": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Live",
+        "operationId": "live_health_live_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Ready",
+        "operationId": "ready_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
@@ -2842,6 +3143,32 @@
         ],
         "title": "CreateAppResponse"
       },
+      "CreateOrderRequest": {
+        "properties": {
+          "sku_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Sku Id"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "alipay",
+              "wechat",
+              "stripe"
+            ],
+            "title": "Provider"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sku_id",
+          "provider"
+        ],
+        "title": "CreateOrderRequest"
+      },
       "DeleteInstanceRequest": {
         "properties": {
           "confirmation": {
@@ -3033,6 +3360,31 @@
         ],
         "title": "EvaluationCandidate"
       },
+      "EvaluationEvidenceGate": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_RUN"
+            ],
+            "title": "Status"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "EvaluationEvidenceGate"
+      },
       "EvaluationRecord": {
         "properties": {
           "job_id": {
@@ -3134,6 +3486,9 @@
             ],
             "title": "Cost Status"
           },
+          "evidence_gate": {
+            "$ref": "#/components/schemas/EvaluationEvidenceGate"
+          },
           "duration_ms": {
             "type": "integer",
             "minimum": 0.0,
@@ -3190,6 +3545,7 @@
           "price_version",
           "usage_units",
           "cost_status",
+          "evidence_gate",
           "duration_ms",
           "retrieval",
           "report",
@@ -3776,6 +4132,140 @@
           "content"
         ],
         "title": "MessageRequest"
+      },
+      "PaymentOrderInfo": {
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "title": "Order Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "PAID",
+              "CANCELLED",
+              "FAILED"
+            ],
+            "title": "Status"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "alipay",
+              "wechat",
+              "stripe"
+            ],
+            "title": "Provider"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Currency"
+          },
+          "amount_minor": {
+            "type": "integer",
+            "title": "Amount Minor"
+          },
+          "units": {
+            "type": "integer",
+            "title": "Units"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period"
+          },
+          "checkout_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkout Url"
+          },
+          "payment_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Url"
+          },
+          "checkout_kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "QR",
+                  "REDIRECT"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkout Kind"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
+          "refunded_amount_minor": {
+            "type": "integer",
+            "title": "Refunded Amount Minor",
+            "default": 0
+          },
+          "refund_review_required": {
+            "type": "boolean",
+            "title": "Refund Review Required",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "order_id",
+          "status",
+          "provider",
+          "name",
+          "currency",
+          "amount_minor",
+          "units",
+          "expires_at"
+        ],
+        "title": "PaymentOrderInfo"
       },
       "PhaseDuration": {
         "properties": {

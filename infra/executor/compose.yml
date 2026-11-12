@@ -1,0 +1,68 @@
+services:
+  runner:
+    image: ${RUNNER_IMAGE:?register pinned trusted runner image}
+    build:
+      context: ../..
+      dockerfile: infra/executor/Dockerfile.runner
+      args:
+        PLATFORM_API_IMAGE: ${PLATFORM_API_IMAGE:?register API base image}
+        BUILDKIT_IMAGE: ${BUILDKIT_IMAGE:?register pinned BuildKit image}
+        CRANE_IMAGE: ${CRANE_IMAGE:?register pinned crane image}
+        DOCKER_CLI_IMAGE: ${DOCKER_CLI_IMAGE:-docker:cli}
+    env_file: ${RUNNER_ENV_FILE:?register private runner env file}
+    environment:
+      RUNNER_WORKSPACE_ROOT: ${RUNNER_WORKSPACE_ROOT:?register absolute workspace root}
+      RUNNER_DEPENDENCY_NETWORK: intellideploy-dependencies
+      RUNNER_DEPENDENCY_PROXY: http://dependency-proxy:3128
+      BUILDKIT_HOST: tcp://127.0.0.1:1234
+      DOCKER_CONFIG: /run/registry
+      RUNNER_GATEWAY_BIND: 127.0.0.1
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - type: bind
+        source: ${RUNNER_WORKSPACE_ROOT}
+        target: ${RUNNER_WORKSPACE_ROOT}
+        bind: {propagation: rshared}
+      - ${RUNNER_CREDENTIALS_DIR:?register node credential directory}:/run/credentials:ro
+      - ${REGISTRY_CONFIG_DIR:?register node registry directory}:/run/registry:ro
+    network_mode: host
+    restart: unless-stopped
+  builder:
+    image: ${BUILDKIT_IMAGE:?register pinned BuildKit image}
+    command: [--addr, 'tcp://0.0.0.0:1234']
+    privileged: true
+    volumes: [buildkit-cache:/var/lib/buildkit]
+    ports: ['127.0.0.1:1234:1234']
+    networks: [management, outbound]
+    restart: unless-stopped
+  candidate-tls:
+    image: ${CADDY_IMAGE:-caddy:2}
+    network_mode: host
+    environment:
+      CANDIDATE_DOMAIN_SUFFIX: ${CANDIDATE_DOMAIN_SUFFIX:?register candidate wildcard domain}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${RUNNER_CREDENTIALS_DIR}:/run/credentials:ro
+      - candidate-tls-data:/data
+      - candidate-tls-config:/config
+    restart: unless-stopped
+  dependency-proxy:
+    image: ${RUNTIME_PROXY_IMAGE:?register pinned proxy image}
+    command: [python, -m, app.runner.proxy]
+    environment:
+      ALLOWED_HOSTS: ${DEPENDENCY_ALLOWED_HOSTS:?register exact dependency allowlist}
+      ALLOWED_PRIVATE_HOSTS: ''
+    networks: [dependencies, outbound]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+networks:
+  management: {internal: true}
+  dependencies: {name: intellideploy-dependencies, internal: true}
+  outbound: {}
+volumes:
+  buildkit-cache: {}
+  candidate-tls-data: {}
+  candidate-tls-config: {}
