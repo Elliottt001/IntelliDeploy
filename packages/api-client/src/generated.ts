@@ -808,6 +808,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/evaluation/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Run */
+        post: operations["create_run_api_evaluation_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -1045,6 +1062,45 @@ export interface components {
             /** Acceptance Ids */
             acceptance_ids?: string[];
         };
+        /** EvaluationAlgorithm */
+        EvaluationAlgorithm: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "baseline" | "shadow" | "hybrid";
+            /** Version */
+            version: string;
+            /** Route */
+            route?: string | null;
+            /** Route Confidence */
+            route_confidence?: ("HIGH" | "MEDIUM" | "LOW") | null;
+            /**
+             * Retrieval Complete
+             * @default false
+             */
+            retrieval_complete: boolean;
+            review: components["schemas"]["EvaluationAlgorithmReview"];
+            healing: components["schemas"]["EvaluationAlgorithmHealing"];
+        };
+        /** EvaluationAlgorithmHealing */
+        EvaluationAlgorithmHealing: {
+            /** Attempt Count */
+            attempt_count: number;
+            /** Candidate Count */
+            candidate_count: number;
+            /** Reasons */
+            reasons?: string[];
+        };
+        /** EvaluationAlgorithmReview */
+        EvaluationAlgorithmReview: {
+            /** Blocking Count */
+            blocking_count: number;
+            /** Warning Count */
+            warning_count: number;
+            /** Info Count */
+            info_count: number;
+        };
         /** EvaluationCandidate */
         EvaluationCandidate: {
             /** Repo Url */
@@ -1083,6 +1139,7 @@ export interface components {
             status: components["schemas"]["JobStatus"];
             /** Route */
             route?: string | null;
+            algorithm: components["schemas"]["EvaluationAlgorithm"];
             /**
              * Source Mode
              * @enum {string}
@@ -1148,6 +1205,20 @@ export interface components {
             index_version?: string | null;
             /** Candidates */
             candidates?: components["schemas"]["EvaluationCandidate"][];
+        };
+        /** EvaluationRunRequest */
+        EvaluationRunRequest: {
+            /** Prompt */
+            prompt: string;
+            /** Budget Units */
+            budget_units?: number | null;
+            /** Target Id */
+            target_id?: string | null;
+            /**
+             * Algorithm Mode
+             * @enum {string}
+             */
+            algorithm_mode: "baseline" | "shadow" | "hybrid";
         };
         /** EvaluationSource */
         EvaluationSource: {
@@ -3268,6 +3339,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EvaluationTarget"][];
+                };
+            };
+        };
+    };
+    create_run_api_evaluation_runs_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAppResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

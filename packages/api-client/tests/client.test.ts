@@ -12,6 +12,16 @@ test('create carries auth and idempotency without duplicating the API prefix', a
   expect(JSON.parse(init?.body as string)).toEqual({prompt:'笔记',budget_units:100});
 });
 
+test('developer evaluation runs use the isolated mode-selecting endpoint', async () => {
+  const fetchImpl = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({app_id:'a',job_id:'j',status:'QUEUED'}),{status:201}));
+  const api=createApiClient({baseUrl:'https://api.test',getToken:async ()=>'developer-token',fetchImpl});
+  expect(await api.createEvaluationRun('笔记',100,'linux-ready','hybrid','evaluation-once')).toEqual({app_id:'a',job_id:'j',status:'QUEUED'});
+  const [url,init]=fetchImpl.mock.calls[0];
+  expect(url).toBe('https://api.test/api/evaluation/runs');
+  expect(new Headers(init?.headers).get('Idempotency-Key')).toBe('evaluation-once');
+  expect(JSON.parse(init?.body as string)).toEqual({prompt:'笔记',budget_units:100,target_id:'linux-ready',algorithm_mode:'hybrid'});
+});
+
 test('same origin requests read the backend error contract', async () => {
   const fetchImpl=vi.fn<typeof fetch>(async () => new Response(JSON.stringify({error:{code:'ACTIVE_JOB_EXISTS',message:'处理中',retryable:false}}),{status:409}));
   const api=createApiClient({baseUrl:'',fetchImpl});

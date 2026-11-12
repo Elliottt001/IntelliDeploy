@@ -6,6 +6,38 @@ from pydantic import BaseModel, Field
 from app.core.types import DeliveryResult, JobReport, JobStatus
 
 
+AlgorithmMode = Literal["baseline", "shadow", "hybrid"]
+
+
+class EvaluationRunRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=20000)
+    budget_units: int | None = Field(default=None, gt=0)
+    target_id: str | None = None
+    algorithm_mode: AlgorithmMode
+
+
+class EvaluationAlgorithmReview(BaseModel):
+    blocking_count: int = Field(ge=0)
+    warning_count: int = Field(ge=0)
+    info_count: int = Field(ge=0)
+
+
+class EvaluationAlgorithmHealing(BaseModel):
+    attempt_count: int = Field(ge=0)
+    candidate_count: int = Field(ge=0)
+    reasons: list[str] = Field(default_factory=list)
+
+
+class EvaluationAlgorithm(BaseModel):
+    mode: AlgorithmMode
+    version: str
+    route: str | None = None
+    route_confidence: Literal["HIGH", "MEDIUM", "LOW"] | None = None
+    retrieval_complete: bool = False
+    review: EvaluationAlgorithmReview
+    healing: EvaluationAlgorithmHealing
+
+
 class EvaluationTarget(BaseModel):
     target_id: str
     name: str
@@ -51,6 +83,7 @@ class EvaluationRecord(BaseModel):
     version_id: str | None = None
     status: JobStatus
     route: str | None = None
+    algorithm: EvaluationAlgorithm
     source_mode: Literal["real", "fixture"]
     routing_mode: Literal["automatic", "forced"] = "automatic"
     target_id: str | None = None

@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy import select
 
 from app.apps.models import App
@@ -21,6 +23,161 @@ def _set_developer(session_factory, username):
         user = session.scalar(select(User).where(User.username == username))
         user.is_developer = True
         session.commit()
+
+
+def _algorithm_diagnostic_checkpoint():
+    return {
+        "algorithm": {
+            "schema_version": 1,
+            "requirement_revision": 1,
+            "mode": "hybrid",
+            "algorithm_version": "fusion-v1",
+            "retrieval": {
+                "queries": ["private notes web app"],
+                "completed": True,
+                "index_version": "idx-1",
+                "candidates": [],
+            },
+            "route": {
+                "route": "GENERATE_APP",
+                "sources": [],
+                "steps": ["generate"],
+                "reason": "no reusable source",
+                "confidence": "MEDIUM",
+            },
+            "profiles": [],
+            "evaluations": [],
+            "reviews": [
+                {
+                    "attempt_id": "attempt-1",
+                    "requirement_revision": 1,
+                    "manifest_hash": "a" * 64,
+                    "reviewer_kind": "DETERMINISTIC",
+                    "findings": [
+                        {
+                            "id": "missing:save-note",
+                            "severity": "BLOCKING",
+                            "category": "REQUIREMENT",
+                            "message": "核心保存验收尚未映射",
+                            "evidence_ref": "private:evidence:one",
+                            "acceptance_ids": ["save-note"],
+                        },
+                        {
+                            "id": "warning:refresh",
+                            "severity": "WARNING",
+                            "category": "DATA",
+                            "message": "刷新验证证据不足",
+                            "evidence_ref": "private:evidence:two",
+                        },
+                    ],
+                }
+            ],
+            "healing": [
+                {
+                    "failure_class": "BUILD",
+                    "strategy": "REPAIR_SERIAL",
+                    "candidate_count": 1,
+                    "reasons": ["parallel_not_admitted"],
+                    "evidence_refs": [],
+                }
+            ],
+            "selected_sources": [],
+            "evidence_refs": [],
+            "stages": [],
+        },
+        "system_prompt": "must-not-leak",
+        "source_excerpt": "must-not-leak",
+    }
+
+
+def test_only_developer_evaluation_endpoint_can_choose_hybrid(
+    api_client, owner_headers, other_headers, session_factory, monkeypatch
+):
+    monkeypatch.setattr("app.config.settings.ENABLE_EVALUATION_UI", True)
+    _set_developer(session_factory, "owner")
+    body = {"prompt": "创建私有笔记", "algorithm_mode": "hybrid"}
+    assert (
+        api_client.post("/api/evaluation/runs", headers=other_headers, json=body).status_code
+        == 404
+    )
+    created = api_client.post(
+        "/api/evaluation/runs",
+        headers={**owner_headers, "Idempotency-Key": "hybrid-run"},
+        json=body,
+    )
+    assert created.status_code == 201
+    with session_factory() as session:
+        job = session.get(Job, created.json()["job_id"])
+        assert job.checkpoint["algorithm"]["mode"] == "hybrid"
+
+
+def test_evaluation_run_rejects_unhealthy_target(
+    api_client, owner_headers, session_factory, monkeypatch
+):
+    monkeypatch.setattr("app.config.settings.ENABLE_EVALUATION_UI", True)
+    _set_developer(session_factory, "owner")
+    response = api_client.post(
+        "/api/evaluation/runs",
+        headers={**owner_headers, "Idempotency-Key": "missing-target"},
+        json={
+            "prompt": "创建私有笔记",
+            "algorithm_mode": "baseline",
+            "target_id": "missing",
+        },
+    )
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "TARGET_UNAVAILABLE"
+
+
+def test_public_create_cannot_choose_algorithm_mode(
+    api_client, owner_headers, session_factory, monkeypatch
+):
+    monkeypatch.setattr("app.config.settings.ALGORITHM_MODE", "baseline")
+    created = api_client.post(
+        "/api/apps",
+        headers={**owner_headers, "Idempotency-Key": "public-mode"},
+        json={"prompt": "创建私有笔记", "algorithm_mode": "hybrid"},
+    )
+    assert created.status_code == 201
+    with session_factory() as session:
+        job = session.get(Job, created.json()["job_id"])
+        assert job.checkpoint["algorithm"]["mode"] == "baseline"
+
+
+def test_diagnostics_expose_algorithm_summary_but_not_private_evidence(
+    api_client, owner_headers, session_factory, monkeypatch
+):
+    monkeypatch.setattr("app.config.settings.ENABLE_EVALUATION_UI", True)
+    _set_developer(session_factory, "owner")
+    created = _create_app(api_client, owner_headers, key="algorithm-diagnostics")
+    with session_factory() as session:
+        job = session.get(Job, created["job_id"])
+        job.checkpoint = _algorithm_diagnostic_checkpoint()
+        session.commit()
+
+    response = api_client.get(
+        f"/api/jobs/{created['job_id']}/diagnostics", headers=owner_headers
+    )
+    assert response.status_code == 200
+    algorithm = response.json()["algorithm"]
+    assert algorithm == {
+        "mode": "hybrid",
+        "version": "fusion-v1",
+        "route": "GENERATE_APP",
+        "route_confidence": "MEDIUM",
+        "retrieval_complete": True,
+        "review": {"blocking_count": 1, "warning_count": 1, "info_count": 0},
+        "healing": {
+            "attempt_count": 1,
+            "candidate_count": 1,
+            "reasons": ["parallel_not_admitted"],
+        },
+    }
+    serialized = json.dumps(response.json())
+    assert "private:evidence" not in serialized
+    assert "system_prompt" not in serialized
+    assert "source_excerpt" not in serialized
+    assert "must-not-leak" not in serialized
 
 
 def test_evaluation_targets_require_enabled_developer(

@@ -104,10 +104,10 @@ def select_budget(requested=None, session=None, owner_id=None):
     return budget
 
 
-def _job_checkpoint(requirement_revision: int, **values) -> dict:
+def _job_checkpoint(requirement_revision: int, algorithm_mode=None, **values) -> dict:
     algorithm = AlgorithmCheckpoint.empty(
         requirement_revision=requirement_revision,
-        mode=settings.ALGORITHM_MODE,
+        mode=algorithm_mode or settings.ALGORITHM_MODE,
         algorithm_version=ALGORITHM_VERSION,
     )
     return save_algorithm_checkpoint(values, algorithm)
@@ -120,18 +120,20 @@ def create_app(
     operation_id,
     budget_units=None,
     evaluation_target_id=None,
+    algorithm_mode=None,
 ):
     payload = {
         "prompt": prompt,
         "budget_units": budget_units,
         "evaluation_target_id": evaluation_target_id,
+        "algorithm_mode": algorithm_mode,
     }
     record, digest = replay(session, owner_id, "create", operation_id, payload)
     if record:
         return session.get(App, record.response["app_id"]), session.get(
             Job, record.response["job_id"]
         )
-    if evaluation_target_id is not None:
+    if evaluation_target_id is not None or algorithm_mode is not None:
         from app.models.user import User
         from app.runtime.models import DeploymentTarget
 
@@ -140,9 +142,10 @@ def create_app(
             user, "is_developer", False
         ):
             abort("DEVELOPER_REQUIRED", "该参数仅供授权评测使用", 403)
-        target = session.get(DeploymentTarget, evaluation_target_id)
-        if target is None or not target.enabled or target.health != "HEALTHY":
-            abort("TARGET_UNAVAILABLE", "评测目标不可用", 503, True)
+        if evaluation_target_id is not None:
+            target = session.get(DeploymentTarget, evaluation_target_id)
+            if target is None or not target.enabled or target.health != "HEALTHY":
+                abort("TARGET_UNAVAILABLE", "评测目标不可用", 503, True)
     app = App(owner_id=owner_id, name=prompt[:60], prompt=prompt)
     session.add(app)
     session.flush()
@@ -159,6 +162,7 @@ def create_app(
         budget_units=select_budget(budget_units, session, owner_id),
         checkpoint=_job_checkpoint(
             1,
+            algorithm_mode=algorithm_mode,
             **(
                 {"evaluation_target_id": evaluation_target_id}
                 if evaluation_target_id

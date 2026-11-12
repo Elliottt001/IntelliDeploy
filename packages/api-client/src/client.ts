@@ -37,6 +37,7 @@ export function createApiClient(options: ClientOptions) {
   const artifact = (appId: string, versionId: string) => `/api/apps/${id(appId)}/versions/${id(versionId)}/artifact`;
   return {
     createApp: (prompt: string, budgetUnits: number | undefined, operationId: string, evaluationTargetId?: string) => request<Schema['CreateAppResponse']>('/api/apps', 'POST', { prompt, budget_units: budgetUnits, evaluation_target_id: evaluationTargetId }, operationId),
+    createEvaluationRun: (prompt: string, budgetUnits: number | undefined, targetId: string | undefined, algorithmMode: Schema['EvaluationRunRequest']['algorithm_mode'], operationId: string) => request<Schema['CreateAppResponse']>('/api/evaluation/runs', 'POST', { prompt, budget_units: budgetUnits, target_id: targetId, algorithm_mode: algorithmMode }, operationId),
     sendMessage: (appId: string, content: string, operationId: string, budgetUnits?: number) => request<Schema['JobRef']>(`/api/apps/${id(appId)}/messages`, 'POST', { content, budget_units: budgetUnits }, operationId),
     getApp: (appId: string, signal?: AbortSignal) => request<Schema['AppDetail']>(`/api/apps/${id(appId)}`, 'GET', undefined, undefined, signal),
     listMyApps: (cursor?: string) => request<Schema['AppPage']>('/api/apps' + (cursor ? `?cursor=${id(cursor)}` : '')),

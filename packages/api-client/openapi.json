@@ -2668,6 +2668,65 @@
         ]
       }
     },
+    "/api/evaluation/runs": {
+      "post": {
+        "tags": [
+          "evaluation"
+        ],
+        "summary": "Create Run",
+        "operationId": "create_run_api_evaluation_runs_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAppResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health/live": {
       "get": {
         "tags": [
@@ -3285,6 +3344,122 @@
         ],
         "title": "DemandFact"
       },
+      "EvaluationAlgorithm": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "baseline",
+              "shadow",
+              "hybrid"
+            ],
+            "title": "Mode"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "route": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route"
+          },
+          "route_confidence": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "HIGH",
+                  "MEDIUM",
+                  "LOW"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route Confidence"
+          },
+          "retrieval_complete": {
+            "type": "boolean",
+            "title": "Retrieval Complete",
+            "default": false
+          },
+          "review": {
+            "$ref": "#/components/schemas/EvaluationAlgorithmReview"
+          },
+          "healing": {
+            "$ref": "#/components/schemas/EvaluationAlgorithmHealing"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mode",
+          "version",
+          "review",
+          "healing"
+        ],
+        "title": "EvaluationAlgorithm"
+      },
+      "EvaluationAlgorithmHealing": {
+        "properties": {
+          "attempt_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Attempt Count"
+          },
+          "candidate_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Candidate Count"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attempt_count",
+          "candidate_count"
+        ],
+        "title": "EvaluationAlgorithmHealing"
+      },
+      "EvaluationAlgorithmReview": {
+        "properties": {
+          "blocking_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Blocking Count"
+          },
+          "warning_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Warning Count"
+          },
+          "info_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Info Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "blocking_count",
+          "warning_count",
+          "info_count"
+        ],
+        "title": "EvaluationAlgorithmReview"
+      },
       "EvaluationCandidate": {
         "properties": {
           "repo_url": {
@@ -3420,6 +3595,9 @@
             ],
             "title": "Route"
           },
+          "algorithm": {
+            "$ref": "#/components/schemas/EvaluationAlgorithm"
+          },
           "source_mode": {
             "type": "string",
             "enum": [
@@ -3540,6 +3718,7 @@
           "job_id",
           "app_id",
           "status",
+          "algorithm",
           "source_mode",
           "model",
           "price_version",
@@ -3589,6 +3768,54 @@
         },
         "type": "object",
         "title": "EvaluationRetrieval"
+      },
+      "EvaluationRunRequest": {
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Prompt"
+          },
+          "budget_units": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Units"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "algorithm_mode": {
+            "type": "string",
+            "enum": [
+              "baseline",
+              "shadow",
+              "hybrid"
+            ],
+            "title": "Algorithm Mode"
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompt",
+          "algorithm_mode"
+        ],
+        "title": "EvaluationRunRequest"
       },
       "EvaluationSource": {
         "properties": {

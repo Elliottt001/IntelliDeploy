@@ -12,6 +12,9 @@ from app.apps.models import App, Instance
 from app.billing.models import Reservation, UnknownUsage, UsageEntry
 from app.config import settings
 from app.evaluation.schemas import (
+    EvaluationAlgorithm,
+    EvaluationAlgorithmHealing,
+    EvaluationAlgorithmReview,
     EvaluationCandidate,
     EvaluationEvidenceGate,
     EvaluationRecord,
@@ -133,6 +136,42 @@ def _route(checkpoint: dict) -> str | None:
     return algorithm.route.route if algorithm.route is not None else None
 
 
+def _algorithm(checkpoint: dict) -> EvaluationAlgorithm:
+    algorithm = load_algorithm_checkpoint(
+        checkpoint,
+        requirement_revision=int(checkpoint.get("requirement_revision") or 1),
+    )
+    counts = {"BLOCKING": 0, "WARNING": 0, "INFO": 0}
+    for report in algorithm.reviews:
+        for finding in report.findings:
+            counts[finding.severity] += 1
+    return EvaluationAlgorithm(
+        mode=algorithm.mode,
+        version=algorithm.algorithm_version,
+        route=algorithm.route.route if algorithm.route is not None else None,
+        route_confidence=(
+            algorithm.route.confidence if algorithm.route is not None else None
+        ),
+        retrieval_complete=bool(
+            algorithm.retrieval is not None and algorithm.retrieval.completed
+        ),
+        review=EvaluationAlgorithmReview(
+            blocking_count=counts["BLOCKING"],
+            warning_count=counts["WARNING"],
+            info_count=counts["INFO"],
+        ),
+        healing=EvaluationAlgorithmHealing(
+            attempt_count=len(algorithm.healing),
+            candidate_count=sum(row.candidate_count for row in algorithm.healing),
+            reasons=list(
+                dict.fromkeys(
+                    reason for row in algorithm.healing for reason in row.reasons
+                )
+            ),
+        ),
+    )
+
+
 def _cost(session, job: Job) -> tuple[int | None, str, str, str]:
     reservation_filter = or_(
         Reservation.operation_id == f"job:{job.id}",
@@ -249,6 +288,7 @@ def build_evaluation_record(session, job: Job) -> EvaluationRecord:
         version_id=version_id,
         status=job.status,
         route=_route(checkpoint),
+        algorithm=_algorithm(checkpoint),
         source_mode="real" if is_real else "fixture",
         routing_mode=routing_mode,
         target_id=target_id,
