@@ -1,13 +1,16 @@
 import {execFileSync} from 'node:child_process';
 import {expect,test} from '@playwright/test';
 
+// Test-only fixture database; match the backend's DATABASE_URL when overridden.
+const databaseUrl = process.env.DATABASE_URL ?? 'postgresql+psycopg://intellideploy:dev-only@127.0.0.1:55432/intellideploy_test';
+
 test('Web and Expo share one publication, favorites and an independent queued copy',async({browser,request},testInfo)=>{
  const api='http://127.0.0.1:9105';const suffix=crypto.randomUUID();const password='test-only-community-password';
  async function account(name:string){const username=name+suffix;expect((await request.post(api+'/auth/register',{data:{username,password,email:username+'@test.example'}})).status()).toBe(201);const token=(await(await request.post(api+'/auth/login',{data:{username,password}})).json()).access_token;const user=await(await request.get(api+'/auth/me',{headers:{Authorization:'Bearer '+token}})).json();return{username,token,id:user.id};}
  const owner=await account('publisher-');const visitor=await account('visitor-');
  // Fixture release materials, real PostgreSQL/API/client transport. No model or cloud PASS is claimed.
  const seed=JSON.parse(execFileSync('../.venv/bin/python',['-c',`
-import sys,json,zipfile,tempfile
+import os,sys,json,zipfile,tempfile
 from datetime import datetime,timezone
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -15,7 +18,7 @@ from app.models.user import User
 from app.apps.models import App,AppVersion,Instance,RequirementRecord
 from app.core.types import AppManifest,ServiceSpec,Requirement,AcceptanceItem,ValidationReport,CheckResult
 from app.runtime.manifest import manifest_hash
-engine=create_engine('postgresql+psycopg://intellideploy:dev-only@127.0.0.1:55432/intellideploy_test')
+engine=create_engine(os.environ['DATABASE_URL'])
 manifest=AppManifest(web_service='web',services=[ServiceSpec(name='web',port=3000,image='registry.test/fixture@sha256:'+'a'*64)])
 req=Requirement(prompt='跨端社区笔记',acceptance=[AcceptanceItem(id='save',action='保存',expected='重读仍存在')])
 report=ValidationReport(checks=[CheckResult(id='save',status='PASS',evidence='fixture-only')],required_ids=['save'],requirement_revision=1,attempt_id='fixture',manifest_hash=manifest_hash(manifest))
@@ -28,7 +31,7 @@ with Session(engine) as s:
  v.delivery={**v.delivery,'app_id':a.id,'version_id':v.id,'instance_id':i.id,'url':i.url,'report_url':'/api/jobs/fixture/report','artifact_url':f'/api/apps/{a.id}/versions/{v.id}/artifact','published_at':datetime.now(timezone.utc).isoformat()}
  s.add(RequirementRecord(app_id=a.id,revision=1,requirement=req.model_dump(mode='json'),review={'source_mode':'fixture'}));s.commit()
  print(json.dumps({'app_id':a.id,'version_id':v.id,'instance_id':i.id,'artifact':path}))
-`,String(owner.id),suffix],{env:{...process.env,PYTHONPATH:'../backend'}}).toString());
+`,String(owner.id),suffix],{env:{...process.env,DATABASE_URL:databaseUrl,PYTHONPATH:'../backend'}}).toString());
  const publisherContext=await browser.newContext();const publisher=await publisherContext.newPage();
  await publisher.goto('http://127.0.0.1:3105/login');await publisher.getByLabel('用户名').fill(owner.username);await publisher.getByLabel('密码').fill(password);await publisher.getByRole('button',{name:'登录',exact:true}).click();await expect(publisher).toHaveURL(/\/apps$/);
  await publisher.goto('http://127.0.0.1:3105/apps/'+seed.app_id);await publisher.getByRole('button',{name:'发布应用',exact:true}).click();await expect(publisher.getByRole('link',{name:'查看社区页面'})).toBeVisible();

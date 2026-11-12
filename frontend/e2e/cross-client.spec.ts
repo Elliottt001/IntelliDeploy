@@ -1,6 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 
+// Test-only fixture database; match the backend's DATABASE_URL when overridden.
+const databaseUrl = process.env.DATABASE_URL ?? 'postgresql+psycopg://intellideploy:dev-only@127.0.0.1:55432/intellideploy_test';
+
 test('Web and Expo share real PostgreSQL app, job and conversation IDs', async ({ browser, request }, testInfo) => {
   const apiUrl = 'http://127.0.0.1:9105';
   const username = `cross-${crypto.randomUUID()}`;
@@ -34,17 +37,17 @@ test('Web and Expo share real PostgreSQL app, job and conversation IDs', async (
 
     // Fixture state only: no model or generation execution is claimed here.
     execFileSync('../.venv/bin/python', ['-c', `
-import sys
+import os,sys
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from app.jobs.models import Job
-engine = create_engine('postgresql+psycopg://intellideploy:dev-only@127.0.0.1:55432/intellideploy_test')
+engine = create_engine(os.environ['DATABASE_URL'])
 with Session(engine) as session:
     job = session.get(Job, sys.argv[1])
     job.status = 'WAITING_USER'
     job.question = '记录是否公开？'
     session.commit()
-`, jobId], { env: { ...process.env, PYTHONPATH: '../backend' } });
+`, jobId], { env: { ...process.env, DATABASE_URL: databaseUrl, PYTHONPATH: '../backend' } });
     await expect(mobile.getByText('记录是否公开？', { exact: true })).toBeVisible({ timeout: 15000 });
     await mobile.getByTestId('message-input').fill('保持私有');
     await mobile.getByTestId('send-message').click();
@@ -65,7 +68,7 @@ with Session(engine) as session:
     await expect(mobile.getByText('另一个私有笔记应用', { exact: true }).last()).toBeVisible();
     const report = await (await request.get(`${apiUrl}/api/jobs/${jobId}/report`, { headers })).json();
     expect(report.overall).toBe('NOT_RUN');
-    await testInfo.attach('cross-client-state', { contentType: 'application/json', body: Buffer.from(JSON.stringify({ source_mode: 'fixture', database: 'intellideploy_test', web_app_id: appId, shared_job_id: jobId, expo_app_id: mobileAppId, report: report.overall })) });
+    await testInfo.attach('cross-client-state', { contentType: 'application/json', body: Buffer.from(JSON.stringify({ source_mode: 'fixture', database: new URL(databaseUrl).pathname.slice(1), web_app_id: appId, shared_job_id: jobId, expo_app_id: mobileAppId, report: report.overall })) });
   } finally {
     await webContext.close();
     await mobileContext.close();
