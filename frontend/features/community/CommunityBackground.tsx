@@ -11,7 +11,7 @@ export default function CommunityBackground({insets,children}:PropsWithChildren<
  const origin=source.atmosphereNode.transform;
  return <View style={styles.page} testID="mobile-community">
   <Svg testID="community-atmosphere" pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={StyleSheet.absoluteFill} width="100%" height="100%">
-   <Defs><ClipPath id="community-atmosphere-frame"><Rect width={source.atmosphereNode.size.x} height={source.atmosphereNode.size.y}/></ClipPath><LinearGradient id="community-background" x1="0" y1="0" x2="1" y2="0" gradientTransform={gradientTransform}><Stop offset="0" stopColor="#EFF3FF"/><Stop offset="1" stopColor="#FFFFFF"/></LinearGradient><Filter id="community-atmosphere-blur" x="-100%" y="-100%" width="300%" height="300%"><FeGaussianBlur stdDeviation={blur.radius}/></Filter></Defs>
+   <Defs><ClipPath id="community-atmosphere-frame"><Rect width={source.atmosphereNode.size.x} height={source.atmosphereNode.size.y}/></ClipPath><LinearGradient id="community-background" x1="0" y1="0" x2="1" y2="0" gradientTransform={gradientTransform}><Stop offset="0" stopColor="#EFF3FF"/><Stop offset="1" stopColor="#FFFFFF"/></LinearGradient><Filter id="community-atmosphere-blur" x="-100%" y="-100%" width="300%" height="300%"><FeGaussianBlur stdDeviation={blur.radius/2}/></Filter></Defs>
    <Rect width="100%" height="100%" fill="url(#community-background)"/>
    <G transform={`translate(${origin.m02+(window.width-source.background.size.x)/2} ${origin.m12})`} clipPath={source.atmosphereNode.clipsContent?"url(#community-atmosphere-frame)":undefined}>
     <G filter="url(#community-atmosphere-blur)">
@@ -19,7 +19,7 @@ export default function CommunityBackground({insets,children}:PropsWithChildren<
     </G>
    </G>
   </Svg>
-  <View style={{flex:1,alignSelf:'center',width:Math.min(560,window.width-insets.left-insets.right-source.rail.transform.m02*2),paddingTop:Math.max(insets.top+3,47),paddingBottom:Math.max(insets.bottom,12)}}>{children}</View>
+  <View style={{flex:1,alignSelf:'center',width:Math.min(560,window.width-insets.left-insets.right-source.rail.transform.m02*2),paddingTop:Math.max(insets.top,44),paddingBottom:Math.max(insets.bottom,12)}}>{children}</View>
  </View>;
 }
 const styles=StyleSheet.create({page:{flex:1,overflow:'hidden',backgroundColor:'#EFF3FF'}});

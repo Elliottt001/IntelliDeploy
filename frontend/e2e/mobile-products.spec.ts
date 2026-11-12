@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 const app = (id: string, source: string | null = null, status: string | null = 'RUNNING') => ({ id, name: `真实应用-${id}`, updated_at: '', source_version_id: source, active_job_id: null, instance_status: status });
 const publication = (id: string) => ({ id, app_id: `private-${id}`, instance_id: `instance-${id}`, version_id: `version-${id}`, name: `公开应用-${id}`, summary: `${id}摘要`, features: [], creator: '真实作者', preview_url: null, url: null, available: true, payer_policy: 'VISITOR', sponsor_period: 'DAY', sponsor_limit_units: 100, copy_url: `/api/publications/${id}/copies`, updated_at: '' });
 async function auth(page: Page) { await page.addInitScript(() => localStorage.setItem('token', 'fixture-token')); }
+async function viewAppList(page:Page){await page.getByRole('button',{name:'产品分类与操作',exact:true}).click();await page.getByRole('button',{name:'查看应用列表',exact:true}).click();}
 async function apps(page: Page, empty = false) {
   await auth(page);
   await page.route('**/api/apps?**', route => route.fulfill({ json: { items: [app('later', 'v2', 'FAILED')], next_cursor: null } }));
@@ -21,9 +22,13 @@ test('created/copy folders start closed, expand real rows, page and route with A
   await expect(page.getByTestId('product-folder-created')).toContainText('已加载 1 个');
   await page.getByTestId('product-folder-created').click();
   await expect(page.getByTestId('product-folder-created')).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByTestId('product-row-created')).toHaveCount(0);
+  await viewAppList(page);
   await expect(page.getByTestId('product-row-created')).toContainText('应用正在运行');
+  await page.getByRole('button', { name: '产品分类与操作', exact: true }).click();
   await page.getByRole('button', { name: '我的副本', exact: true }).click();
   await page.getByTestId('product-folder-copies').click();
+  await viewAppList(page);
   await expect(page.getByTestId('product-row-copy')).toContainText('正在处理需求');
   await page.getByTestId('products-load-more').click();
   await expect(page.getByTestId('product-row-later')).toContainText('应用暂不可用');
@@ -39,11 +44,16 @@ test('empty folders contain no example art or fake apps and retain creation acti
   await expect(page.getByText('这个文件夹还没有应用')).toBeVisible();
   await expect(page.getByTestId(/^product-row-/)).toHaveCount(0);
   await expect(page.getByTestId(/^folder-item-/)).toHaveCount(0);
+  await page.getByRole('button', { name: '产品分类与操作', exact: true }).click();
   await page.getByRole('button', { name: '我的副本', exact: true }).click();
   await page.getByTestId('product-folder-copies').click();
   await expect(page.getByText('这个文件夹还没有应用')).toBeVisible();
+  await page.getByRole('button', { name: '产品分类与操作', exact: true }).click();
   await page.getByRole('button', { name: '新建应用', exact: true }).click();
   await expect(page).toHaveURL(/\/chatbot$/);
+});
+test('folder preview and full API list close normally and reset when the category changes',async({page})=>{
+ await apps(page);await page.goto('/app-gallery');await viewAppList(page);await expect(page.getByTestId('product-row-created')).toBeVisible();await page.getByTestId('products-actions-open').click();await page.getByRole('button',{name:'收起应用列表',exact:true}).click();await expect(page.getByTestId('product-row-created')).toHaveCount(0);await expect(page.getByTestId('product-folder-created')).toHaveAttribute('aria-expanded','true');await page.getByTestId('products-actions-open').click();await page.getByRole('button',{name:'我的副本',exact:true}).click();await expect(page.getByTestId('product-folder-copies')).toHaveAttribute('aria-expanded','false');await expect(page.getByTestId('product-row-copy')).toHaveCount(0);await viewAppList(page);await expect(page.getByTestId('product-row-copy')).toBeVisible();await page.getByTestId('product-folder-copies').click();await expect(page.getByTestId('product-row-copy')).toHaveCount(0);
 });
 
 for (const kind of ['favorites', 'recent'] as const) {
@@ -95,12 +105,14 @@ test('four destinations and 44pt controls fit 320/375/430 without root scaling',
   await apps(page); await library(page, 'favorites'); await library(page, 'recent');
   for (const width of [320, 375, 430]) {
     await page.setViewportSize({ width, height: 812 }); await page.goto('/app-gallery');
+    await page.getByRole('button', { name: '产品分类与操作', exact: true }).click();
     for (const target of [page.getByTestId('product-folder-created'), page.getByTestId('products-load-more'), ...['我创建的', '我的副本', '我的收藏', '最近使用'].map(name => page.getByRole('button', { name, exact: true }))]) {
       const box = await target.boundingBox(); expect(box).not.toBeNull(); expect(box!.height).toBeGreaterThanOrEqual(44); expect(box!.width).toBeGreaterThanOrEqual(44); expect(box!.x).toBeGreaterThanOrEqual(0); expect(box!.x + box!.width).toBeLessThanOrEqual(width);
     }
     await expect(page.getByTestId('mobile-products')).toHaveCSS('transform', 'none');
     await page.getByRole('button', { name: '我的收藏', exact: true }).click(); await expect(page).toHaveURL(/\/library\/favorites$/);
     await page.getByRole('button', { name: '返回我的产品' }).click();
+    await page.getByRole('button', { name: '产品分类与操作', exact: true }).click();
     await page.getByRole('button', { name: '最近使用', exact: true }).click(); await expect(page).toHaveURL(/\/library\/recent$/);
   }
 });
@@ -110,7 +122,7 @@ test('app initial/paging errors and 401 retain retry and the protected destinati
   await page.route('**/api/apps', route => route.fulfill({ status: 503, json: { error: { message: '暂不可用' } } }));
   await page.goto('/app-gallery'); await expect(page.getByRole('alert')).toContainText('应用暂时无法加载');
   await page.unroute('**/api/apps'); await page.route('**/api/apps', route => route.fulfill({ json: { items: [app('kept')], next_cursor: 'next' } }));
-  await page.getByRole('button', { name: '重试' }).click(); await page.getByTestId('product-folder-created').click();
+  await page.getByRole('button', { name: '重试' }).click(); await page.getByTestId('product-folder-created').click(); await viewAppList(page);
   await page.route('**/api/apps?**', route => route.fulfill({ status: 503, json: { error: { message: '暂不可用' } } }));
   await page.getByTestId('products-load-more').click(); await expect(page.getByTestId('product-row-kept')).toBeVisible();
   await page.route('**/api/apps?**', route => route.fulfill({ status: 401, json: { error: { message: '请登录' } } }));
@@ -132,7 +144,7 @@ test('formal folder paths, gradients and upward glyph coordinates reach the runt
   await folder.click();
   await expect(folder.locator('path').first().locator('..')).toHaveAttribute('transform', /matrix\(0\.9938837289810181 0\.11043152958154678 0 1 10 0\)/);
   await expect(folder.getByTestId(/^folder-item-/)).toHaveCount(1);
-  await expect(folder.locator('filter feGaussianBlur')).toHaveAttribute('stdDeviation', '80');
+  await expect(folder.locator('filter[id^="folder-blur-"] feGaussianBlur')).toHaveAttribute('stdDeviation', '40');
   if (process.env.INTELLIDEPLOY_PRODUCT_CAPTURE) await page.screenshot({ path: testInfo.outputPath('products-open.png'), fullPage: true });
 });
 

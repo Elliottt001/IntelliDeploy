@@ -1,6 +1,18 @@
 import {expect,test,type Page} from '@playwright/test';
 const stamp='2026-11-10T00:00:00Z';
 const publication=(id:string,available=true)=>({id,app_id:`app-${id}`,instance_id:`instance-${id}`,version_id:'v',name:`应用 ${id}`,summary:'',features:[],creator:`作者 ${id}`,preview_url:null,url:null,available,payer_policy:'VISITOR',sponsor_period:'DAY',sponsor_limit_units:10,copy_url:'/copy',updated_at:stamp});
+test('tall discovery decorates the source avatar slot with the editable brand mascot without inventing a creator portrait',async({page})=>{
+ await fixtures(page);await page.goto('/community');const card=page.getByTestId('discovery-publication-first'),box=(await card.boundingBox())!,mascot=card.getByTestId('community-brand-mascot-first');await expect(mascot).toBeVisible();const art=(await mascot.boundingBox())!;expect(art.x-box.x).toBe(17);expect(art.y-box.y).toBe(17);expect(art.width).toBe(30);expect(art.height).toBeCloseTo(30.066414,2);
+ await expect(mascot.locator('[data-source-group="825:6080"]')).toHaveCount(1);await expect(mascot.locator('path[data-source-node="825:6093"]')).toHaveCount(1);await expect(mascot.locator('path[data-source-node="825:6094"]')).toHaveCount(0);await expect(card).toContainText('作者 first');await expect(card).toContainText('暂不可用');await expect(page.getByText(/分钟前|点赞|评论/)).toHaveCount(0);
+});
+test('tall discovery API copy occupies the original avatar-side header and fixed summary and preview slots',async({page})=>{
+ await fixtures(page);await page.goto('/community');const card=page.getByTestId('discovery-publication-first'),box=(await card.boundingBox())!;
+ const title=(await card.getByText('应用 first',{exact:true}).boundingBox())!,summary=(await card.getByText('查看应用介绍',{exact:true}).boundingBox())!,preview=(await card.getByLabel('应用 first暂无预览',{exact:true}).boundingBox())!;
+ expect(title.x-box.x).toBeCloseTo(55,2);expect(title.y-box.y).toBeCloseTo(17.033207,2);
+ expect(summary.x-box.x).toBeCloseTo(17,2);expect(summary.y-box.y).toBeCloseTo(59.066414,2);expect(summary.height).toBeCloseTo(98,2);
+ expect(preview.x-box.x).toBeCloseTo(17,2);expect(preview.y-box.y).toBeCloseTo(169.066406,2);
+ await expect(card).toContainText('作者 first');await expect(card).toContainText('暂不可用');
+});
 async function fixtures(page:Page,empty=false){
  await page.route('**/api/community/apps**',r=>r.fulfill({json:{items:empty?[]:new URL(r.request().url()).searchParams.has('cursor')?[publication('third')]:[publication('first',false),publication('second')],next_cursor:empty||new URL(r.request().url()).searchParams.has('cursor')?null:'page-2'}}));
  await page.route('**/api/publications/*',r=>r.fulfill({json:publication(r.request().url().split('/').pop()!)}));
@@ -49,7 +61,7 @@ test('source glyphs have real SVG bounds and screen origins without development 
 });
 test('formal atmosphere uses actual blurred ellipse geometry and paint visibility',async({page})=>{
  await fixtures(page);await page.goto('/community');
- const atmosphere=page.getByTestId('community-atmosphere');await expect(atmosphere.locator('feGaussianBlur').first()).toHaveAttribute('stdDeviation','101.541862');await expect(atmosphere.locator('path[fill="#EDAFF6"]')).toBeAttached();await expect(atmosphere.locator('path[fill="#A7A4F3"]')).toBeAttached();
+ const atmosphere=page.getByTestId('community-atmosphere');await expect(atmosphere.locator('feGaussianBlur').first()).toHaveAttribute('stdDeviation','50.770931');await expect(atmosphere.locator('path[fill="#EDAFF6"]')).toBeAttached();await expect(atmosphere.locator('path[fill="#A7A4F3"]')).toBeAttached();
 });
 for(const action of ['收藏应用','创建我的副本'])test(`anonymous ${action} retains the existing detail login boundary`,async({page})=>{
  await fixtures(page);await page.route('**/auth/me',r=>r.fulfill({status:401,json:{detail:'请登录'}}));

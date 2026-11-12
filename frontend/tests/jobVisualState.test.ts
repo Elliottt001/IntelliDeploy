@@ -12,9 +12,10 @@ vi.mock("react-native", () => ({
   Text: "Text",
   TextInput: "TextInput",
   View: "View",
+  useWindowDimensions: () => ({width:375,height:812}),
 }));
 vi.mock("expo-linear-gradient", () => ({ LinearGradient: "LinearGradient" }));
-vi.mock("react-native-svg", () => ({ Path: "Path", default: "Svg" }));
+vi.mock("react-native-svg", () => ({ Rect:"Rect", ClipPath:"ClipPath", Filter:"Filter", FeGaussianBlur:"FeGaussianBlur", G:"G", Defs:"Defs", LinearGradient:"SvgLinearGradient", Stop:"Stop", Path:"Path", default:"Svg" }));
 
 import {
   ChatComposer,
@@ -72,7 +73,7 @@ function flattenStyle(style: unknown): Record<string, unknown> {
   if (!Array.isArray(style)) {
     return (style ?? {}) as Record<string, unknown>;
   }
-  return Object.assign({}, ...style.filter(Boolean));
+  return Object.assign({}, ...style.filter(Boolean).map(flattenStyle));
 }
 
 function walkRenderedTree(
@@ -281,7 +282,7 @@ test("Mibo stage shows only state-relevant backend question or error copy", () =
 
 test.each([
   [null, miboStageFigmaEvidence.art.greetingCat.box],
-  [job("RUNNING", "building"), miboStageFigmaEvidence.art.workingCat.box],
+  [job("RUNNING", "building"), { x: 95, y: 157, width: 194, height: 168 }],
   [job("SUCCEEDED"), miboStageFigmaEvidence.art.successCat.box],
 ] as const)("Mibo cat uses the measured art geometry for %s", (input, box) => {
   const stage = MiboStage({ state: getJobVisualState(input), art: testArt });
@@ -406,7 +407,7 @@ test("composer shell uses measured Kiwi surface geometry and remains fluid", () 
     backgroundColor: "rgba(255, 255, 255, 0.70)",
     borderColor: "#FFFFFF",
     borderRadius: 44.653347,
-    borderWidth: 1.339601,
+    borderWidth: 0,
     maxWidth: 335,
     minHeight: 54,
     shadowColor: "#BABABA",
@@ -415,6 +416,8 @@ test("composer shell uses measured Kiwi surface geometry and remains fluid", () 
     shadowRadius: 2.679201,
     width: "100%",
   });
+  const paint=(propsOf(composer).children as ReactElement[])[0];
+  expect(flattenStyle(propsOf(paint).style)).toMatchObject({borderWidth:1.339601,borderColor:"#FFFFFF"});
   expect(chatComposerFigmaEvidence.shellNodeId).toBe("845:3530");
   expect(chatComposerFigmaEvidence.noSymbolReason).toMatch(
     /no INSTANCE or SYMBOL/,

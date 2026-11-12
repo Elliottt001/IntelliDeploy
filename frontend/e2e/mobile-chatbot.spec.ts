@@ -30,6 +30,12 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/auth/me', route => route.fulfill({ json: { id: 1, username: 'owner', email: 'owner@test' } }));
   await page.route('**/api/quota/**', route => route.fulfill({ json: { available_units: 900, reserved_units: 100, default_budget_units: 100, hard_cap_units: 1000, price_version: 'fixture', failed_usage_rule: '失败按实际用量结算', items: [] } }));
 });
+test('normal management menu reveals and closes real running controls while preserving the focused draft and actual phase',async({page})=>{
+ const app=detail('RUNNING');await page.route('**/api/apps/app',r=>r.fulfill({json:app}));await page.route('**/api/jobs/job',r=>r.fulfill({json:app.latest_job}));await page.goto('/app-detail/app');await page.getByTestId('message-input').fill('保留当前草稿');await expect(page.getByTestId('job-status')).toHaveText('正在理解需求');await expect(page.getByTestId('cancel-job')).toHaveCount(0);
+ const menu=page.getByTestId('chatbot-settings');await menu.click();const entry=page.getByTestId('delivery-management-toggle');expect((await entry.boundingBox())!.height).toBeGreaterThanOrEqual(44);await entry.click();await expect(page.getByTestId('cancel-job')).toBeVisible();await expect(page.getByTestId('refresh-job')).toBeVisible();await expect(page.getByTestId('message-input')).toHaveValue('保留当前草稿');
+ await menu.click();await page.getByTestId('delivery-management-toggle').click();await expect(page.getByTestId('cancel-job')).toHaveCount(0);await expect(page.getByTestId('refresh-job')).toHaveCount(0);await expect(page.getByTestId('message-input')).toHaveValue('保留当前草稿');await expect(page.getByTestId('send-message')).toBeDisabled();
+ await menu.click();await page.getByTestId('job-phases-toggle').click();await expect(page.getByTestId('job-progress-clarifying')).toBeVisible();
+});
 
 for (const status of [null, 'QUEUED', 'RUNNING', 'WAITING_USER', 'PAUSED_QUOTA', 'SUCCEEDED', 'FAILED', 'CANCELLED'] as const) {
   test(`Mibo ${status ?? 'no job'} exposes only state-allowed actions and retains old delivery`, async ({ page }) => {
@@ -39,7 +45,9 @@ for (const status of [null, 'QUEUED', 'RUNNING', 'WAITING_USER', 'PAUSED_QUOTA',
     await page.goto('/app-detail/app');
     await expect(page.getByTestId('mibo-stage')).toBeVisible();
     await expect(page.getByTestId('open-app')).toBeVisible();
+    await page.getByTestId('chatbot-settings').click(); await page.getByTestId('delivery-management-toggle').click();
     await expect(page.getByTestId('app-detail-secondary')).toBeVisible();
+    await page.getByTestId('chatbot-settings').click(); await page.getByTestId('conversation-toggle').click();
     await expect(page.getByText('记录并分析梦境', { exact: true })).toBeVisible();
     await expect(page.getByTestId('cancel-job')).toHaveCount(status === 'RUNNING' || status === 'QUEUED' ? 1 : 0);
     await expect(page.getByTestId('resume-job')).toHaveCount(status === 'PAUSED_QUOTA' ? 1 : 0);
@@ -69,6 +77,7 @@ test('network retry preserves the last running snapshot and recovers', async ({ 
   await page.goto('/app-detail/app');
   await expect(page.getByTestId('network-retry')).toContainText('网络连接暂时中断');
   await expect(page.getByTestId('job-status')).toHaveText('正在理解需求');
+  await page.getByTestId('chatbot-settings').click();await page.getByTestId('delivery-management-toggle').click();
   await expect(page.getByTestId('cancel-job')).toBeVisible();
   await expect(page.getByTestId('open-app')).toBeVisible();
   offline = false;
@@ -102,6 +111,7 @@ test('402 reads the paused task, preserves its draft, and resume retries use one
   await page.getByTestId('resume-job').click();
   await expect(page.getByTestId('workspace-error')).toBeVisible();
   await page.getByTestId('resume-job').click();
+  await page.getByTestId('chatbot-settings').click();await page.getByTestId('delivery-management-toggle').click();
   await expect(page.getByTestId('cancel-job')).toBeVisible();
   expect(sends).toBe(1);
   expect(keys).toHaveLength(2);
@@ -148,6 +158,7 @@ test('creation and conversation controls remain 44px and in bounds at mobile wid
       await page.goto(path);
       await page.getByTestId(input).fill('移动端需求');
       await page.getByTestId(button).scrollIntoViewIfNeeded();
+      await page.getByTestId('chatbot-settings').click();
       for (const id of [input, button, 'chatbot-back', 'chatbot-products', 'chatbot-settings']) {
         const box = await page.getByTestId(id).boundingBox();
         expect(box).not.toBeNull();
@@ -176,20 +187,28 @@ test('chatbot layout binds source geometry from the provided Figma package', asy
     const style = getComputedStyle(element);
     const box = element.getBoundingClientRect();
     // Chromium rounds computed border width to physical pixels; compare the authored RN declaration.
+    const paint=element.firstElementChild as HTMLElement,paintStyle=getComputedStyle(paint);
     const declarations = Array.from(document.styleSheets).flatMap(sheet => Array.from(sheet.cssRules))
-      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule && element.matches(rule.selectorText));
+      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule && paint.matches(rule.selectorText));
     const borderRule = declarations.filter(rule => rule.selectorText.startsWith('.') && (rule.style.borderTopWidth || rule.style.borderWidth)).at(-1);
-    const border = (element as HTMLElement).style.borderTopWidth || (element as HTMLElement).style.borderWidth || borderRule?.style.borderTopWidth || borderRule?.style.borderWidth;
-    return { width: box.width, height: box.height, radius: parseFloat(style.borderRadius), border: parseFloat(border!), renderedBorder: parseFloat(style.borderTopWidth), pixelRatio: window.devicePixelRatio };
+    const border = paint.style.borderTopWidth || paint.style.borderWidth || borderRule?.style.borderTopWidth || borderRule?.style.borderWidth;
+    const paintBox=paint.getBoundingClientRect();
+    return { width: box.width, height: box.height, radius: parseFloat(style.borderRadius), structuralBorder:parseFloat(style.borderTopWidth), border: parseFloat(border!), renderedBorder: parseFloat(paintStyle.borderTopWidth), paintWidth:paintBox.width,paintHeight:paintBox.height,pixelRatio: window.devicePixelRatio };
   });
   expect(measured.width).toBe(shell.size.x);
   expect(measured.height).toBe(shell.size.y);
   expect(measured.radius).toBeCloseTo(shell.cornerRadius, 3);
+  expect(measured.structuralBorder).toBe(0);
+  expect(measured.paintWidth).toBe(shell.size.x);expect(measured.paintHeight).toBe(shell.size.y);
   expect(measured.border).toBeCloseTo(shell.strokeWeight, 3);
   expect(measured.renderedBorder).toBe(Math.floor(shell.strokeWeight * measured.pixelRatio) / measured.pixelRatio);
   expect(await input.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBe(text.fontSize);
   const headerBox = await page.getByTestId('chatbot-back').locator('..').boundingBox();
-  expect(headerBox!.width).toBe(header.size.x);
+  // The source's 38pt header controls are centered in the required 44pt native hit frames.
+  expect(headerBox!.height).toBe(44);
+  expect(headerBox!.width).toBe(header.size.x+44-header.size.y);
+  expect(headerBox!.x).toBe(header.transform.m02-(44-header.size.y)/2);
+  expect(headerBox!.y).toBe(header.transform.m12-(44-header.size.y)/2);
 });
 
 test('cancel retries retain one request key and preserve the existing delivery', async ({ page }) => {
@@ -203,6 +222,7 @@ test('cancel retries retain one request key and preserve the existing delivery',
     else { app = detail('CANCELLED'); await route.fulfill({ json: app.latest_job }); }
   });
   await page.goto('/app-detail/app');
+  await page.getByTestId('chatbot-settings').click();await page.getByTestId('delivery-management-toggle').click();
   await page.getByTestId('cancel-job').click();
   await expect(page.getByTestId('workspace-error')).toBeVisible();
   await expect(page.getByTestId('job-status')).toHaveText('正在理解需求');
@@ -225,6 +245,7 @@ test('a cancel conflict rereads the terminal app without retrying the operation'
     await route.fulfill({ status: 409, json: { error: { code: 'CONFLICT', message: '任务状态已变化', retryable: false } } });
   });
   await page.goto('/app-detail/app');
+  await page.getByTestId('chatbot-settings').click();await page.getByTestId('delivery-management-toggle').click();
   await page.getByTestId('cancel-job').click();
   await expect(page.getByTestId('job-status')).toHaveText('任务已取消');
   await expect(page.getByTestId('cancel-job')).toHaveCount(0);

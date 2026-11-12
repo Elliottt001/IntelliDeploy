@@ -1,0 +1,298 @@
+{
+  "thresholds": {
+    "meanAbsoluteError": 0.08,
+    "changedPixelRatio": 0.03,
+    "channelDelta": 32
+  },
+  "mask": "status bar y<44; outer 5pt edge; bottom 40pt device-frame corners only",
+  "formal": [
+    {
+      "actual": "login-page-01.png",
+      "reference": "page-01.png",
+      "actualSha256": "29d95a349f97e3394b43b5ba7796ff3cd89b813ba175b414bfcc0c1ea8497de7",
+      "referenceSha256": "3ee95c38bec15724fe54840511e281dfd9798d0104fd93bba919dd1426d2eb86",
+      "meanAbsoluteError": 0.01625772256616756,
+      "changedPixelRatio": 0.027134623952629385,
+      "comparedPixels": 278316,
+      "status": "PASS"
+    },
+    {
+      "actual": "home-page-02.png",
+      "reference": "page-02.png",
+      "actualSha256": "20f72f3e894563d2de6d6c53fbf02966a2a9dccc48c81d9d1a5400f32336d3e7",
+      "referenceSha256": "561324abd795ebb1797451a2d25cf3a3879b85b435a7bb3babf7649a0a925374",
+      "meanAbsoluteError": 0.01794038224477429,
+      "changedPixelRatio": 0.028841317064056685,
+      "comparedPixels": 278316,
+      "status": "PASS"
+    },
+    {
+      "actual": "store-page-03.png",
+      "reference": "page-03.png",
+      "actualSha256": "440411efb6629eb117c6be784834ba5f214f995afe4e63b65c80209ae0c1b5d2",
+      "referenceSha256": "8e17efa46fb4191c66fd2ddea6a673b63f8012bdfa7b233aefdb51602c3549ff",
+      "meanAbsoluteError": 0.05335621229717065,
+      "changedPixelRatio": 0.15335805343566306,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "home-page-29.png",
+      "reference": "page-29.png",
+      "actualSha256": "fc2d0f03ad9f83ded8bd4193040052f3dbe3fb99e6ea3123780d009295647de1",
+      "referenceSha256": "025adda3232a636927ce4882070de8a4defe40231063886240f8af91570f4620",
+      "meanAbsoluteError": 0.017536994437225492,
+      "changedPixelRatio": 0.02892395694103106,
+      "comparedPixels": 278316,
+      "status": "PASS"
+    },
+    {
+      "actual": "home-page-30.png",
+      "reference": "page-30.png",
+      "actualSha256": "4171ec8d48b8a5ee4b78a802c8731eb4293f39ad22254fc286cb8647a789f697",
+      "referenceSha256": "f560b7e33019fccb27aea43016b08f737f376d9fd22b1ae194fad1ec60299ef5",
+      "meanAbsoluteError": 0.0181947082861659,
+      "changedPixelRatio": 0.02927248163957516,
+      "comparedPixels": 278316,
+      "status": "PASS"
+    },
+    {
+      "actual": "home-page-31.png",
+      "reference": "page-31.png",
+      "actualSha256": "20f72f3e894563d2de6d6c53fbf02966a2a9dccc48c81d9d1a5400f32336d3e7",
+      "referenceSha256": "66e29a1c284c601d7ec8b0ac00c349ad98f16a44d3c299ba4ee40e853cae7a39",
+      "meanAbsoluteError": 0.01794067344525013,
+      "changedPixelRatio": 0.028841317064056685,
+      "comparedPixels": 278316,
+      "status": "PASS"
+    },
+    {
+      "actual": "home-page-32.png",
+      "reference": "page-32.png",
+      "actualSha256": "d05ba22e097d42d1306aae8971d55f8fcc6a8ba0282e471769eb62d5b1ea035b",
+      "referenceSha256": "35993abe2d29a83d41b11bcecbdb26d86d75f641b123b656ab7f455e9712a64e",
+      "meanAbsoluteError": 0.02105131919921372,
+      "changedPixelRatio": 0.03848143836502393,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "home-page-33.png",
+      "reference": "page-33.png",
+      "actualSha256": "f06234cb7ea6071b44616b7ae8f8430a24a04e5a491dc873b43276e3a27afb00",
+      "referenceSha256": "3f4aa58baf39d279bfbe333cbdc699dac6836e2a47d53fc17a2f52259b7a9013",
+      "meanAbsoluteError": 0.019498760378361474,
+      "changedPixelRatio": 0.042286465743974475,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "home-page-34.png",
+      "reference": "page-34.png",
+      "actualSha256": "da96a310781d51f2ea3fbee22a17c4b2c3b014a24523b369cc5991551829e7d1",
+      "referenceSha256": "f16110dab4ad04d92e336b549ab0ebb36e75e84daf79884de308a21b24a79c1d",
+      "meanAbsoluteError": 0.02305994962983253,
+      "changedPixelRatio": 0.0393653257448368,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "home-page-35.png",
+      "reference": "page-35.png",
+      "actualSha256": "43dc17b40bf305e7a8b77b6560b59bf9e63b7156c28f375fe90e36f46164e8c3",
+      "referenceSha256": "7d0d14cd67f799b145a469349b4f73c7d1da64c7b50da8a1f3478942b8c49260",
+      "meanAbsoluteError": 0.0269937345869232,
+      "changedPixelRatio": 0.08359921815490307,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "store-page-40.png",
+      "reference": "page-40.png",
+      "actualSha256": "9541f708bf15f6feb61097bdb8d0add102feff8bd3203837266e4cd2cfe5415a",
+      "referenceSha256": "2073c9045e367a6131dfe2cb39d3f387133426fed69f9a4b1fecf8dc1c65f654",
+      "meanAbsoluteError": 0.046699618348898936,
+      "changedPixelRatio": 0.1269240719182512,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "chatbot-page-46.png",
+      "reference": "page-46.png",
+      "actualSha256": "aa82afae384775b1e42e1c19d2cbf6f7b058fea46c7a6860f736580c6899e79f",
+      "referenceSha256": "6b8f19c67e5ca9c302c638c80dc4c09b1a33b1f6286361378b879c52e7f8426d",
+      "meanAbsoluteError": 0.010160008085979664,
+      "changedPixelRatio": 0.01768134063438681,
+      "comparedPixels": 278316,
+      "status": "PASS"
+    },
+    {
+      "actual": "chatbot-page-47.png",
+      "reference": "page-47.png",
+      "actualSha256": "f06b4a1795ae2590cdd7c4eafcadc855492d2ff38605809f6866985ef9a2a8f4",
+      "referenceSha256": "e162d825d146003421a588373534a93f9e1086d131a25437062eef1a1a0f72ca",
+      "meanAbsoluteError": 0.011678421302648694,
+      "changedPixelRatio": 0.022424150965090043,
+      "comparedPixels": 278316,
+      "status": "PASS"
+    },
+    {
+      "actual": "chatbot-page-48.png",
+      "reference": "page-48.png",
+      "actualSha256": "b07d9095852ec2da8d832f541c762233b6abe66e66cc10feb7acd01a91336f57",
+      "referenceSha256": "71a701c887733464969e97fb894cc7b21bd0244108397291059e88b2f15ac93b",
+      "meanAbsoluteError": 0.013495117742215625,
+      "changedPixelRatio": 0.021874416131303986,
+      "comparedPixels": 278316,
+      "status": "PASS"
+    },
+    {
+      "actual": "chatbot-page-49.png",
+      "reference": "page-49.png",
+      "actualSha256": "878a4b0951c14b69b70b7319c548319e3fbcb59342a0ebc329d34ce7b3e67969",
+      "referenceSha256": "d43a047bfad6d263226cc8a492c19b5c73c2550713371d36d9c48190a01d59c8",
+      "meanAbsoluteError": 0.01649137807055637,
+      "changedPixelRatio": 0.028665258195719974,
+      "comparedPixels": 278316,
+      "status": "PASS"
+    },
+    {
+      "actual": "chatbot-page-50.png",
+      "reference": "page-50.png",
+      "actualSha256": "bcfd3787dfc4afe69bcdec4bb712353d3c3e45a7ae7ba7983b75db19f358cd90",
+      "referenceSha256": "a6816f93e7ff0f1396dd976e2ec64b95fe594c7b24964e792612db58f2e554cd",
+      "meanAbsoluteError": 0.01810551170170325,
+      "changedPixelRatio": 0.033821267911295076,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "chatbot-page-51.png",
+      "reference": "page-51.png",
+      "actualSha256": "7db66036f1563cce1869885434671cd29b7a406d7a312c1974b0b717d7ba7564",
+      "referenceSha256": "b8bb7f0903b8435a4f5ac6a37268d9c67a0df4c3739aec0154f99e04988602c4",
+      "meanAbsoluteError": 0.017356191819201703,
+      "changedPixelRatio": 0.03310625332356027,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "chatbot-page-52.png",
+      "reference": "page-52.png",
+      "actualSha256": "2f7a6d9aaaff62215e5747af8dc8f753ff138917fa3f8400b67d4b5f8ed2d468",
+      "referenceSha256": "84105dddda996383d169490d0754c6d680166e834c237d05fb26f2e0a1a3f948",
+      "meanAbsoluteError": 0.019185062317371507,
+      "changedPixelRatio": 0.03746820161255551,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "chatbot-page-53.png",
+      "reference": "page-53.png",
+      "actualSha256": "f1c540468107c2c9ea47262dca3d2b3854ac2a95c6383c6e2d6833417b5a878e",
+      "referenceSha256": "da5c1f9a64c528c274fb6a56cb5180635bb9997dc2aee786adf5a15f9132e017",
+      "meanAbsoluteError": 0.018397858192319504,
+      "changedPixelRatio": 0.035466879374523926,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "chatbot-page-54.png",
+      "reference": "page-54.png",
+      "actualSha256": "76ce1a3ba192c6e881c7bee97e7db4887ed6b8e43a80bfa580504321816afdcc",
+      "referenceSha256": "4ca1c4ebe350c4b8fcc2ed22d97d6ffb14b64faedd410a9b16a9d7024c038d39",
+      "meanAbsoluteError": 0.018317097028092484,
+      "changedPixelRatio": 0.0352189597436008,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "chatbot-page-55.png",
+      "reference": "page-55.png",
+      "actualSha256": "0fa5606c6ad22865189270188f601d3d6478a19be222759347a2877c255a8d9e",
+      "referenceSha256": "1d2ff9d98c9573d747902be59cc0ebb182b8383657b731033a523b3f058add01",
+      "meanAbsoluteError": 0.0173531013367323,
+      "changedPixelRatio": 0.03854252001322238,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "chatbot-page-58.png",
+      "reference": "page-58.png",
+      "actualSha256": "c76ee62dde2301a15ba45c299d42ce16b78309ad27903c2fa87dd1a299c8407f",
+      "referenceSha256": "6ceac2da049c5c5007d8be918c3b5e91d7f24bf8fa9b2629fc8c2831a5f6901c",
+      "meanAbsoluteError": 0.020825563681927544,
+      "changedPixelRatio": 0.04368775061440952,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "products-page-56.png",
+      "reference": "page-56.png",
+      "actualSha256": "5ad10c8294ebfa42ae7632fb01db5161865350c327dcb74bbb6557410f47da7d",
+      "referenceSha256": "2b2ccb94cf0ec8f6d19b4fe950135f48a360c75155d063f1b30f990adaa3218d",
+      "meanAbsoluteError": 0.01592833255695529,
+      "changedPixelRatio": 0.026617226462007215,
+      "comparedPixels": 278316,
+      "status": "PASS"
+    },
+    {
+      "actual": "products-page-57.png",
+      "reference": "page-57.png",
+      "actualSha256": "42bcc83150d995e460d8da7cdfe1f189f2adfcd8d4311c1581fe7495e9886e42",
+      "referenceSha256": "ddb4c2f5600e049623c0d875671245c028a85130e9586b22a74723149a30b438",
+      "meanAbsoluteError": 0.03805156540451926,
+      "changedPixelRatio": 0.1315734632575921,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "community-page-59.png",
+      "reference": "page-59.png",
+      "actualSha256": "d1bf886c30c5bf1be4cdbae9bbe5775be3b83cf83995e36d89647001e6fbef76",
+      "referenceSha256": "008c913786f5bee1281b11a82957113d7a84889e3684129d401e666f01391767",
+      "meanAbsoluteError": 0.04301926234786302,
+      "changedPixelRatio": 0.08875522787047817,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    },
+    {
+      "actual": "community-page-60.png",
+      "reference": "page-60.png",
+      "actualSha256": "89db4fe6246783a0bd672038fdfd3cc2d2a56c4d4825a678ad21fd8916f5772b",
+      "referenceSha256": "79ddb583f683922ed306c113f6bbe00f1ffaddc5dcfbdea4dea04f5d25552638",
+      "meanAbsoluteError": 0.03676088974708487,
+      "changedPixelRatio": 0.07543583552508659,
+      "comparedPixels": 278316,
+      "status": "FAIL"
+    }
+  ],
+  "pending": [
+    {
+      "route": "/register",
+      "status": "VISUAL_PENDING"
+    },
+    {
+      "route": "/billing",
+      "status": "VISUAL_PENDING"
+    },
+    {
+      "route": "/app-detail/[id]:secondary",
+      "status": "VISUAL_PENDING"
+    },
+    {
+      "route": "/community/[id]",
+      "status": "VISUAL_PENDING"
+    }
+  ],
+  "native": {
+    "ios": {
+      "status": "NOT_RUN",
+      "prerequisite": "Maestro executable and booted matching cn.elliotttzhang.intellideploy build required; installed react-native-svg native FeMorphology is unimplemented, so negative-spread source shadows require native rendering support"
+    },
+    "android": {
+      "status": "NOT_RUN",
+      "prerequisite": "Maestro executable and connected matching cn.elliotttzhang.intellideploy build required; installed react-native-svg native FeMorphology is unimplemented, so negative-spread source shadows require native rendering support"
+    }
+  }
+}

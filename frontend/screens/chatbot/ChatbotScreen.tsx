@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ApiError } from '@intellideploy/api-client';
 import { authAPI, phase1Api } from '../../services/api';
 import { clearDraft, readDraft, saveDraft } from '../../services/workspaceStorage';
@@ -9,6 +9,8 @@ import { ChatbotPage, CreateWorkspaceView } from '../../features/chatbot/CreateW
 
 export default function ChatbotScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ prompt?: string | string[] }>();
+  const selectedPrompt = typeof params.prompt === 'string' && params.prompt.length <= 4000 ? params.prompt : '';
   const insets = useSafeAreaInsets();
   const [prompt, setPrompt] = useState('');
   const [draftKey, setDraftKey] = useState('');
@@ -27,12 +29,12 @@ export default function ChatbotScreen() {
         const key = `intellideploy:${user.id}:create`;
         const [draft, last, policy, quota] = await Promise.all([readDraft(key), AsyncStorage.getItem(`intellideploy:${user.id}:last-app`), phase1Api.getPolicy(), phase1Api.getBalance()]);
         if (!active) return;
-        setOwnerId(user.id); setDraftKey(key); setPrompt(draft?.content ?? ''); setLastApp(last); setRule(policy.failed_usage_rule); setBalance(quota.available_units); setError('');
+        setOwnerId(user.id); setDraftKey(key); setPrompt(draft?.content || selectedPrompt); setLastApp(last); setRule(policy.failed_usage_rule); setBalance(quota.available_units); setError('');
       } catch (exc) { if (active) setError(exc instanceof Error ? exc.message : '无法恢复需求，请稍后重试'); }
     }
     void restore();
     return () => { active = false; };
-  }, []));
+  }, [selectedPrompt]));
   async function create() {
     if (submitting.current || !draftKey || !prompt.trim()) return;
     submitting.current = true; setBusy(true); setError('');

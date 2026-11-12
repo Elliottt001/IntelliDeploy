@@ -12,6 +12,7 @@ import { mobileAssets } from '../../design/generated/mobileAssetManifest';
 import { mobileColors, mobileRadii, mobileSpacing } from '../../theme/tokens';
 import { mobileFontFamilies, mobileTypography } from '../../theme/typography';
 import type { StoreCard } from './publicationViewModel';
+import {storeCardRenderEvidence as source} from '../../design/storeCardRenderEvidence';
 
 type PublicationCardProps = {
   favorite: boolean;
@@ -23,6 +24,9 @@ type PublicationCardProps = {
   selected: boolean;
   width: number;
 };
+
+// Static design content is intentionally separate from item.previewUrl and all API facts.
+const staticDesignIllustration = require('../../assets/mobile/static-design/pawzzle-phone-illustration.png') as ImageSourcePropType;
 
 const neutralArtwork = mobileAssets['845:3522:114']
   .source as ImageSourcePropType;
@@ -51,8 +55,13 @@ function PreviewArtwork({ item }: { item: StoreCard }) {
           style={styles.placeholder}
           testID={`store-preview-placeholder-${item.id}`}
         >
-          <Image source={neutralArtwork} style={styles.placeholderArt} />
-          <Text style={styles.placeholderText}>暂无预览</Text>
+          {!item.previewUrl ? <>
+            <Image accessibilityLabel="示意图，不代表当前应用预览" source={staticDesignIllustration} resizeMode="contain" style={styles.previewImage} testID={`store-static-design-illustration-${item.id}`} />
+            <Text style={styles.designCaption}>示意图 · 暂无应用预览</Text>
+          </> : <>
+            <Image source={neutralArtwork} style={styles.placeholderArt} />
+            <Text style={styles.placeholderText}>预览加载失败</Text>
+          </>}
         </View>
       )}
     </View>
@@ -81,7 +90,8 @@ export function PublicationCard({
       ]}
       testID={`store-carousel-card-${item.id}`}
     >
-      <View testID={selected ? 'store-detail' : undefined}>
+      <View testID={selected ? 'store-detail' : undefined} style={{height:source.size.y,position:'relative'}}>
+        <View pointerEvents="none" accessibilityLabel={`${item.name}暂无应用图标`} style={styles.initial}><Text style={styles.initialText}>{Array.from(item.name.trim())[0]??'·'}</Text></View>
         <View style={styles.heading}>
           <View style={styles.headingCopy}>
             <Text numberOfLines={1} style={styles.name}>
@@ -93,7 +103,7 @@ export function PublicationCard({
           </View>
           <Text style={styles.availability}>{item.availability}</Text>
         </View>
-        <Text numberOfLines={3} style={styles.summary}>
+        <Text numberOfLines={4} style={styles.summary}>
           {item.summary}
         </Text>
         <PreviewArtwork item={item} />
@@ -129,7 +139,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     borderWidth: 0,
     height: 399,
-    padding: 18,
+    padding: 0,
     shadowColor: '#897AB9',
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
@@ -145,50 +155,62 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   heading: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'space-between',
+    position:'absolute',
+    left:source.title.position.m02,
+    top:source.title.position.m12,
+    width:128,
+    alignItems:'flex-start',
   },
   headingCopy: {
-    flex: 1,
+    width:'100%',
   },
   name: {
-    color: mobileColors.text,
-    fontFamily: mobileFontFamilies.emphasis,
-    fontSize: 17,
-    lineHeight: 23,
+    color: source.title.textColor,
+    fontFamily: mobileFontFamilies.pingFang,
+    fontWeight:'500',
+    fontSize: source.title.fontSize,
+    lineHeight: source.title.lineHeight,
   },
   creator: {
-    ...mobileTypography.caption,
-    color: mobileColors.muted,
+    fontFamily:mobileFontFamilies.pingFang,
+    fontSize:source.secondaryText.fontSize,
+    lineHeight:source.secondaryText.lineHeight,
+    color:source.secondaryText.textColor,
+    marginTop:2,
   },
   availability: {
     backgroundColor: '#EFEBFB',
     borderRadius: mobileRadii.pill,
     color: mobileColors.primary,
-    fontFamily: mobileFontFamilies.emphasis,
-    fontSize: 12,
-    lineHeight: 18,
+    fontFamily: mobileFontFamilies.pingFang,
+    fontSize: 8,
+    lineHeight: 16,
     overflow: 'hidden',
     paddingHorizontal: 9,
-    paddingVertical: 3,
+    paddingVertical: 0,
+    marginTop:3,
   },
   summary: {
-    color: mobileColors.text,
-    fontFamily: mobileFontFamilies.body,
-    fontSize: 13,
-    height: 57,
-    lineHeight: 19,
-    marginTop: 10,
+    position:'absolute',
+    left:source.summary.position.m02,
+    top:source.summary.position.m12,
+    width:source.summary.size.x,
+    color:source.summary.textColor,
+    fontFamily:mobileFontFamilies.pingFang,
+    fontWeight:'300',
+    fontSize:source.summary.fontSize,
+    height:source.summary.size.y,
+    lineHeight:source.summary.lineHeight,
   },
   preview: {
-    backgroundColor: '#F5F8FF',
-    borderRadius: 16,
-    height: 184,
-    marginTop: 10,
+    position:'absolute',
+    left:source.preview.position.m02,
+    top:source.preview.position.m12,
+    backgroundColor:source.backgroundColor,
+    borderRadius:0,
+    height:source.preview.size.y,
     overflow: 'hidden',
-    width: '100%',
+    width:source.preview.size.x,
   },
   previewImage: {
     height: '100%',
@@ -206,16 +228,23 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     width: 76,
   },
+  designCaption: {
+    position:'absolute', bottom:0, left:0, right:0, textAlign:'center',
+    backgroundColor:'rgba(255,255,255,0.94)', color:mobileColors.muted,
+    fontFamily:mobileFontFamilies.body, fontSize:10, lineHeight:18,
+  },
   placeholderText: {
     ...mobileTypography.caption,
     color: mobileColors.muted,
     marginTop: 4,
   },
   actions: {
+    position:'absolute',left:18,right:18,top:355,
     flexDirection: 'row',
     gap: 10,
-    marginTop: 10,
   },
+  initial:{position:'absolute',left:source.initial.x,top:source.initial.y,width:source.initial.size.x,height:source.initial.size.y,borderRadius:source.initial.cornerRadius,backgroundColor:source.initial.backgroundColor,justifyContent:'center',alignItems:'center'},
+  initialText:{fontFamily:mobileFontFamilies.pingFang,fontSize:24,color:'#6B7280'},
   secondaryAction: {
     alignItems: 'center',
     borderColor: mobileColors.primary,

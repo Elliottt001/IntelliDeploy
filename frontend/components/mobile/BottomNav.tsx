@@ -15,6 +15,8 @@ import {
 import { mobileColors } from '../../theme/tokens';
 import { mobileFontFamilies } from '../../theme/typography';
 import { MobileIcon } from './CircleAction';
+import {FigmaText} from './FigmaText';
+import {bottomNavRenderEvidence as source} from '../../design/bottomNavRenderEvidence';
 
 type BottomNavProps = {
   active: MobileNavKey;
@@ -53,6 +55,7 @@ export function BottomNav({ active, onNavigate, testID }: BottomNavProps) {
     (paint) => 'color' in paint && paint.color,
   );
   const activeSize = figmaComponentEvidence.home.size.width;
+  const shellBorderWidth=shell.borderWidths?.top ?? 1.3;
 
   return (
     <View
@@ -66,7 +69,7 @@ export function BottomNav({ active, onNavigate, testID }: BottomNavProps) {
           borderColor: shellStroke?.color ?? '#FFFFFF',
           borderRadius:
             shell.cornerRadii?.topLeft ?? figmaComponentEvidence.bottomNav.size.height / 2,
-          borderWidth: shell.borderWidths?.top ?? 1.3,
+          borderWidth: 0,
           height: figmaComponentEvidence.bottomNav.size.height,
           maxWidth: figmaComponentEvidence.bottomNav.size.width,
           shadowColor: shadow?.color ?? '#BABABA',
@@ -79,18 +82,15 @@ export function BottomNav({ active, onNavigate, testID }: BottomNavProps) {
       ]}
       testID={testID}
     >
-      {bottomNavItems.map((item) => {
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:shellBorderWidth,borderColor:shellStroke?.color??'#FFFFFF',borderRadius:shell.cornerRadii?.topLeft??27}]} />
+      {bottomNavItems.map((item,index) => {
         const selected = item.key === active;
+        const art=source.items[index];
         const content = (
-          <>
-            <MobileIcon
-              color={selected ? '#FFFFFF' : mobileColors.text}
-              name={item.icon}
-            />
-            <Text style={[styles.label, selected && styles.activeLabel]}>
-              {item.label}
-            </Text>
-          </>
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            <View style={{position:'absolute',left:art.icon.x,top:art.icon.y}}><MobileIcon color={selected?'#FFFFFF':source.inactiveColor} name={item.icon} size={art.icon.size.x}/></View>
+            <View style={{position:'absolute',left:art.label.x,top:art.label.y}}><FigmaText evidence={art.label.evidence} color={selected?'#FFFFFF':source.inactiveColor} testID={`bottom-nav-label-${item.key}`}/></View>
+          </View>
         );
 
         return (
@@ -100,11 +100,13 @@ export function BottomNav({ active, onNavigate, testID }: BottomNavProps) {
             accessibilityState={{ selected }}
             key={item.key}
             onPress={() => onNavigate(getBottomNavTarget(item.key))}
-            style={styles.item}
+            style={[styles.item,{left:`${(58.527027+index*74)/335*100}%`,marginLeft:-24}]}
           >
             {selected ? (
               <LinearGradient
-                colors={['#C05CF6', mobileColors.primary]}
+                colors={source.selected.colors}
+                start={source.selected.start}
+                end={source.selected.end}
                 style={[
                   styles.activeItem,
                   {
@@ -117,7 +119,7 @@ export function BottomNav({ active, onNavigate, testID }: BottomNavProps) {
                 {content}
               </LinearGradient>
             ) : (
-              <View style={styles.inactiveItem}>{content}</View>
+              <View style={[styles.inactiveItem,{backgroundColor:`rgba(255,255,255,${source.inactive.fillOpacity})`,borderRadius:source.inactive.cornerRadius,shadowColor:'#BABABA',shadowOffset:{width:source.inactive.shadow.offset.x,height:source.inactive.shadow.offset.y},shadowOpacity:source.inactive.shadow.color.a,shadowRadius:source.inactive.shadow.radius}]}><View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:source.inactive.borderWidth,borderColor:'#FFFFFF',borderRadius:source.inactive.cornerRadius}]}/>{content}</View>
             )}
           </Pressable>
         );
@@ -131,11 +133,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 13,
     width: '100%',
   },
   item: {
+    position: 'absolute',
+    top: 3,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 48,
@@ -157,9 +159,10 @@ const styles = StyleSheet.create({
   },
   label: {
     color: mobileColors.text,
-    fontFamily: mobileFontFamilies.body,
-    fontSize: 8,
-    lineHeight: 11,
+    fontFamily: mobileFontFamilies.pingFang,
+    fontWeight: '500',
+    fontSize: 7,
+    lineHeight: 10,
     marginTop: 2,
   },
   activeLabel: {

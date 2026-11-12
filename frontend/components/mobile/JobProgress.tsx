@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type {
   JobVisualKind,
@@ -20,17 +20,20 @@ const stages: ReadonlyArray<{ kind: JobVisualKind; label: string }> = [
 
 export type JobProgressProps = {
   state: JobVisualState;
+  compact?:boolean;
+  showToggle?:boolean;
+  expanded?:boolean;
+  onToggle?:()=>void;
   testID?: string;
 };
 
-export function JobProgress({ state, testID }: JobProgressProps) {
+export function JobProgress({ state, testID, compact=false, showToggle=true, expanded=!compact, onToggle }: JobProgressProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title} testID={testID}>
-        {state.title}
-      </Text>
+      {testID&&<Text style={styles.title} testID={testID}>{state.title}</Text>}
+      {compact&&showToggle&&<Pressable accessibilityRole="button" accessibilityState={{expanded}} onPress={onToggle} style={styles.toggle}><Text style={styles.label}>查看任务阶段</Text></Pressable>}
       <View accessibilityRole="list" style={styles.stages}>
-        {stages.map((stage) => {
+        {(expanded?stages:stages.filter(stage=>stage.kind===state.kind)).map((stage) => {
           const selected = stage.kind === state.kind;
           return (
             <View
@@ -53,6 +56,7 @@ export function JobProgress({ state, testID }: JobProgressProps) {
 }
 
 const styles = StyleSheet.create({
+  toggle: {minHeight:44,minWidth:44,alignSelf:'center',justifyContent:'center'},
   container: {
     alignSelf: "center",
     maxWidth: 560,

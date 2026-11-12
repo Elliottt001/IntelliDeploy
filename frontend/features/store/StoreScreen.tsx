@@ -145,7 +145,7 @@ export default function StoreScreen() {
           styles.content,
           {
             paddingBottom: Math.max(insets.bottom, 12),
-            paddingTop: Math.max(insets.top, 20),
+            paddingTop: Math.max(insets.top, 44),
           },
         ]}
         insets={insets}
@@ -249,7 +249,7 @@ export default function StoreScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    gap: 8,
+    gap: 18,
   },
   main: {
     alignItems: 'center',
@@ -265,6 +265,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadii.pill,
     borderWidth: 1.6521741151809692,
     flexDirection: 'row',
+    height: mobileSpacing.controlMin,
     minHeight: mobileSpacing.controlMin,
     paddingHorizontal: 16,
     shadowColor: '#BABABA',

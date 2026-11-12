@@ -30,6 +30,7 @@ for (const family of ['register', 'billing', 'community', 'app-detail:secondary'
   for (const width of [320, 375, 430]) {
     await page.setViewportSize({ width, height: 812 });
     await page.goto(family === 'community' ? '/community/pub' : family === 'app-detail:secondary' ? '/app-detail/app' : `/${family}`);
+    if(family === 'app-detail:secondary') {await page.getByTestId('chatbot-settings').click(); await page.getByTestId('delivery-management-toggle').click();}
     await pending(page, family);
     if (family === 'app-detail:secondary') {
       await expect(page.getByTestId('chatbot-page')).toBeVisible();
@@ -99,7 +100,7 @@ test('secondary controls retain DELETE confirmation, persistence keys and public
   });
   await page.route('**/api/instances/instance', r => { deletes++; keys.push(r.request().headers()['idempotency-key']); expect(r.request().method()).toBe('DELETE'); expect(r.request().postDataJSON()).toEqual({ confirmation: 'DELETE', delete_data: true }); return r.fulfill({ status: 202, json: { id: 'op', status: 'QUEUED' } }); });
   await page.route('**/api/instance-operations/op', r => r.fulfill({ json: { id: 'op', status: 'RUNNING' } }));
-  await page.goto('/app-detail/app'); await expect(page.getByTestId('publish-app')).toBeEnabled();
+  await page.goto('/app-detail/app'); await page.getByTestId('chatbot-settings').click(); await page.getByTestId('delivery-management-toggle').click(); await expect(page.getByTestId('publish-app')).toBeEnabled();
   await page.getByRole('button', { name: '由我赞助', exact: true }).click(); await page.getByRole('button', { name: '每月', exact: true }).click();
   await page.getByLabel('赞助额度上限').fill('0'); await expect(page.getByTestId('publish-app')).toBeDisabled();
   await page.getByLabel('赞助额度上限').fill('23'); await page.getByTestId('publish-app').click(); await expect(page.getByTestId('publish-app')).toHaveText('更新公开设置'); expect(appReads).toBeGreaterThanOrEqual(2);

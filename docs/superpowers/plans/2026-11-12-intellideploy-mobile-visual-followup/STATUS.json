@@ -1,0 +1,28 @@
+{
+  "capturedAt": "2026-11-12T13:36:45+08:00",
+  "overallStatus": "FAIL",
+  "baselineApproved": false,
+  "formal": {
+    "total": 26,
+    "pass": 10,
+    "fail": 16
+  },
+  "thresholds": {
+    "meanAbsoluteError": 0.08,
+    "changedPixelRatio": 0.03,
+    "channelDelta": 32
+  },
+  "native": {
+    "ios": "NOT_RUN",
+    "android": "NOT_RUN"
+  },
+  "visualPending": [
+    "/register",
+    "/billing",
+    "/app-detail/[id]:secondary",
+    "/community/[id]"
+  ],
+  "mergeAllowed": true,
+  "mergeAuthorization": "User explicitly authorized committing and merging this iteration on 2026-11-12, with the 16 visual failures deferred to the recorded next-phase plan.",
+  "reason": "This iteration may merge as an explicitly accepted incomplete visual milestone. Overall visual status remains FAIL and baselineApproved remains false."
+}

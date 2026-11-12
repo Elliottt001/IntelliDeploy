@@ -1,4 +1,4 @@
-import { isValidElement, type ReactElement, type ReactNode } from 'react';
+import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { expect, test, vi } from 'vitest';
 
 const windowMetrics = vi.hoisted(() => ({ width: 375 }));
@@ -30,10 +30,12 @@ vi.mock('react-native', () => ({
 vi.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 vi.mock('react-native-svg', () => ({
   Circle: 'Circle',
+  ClipPath: 'ClipPath', Defs: 'Defs', FeGaussianBlur: 'FeGaussianBlur', Filter: 'Filter', G: 'G', LinearGradient: 'SvgLinearGradient', Rect: 'Rect', Stop: 'Stop',
   Path: 'Path',
   default: 'Svg',
 }));
 
+import {formalMobileControls} from '../design/formalMobileControls';
 import { AppBackground } from '../components/mobile/AppBackground';
 import { BottomNav } from '../components/mobile/BottomNav';
 import {
@@ -91,7 +93,7 @@ function getBackgroundLayout(width: number, insets: { left: number; right: numbe
   windowMetrics.width = width;
   const background = AppBackground({ children: 'content', insets });
   const children = propsOf(background).children as ReactElement[];
-  const safeArea = children[2];
+  const safeArea = children[1];
   const content = propsOf(safeArea).children;
 
   return {
@@ -188,7 +190,7 @@ test('app background explicit width is reserved for tests and screenshots', () =
     width: 320,
   });
   const children = propsOf(background).children as ReactElement[];
-  const safeArea = children[2];
+  const safeArea = children[1];
 
   expect(flattenStyle(propsOf(safeArea).style)).toMatchObject({
     paddingLeft: 16,
@@ -200,7 +202,7 @@ test('app background explicit width is reserved for tests and screenshots', () =
 test('bottom navigation renders four accessible tabs with 44pt targets', () => {
   const nav = BottomNav({ active: 'community', onNavigate: vi.fn() });
   const navProps = propsOf(nav);
-  const tabs = navProps.children as ReactElement[];
+  const tabs = Children.toArray(navProps.children as ReactNode).filter(child=>isValidElement(child)&&propsOf(child).accessibilityRole==='tab') as ReactElement[];
 
   expect(navProps.accessibilityRole).toBe('tablist');
   expect(tabs).toHaveLength(4);
@@ -215,7 +217,7 @@ test('bottom navigation renders four accessible tabs with 44pt targets', () => {
 });
 
 test('MobileIcon renders the audited Figma layers', () => {
-  const definition = getFigmaMobileIcon('settings');
+  const definition = formalMobileControls.settings;
   const icon = MobileIcon({ name: 'settings', size: 18 });
   const renderedPaths: string[] = [];
 
@@ -335,7 +337,7 @@ test('corrected shared shells preserve accessibility, hit targets, and evidence-
   const primarySurface = propsOf(primaryAction).children as ReactElement;
   const glassSurfaceStyle = flattenStyle(propsOf(glassSurface).style);
   const primarySurfaceStyle = flattenStyle(propsOf(primarySurface).style);
-  const tabs = propsOf(nav).children as ReactElement[];
+  const tabs = Children.toArray(propsOf(nav).children as ReactNode).filter(child=>isValidElement(child)&&propsOf(child).accessibilityRole==='tab') as ReactElement[];
 
   expect(tabs).toHaveLength(4);
   expect(
@@ -351,10 +353,12 @@ test('corrected shared shells preserve accessibility, hit targets, and evidence-
   expect(navStyle).toMatchObject({
     backgroundColor: 'rgba(255, 255, 255, 0.70)',
     borderRadius: 44.653347,
-    borderWidth: 1.339601,
+    borderWidth: 0,
     height: 54,
     shadowOpacity: 0.25,
   });
+  const paint=Children.toArray(propsOf(nav).children as ReactNode).find(child=>isValidElement(child)&&propsOf(child).pointerEvents==='none') as ReactElement;
+  expect(flattenStyle(propsOf(paint).style)).toMatchObject({borderWidth:1.339601,borderColor:'#FFFFFF'});
   expect(glassCard.type).toBe('View');
   expect(glassCardStyle).toMatchObject({
     backgroundColor: 'rgba(255, 255, 255, 0.65)',
@@ -391,17 +395,11 @@ test('corrected shared shells preserve accessibility, hit targets, and evidence-
     'rgba(124, 98, 255, 1.00)',
   ]);
   expect(propsOf(primarySurface).locations).toEqual([0, 1]);
-  expect(propsOf(primarySurface).start).toEqual({
-    x: -0.230402,
-    y: 0.675698,
-  });
-  expect(propsOf(primarySurface).end).toEqual({
-    x: 0.486304,
-    y: -0.091011,
-  });
+  expect(propsOf(primarySurface).start).toMatchObject({x: expect.closeTo(0.149912818,6),y: expect.closeTo(0.160371906,6)});
+  expect(propsOf(primarySurface).end).toMatchObject({x: expect.closeTo(0.800570445,6),y: expect.closeTo(0.856424483,6)});
   expect(primarySurfaceStyle).toMatchObject({
     backgroundColor: 'rgba(217, 217, 217, 0.10)',
-    borderWidth: 0.5,
+    borderWidth: 0,
     borderRadius: 43.254723,
     height: 40,
     shadowColor: '#939393',

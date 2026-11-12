@@ -6,6 +6,9 @@ import { mobileAssets } from '../../design/generated/mobileAssetManifest';
 import { mobileFontFamilies } from '../../theme/typography';
 import { communityEvidence as source } from './communityEvidence';
 import type { DiscoveryCardModel } from './communityViewModel';
+import {communityCardSlots as slots} from '../../design/communityCardSlots';
+import {FigmaTree,type FigmaTreeNode} from '../../components/mobile/FigmaTree';
+import {communityAvatarRenderEvidence as mascot} from '../../design/communityAvatarRenderEvidence';
 const neutralArtwork=mobileAssets['845:3522:114'].source as ImageSourcePropType;
 const rgba=(color:string,opacity:number)=>{const hex=color.slice(1);return `rgba(${parseInt(hex.slice(0,2),16)},${parseInt(hex.slice(2,4),16)},${parseInt(hex.slice(4,6),16)},${opacity})`;};
 export function communitySurface(definition:FigmaPrimitiveEvidence):ViewStyle {
@@ -17,7 +20,7 @@ export function CommunitySourceHeading({kind}:{kind:'title'|'subtitle'}) {
  const evidence=source[kind];const shadow=evidence.effects.find(effect=>effect.type==='DROP_SHADOW');
  return <View accessibilityLabel={evidence.characters} accessibilityRole="header">
   <Svg testID={`community-source-${kind}`} {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} width={evidence.size.x} height={evidence.size.y} viewBox={`0 0 ${evidence.size.x} ${evidence.size.y}`} style={{overflow:'visible'}}>
-   {shadow&&<Defs><Filter id={`community-${kind}-shadow`} x="-100%" y="-100%" width="300%" height="300%"><FeDropShadow dx={shadow.offset.x} dy={shadow.offset.y} stdDeviation={shadow.radius} floodColor="#7A7A7A" floodOpacity={shadow.color.a}/></Filter></Defs>}
+   {shadow&&<Defs><Filter id={`community-${kind}-shadow`} x="-100%" y="-100%" width="300%" height="300%"><FeDropShadow dx={shadow.offset.x} dy={shadow.offset.y} stdDeviation={shadow.radius/2} floodColor="#7A7A7A" floodOpacity={shadow.color.a}/></Filter></Defs>}
    <G filter={shadow?`url(#community-${kind}-shadow)`:undefined}>{evidence.glyphs.map((glyph,index)=><Path key={index} d={glyph.path} fill={glyph.fill} opacity={glyph.opacity} transform={`translate(${glyph.position.x} ${glyph.position.y}) scale(${glyph.fontSize} ${-glyph.fontSize})`} />)}</G>
   </Svg>
  </View>;
@@ -28,12 +31,26 @@ export function PublicationPreview({card,tall=false}:{card:DiscoveryCardModel;ta
 }
 export default function DiscoveryCard({card,kind='tall',onOpen}:{card:DiscoveryCardModel;kind?:'tall'|'standard'|'square';onOpen:()=>void}) {
  const definition=source[kind];const tall=kind==='tall';
- return <Pressable accessibilityRole="button" accessibilityLabel={`查看${card.title}，${card.creator}，${card.summary}，${card.availability}`} onPress={onOpen} testID={`discovery-publication-${card.id}`} style={[communitySurface(definition),styles.card,{width:definition.size.width,height:definition.size.height}]}>
-  <Text numberOfLines={tall?2:1} style={styles.title}>{card.title}</Text>
-  <Text numberOfLines={1} style={styles.creator}>{card.creator}</Text>
-  <Text numberOfLines={tall?5:2} style={styles.summary}>{card.summary}</Text>
-  {tall&&<View style={{marginTop:12}}><PublicationPreview card={card} tall /></View>}
-  <Text style={styles.availability}>{card.availability}</Text>
+ const surface=communitySurface(definition);
+ return <Pressable accessibilityRole="button" accessibilityLabel={`查看${card.title}，${card.creator}，${card.summary}，${card.availability}`} onPress={onOpen} testID={`discovery-publication-${card.id}`} style={[surface,styles.card,{width:definition.size.width,height:definition.size.height},tall&&{padding:0,borderWidth:0}]}>
+  {tall?<>
+   <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:surface.borderWidth,borderColor:surface.borderColor,borderRadius:surface.borderRadius}]} />
+   <View style={{position:'absolute',left:slots.header.x,top:slots.header.y,width:slots.header.width,height:slots.header.height}}>
+    <View pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={{position:'absolute',left:slots.avatar.x,top:slots.avatar.y,width:slots.avatar.width,height:slots.avatar.height}}><FigmaTree node={mascot.tree as unknown as FigmaTreeNode} prefix={`community-brand-mascot-${card.id}`} testID={`community-brand-mascot-${card.id}`}/></View>
+    <View style={{position:'absolute',left:slots.copy.x,top:slots.copy.y,width:slots.header.width-slots.copy.x,height:slots.copy.height}}>
+     <Text numberOfLines={1} style={communityCardStyles.title}>{card.title}</Text>
+     <Text numberOfLines={1} style={[communityCardStyles.creator,{position:'absolute',top:slots.creator.y,width:'100%'}]}>{card.creator}</Text>
+    </View>
+   </View>
+   <Text numberOfLines={5} style={[communityCardStyles.summary,{position:'absolute',left:slots.summary.x,top:slots.summary.y,width:slots.summary.width,height:slots.summary.height}]}>{card.summary}</Text>
+   <View style={{position:'absolute',left:slots.preview.x,top:slots.preview.y}}><PublicationPreview card={card} tall /></View>
+   <Text style={[communityCardStyles.availability,{position:'absolute',left:slots.summary.x,bottom:17}]}>{card.availability}</Text>
+  </>:<>
+   <Text numberOfLines={1} style={styles.title}>{card.title}</Text>
+   <Text numberOfLines={1} style={styles.creator}>{card.creator}</Text>
+   <Text numberOfLines={2} style={styles.summary}>{card.summary}</Text>
+   <Text style={styles.availability}>{card.availability}</Text>
+  </>}
  </Pressable>;
 }
 export const communityCardStyles=StyleSheet.create({

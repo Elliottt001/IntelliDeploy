@@ -18,6 +18,7 @@ test('a failed candidate preserves the old delivery and the persisted conversati
   await page.route('**/api/apps/app', route => route.fulfill({ json: app }));
   await page.route('**/api/jobs/job', route => route.fulfill({ json: app.latest_job }));
   await page.goto('/app-detail/app');
+  await page.getByTestId('chatbot-settings').click(); await page.getByTestId('conversation-toggle').click();
   await expect(page.getByText('记录并分析梦境', { exact: true })).toBeVisible();
   await expect(page.getByText('本次调整未完成', { exact: true }).first()).toBeVisible();
   await expect(page.getByTestId('open-app')).toBeVisible();
@@ -70,6 +71,7 @@ test('create uses the persistent API and keeps the same app after leaving the sc
   await expect(page.getByTestId('open-app')).toHaveCount(0);
   await page.goto('/app-gallery');
   await page.getByTestId('product-folder-created').click();
+  await page.getByTestId('products-actions-open').click(); await page.getByRole('button',{name:'查看应用列表',exact:true}).click();
   await page.getByText('梦境记录', { exact: true }).click();
   await expect(page).toHaveURL(/\/app-detail\/app/);
   expect(creates).toBe(1);
@@ -121,6 +123,7 @@ test('leaving during a send does not leave the restored conversation permanently
   await page.getByTestId('send-message').click();
   await expect(page.getByTestId('send-message')).toBeDisabled();
   await expect.poll(() => Boolean(finish)).toBe(true);
+  await page.getByTestId('chatbot-settings').click();
   await page.getByRole('button', { name: '我的应用', exact: true }).click();
   await expect(page).toHaveURL(/\/app-gallery$/);
   finish();
@@ -141,6 +144,7 @@ test('an unknown running phase stays neutral and cannot be mistaken for success'
   await expect(page.getByText(/%/)).toHaveCount(0);
   await expect(page.getByTestId('open-app')).toBeVisible();
   await expect(page.getByTestId('mibo-stage')).toBeVisible();
+  await page.getByTestId('chatbot-settings').click(); await page.getByRole('button', { name: '查看任务阶段', exact: true }).click();
   const stages = page.locator('[data-testid^="job-progress-"]');
   await expect(stages).toHaveCount(8);
   const colors = await stages.evaluateAll(elements => elements.map(element => getComputedStyle(element.lastElementChild!).color));
@@ -160,7 +164,7 @@ test('a message conflict reads the current app once without resending or losing 
   await page.goto('/app-detail/app');
   await page.getByTestId('message-input').fill('保持私有');
   await page.getByTestId('send-message').click();
-  await expect(page.getByTestId('cancel-job')).toBeVisible();
+  await page.getByTestId('chatbot-settings').click();await page.getByTestId('delivery-management-toggle').click();await expect(page.getByTestId('cancel-job')).toBeVisible();
   await expect(page.getByTestId('message-input')).toHaveValue('保持私有');
   await expect(page.getByTestId('send-message')).toBeDisabled();
   expect(sends).toBe(1);

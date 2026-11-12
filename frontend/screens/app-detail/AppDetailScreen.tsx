@@ -1,7 +1,8 @@
+import {mobileFontFamilies} from '../../theme/typography';
 import { VisualPendingSection } from '../../components/mobile/VisualPendingSection';
 import { BrandHeader } from '../../components/mobile/BrandHeader';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Text, View } from 'react-native';
+import { AppState, Platform, Pressable, Text, View, type TextStyle } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { randomUUID } from 'expo-crypto';
@@ -10,7 +11,11 @@ import { authAPI, phase1Api } from '../../services/api';
 import { subscribeJob } from '../../services/jobPolling';
 import { clearDraft, readDraft, saveDraft } from '../../services/workspaceStorage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {ChatComposer} from '../../components/mobile/ChatComposer';
+import {ActualReplyText} from '../../components/mobile/ActualReplyText';
+import {needsDetailedReplyLayout, splitReplyLines} from '../../features/chatbot/replyLayout';
 import { MiboStage, JobProgress } from '../../components/mobile';
+import {miboRenderEvidence} from '../../design/miboRenderEvidence';
 import { ChatbotPage, viewStyles as styles } from '../../features/chatbot/CreateWorkspaceView';
 import { AppConversationView } from '../../features/chatbot/AppConversationView';
 import { getJobVisualState } from '../../features/chatbot/jobVisualState';
@@ -21,6 +26,9 @@ import PublicationSettings from '../../components/PublicationSettings';
 export default function AppDetailScreen({ appId }: { appId: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [conversationExpanded,setConversationExpanded]=useState(false);
+  const [phasesExpanded,setPhasesExpanded]=useState(false);
+  const [managementOpen,setManagementOpen]=useState(false);
   const [app, setApp] = useState<components['schemas']['AppDetail'] | null>(null);
   const [content, setContent] = useState('');
   const [draftKey, setDraftKey] = useState('');
@@ -34,6 +42,12 @@ export default function AppDetailScreen({ appId }: { appId: string }) {
   const focusScope = useRef<symbol | null>(null);
   const job = app?.active_job ?? app?.latest_job;
   const jobState = getJobVisualState(job ?? null);
+  const latestAssistant=app?.conversation.slice().reverse().find(message=>message.role==='assistant');
+  const hasDetailedReply=Boolean(latestAssistant && needsDetailedReplyLayout(latestAssistant.content));
+  const lateShortReply=jobState.kind==='validating'||jobState.kind==='deploying';
+  const shortReplyLayout=lateShortReply?miboRenderEvidence.lateShortReplyLayout:miboRenderEvidence.shortReplyLayout;
+  const replyPanel=jobState.kind==='succeeded'?miboRenderEvidence.successReplyPanel:miboRenderEvidence.replyPanel;
+  const replyStyle=hasDetailedReply?miboRenderEvidence.replyStyles.detailed:miboRenderEvidence.replyStyles.short;
   const login = useCallback(() => router.replace({ pathname: '/login', params: { next: `/app-detail/${appId}` } }), [appId, router]);
   const reload=useCallback(async()=>{const detail=await phase1Api.getApp(appId);if(mounted.current)setApp(detail);},[appId]);
 
@@ -126,22 +140,29 @@ export default function AppDetailScreen({ appId }: { appId: string }) {
     } finally { submitting.current = false; setBusy(false); }
   }
 
-  return <ChatbotPage insets={insets} onBack={() => router.back()} onProducts={() => router.push('/app-gallery')} onBilling={() => router.push('/billing')}>
+  const changeContent=(value:string)=>{setContent(value);if(draftKey)void saveDraft(draftKey,value).catch(()=>setError('草稿未能保存，请稍后重试'));};
+  return <ChatbotPage detailActions={app?[{id:'conversation-toggle',label:'需求与调整',expanded:conversationExpanded,onPress:()=>setConversationExpanded(value=>!value)},{id:'job-phases-toggle',label:'查看任务阶段',expanded:phasesExpanded,onPress:()=>setPhasesExpanded(value=>!value)},{id:'delivery-management-toggle',label:'交付与管理',expanded:managementOpen,onPress:()=>setManagementOpen(value=>!value)}]:undefined} insets={insets} onBack={() => router.back()} onProducts={() => router.push('/app-gallery')} onBilling={() => router.push('/billing')} footer={app?<ChatComposer value={content} editable={Boolean(draftKey)} busy={busy} canSubmit={jobState.canCompose} onChangeText={changeContent} onSubmit={()=>{void send();}}/>:undefined}>
     {!app && !error && <Text style={styles.caption}>正在读取应用…</Text>}
     {Boolean(error) && <Text testID="workspace-error" accessibilityRole="alert" style={styles.error}>{error}</Text>}
     {Boolean(networkError) && <Text testID="network-retry" accessibilityRole="alert" style={styles.error}>{networkError}</Text>}
     {app && <>
-      <MiboStage state={jobState} question={job?.question} errorMessage={job?.error?.message} />
-      <JobProgress state={jobState} testID="job-status" />
-      <AppConversationView app={app} jobState={jobState} conversation={app.conversation}
+      <MiboStage hasDetails={hasDetailedReply} titleTestID="job-status" state={jobState} question={job?.question} errorMessage={job?.error?.message} />
+      {latestAssistant&&<View accessibilityLabel="Mibo 最新回复" style={[{alignSelf:'center',width:283,maxWidth:'100%'},hasDetailedReply?{borderRadius:replyPanel.cornerRadius,backgroundColor:replyPanel.backgroundColor,paddingLeft:replyPanel.textPosition.m02,paddingRight:replyPanel.size.x-replyPanel.textPosition.m02-replyPanel.textSize.x,paddingVertical:replyPanel.textPosition.m12,minHeight:replyPanel.size.y,marginTop:replyPanel.offsetY,shadowColor:'#897AB9',shadowOffset:{width:replyPanel.shadow.offset.x,height:replyPanel.shadow.offset.y},shadowOpacity:replyPanel.shadow.color.a,shadowRadius:replyPanel.shadow.radius}:{marginTop:lateShortReply?miboRenderEvidence.lateShortReplyLayout.offsetY:0}]}>
+        <Text style={{fontFamily:mobileFontFamilies.pingFang,fontSize:10,lineHeight:14,color:'#7F80A1',marginBottom:hasDetailedReply?0:7,textAlign:hasDetailedReply?'left':'center',...(hasDetailedReply?{position:'absolute',left:replyPanel.textPosition.m02,top:-20}:{} )}}>Mibo 最新回复</Text>
+        {hasDetailedReply?<ActualReplyText testID="latest-assistant-reply" content={latestAssistant.content} style={{width:replyPanel.textSize.x,transform:Platform.OS==='web'?[{translateY:replyStyle.lineBaselines[0]-14}]:undefined,fontFamily:mobileFontFamilies.pingFang,fontSize:replyStyle.fontSize,lineHeight:replyStyle.lineHeight,color:replyStyle.textColor}}/>:<View testID="latest-assistant-reply" accessibilityLabel={latestAssistant.content} style={{marginLeft:shortReplyLayout.textOriginX-(375-283)/2}}>{splitReplyLines(latestAssistant.content).map((line,index)=><Text key={index} testID={`assistant-reply-line-${index}`} style={{fontFamily:mobileFontFamilies.pingFang,fontSize:replyStyle.fontSize,lineHeight:replyStyle.lineHeight,color:replyStyle.textColor,minHeight:replyStyle.lineHeight,marginTop:index?shortReplyLayout.lineOffsets[index]-shortReplyLayout.lineOffsets[index-1]-replyStyle.lineHeight:0}}>{line.content}<Text style={Platform.OS==='web'?({whiteSpace:'normal'} as unknown as TextStyle):undefined}>{line.separator}</Text></Text>)}</View>}
+      </View>}
+      {phasesExpanded&&<JobProgress state={jobState} compact showToggle={false} expanded onToggle={()=>setPhasesExpanded(value=>!value)}/>}
+      <AppConversationView compact showToggle={false} showManagementActions={managementOpen} expanded={conversationExpanded} onToggle={()=>setConversationExpanded(value=>!value)} showComposer={false} app={app} jobState={jobState} conversation={app.conversation}
         content={content} editable={Boolean(draftKey)} busy={busy}
-        onChangeContent={value => { setContent(value); if (draftKey) void saveDraft(draftKey, value).catch(() => setError('草稿未能保存，请稍后重试')); }}
+        onChangeContent={changeContent}
         onSend={() => { void send(); }} onRefresh={() => setEpoch(value => value + 1)}
         onResume={() => { void action('resume'); }} onCancel={() => { void action('cancel'); }}
         onBilling={() => router.push('/billing')} onRestart={() => router.push('/chatbot')} />
-      <VisualPendingSection label="应用交付与管理" route="/app-detail/[id]:secondary"><View testID="app-detail-secondary" style={{ gap: 14 }}><BrandHeader testID="secondary-brand-header" />
-        <DeliveryCard app={app} /><InstanceControls app={app} reload={reload} /><PublicationSettings app={app} reload={reload} />
-      </View></VisualPendingSection>
+      <DeliveryCard app={app}/>
+
+      {managementOpen&&<VisualPendingSection label="应用交付与管理" route="/app-detail/[id]:secondary"><View testID="app-detail-secondary" style={{ gap: 14 }}><BrandHeader testID="secondary-brand-header" />
+        <InstanceControls app={app} reload={reload} /><PublicationSettings app={app} reload={reload} />
+      </View></VisualPendingSection>}
     </>}
   </ChatbotPage>;
 }

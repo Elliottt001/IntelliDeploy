@@ -3,20 +3,20 @@ import type { MobileRoute } from '../navigation/mobileNavigation';
 export const homeSuggestions = [
   {
     id: 'notes',
-    label: '做一个可搜索的私人笔记应用',
-    prompt: '创建一个可搜索的私人笔记应用',
+    label: 'AI Copilot',
+    prompt: '创建一个用于记录、搜索和整理私人笔记的 AI Copilot',
     source: 'curated',
   },
   {
     id: 'habits',
-    label: '做一个习惯记录和复盘工具',
-    prompt: '创建一个习惯记录和复盘工具',
+    label: 'Notion 模版',
+    prompt: '创建一个用于习惯记录和复盘的 Notion 模版工具',
     source: 'curated',
   },
   {
     id: 'inventory',
-    label: '做一个家庭物品清单',
-    prompt: '创建一个家庭物品清单',
+    label: '自动化工作流',
+    prompt: '创建一个用于整理家庭物品清单的自动化工作流',
     source: 'curated',
   },
 ] as const;

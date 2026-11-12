@@ -71,7 +71,7 @@ test('next rejects open redirects and malformed route values', () => {
   }
 });
 
-test('mobile Playwright only discovers mock mobile specs and starts one Expo server', () => {
+test('mobile Playwright only discovers mock mobile specs and uses loopback Expo and fixture servers', () => {
   expect(Array.isArray(mobilePlaywrightConfig.testMatch)).toBe(true);
   const testMatch = mobilePlaywrightConfig.testMatch as RegExp[];
   const matches = (path: string) => testMatch.some((pattern) => pattern.test(path));
@@ -92,8 +92,11 @@ test('mobile Playwright only discovers mock mobile specs and starts one Expo ser
     expect(matches(path), path).toBe(false);
   }
 
-  expect(Array.isArray(mobilePlaywrightConfig.webServer)).toBe(false);
-  expect(mobilePlaywrightConfig.webServer).toMatchObject({
+  const servers=mobilePlaywrightConfig.webServer;
+  expect(Array.isArray(servers)).toBe(true);
+  expect(servers).toHaveLength(2);
+  expect((servers as object[])[0]).toMatchObject({command:'node scripts/serve-mobile-visual-fixture.mjs',url:'http://127.0.0.1:9199/health',reuseExistingServer:false});
+  expect((servers as object[])[1]).toMatchObject({
     command: 'npm run web -- --port 8086',
     env: {
       CI: '1',

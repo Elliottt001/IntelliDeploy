@@ -15,6 +15,7 @@ type BrandHeaderProps = {
   subtitle?: string;
   testID?: string;
   title?: string;
+  paintOffsetY?: number;
 };
 
 const DEFAULT_SUBTITLE = 'Powered by Sealos | GitHub';
@@ -73,13 +74,14 @@ export function BrandHeader({
   subtitle = DEFAULT_SUBTITLE,
   testID,
   title = DEFAULT_TITLE,
+  paintOffsetY = 0,
 }: BrandHeaderProps) {
   const useDefaultMark = !logo && subtitle === DEFAULT_SUBTITLE && title === DEFAULT_TITLE;
 
   return (
     <View style={styles.header} testID={testID}>
       {useDefaultMark ? (
-        <View accessibilityLabel={title} style={styles.brandMarkWrapper}>
+        <View accessibilityLabel={title} style={[styles.brandMarkWrapper,{transform:[{translateY:paintOffsetY}]}]}>
           <BrandMark />
         </View>
       ) : (

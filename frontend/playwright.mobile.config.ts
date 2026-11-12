@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  updateSnapshots: 'none',
   testMatch: [
     /(?:^|[/\\])mobile-[^/\\]+\.spec\.ts$/,
     /(?:^|[/\\])(?:community|workspace)\.spec\.ts$/,
@@ -13,7 +14,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
     viewport: { height: 812, width: 375 },
   },
-  webServer: {
+  webServer: [{command:'node scripts/serve-mobile-visual-fixture.mjs',url:'http://127.0.0.1:9199/health',reuseExistingServer:false}, {
     command: 'npm run web -- --port 8086',
     env: {
       CI: '1',
@@ -22,5 +23,5 @@ export default defineConfig({
     },
     reuseExistingServer: false,
     url: 'http://127.0.0.1:8086',
-  },
+  }],
 });

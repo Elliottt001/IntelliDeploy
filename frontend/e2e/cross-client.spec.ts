@@ -1,8 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 
-// Test-only fixture database; match the backend's DATABASE_URL when overridden.
-const databaseUrl = process.env.DATABASE_URL ?? 'postgresql+psycopg://intellideploy:dev-only@127.0.0.1:55432/intellideploy_test';
+import {resolveTestDatabaseUrl} from './testDatabase';
+
+const databaseUrl = resolveTestDatabaseUrl();
 
 test('Web and Expo share real PostgreSQL app, job and conversation IDs', async ({ browser, request }, testInfo) => {
   const apiUrl = 'http://127.0.0.1:9105';
@@ -23,7 +24,7 @@ test('Web and Expo share real PostgreSQL app, job and conversation IDs', async (
     await web.getByLabel('密码').fill(password);
     await web.getByRole('button', { name: '登录', exact: true }).click();
     await expect(web).toHaveURL(/\/apps$/);
-    await web.goto('http://127.0.0.1:3105/');
+    await web.goto('http://127.0.0.1:3105/create');
     await web.getByLabel('你想做什么应用？').fill('记录梦境并保存历史');
     await web.getByRole('button', { name: '开始创建' }).click();
     await expect(web).toHaveURL(/\/apps\/[a-f0-9-]+$/);
@@ -32,6 +33,7 @@ test('Web and Expo share real PostgreSQL app, job and conversation IDs', async (
     const detail = await (await request.get(`${apiUrl}/api/apps/${appId}`, { headers })).json();
     const jobId = detail.active_job.id;
     await mobile.goto(`http://127.0.0.1:8085/app-detail/${appId}`);
+    await mobile.getByTestId('chatbot-settings').click(); await mobile.getByTestId('conversation-toggle').click();
     await expect(mobile.getByText('记录梦境并保存历史', { exact: true }).last()).toBeVisible();
     await expect(mobile.getByTestId('open-app')).toHaveCount(0);
 
@@ -65,6 +67,7 @@ with Session(engine) as session:
     await web.goto(`http://127.0.0.1:3105/apps/${mobileAppId}`);
     await expect(web.getByText('另一个私有笔记应用', { exact: true }).last()).toBeVisible();
     await mobile.reload();
+    await mobile.getByTestId('chatbot-settings').click(); await mobile.getByTestId('conversation-toggle').click();
     await expect(mobile.getByText('另一个私有笔记应用', { exact: true }).last()).toBeVisible();
     const report = await (await request.get(`${apiUrl}/api/jobs/${jobId}/report`, { headers })).json();
     expect(report.overall).toBe('NOT_RUN');

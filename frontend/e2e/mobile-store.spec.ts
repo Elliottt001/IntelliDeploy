@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 
 const stamp = '2026-11-10T00:00:00Z';
@@ -23,6 +24,34 @@ const publication = (id: string, name: string, updatedAt: string, previewUrl: st
 const first = publication('first', '首页应用', stamp, 'https://broken.invalid/preview.png');
 const second = publication('second', '相邻应用', '2026-11-09T00:00:00Z');
 const third = publication('third', '第二页应用', '2026-11-11T00:00:00Z');
+test('API previews take priority while missing previews show a clearly separate static design illustration',async({page})=>{
+ const url='http://127.0.0.1:9199/fixture/notes-preview.svg';
+ await page.route('**/api/community/apps**',r=>r.fulfill({json:{items:[publication('preview','实际 API 应用',stamp,url),publication('missing','没有预览的应用',stamp),publication('failed','加载失败的应用',stamp,'http://127.0.0.1:9199/fixture/missing-preview.png')],next_cursor:null}}));
+ await page.goto('/store');
+ const image=page.getByLabel('实际 API 应用预览',{exact:true});await expect(image).toBeVisible();
+ expect((await image.boundingBox())!.width).toBe(214);expect((await image.boundingBox())!.height).toBe(184);
+ expect(await image.locator('img').getAttribute('src')).toBe(url);
+ await expect(page.getByTestId('store-static-design-illustration-preview')).toHaveCount(0);
+ await page.getByTestId('store-carousel-card-missing').click();
+ const missing=page.getByTestId('store-preview-placeholder-missing');await expect(missing).toBeVisible();
+ await expect(missing).toContainText('示意图 · 暂无应用预览');
+ const illustration=page.getByTestId('store-static-design-illustration-missing');await expect(illustration).toBeVisible();
+ await expect(illustration).toHaveAttribute('aria-label','示意图，不代表当前应用预览');
+ const restoredImage=await page.request.get((await illustration.locator('img').getAttribute('src'))!);expect(restoredImage.status()).toBe(200);
+ expect(createHash('sha256').update(await restoredImage.body()).digest('hex')).toBe('d192dc7d4e2e0e05fe7b40c1e0827d79df52ab884909237a195e0d586b0e963a');
+ await expect(page.getByLabel('没有预览的应用预览',{exact:true})).toHaveCount(0);
+ await page.getByTestId('store-carousel-card-failed').click();
+ const failed=page.getByTestId('store-preview-placeholder-failed');await expect(failed).toContainText('预览加载失败');
+ await expect(page.getByTestId('store-static-design-illustration-failed')).toHaveCount(0);
+});
+
+test('empty public API results never insert static illustration cards or sample applications',async({page})=>{
+ await page.route('**/api/community/apps**',r=>r.fulfill({json:{items:[],next_cursor:null}}));
+ await page.goto('/store');
+ await expect(page.getByText('已加载的应用中没有匹配项',{exact:true})).toBeVisible();
+ await expect(page.getByTestId(/^store-carousel-card-/)).toHaveCount(0);
+ await expect(page.getByTestId(/^store-static-design-illustration-/)).toHaveCount(0);
+});
 
 async function mockPublications(page: Page) {
   await page.route('https://broken.invalid/**', (route) => route.abort());
@@ -221,7 +250,8 @@ test('ranking is public and explains its honest recent-update order', async ({ p
   await mockPublications(page);
   await page.goto('/store/ranking');
 
-  await expect(page.getByRole('heading', { name: '热门榜单' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '应用商店' })).toBeVisible();
+  await expect(page.getByText('热门榜单推荐',{exact:true})).toBeVisible();
   await expect(page.getByText('按最近更新时间排序')).toBeVisible();
   const rows = page.getByTestId(/^store-ranking-row-/);
   await expect(rows).toHaveCount(2);

@@ -1,8 +1,9 @@
 import {execFileSync} from 'node:child_process';
 import {expect,test} from '@playwright/test';
 
-// Test-only fixture database; match the backend's DATABASE_URL when overridden.
-const databaseUrl = process.env.DATABASE_URL ?? 'postgresql+psycopg://intellideploy:dev-only@127.0.0.1:55432/intellideploy_test';
+import {resolveTestDatabaseUrl} from './testDatabase';
+
+const databaseUrl = resolveTestDatabaseUrl();
 
 test('Web and Expo share one publication, favorites and an independent queued copy',async({browser,request},testInfo)=>{
  const api='http://127.0.0.1:9105';const suffix=crypto.randomUUID();const password='test-only-community-password';

@@ -13,6 +13,8 @@ export default function AppGalleryScreen() {
   const insets = useSafeAreaInsets();
   const [category, setCategory] = useState<'created' | 'copies'>('created');
   const [expanded, setExpanded] = useState(false);
+  const [listOpen,setListOpen]=useState(false);
+  const [actionsOpen,setActionsOpen]=useState(false);
   const [data, setData] = useState<AppPage | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -48,23 +50,22 @@ export default function AppGalleryScreen() {
     } finally { if (request === epoch.current) setBusy(false); }
   }
   const items = partitionApps(data?.items ?? [])[category];
-  function select(next: 'created' | 'copies') { setCategory(next); setExpanded(false); }
+  function select(next: 'created' | 'copies') {setActionsOpen(false);setCategory(next);setExpanded(false);setListOpen(false);}
   return <>
     <Stack.Screen options={{ headerShown: false }} />
-    <ProductPage title="我的产品" subtitle={category === 'created' ? '点击查看我创建的应用' : '点击查看我的应用副本'} insets={insets} onBack={() => router.push('/')} testID="mobile-products">
+    <ProductPage title="我的产品" subtitle={category === 'created' ? '点击查看我创建的应用' : '点击查看我的应用副本'} insets={insets} onBack={() => router.push('/')} testID="mobile-products" actionsOpen={actionsOpen} onToggleActions={()=>setActionsOpen(value=>!value)} actions={<> <ProductActions>
+        <ProductAction label="我创建的" selected={category === 'created'} onPress={() => select('created')} />
+        <ProductAction label="我的副本" selected={category === 'copies'} onPress={() => select('copies')} />
+        <ProductAction label="我的收藏" onPress={()=>{setActionsOpen(false);router.push({pathname:'/library/[kind]',params:{kind:'favorites'}});}} />
+        <ProductAction label="最近使用" onPress={()=>{setActionsOpen(false);router.push({pathname:'/library/[kind]',params:{kind:'recent'}});}} />
+      </ProductActions>
+<ProductActions><ProductAction label={listOpen?"收起应用列表":"查看应用列表"} testID="products-app-list-toggle" onPress={()=>{setListOpen(value=>!value);setExpanded(true);setActionsOpen(false);}}/><ProductAction label="新建应用" onPress={()=>{setActionsOpen(false);router.push('/chatbot');}}/></ProductActions></>}>
       {loading && <ProductMessage>正在读取应用…</ProductMessage>}
       {Boolean(error) && <ProductMessage alert>{error}</ProductMessage>}
       {!loading && Boolean(error) && !data && <ProductAction label="重试" onPress={() => void load()} />}
-      {data && <ProductFolder id={category} title={category === 'created' ? '我创建的' : '我的副本'} items={items} expanded={expanded} hasMore={Boolean(data.next_cursor)} onToggle={() => setExpanded(value => !value)} />}
-      <ProductActions>
-        <ProductAction label="我创建的" selected={category === 'created'} onPress={() => select('created')} />
-        <ProductAction label="我的副本" selected={category === 'copies'} onPress={() => select('copies')} />
-        <ProductAction label="我的收藏" onPress={() => router.push({ pathname: '/library/[kind]', params: { kind: 'favorites' } })} />
-        <ProductAction label="最近使用" onPress={() => router.push({ pathname: '/library/[kind]', params: { kind: 'recent' } })} />
-      </ProductActions>
-      {data && expanded && <ProductList items={items.map(app => ({ id: app.id, name: app.name, status: getAppStatusLabel(app) }))} onOpen={id => router.push({ pathname: '/app-detail/[id]', params: { id } })} />}
+      {data && <ProductFolder id={category} title={category === 'created' ? '我创建的' : '我的副本'} items={items} expanded={expanded} hasMore={Boolean(data.next_cursor)} onToggle={() => {setExpanded(value => !value);setListOpen(false);}} />}
+      {data && expanded && (listOpen||items.length===0) && <ProductList items={items.map(app => ({ id: app.id, name: app.name, status: getAppStatusLabel(app) }))} onOpen={id => router.push({ pathname: '/app-detail/[id]', params: { id } })} />}
       {Boolean(data?.next_cursor) && <ProductActions><ProductAction label={busy ? '加载中…' : '加载更多'} disabled={busy || loading} onPress={() => void more()} testID="products-load-more" /></ProductActions>}
-      <ProductActions><ProductAction label="新建应用" onPress={() => router.push('/chatbot')} /></ProductActions>
     </ProductPage>
   </>;
 }

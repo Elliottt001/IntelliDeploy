@@ -1,0 +1,44 @@
+appId: cn.elliotttzhang.intellideploy
+name: Native navigation and safe-area tab reachability
+tags: [phase1, navigation]
+onFlowStart:
+  - launchApp:
+      clearState: true
+---
+- tapOn:
+    id: login-account
+- inputText: ${USERNAME}
+- tapOn:
+    id: login-password
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: login-privacy
+- tapOn:
+    id: login-submit
+- assertVisible:
+    id: home-bottom-nav
+- tapOn: 应用
+- assertVisible:
+    id: mobile-store
+- assertVisible:
+    id: store-bottom-nav
+- back
+- assertVisible:
+    id: home-bottom-nav
+- tapOn: 广场
+- assertVisible:
+    id: mobile-community
+- back
+- assertVisible:
+    id: home-bottom-nav
+- tapOn: 我的
+- assertVisible:
+    id: mobile-products
+- back
+- assertVisible:
+    id: home-bottom-nav
+- assertVisible: 首页
+- assertVisible: 应用
+- assertVisible: 广场
+- assertVisible: 我的

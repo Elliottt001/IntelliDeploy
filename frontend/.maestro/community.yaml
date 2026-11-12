@@ -15,7 +15,8 @@ onFlowStart:
     id: job-status
 - extendedWaitUntil:
     visible:
-      id: open-app
+      id: job-status
+      text: 应用已交付
     timeout: 1800000
 - tapOn:
     id: open-app

@@ -66,8 +66,8 @@ test('recent update sorting puts invalid dates last and breaks every tie by id',
   ).toEqual(['newest', 'tie-a', 'tie-z', 'invalid-a', 'invalid-z']);
 });
 
-test('store evidence matches direct Kiwi geometry and honest no-symbol subtrees', () => {
-  const source = '/Users/bytedance/Downloads/IntelliDeploy-design-2026-11-10-2221';
+test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE)('store source audit (NOT_RUN unless INTELLIDEPLOY_FIGMA_SOURCE is set)', () => {
+  const source = process.env.INTELLIDEPLOY_FIGMA_SOURCE!;
   const document = JSON.parse(
     readFileSync(path.join(source, 'design-data/document.kiwi.json'), 'utf8'),
   ) as {

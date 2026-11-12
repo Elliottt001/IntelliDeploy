@@ -6,6 +6,7 @@ export const mobileFontFamilies = {
   emphasis: 'AlibabaPuHuiTiSemiBold',
   pingFang: Platform.select({
     ios: 'PingFang SC',
+    web: 'PingFang SC',
     default: 'AlibabaPuHuiTiRegular',
   }),
   inter: Platform.select({

@@ -10,11 +10,27 @@ onFlowStart:
 - openLink: intellideploy://app-detail/${APP_ID}
 - assertVisible:
     id: job-status
+- stopApp
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      id: job-status
+    timeout: 15000
+- tapOn:
+    id: chatbot-settings
+- tapOn:
+    id: delivery-management-toggle
 - tapOn:
     id: refresh-job
 - tapOn:
     id: message-input
 - inputText: ${FOLLOW_UP}
+- hideKeyboard
 - tapOn:
     id: send-message
+- tapOn:
+    id: chatbot-settings
+- tapOn:
+    id: conversation-toggle
 - assertVisible: ${FOLLOW_UP}

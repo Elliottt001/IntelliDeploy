@@ -1,6 +1,8 @@
 import type { PropsWithChildren } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
+import Svg from 'react-native-svg';
+import {MobileBackdrop} from './MobileBackdrop';
 import {
+  Platform,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -9,7 +11,6 @@ import {
 } from 'react-native';
 
 import { getMobileLayout } from '../../theme/responsive';
-import { mobileColors } from '../../theme/tokens';
 
 type AppBackgroundProps = PropsWithChildren<{
   contentStyle?: StyleProp<ViewStyle>;
@@ -17,6 +18,7 @@ type AppBackgroundProps = PropsWithChildren<{
   style?: StyleProp<ViewStyle>;
   testID?: string;
   width?: number;
+  atmosphere?: 'default' | 'chatbot' | 'profile';
 }>;
 
 export function AppBackground({
@@ -26,21 +28,17 @@ export function AppBackground({
   style,
   testID,
   width,
+  atmosphere = 'default',
 }: AppBackgroundProps) {
   const window = useWindowDimensions();
   const viewportWidth = width ?? window.width;
   const layout = getMobileLayout(viewportWidth, insets);
 
   return (
-    <LinearGradient
-      colors={[mobileColors.backgroundStart, mobileColors.backgroundEnd]}
-      end={{ x: 0.72, y: 1 }}
-      start={{ x: 0.15, y: 0 }}
-      style={[styles.background, style]}
-      testID={testID}
-    >
-      <View pointerEvents="none" style={styles.ambientPink} />
-      <View pointerEvents="none" style={styles.ambientPurple} />
+    <View style={[styles.background, style]} testID={testID}>
+      <Svg testID="mobile-source-atmosphere" pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={StyleSheet.absoluteFill} width="100%" height="100%">
+        <MobileBackdrop width={viewportWidth} height={window.height} variant={atmosphere}/>
+      </Svg>
       <View
         style={[
           styles.safeArea,
@@ -61,7 +59,7 @@ export function AppBackground({
           {children}
         </View>
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -79,23 +77,5 @@ const styles = StyleSheet.create({
   safeArea: {
     alignItems: 'center',
     flex: 1,
-  },
-  ambientPink: {
-    backgroundColor: 'rgba(255, 175, 220, 0.20)',
-    borderRadius: 272,
-    height: 542,
-    position: 'absolute',
-    right: -290,
-    top: 77,
-    width: 412,
-  },
-  ambientPurple: {
-    backgroundColor: 'rgba(124, 98, 255, 0.16)',
-    borderRadius: 210,
-    height: 418,
-    position: 'absolute',
-    right: -240,
-    top: 270,
-    width: 391,
   },
 });

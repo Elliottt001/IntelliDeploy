@@ -1,4 +1,4 @@
-import { StyleSheet, TextInput, View } from "react-native";
+import { Platform, StyleSheet, TextInput, View } from "react-native";
 
 import { mobileColors, mobileSpacing } from "../../theme/tokens";
 import { mobileFontFamilies } from "../../theme/typography";
@@ -20,6 +20,9 @@ export type ChatComposerProps = {
 export const chatComposerFigmaEvidence = {
   shellNodeId: "845:3530",
   contentNodeId: "845:3531",
+  textNodeId:"845:3532",
+  textOpacity:0.800000011920929,
+  textAlign:'center',
   noSymbolReason:
     "composer subtree is direct Kiwi geometry with no INSTANCE or SYMBOL descendants",
   width: 335,
@@ -51,6 +54,7 @@ export function ChatComposer({
 
   return (
     <View style={styles.composer}>
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:chatComposerFigmaEvidence.borderWidth,borderColor:'#FFFFFF',borderRadius:chatComposerFigmaEvidence.cornerRadius}]}/>
       <TextInput
         accessibilityLabel={inputLabel}
         editable={editable && !busy}
@@ -65,8 +69,8 @@ export function ChatComposer({
         testID={inputTestID}
         value={value}
       />
-      <View accessibilityElementsHidden style={styles.microphone}>
-        <MobileIcon color={mobileColors.muted} name="microphone" size={20} />
+      <View accessibilityElementsHidden style={styles.microphone} testID="chat-composer-microphone">
+        <View style={{position:'absolute',left:40.689514,top:2}}><MobileIcon color={mobileColors.muted} name="microphone" size={20} /></View>
       </View>
       <CircleAction
         accessibilityLabel={busy ? "正在提交" : submitLabel}
@@ -75,6 +79,7 @@ export function ChatComposer({
         onPress={submit}
         testID={submitTestID}
         variant="primary"
+        style={{position:'absolute',right:8.630871,top:5}}
       />
     </View>
   );
@@ -87,33 +92,41 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.70)",
     borderColor: "#FFFFFF",
     borderRadius: chatComposerFigmaEvidence.cornerRadius,
-    borderWidth: chatComposerFigmaEvidence.borderWidth,
-    flexDirection: "row",
-    gap: 14,
+    borderWidth: 0,
     maxWidth: chatComposerFigmaEvidence.width,
     minHeight: chatComposerFigmaEvidence.height,
-    paddingLeft: 13.027027,
-    paddingRight: 8.972973,
     shadowColor: "#BABABA",
     shadowOffset: { height: 1.786134, width: 0 },
     shadowOpacity: 0.25,
     shadowRadius: 2.679201,
     width: "100%",
+    position:'relative',
   },
   microphone: {
+    position:'absolute',
+    right:64.630871,
+    top:15,
     alignItems: "center",
     height: 24,
     justifyContent: "center",
     width: 58.684204,
   },
   input: {
-    color: mobileColors.text,
-    flex: 1,
+    color: 'rgba(107,114,128,0.8)',
+    textAlign:'center',
+    position:'absolute',
+    left:14.684925,
+    right:137.315075,
+    top:5,
     fontFamily: mobileFontFamilies.pingFang,
     fontSize: 12,
     lineHeight: 24,
     maxHeight: 120,
     minHeight: mobileSpacing.controlMin,
-    paddingVertical: 10,
+    // Source text frame begins10pt below the44pt target (729+7+8=744).
+    // Chromium's measured
+    //12/24 PingFang baseline is16pt; source derived baseline is16.32pt.
+    paddingTop: Platform.OS === 'web' ? 10.32 : 10,
+    paddingBottom: Platform.OS === 'web' ? 9.68 : 10,
   },
 });

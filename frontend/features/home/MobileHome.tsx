@@ -1,492 +1,459 @@
-import { useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-
-import { AppBackground, BottomNav, BrandHeader, CircleAction, GlassCard, MobileIcon } from '../../components/mobile';
-import { mobileAssets } from '../../design/generated/mobileAssetManifest';
-import { authAPI } from '../../services/api';
-import { mobileFontFamilies } from '../../theme/typography';
-import { mobileColors, mobileSpacing } from '../../theme/tokens';
+import { useEffect, useState } from "react";
+import {
+  Pressable,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import {
+  AppBackground,
+  BottomNav,
+  BrandHeader,
+  CircleAction,
+  MobileIcon,
+} from "../../components/mobile";
+import { FigmaText } from "../../components/mobile/FigmaText";
+import { FigmaGeometry } from "../../components/mobile/FigmaGeometry";
+import { homeRenderEvidence as source } from "../../design/homeRenderEvidence";
+import type { FigmaVectorLayer } from "../../design/figmaComponentEvidence";
+import { authAPI } from "../../services/api";
+import { mobileFontFamilies } from "../../theme/typography";
+import { getMobileLayout } from "../../theme/responsive";
 import {
   homeCards,
   homeFigmaEvidence,
   homeSuggestions,
   type HomeCardKey,
-} from './homeContent';
-
-const miboImage = mobileAssets['845:3522:114'].source;
-const cardIcons = {
-  community: 'compass',
-  products: 'user',
-  profile: 'user',
-  store: 'layout-grid',
-} as const satisfies Record<HomeCardKey, 'compass' | 'layout-grid' | 'user'>;
-const cardEvidenceByKey = Object.fromEntries(
-  homeFigmaEvidence.cards.map((card) => [card.key, card]),
-) as Record<HomeCardKey, (typeof homeFigmaEvidence.cards)[number]>;
-const suggestionPositions = ['suggestion0', 'suggestion1', 'suggestion2'] as const;
-
+} from "./homeContent";
+import { HomeAvatar, HomeCardArtwork, matrix } from "./HomeArtwork";
 export function MobileHome() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const [expandedCard, setExpandedCard] = useState<HomeCardKey | null>(null);
-  const [username, setUsername] = useState('你好');
-
+  const router = useRouter(),
+    insets = useSafeAreaInsets(),
+    viewport = useWindowDimensions(),
+    layout = getMobileLayout(viewport.width, insets);
+  const [expandedCard, setExpandedCard] = useState<HomeCardKey | null>(null),
+    [username, setUsername] = useState("你好"),
+    [cloudIndex, setCloudIndex] = useState(0);
   useEffect(() => {
     let alive = true;
     authAPI
       .getMe()
-      .then((response) => {
-        if (alive && response.data.username.trim()) {
-          setUsername(response.data.username.trim());
-        }
+      .then((r) => {
+        if (alive && r.data.username.trim())
+          setUsername(r.data.username.trim());
       })
       .catch(() => {
-        if (alive) {
-          setUsername('你好');
-        }
+        if (alive) setUsername("你好");
       });
     return () => {
       alive = false;
     };
   }, []);
-
-  const navigate = (href: string) => {
-    router.push(href as never);
-  };
-
+  const navigate = (href: string) => router.push(href as never),
+    cloud = source.clouds[cloudIndex];
   return (
     <AppBackground
-      contentStyle={styles.content}
-      insets={{ left: insets.left, right: insets.right }}
+      insets={insets}
       testID="mobile-home"
+      atmosphere={expandedCard === 'profile' ? 'profile' : 'default'}
+      contentStyle={{ position: "relative" }}
     >
       <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom + 100, paddingTop: insets.top + 18 },
-        ]}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingTop: Math.max(insets.top, 44),
+          paddingBottom: 100,
+        }}
       >
-        <BrandHeader
-          action={
-            <CircleAction
-              accessibilityLabel="额度与设置"
-              icon="settings"
-              onPress={() => navigate('/billing')}
-              style={styles.headerAction}
-              testID="home-settings"
-            />
-          }
-          subtitle="Powered by Sealos | GitHub"
-          title="IntelliDeploy"
-        />
-
-        <View style={styles.hero}>
-          <View style={styles.miboHalo}>
-            <Image accessibilityIgnoresInvertColors source={miboImage} style={styles.mibo} />
-          </View>
-          <View style={styles.heroCopy}>
-            <Text style={styles.greeting}>Hi！{username}</Text>
-            <Text style={styles.question}>今天又有什么新想法？</Text>
-            <Pressable
-              accessibilityRole="button"
-              hitSlop={8}
-              onPress={() => navigate('/chatbot')}
-              style={styles.miboLink}
-              testID="home-mibo-open"
-            >
-              <Text style={styles.miboLinkText}>与 Mibo AI 对话</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <MobileIcon color={mobileColors.primary} name="arrow-right" size={13} />
-          <Text style={styles.sectionTitle}>灵感池</Text>
-          <Text style={styles.sectionMeta}>当日有什么新鲜好玩的</Text>
-        </View>
-        <GlassCard
-          style={[
-            styles.wordCloud,
-            {
-              height: homeFigmaEvidence.wordCloud.frame.height,
-              maxWidth: homeFigmaEvidence.wordCloud.frame.width,
-              minHeight: homeFigmaEvidence.wordCloud.frame.height,
-            },
-          ]}
-          testID="home-suggestions"
+        <View
+          style={{
+            width: Math.min(
+              347,
+              viewport.width - insets.left - insets.right - 28,
+            ),
+            alignSelf: "center",
+          }}
         >
-          {homeFigmaEvidence.wordCloud.items.map((item) => (
-            <Text
-              key={item.id}
-              style={[
-                styles.wordCloudText,
-                {
-                  color: item.color,
-                  fontSize: item.fontSize,
-                  left: item.x,
-                  lineHeight: item.height,
-                  opacity: item.opacity ?? 1,
-                  top: item.y,
-                  width: item.width,
-                },
-              ]}
-            >
-              {item.text}
-            </Text>
-          ))}
-          {homeSuggestions.map((suggestion, index) => (
+          <BrandHeader
+            paintOffsetY={1}
+            action={
+              <CircleAction
+                accessibilityLabel="额度与设置"
+                icon="settings"
+                onPress={() => navigate("/billing")}
+                testID="home-settings"
+              />
+            }
+          />
+        </View>
+        <View style={styles.hero}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="与 Mibo AI 对话"
+            onPress={() => navigate("/chatbot")}
+            testID="home-mibo-avatar"
+            style={styles.avatar}
+          >
+            {({pressed})=><HomeAvatar pressed={pressed}/>}
+          </Pressable>
+          <View style={styles.heroCopy}>
+            <Text style={styles.greeting}>Hi！{username}✨</Text>
+            <View style={{position:"absolute",top:source.question.transform.m12,left:source.question.transform.m02}}><FigmaText testID="home-question" evidence={source.question}/></View>
             <Pressable
               accessibilityRole="button"
-              key={suggestion.id}
-              onPress={() =>
-                navigate(`/chatbot?prompt=${encodeURIComponent(suggestion.prompt)}`)
-              }
-              style={[styles.suggestion, styles[suggestionPositions[index]]]}
-              testID={`home-suggestion-${suggestion.id}`}
+              onPress={() => navigate("/chatbot")}
+              accessibilityLabel="与 Mibo AI 对话"
+              testID="home-mibo-open"
+              style={[styles.miboLink,{left:Math.min(76.2495,viewport.width-insets.right-layout.gutter-(layout.gutter+12+82)-147.501)}]}
             >
-              <Text style={styles.suggestionText}>{suggestion.label.replace('做一个', '')}</Text>
+              <FigmaGeometry geometry={source.miboLink.geometry as readonly FigmaVectorLayer[]} width={source.miboLink.size.width} height={source.miboLink.size.height} prefix="home-mibo-link"/>
             </Pressable>
-          ))}
-        </GlassCard>
-
-        <View style={styles.sectionHeader}>
-          <MobileIcon color={mobileColors.primary} name="arrow-right" size={13} />
-          <Text style={styles.sectionTitle}>功能广场</Text>
-          <Text style={styles.sectionMeta}>立即探索你的新世界</Text>
+          </View>
         </View>
-
+        <View style={styles.inspirationHeader}>
+          <View style={{width:source.sectionIcon.size.width,height:source.sectionIcon.size.height}}><FigmaGeometry geometry={source.sectionIcon.geometry as readonly FigmaVectorLayer[]} width={source.sectionIcon.size.width} height={source.sectionIcon.size.height} prefix="home-inspiration-icon"/></View>
+          <FigmaText evidence={source.sectionLabels.inspiration}/>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="换一组灵感"
+            testID="home-inspiration-refresh"
+            onPress={() => setCloudIndex((i) => (i + 1) % source.clouds.length)}
+            style={styles.refresh}
+          >
+            <FigmaText evidence={source.sectionLabels.refresh}/>
+          </Pressable>
+        </View>
+        <View style={styles.wordCloud} testID="home-suggestions" nativeID={cloud.sourceNodeId}>
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            <FigmaGeometry
+              geometry={
+                cloud.background.geometry as readonly FigmaVectorLayer[]
+              }
+              width={303}
+              height={111}
+              prefix="home-cloud"
+              transform={matrix(cloud.background.nodeTransform)}
+            />
+          </View>
+          {cloud.items.map((item) => {
+            const suggestion = homeSuggestions.find(
+              (s) => s.label === item.characters,
+            );
+            const glyph = <FigmaText evidence={item} />;
+            return suggestion ? (
+              <Pressable
+                key={item.sourceNodeId}
+                accessibilityRole="button"
+                accessibilityLabel={suggestion.label}
+                onPress={() =>
+                  navigate(
+                    `/chatbot?prompt=${encodeURIComponent(suggestion.prompt)}`,
+                  )
+                }
+                testID={`home-suggestion-${suggestion.id}`}
+                style={{
+                  position: "absolute",
+                  left: item.transform.m02,
+                  top: item.transform.m12 - Math.max(0, (44 - item.size.y) / 2),
+                  minWidth: 44,
+                  minHeight: 44,
+                  justifyContent: "center",
+                }}
+              >
+                {glyph}
+              </Pressable>
+            ) : (
+              <View
+                key={item.sourceNodeId}
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  left: item.transform.m02,
+                  top: item.transform.m12,
+                }}
+              >
+                {glyph}
+              </View>
+            );
+          })}
+        </View>
+        <View style={styles.functionHeader}>
+          <View style={{width:source.sectionIcon.size.width,height:source.sectionIcon.size.height}}><FigmaGeometry geometry={source.sectionIcon.geometry as readonly FigmaVectorLayer[]} width={source.sectionIcon.size.width} height={source.sectionIcon.size.height} prefix="home-functions-icon"/></View>
+          <FigmaText evidence={source.sectionLabels.functions}/>
+        </View>
         <View style={styles.cards}>
           {homeCards.map((card) => {
-            const expanded = expandedCard === card.key;
-            const evidence = cardEvidenceByKey[card.key];
+            const expanded = expandedCard === card.key,
+              e = homeFigmaEvidence.cards.find((e) => e.key === card.key)!;
+            const right = card.key === "products" || card.key === "profile";
+            const sourceCopy = card.key === 'profile' ? null : source.cardCopy[card.key];
             return (
-              <GlassCard
+              <View
                 key={card.key}
-                style={[
-                  styles.homeCard,
-                  {
-                    maxWidth: evidence.closed.width,
-                    minHeight: expanded
-                      ? evidence.expandedSurface.height
-                      : evidence.closed.height,
-                  },
-                ]}
                 testID={`home-card-${card.key}-shell`}
+                style={[styles.cardSlot, { zIndex: expanded ? 10 : 1 }]}
               >
-                <Pressable
-                  {...({ 'aria-expanded': expanded ? 'true' : 'false' } as object)}
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded }}
-                  onPress={() =>
-                    setExpandedCard((current) => (current === card.key ? null : card.key))
-                  }
-                  style={styles.cardToggle}
-                  testID={`home-card-${card.key}`}
+                <View
+                  style={[
+                    styles.card,
+                    {height:e.closed.height},
+                    expanded && {
+                      position: "absolute",
+                      top: e.expandedState.y - e.closed.y,
+                      height: e.expandedSurface.height,
+                    },
+                  ]}
                 >
-                  <View style={styles.cardIcon}>
-                    <MobileIcon
-                      color="#FFFFFF"
-                      name={cardIcons[card.key]}
-                      size={18}
-                    />
-                  </View>
-                  <View style={styles.cardCopy}>
-                    <Text style={styles.cardTitle}>{card.title}</Text>
-                    <Text style={styles.cardDescription}>{card.description}</Text>
-                  </View>
-                  <View style={styles.cardChevron}>
-                    <MobileIcon
-                      color={mobileColors.text}
-                      name="arrow-right"
-                      size={expanded ? 15 : 13}
-                    />
-                  </View>
-                </Pressable>
-
-                {expanded ? (
-                  <View style={styles.cardDetail}>
-                    <View style={styles.detailRail}>
-                      <View style={[styles.detailDot, styles.detailDotPrimary]} />
-                      <View style={[styles.detailDot, styles.detailDotBlue]} />
-                      <View style={[styles.detailDot, styles.detailDotPink]} />
-                    </View>
-                    <Text style={styles.detailText}>
-                      {card.key === 'community'
-                        ? '匿名可读广场内容，互动操作按现有登录规则进入。'
-                        : card.description}
-                    </Text>
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => navigate(card.href)}
-                      style={styles.openButton}
-                      testID={`home-card-${card.key}-open`}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${sourceCopy?.title.characters ?? card.title}，${sourceCopy?.description.characters ?? card.description}`}
+                    accessibilityState={{ expanded }}
+                    aria-expanded={expanded}
+                    testID={`home-card-${card.key}`}
+                    onPress={() =>
+                      setExpandedCard((value) =>
+                        value === card.key ? null : card.key,
+                      )
+                    }
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <HomeCardArtwork kind={card.key} expanded={expanded} />
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.cardCopy,
+                      {top:sourceCopy?.title.transform.m12 ?? 12},
+                      right
+                        ? { right: 27, width: 160 }
+                        : { left: 31, width: 160 },
+                    ]}
+                  >
+                    {sourceCopy ? <View style={right?{position:'absolute',right:1}:undefined}><FigmaText evidence={sourceCopy.title} testID={`home-${card.key}-source-title`}/></View> : <Text
+                      style={[
+                        styles.cardTitle,
+                        right && { textAlign: "right" },
+                      ]}
                     >
-                      <Text style={styles.openButtonText}>进入</Text>
-                      <MobileIcon color="#FFFFFF" name="arrow-right" size={14} />
-                    </Pressable>
+                      {card.title}
+                    </Text>}
+                    {sourceCopy ? <View style={[{position:'absolute',top:sourceCopy.description.transform.m12-sourceCopy.title.transform.m12},right?{right:1}:undefined]}><FigmaText evidence={sourceCopy.description}/></View> : <Text
+                      style={[
+                        styles.cardDescription,
+                        right && { right: 0, textAlign: "right" },
+                      ]}
+                    >
+                      {card.description}
+                    </Text>}
                   </View>
-                ) : null}
-              </GlassCard>
+                  {!expanded && (
+                    <View
+                      pointerEvents="none"
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                      aria-hidden
+                      style={[
+                        styles.arrow,
+                        right ? { left: 22 } : { right: 17 },
+                      ]}
+                    >
+                      <CircleAction
+                        accessibilityLabel="展开"
+                        decorative
+                        icon="home-arrow"
+                        onPress={() => undefined}
+
+                      />
+                    </View>
+                  )}
+                  {expanded && (
+                    <CircleAction
+                      accessibilityLabel={`进入${card.title}`}
+                      icon="home-arrow"
+                      testID={`home-card-${card.key}-open`}
+                      onPress={() => navigate(card.href)}
+                      style={[
+                        styles.arrow,
+                        right ? { left: 22 } : { right: 17 },
+
+                      ]}
+                    />
+                  )}
+                  {expanded && card.key === "store" && (
+                    <Text pointerEvents="none" style={styles.detail}>
+                      探索公开应用，发现适合你的工具
+                    </Text>
+                  )}
+                  {expanded && card.key === "community" && (
+                    <Text pointerEvents="none" style={styles.detail}>
+                      探索公开应用，收藏灵感与工具
+                    </Text>
+                  )}
+                </View>
+              </View>
             );
           })}
         </View>
       </ScrollView>
-
       <View
-        style={[styles.bottomNavWrap, { bottom: Math.max(insets.bottom, 10) }]}
+        style={{
+          position: "absolute",
+          left: 20 - layout.gutter,
+          right: 20 - layout.gutter,
+          bottom: Math.max(insets.bottom, 29),
+          zIndex: 20,
+        }}
         testID="home-bottom-nav-wrap"
       >
-        <BottomNav active="home" onNavigate={navigate} testID="home-bottom-nav" />
+        <BottomNav
+          active="home"
+          onNavigate={navigate}
+          testID="home-bottom-nav"
+        />
       </View>
     </AppBackground>
   );
 }
-
 const styles = StyleSheet.create({
-  content: {
-    position: 'relative',
-  },
-  scrollContent: {
-    gap: 18,
-  },
   hero: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 18,
-    minHeight: 126,
-    paddingTop: 14,
+    height: 84,
+    marginTop: 19,
+    marginHorizontal: 12,
+    position: "relative",
   },
-  headerAction: {
-    transform: [{ translateX: -6 }],
-  },
-  miboHalo: {
-    alignItems: 'center',
-    backgroundColor: '#F5E7FF',
-    borderColor: '#FFFFFF',
-    borderRadius: 47,
-    borderWidth: 5,
-    height: 94,
-    justifyContent: 'center',
-    shadowColor: '#B48CFF',
-    shadowOffset: { height: 5, width: 0 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    width: 94,
-  },
-  mibo: {
-    height: 70,
-    resizeMode: 'contain',
-    width: 70,
-  },
-  heroCopy: {
-    flex: 1,
-    gap: 6,
-    minWidth: 0,
-  },
+  avatar: { width: 84, height: 84, borderRadius: 42 },
+  avatarPressed: { borderColor: "#7C62FF", borderWidth: 3 },
+  heroCopy: { position: "absolute", left: 82, top: 0, width:148 },
   greeting: {
-    color: '#404040',
     fontFamily: mobileFontFamilies.pingFang,
     fontSize: 20,
-    fontWeight: '600',
-    lineHeight: 26,
+    fontWeight: "500",
+    lineHeight: 49,
+    color: "#404040",
+    marginLeft: 2,
+    width:146,textAlign:'center',
+    // Chromium's live PingFang 20/49 line baseline is 31; preserve the source glyph baseline without changing API copy or its frame.
+    transform:Platform.OS==='web'?[{translateY:source.greetingMetrics.baseline-31}]:undefined,
   },
   question: {
-    color: mobileColors.muted,
-    fontFamily: mobileFontFamilies.body,
-    fontSize: 12,
-    lineHeight: 18,
+    fontFamily: mobileFontFamilies.pingFang,
+    fontSize: 11,
+    fontWeight:'500',width:146,textAlign:'center',
+    lineHeight: 43,
+    color: "#7F80A1",
+    position: "absolute",
+    top: 23,
+    left: 0,
   },
   miboLink: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    minHeight: mobileSpacing.controlMin,
-    justifyContent: 'center',
+    minWidth: 44,
+    minHeight: 44,
+    position: "absolute",
+    top: 49,
+    left:76.2495,
+    width:147.501,
+    alignItems:'center',
+    justifyContent: "center",
   },
   miboLinkText: {
-    color: '#B05CFF',
-    fontFamily: mobileFontFamilies.emphasis,
-    fontSize: 13,
-    lineHeight: 18,
-    textDecorationLine: 'underline',
+    fontFamily: mobileFontFamilies.pingFang,
+    fontSize: 10,
+    lineHeight: 12,
+    color: "#B05CFF",
+    textDecorationLine: "underline",
   },
-  sectionHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    minHeight: 24,
+  inspirationHeader: {
+    marginTop: 43.5,
+    height: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginHorizontal: 11,
   },
   sectionTitle: {
-    color: mobileColors.text,
-    fontFamily: mobileFontFamilies.emphasis,
-    fontSize: 12,
-    lineHeight: 16,
+    fontFamily: mobileFontFamilies.pingFang,
+    fontSize: 8,
+    lineHeight: 15,
+    color: "#494A64",
   },
   sectionMeta: {
-    color: mobileColors.muted,
-    flexShrink: 1,
-    fontFamily: mobileFontFamilies.body,
-    fontSize: 10,
-    lineHeight: 14,
+    fontFamily: mobileFontFamilies.pingFang,
+    fontSize: 6,
+    lineHeight: 12,
+    color: "#7F80A1",
+  },
+  refresh: {
+    marginLeft: "auto",
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: "center",
+    alignItems: "flex-end",
   },
   wordCloud: {
-    alignSelf: 'center',
+    left:3,
+    marginTop: -1.5,
+    width: "100%",
+    maxWidth: 303,
     height: 111,
-    minHeight: 111,
-    overflow: 'hidden',
-    padding: 0,
-    position: 'relative',
-    width: '100%',
-  },
-  wordCloudText: {
-    fontFamily: mobileFontFamilies.emphasis,
-    fontWeight: '600',
-    lineHeight: 34,
-    position: 'absolute',
-  },
-  suggestion: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.70)',
-    borderColor: 'rgba(124,98,255,0.16)',
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: mobileSpacing.controlMin,
-    minWidth: mobileSpacing.controlMin,
-    paddingHorizontal: 10,
-    position: 'absolute',
-  },
-  suggestion0: {
-    left: 14,
-    top: 8,
-  },
-  suggestion1: {
-    right: 12,
-    top: 8,
-  },
-  suggestion2: {
-    bottom: 8,
-    right: 12,
-  },
-  suggestionText: {
-    color: mobileColors.text,
-    fontFamily: mobileFontFamilies.body,
-    fontSize: 10,
-    lineHeight: 16,
-  },
-  cards: {
-    gap: 0,
-  },
-  homeCard: {
-    alignSelf: 'center',
+    alignSelf: "center",
     borderRadius: 30,
-    minHeight: 70,
-    overflow: 'hidden',
-    paddingBottom: 7,
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    width: '100%',
+    overflow: "hidden",
   },
-  cardToggle: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    minHeight: 54,
+  suggestionTarget: { position: "absolute", minWidth: 44, minHeight: 44 },
+  functionHeader: {
+    marginTop: 16.5,
+    height: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginHorizontal: 11,
   },
-  cardIcon: {
-    alignItems: 'center',
-    backgroundColor: mobileColors.primary,
-    borderRadius: 23,
-    height: 46,
-    justifyContent: 'center',
-    width: 46,
+  cards: { marginTop: -1.5 },
+  cardSlot: {
+    left:1,
+    height: 70,
+    width: "100%",
+    maxWidth: 321,
+    alignSelf: "center",
+    position: "relative",
   },
-  cardCopy: {
-    flex: 1,
-    marginLeft: 12,
-    minWidth: 0,
+  card: {
+    height: 70,
+    width: "100%",
+    overflow: "visible",
+    position: "relative",
   },
+  cardCopy: { position: "absolute", top: 12 },
   cardTitle: {
-    color: mobileColors.text,
-    fontFamily: mobileFontFamilies.emphasis,
+    fontFamily: mobileFontFamilies.pingFang,
     fontSize: 16,
-    lineHeight: 22,
+    fontWeight: "500",
+    lineHeight: 32,
+    color: "#494A64",
   },
   cardDescription: {
-    color: mobileColors.muted,
-    fontFamily: mobileFontFamilies.body,
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: 2,
+    position: "absolute",
+    top: 22,
+    fontFamily: mobileFontFamilies.pingFang,
+    fontSize: 8,
+    fontWeight: "500",
+    lineHeight: 32,
+    color: "#7F80A1",
+    minWidth: 100,
   },
-  cardChevron: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.58)',
-    borderColor: '#FFFFFF',
-    borderRadius: 19,
-    borderWidth: 1,
-    height: 38,
-    justifyContent: 'center',
-    marginLeft: 10,
-    transform: [{ rotate: '0deg' }],
-    width: 38,
-  },
-  cardDetail: {
-    marginTop: 14,
-    minHeight: 76,
-  },
-  detailRail: {
-    flexDirection: 'row',
-    gap: 8,
-    height: 28,
-    position: 'relative',
-  },
-  detailDot: {
-    borderColor: 'rgba(255,255,255,0.90)',
-    borderRadius: 14,
-    borderWidth: 2,
-    height: 28,
-    width: 28,
-  },
-  detailDotPrimary: {
-    backgroundColor: mobileColors.primary,
-  },
-  detailDotBlue: {
-    backgroundColor: mobileColors.blue,
-  },
-  detailDotPink: {
-    backgroundColor: mobileColors.pink,
-  },
-  detailText: {
-    color: mobileColors.muted,
-    fontFamily: mobileFontFamilies.body,
+  arrow: { position: "absolute", top: 19, width: 44, height: 44 },
+  detail: {
+    position: "absolute",
+    top: 92,
+    left: 25,
+    right: 25,
+    fontFamily: mobileFontFamilies.pingFang,
     fontSize: 12,
-    lineHeight: 18,
-    marginTop: 6,
-  },
-  openButton: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: mobileColors.primary,
-    borderRadius: 999,
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'center',
-    marginTop: 10,
-    minHeight: mobileSpacing.controlMin,
-    minWidth: 92,
-    paddingHorizontal: 16,
-  },
-  openButtonText: {
-    color: '#FFFFFF',
-    fontFamily: mobileFontFamilies.emphasis,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  bottomNavWrap: {
-    left: 16,
-    position: 'absolute',
-    right: 16,
+    lineHeight: 20,
+    color: "#7F80A1",
   },
 });

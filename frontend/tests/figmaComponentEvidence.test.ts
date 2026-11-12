@@ -19,8 +19,8 @@ import {
 } from '../design/figmaComponentEvidence';
 
 const temporaryDirectories: string[] = [];
-const formalDesignDocumentPath =
-  '/Users/bytedance/Downloads/IntelliDeploy-design-2026-11-10-2221/design-data/document.kiwi.json';
+const formalDesignSource=process.env.INTELLIDEPLOY_FIGMA_SOURCE;
+const formalDesignDocumentPath=path.join(formalDesignSource??'', 'design-data/document.kiwi.json');
 
 afterEach(async () => {
   await Promise.all(
@@ -1173,7 +1173,7 @@ describe('Figma component evidence', () => {
     await expect(readFile(fixture.outputPath, 'utf8')).resolves.toBe(firstOutput);
   });
 
-  test('formal source shows glassCard must bind to shell node 825:6570 while retaining former content node 825:6575', async () => {
+  test.skipIf(!formalDesignSource)('source audit NOT_RUN without INTELLIDEPLOY_FIGMA_SOURCE: glassCard must bind to shell node 825:6570 while retaining former content node 825:6575', async () => {
     const document = JSON.parse(await readFile(formalDesignDocumentPath, 'utf8'));
     const nodeById = new Map(
       document.nodeChanges.map((node: any) => [

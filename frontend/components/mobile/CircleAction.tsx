@@ -3,6 +3,7 @@ import {
   Platform,
   Pressable,
   StyleSheet,
+  View,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -17,9 +18,10 @@ import {
   figmaMobileIcons,
   getFigmaMobileIcon,
 } from '../../design/figmaComponentEvidence';
+import { formalMobileControls } from '../../design/formalMobileControls';
 import { mobileColors, mobileSpacing } from '../../theme/tokens';
 
-export type MobileIconName = keyof typeof figmaMobileIcons;
+export type MobileIconName = keyof typeof figmaMobileIcons | 'home-arrow';
 
 export type MobileIconProps = {
   color?: string;
@@ -27,6 +29,8 @@ export type MobileIconProps = {
   size?: number;
   strokeWidth?: number;
 };
+
+function iconDefinition(name:MobileIconName){return name==='home-arrow'?figmaMobileIcons.settings:name==='settings'?formalMobileControls.settings:getFigmaMobileIcon(name);}
 
 function toShadowOffset(effect?: FigmaEffectEvidence) {
   return effect?.offset
@@ -60,8 +64,15 @@ function firstGradientPaint(paints: readonly FigmaPaintEvidence[]) {
   );
 }
 
+export function figmaLinearGradientEndpoints(paint?:FigmaPaintEvidence) {
+ const matrix=paint?.transform?.match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi)?.map(Number);
+ if(!matrix)return {start:paint?.start,end:paint?.end};
+ const [a,,c,,e]=matrix,denominator=a*a+c*c;
+ return {start:{x:-e*a/denominator,y:-e*c/denominator},end:{x:(1-e)*a/denominator,y:(1-e)*c/denominator}};
+}
+
 function iconUsesSingleColor(name: MobileIconName) {
-  const definition = getFigmaMobileIcon(name);
+  const definition = iconDefinition(name);
   const colors = new Set<string>();
   for (const layer of definition.layers as readonly FigmaVectorLayer[]) {
     if (layer.fill) {
@@ -80,13 +91,14 @@ export function MobileIcon({
   size = 18,
   strokeWidth = 1.8,
 }: MobileIconProps) {
-  const definition = getFigmaMobileIcon(name);
+  const definition = iconDefinition(name);
   const overrideColor = iconUsesSingleColor(name) ? color : undefined;
   const layers = definition.layers as readonly FigmaVectorLayer[];
 
   return (
     <Svg
       {...(Platform.OS === 'web' ? { 'aria-hidden': true } : { accessibilityElementsHidden: true })}
+      style={name==='home-arrow'?{transform:[{rotate:'180deg'}]}:undefined}
       height={size}
       viewBox={definition.viewBox}
       width={size}
@@ -119,6 +131,9 @@ export type CircleActionProps = {
   style?: StyleProp<ViewStyle>;
   testID?: string;
   variant?: 'glass' | 'primary';
+  decorative?:boolean;
+  surfaceOffset?:{x:number;y:number};
+  iconOffset?:{x:number;y:number};
 };
 
 export function CircleAction({
@@ -129,8 +144,10 @@ export function CircleAction({
   style,
   testID,
   variant = 'glass',
+  surfaceOffset,iconOffset,decorative=false,
 }: CircleActionProps) {
   const primary = variant === 'primary';
+  const Container=decorative?View:Pressable;
   const shellEvidence = (primary
     ? figmaComponentEvidence.send
     : figmaComponentEvidence.circleAction) as FigmaPrimitiveEvidence;
@@ -169,14 +186,15 @@ export function CircleAction({
     : undefined;
 
   return (
-    <Pressable
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
-      disabled={disabled}
-      onPress={onPress}
+    <Container
+      {...(decorative?(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true}):{})}
+      accessibilityLabel={decorative?undefined:accessibilityLabel}
+      accessibilityRole={decorative?undefined:"button"}
+      disabled={decorative?undefined:disabled}
+      onPress={decorative?undefined:onPress}
       style={[
         styles.target,
-        disabled && styles.disabled,
+        disabled && !primary && styles.disabled,
         style,
         styles.minimumTarget,
       ]}
@@ -184,9 +202,9 @@ export function CircleAction({
     >
       <LinearGradient
         colors={gradientColors}
-        end={gradient?.end}
+        end={figmaLinearGradientEndpoints(gradient).end}
         locations={gradientLocations}
-        start={gradient?.start}
+        start={figmaLinearGradientEndpoints(gradient).start}
         style={[
           styles.surface,
           {
@@ -196,7 +214,7 @@ export function CircleAction({
                 ? shellStroke.color
                 : toRgba(shellStroke?.color, shellStroke?.opacity ?? 1),
             borderRadius: shellEvidence.cornerRadii?.topLeft,
-            borderWidth: shellEvidence.borderWidths?.top,
+            borderWidth: shellStroke ? shellEvidence.borderWidths?.top : 0,
             height: surfaceSize,
             opacity: gradient?.opacity,
             shadowColor: shadow?.color,
@@ -204,16 +222,17 @@ export function CircleAction({
             shadowOpacity: shadow?.opacity,
             shadowRadius: shadow?.radius,
             width: surfaceSize,
+            transform:surfaceOffset?[{translateX:surfaceOffset.x},{translateY:surfaceOffset.y}]:undefined,
           },
         ]}
       >
-        <MobileIcon
+        <View style={iconOffset?{transform:[{translateX:iconOffset.x},{translateY:iconOffset.y}]}:undefined}><MobileIcon
           color={primary ? '#FFFFFF' : mobileColors.text}
           name={icon}
-          size={primary ? 12 : 13}
-        />
+          size={primary?12:Math.max(...iconDefinition(icon).viewBox.split(' ').slice(2).map(Number))}
+        /></View>
       </LinearGradient>
-    </Pressable>
+    </Container>
   );
 }
 

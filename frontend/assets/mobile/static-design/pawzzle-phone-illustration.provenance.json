@@ -1,0 +1,114 @@
+{
+  "classification": "STATIC_DESIGN_ILLUSTRATION",
+  "purpose": "User-authorized static design illustration; not live catalog data or proof of the current app preview.",
+  "sha256": "d192dc7d4e2e0e05fe7b40c1e0827d79df52ab884909237a195e0d586b0e963a",
+  "bytes": 74604,
+  "sourcePackage": "/Users/bytedance/Downloads/IntelliDeploy-design-2026-11-10-2221",
+  "formalReference": "page-03",
+  "formalFrameId": "270:26597",
+  "sourceLeaf": {
+    "id": "270:26755",
+    "name": "Gemini_Generated_Image_cr228gcr228gcr22 1",
+    "type": "ROUNDED_RECTANGLE",
+    "size": {
+      "x": 318,
+      "y": 184
+    },
+    "transform": {
+      "m00": 1,
+      "m01": 0,
+      "m02": 0,
+      "m10": 0,
+      "m11": 1,
+      "m12": 0
+    },
+    "visible": true,
+    "opacity": 1,
+    "geometry": [
+      {
+        "commandsBlob": 15409,
+        "path": "M0 0 L318 0 L318 184 L0 184 L0 0 Z",
+        "fillRule": "nonzero"
+      }
+    ]
+  },
+  "parentClip": {
+    "id": "270:26754",
+    "name": "Frame 2147238720",
+    "size": {
+      "x": 214,
+      "y": 184
+    },
+    "transformInCard": {
+      "m00": 1,
+      "m01": 0,
+      "m02": 26,
+      "m10": 0,
+      "m11": 1,
+      "m12": 173.501708984375
+    },
+    "frameMaskDisabled": false,
+    "geometry": [
+      {
+        "commandsBlob": 15506,
+        "path": "M0 0 L214 0 L214 184 L0 184 L0 0 Z",
+        "fillRule": "nonzero"
+      }
+    ]
+  },
+  "imageFill": {
+    "originalRawHash": "2439814cd30b07b3cd048bec9ff34d3b984df956",
+    "rawPath": "raw-assets/2439814cd30b07b3cd048bec9ff34d3b984df956.png",
+    "originalRawSha256": "9ac9605bda73f638374967ef15b61fd6dd4ff3276e75e90f7b486f6d4b89fe3d",
+    "paintTransform": {
+      "m00": 0.7169124484062195,
+      "m01": 0,
+      "m02": 0.13172338902950287,
+      "m10": 0,
+      "m11": 0.3192877471446991,
+      "m12": 0.40878379344940186
+    },
+    "imageScaleMode": "STRETCH",
+    "imageShouldColorManage": true,
+    "opacity": 1,
+    "visible": true,
+    "blendMode": "NORMAL"
+  },
+  "rendering": {
+    "rawDecodedSize": {
+      "width": 1822,
+      "height": 2368
+    },
+    "inverseUV": {
+      "m00": 1.3948704646196581,
+      "m01": 0,
+      "m02": -0.18373706485685865,
+      "m10": 0,
+      "m11": 3.1319711105193355,
+      "m12": -1.2802990315320297
+    },
+    "rawPixelToLeafAffine": {
+      "a": 0.24345159591056603,
+      "b": 0,
+      "c": 0,
+      "d": 0.24336262007413756,
+      "e": -58.42838662448105,
+      "f": -235.57502180189346
+    },
+    "outputSize": {
+      "width": 214,
+      "height": 184
+    },
+    "method": "Canvas clips exact parent and leaf geometry; applies exact child transform; applies S_leaf * inverse(source UV) * inverse(S_raw); draws unaltered original RAW. Output coordinates are parent-local.",
+    "noHandSelectedCrop": true,
+    "noWhiteOverpaint": true,
+    "noContentRedaction": true,
+    "noRuntimeAssetOrReferenceMutation": true
+  },
+  "sourceRegeneration": {
+    "sourceDocumentSha256": "378b0b88b0e2a5fa420f0178c830f25186b787efc5c1b9d77064aab505ff334e",
+    "rawSha256": "9ac9605bda73f638374967ef15b61fd6dd4ff3276e75e90f7b486f6d4b89fe3d",
+    "browserVersion": "149.0.7827.55",
+    "method": "Actual source paths and inverse UV through default Chromium Canvas.toDataURL; not a page screenshot; no ignored candidate prerequisite."
+  }
+}

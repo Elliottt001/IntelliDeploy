@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   Platform,
@@ -38,10 +38,15 @@ export function PublicationCarousel({
   const cardWidth = Math.min(271, viewportWidth - 32);
   const interval = cardWidth + CARD_GAP;
   const list = useRef<FlatList<StoreCard>>(null);
+  const userScrolling=useRef(false);
+  const [layoutVersion,setLayoutVersion]=useState(0);
   const selectedIndex = useMemo(
     () => Math.max(0, items.findIndex((item) => item.id === selectedId)),
     [items, selectedId],
   );
+  useEffect(()=>{
+    if(layoutVersion&&items.length){userScrolling.current=false;list.current?.scrollToIndex({index:selectedIndex,animated:false,viewPosition:.5});}
+  },[layoutVersion,selectedIndex,items.length,viewportWidth,cardWidth]);
 
   const selectAtOffset = (
     event: NativeSyntheticEvent<NativeScrollEvent>,
@@ -55,7 +60,7 @@ export function PublicationCarousel({
   };
 
   return (
-    <View style={[styles.viewport, { width: viewportWidth }]}>
+    <View style={[styles.viewport, { width: viewportWidth }]} onTouchMove={()=>{userScrolling.current=true;}} {...(Platform.OS==='web'?{onWheel:()=>{userScrolling.current=true;}}:{})}>
       <View
         pointerEvents="none"
         style={[
@@ -83,23 +88,24 @@ export function PublicationCarousel({
       <FlatList
         contentContainerStyle={{
           paddingHorizontal: (viewportWidth - cardWidth) / 2,
+          paddingTop:21,
+          gap:CARD_GAP,
         }}
         data={items}
         decelerationRate="fast"
         getItemLayout={(_, index) => ({
           index,
-          length: interval,
-          offset: interval * index,
+          length: cardWidth,
+          offset: (viewportWidth-cardWidth)/2+interval * index,
         })}
         horizontal
-        initialScrollIndex={selectedIndex}
+        onLayout={()=>setLayoutVersion(version=>version+1)}
         keyExtractor={(item) => item.id}
         onMomentumScrollEnd={selectAtOffset}
-        onScroll={Platform.OS === 'web' ? selectAtOffset : undefined}
-        pagingEnabled
+        onScroll={Platform.OS === 'web' ? event=>{if(userScrolling.current)selectAtOffset(event);} : undefined}
         ref={list}
         renderItem={({ item }) => (
-          <View style={{ marginRight: CARD_GAP }}>
+          <View>
             <PublicationCard
               favorite={favoriteIds.has(item.id)}
               favoriteBusy={favoriteBusyId === item.id}
@@ -109,7 +115,7 @@ export function PublicationCarousel({
               onSelect={(id) => {
                 onSelect(id);
                 const index = items.findIndex((candidate) => candidate.id === id);
-                if (index >= 0) list.current?.scrollToIndex({ animated: true, index });
+                if (index >= 0) list.current?.scrollToIndex({ animated: true, index, viewPosition:.5 });
               }}
               selected={item.id === selectedId}
               width={cardWidth}
@@ -117,7 +123,7 @@ export function PublicationCarousel({
           </View>
         )}
         showsHorizontalScrollIndicator={false}
-        snapToAlignment="start"
+        snapToAlignment="center"
         snapToInterval={interval}
         scrollEventThrottle={16}
         style={styles.list}
@@ -131,6 +137,7 @@ const styles = StyleSheet.create({
   viewport: {
     alignSelf: 'center',
     height: 440,
+    marginTop:16,
     overflow: 'visible',
   },
   list: {
