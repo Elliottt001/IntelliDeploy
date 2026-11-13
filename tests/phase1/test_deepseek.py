@@ -144,3 +144,9 @@ async def test_received_protocol_error_preserves_actual_usage_and_provider_id(ki
     assert (turn.input_tokens,turn.cached_input_tokens,turn.output_tokens) == (20,10,5)
     assert turn.provider_request_id == 'chat-test'
     assert turn.finish_reason == data['choices'][0]['finish_reason']
+
+
+def test_manifest_only_finalization_uses_planning_thinking_policy():
+    from app.agent.deepseek import completion_options
+    options=completion_options([{'type':'function','function':{'name':'finish_implementation'}}])
+    assert options['extra_body']['thinking']['type']=='disabled'

@@ -175,3 +175,38 @@ async def test_finalization_checkpoint_resumes_with_only_submission_tool():
             return turn([ToolCall(id='finish',name='finish_implementation',arguments={'manifest':MANIFEST})])
     result=await run_generation('job',checkpoint,Model(),CounterTool(),lambda _:None,lambda _:None,max_rounds=2,finalize_last_round=True)
     assert result.manifest.web_service=='web'
+
+
+@pytest.mark.asyncio
+async def test_received_truncation_retries_in_smaller_batches_without_tool_effects():
+    from app.agent.deepseek import ModelProtocolError
+    class Model:
+        calls=0
+        async def complete(self,messages,tools,model):
+            self.calls+=1
+            if self.calls==1:
+                raw={'role':'assistant','content':None,'reasoning_content':'preserved reasoning',
+                     'tool_calls':[{'id':'partial','type':'function','function':{'name':'write_file','arguments':'{"path":"app.py","content":"unfinished'}}]}
+                raise ModelProtocolError('MODEL_OUTPUT_TRUNCATED',ModelTurn(assistant_message=raw,input_tokens=5,output_tokens=10))
+            assert any(m.get('tool_call_id')=='partial' and '未执行' in m['content'] for m in messages)
+            assert '分批' in messages[-1]['content']
+            assert messages[0]['reasoning_content']=='preserved reasoning'
+            return turn([ToolCall(id='finish',name='finish_implementation',arguments={'manifest':MANIFEST})])
+    tool=CounterTool();model=Model()
+    result=await run_generation('job',Checkpoint(),model,tool,lambda _:None,lambda _:None,max_rounds=3)
+    assert result.manifest.web_service=='web'
+    assert model.calls==2 and tool.calls==0
+
+
+@pytest.mark.asyncio
+async def test_received_protocol_corrections_stop_after_three_failures():
+    from app.agent.deepseek import ModelProtocolError
+    class Model:
+        calls=0
+        async def complete(self,*args):
+            self.calls+=1
+            raise ModelProtocolError('MODEL_OUTPUT_EMPTY',ModelTurn(assistant_message={'role':'assistant','content':''},input_tokens=1,output_tokens=1))
+    model=Model()
+    result=await run_generation('job',Checkpoint(),model,CounterTool(),lambda _:None,lambda _:None,max_rounds=10)
+    assert result.exhausted is True
+    assert model.calls==3

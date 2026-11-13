@@ -107,6 +107,7 @@ class ModelTurn(BaseModel):
 
 class Checkpoint(BaseModel):
     generation_phase: Literal['IMPLEMENT', 'FINALIZE'] = 'IMPLEMENT'
+    model_protocol_failures: int = 0
     messages: list[dict] = Field(default_factory=list)
     route: RoutePlan | None = None
     workspace: str | None = None

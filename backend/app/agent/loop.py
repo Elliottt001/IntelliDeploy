@@ -6,6 +6,7 @@ import json
 
 from app.billing.ledger import InsufficientQuota
 from app.agent.tools import CommandArgs
+from app.agent.deepseek import ModelProtocolError
 from app.config import settings
 from app.core.types import AppManifest, Checkpoint, GenerationOutput, ToolCall, ToolResult, UsageInput
 
@@ -81,7 +82,32 @@ async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_too
             await _call(persist, checkpoint)
         offered_tools = ([tool for tool in tools if tool["function"]["name"] == "finish_implementation"]
                          if checkpoint.generation_phase == "FINALIZE" else tools)
-        turn = await model.complete(checkpoint.messages, offered_tools, settings.DEEPSEEK_MODEL)
+        try:
+            turn = await model.complete(checkpoint.messages, offered_tools, settings.DEEPSEEK_MODEL)
+        except ModelProtocolError as exc:
+            if (exc.turn is None or not exc.turn.usage_known or str(exc) not in {
+                "MODEL_OUTPUT_TRUNCATED", "MODEL_OUTPUT_EMPTY", "invalid model tool arguments",
+            }):
+                raise
+            checkpoint.model_protocol_failures += 1
+            raw = dict(exc.turn.assistant_message)
+            calls = raw.get("tool_calls") or []
+            if any(not call.get("id") for call in calls):
+                raise
+            if not raw.get("content") and not calls:
+                raw["content"] = "上轮未收到可执行的工具参数，未执行任何工具。"
+            checkpoint.messages.append(raw)
+            for call in calls:
+                checkpoint.messages.append({"role": "tool", "tool_call_id": call["id"],
+                    "content": "输出截断或参数不完整，未执行该工具。"})
+            checkpoint.messages.append({"role": "user", "content": "上轮输出未执行；请分批写入，每次只提交少量文件和完整参数，避免超过输出上限。源码完成后调用finish_implementation。"})
+            await _record_model_usage(job_id, round_number, exc.turn, record_usage, payer_id,
+                                      reservation_operation_id, price_version)
+            await _call(persist, checkpoint)
+            if checkpoint.model_protocol_failures >= 3:
+                return GenerationOutput(checkpoint=checkpoint, exhausted=True,
+                                        requirement_revision=checkpoint.requirement_revision)
+            continue
         checkpoint.messages.append(turn.assistant_message)
         checkpoint.pending_calls = turn.calls
         await _call(persist, checkpoint)

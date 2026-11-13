@@ -17,9 +17,10 @@ class ModelProtocolError(ValueError):
 
 
 def completion_options(tools):
+    implementation = any(tool.get("function", {}).get("name") != "finish_implementation" for tool in tools or [])
     return {
         "max_tokens": settings.DEEPSEEK_MAX_OUTPUT_TOKENS,
-        "extra_body": {"thinking": {"type": "enabled" if tools else settings.DEEPSEEK_PLANNING_THINKING}},
+        "extra_body": {"thinking": {"type": "enabled" if implementation else settings.DEEPSEEK_PLANNING_THINKING}},
     }
 
 
