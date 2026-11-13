@@ -43,7 +43,6 @@ export function HomeCardArtwork({
     (n) => n.rootId === expandedImageRoot,
   );
   const sourceX = (value: number) => (value / 321) * cardWidth;
-  const sourceScale = cardWidth / 321;
   const expandedOpacity = progress.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 1],
@@ -131,7 +130,7 @@ export function HomeCardArtwork({
         <FigmaGeometry geometry={source.storeFold.geometry as readonly FigmaVectorLayer[]}
           width={321} height={195} prefix="home-store-fold" transform={matrix(source.storeFold.nodeTransform)} />
       </Animated.View>}
-      {kind==='community'&&source.decorations.community.map((decoration,index)=><Animated.View key={decoration.surfaceNodeId} testID={`home-community-decoration-${index}`} style={{position:'absolute',left:sourceX(decoration.nodeTransform.m02),top:decoration.nodeTransform.m12,width:decoration.size.width*sourceScale,height:decoration.size.height,opacity:expandedOpacity}}><FigmaGeometry geometry={decoration.geometry as readonly FigmaVectorLayer[]} width={decoration.size.width} height={decoration.size.height} prefix={`home-community-decoration-${index}`}/></Animated.View>)}
+      {kind==='community'&&source.decorations.community.map((decoration,index)=><Animated.View key={decoration.surfaceNodeId} testID={`home-community-decoration-${index}`} style={{position:'absolute',left:sourceX(decoration.nodeTransform.m02),top:decoration.nodeTransform.m12,width:decoration.size.width,height:decoration.size.height,opacity:expandedOpacity}}><FigmaGeometry geometry={decoration.geometry as readonly FigmaVectorLayer[]} width={decoration.size.width} height={decoration.size.height} prefix={`home-community-decoration-${index}`}/></Animated.View>)}
       {imageLayer(closedImages, closedOpacity, `home-${kind}-closed-image-layer`)}
       {imageLayer(expandedImages, expandedOpacity, `home-${kind}-expanded-image-layer`)}
     </View>

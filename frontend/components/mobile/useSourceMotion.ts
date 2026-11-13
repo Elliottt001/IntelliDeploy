@@ -13,6 +13,10 @@ type AnimationHandle = {
   stop: () => void;
 };
 
+type AnimatedValueWithStop = Animated.Value & {
+  stopAnimation?: (callback?: (value: number) => void) => void;
+};
+
 type MediaQueryHandle = {
   matches: boolean;
   addEventListener?: (
@@ -47,12 +51,15 @@ export function useSourceMotion(motion: SourceMotion | null): {
   const progress = useRef(new Animated.Value(0)).current;
   const animationRef = useRef<AnimationHandle | null>(null);
   const progressValueRef = useRef(0);
+  const targetValueRef = useRef<0 | 1>(0);
+  const appStateCancelledRef = useRef(false);
   const [reducedMotion, setReducedMotion] = useState(() => {
     if (Platform.OS !== 'web') {
       return false;
     }
     return webReducedMotionSource()?.matches ?? false;
   });
+  const reducedMotionRef = useRef(reducedMotion);
 
   const cancel = useCallback(() => {
     animationRef.current?.stop();
@@ -67,9 +74,17 @@ export function useSourceMotion(motion: SourceMotion | null): {
     [progress],
   );
 
+  const syncProgressValue = useCallback(() => {
+    (progress as AnimatedValueWithStop).stopAnimation?.((value) => {
+      progressValueRef.current = value;
+    });
+  }, [progress]);
+
   const animateTo = useCallback((toValue: 0 | 1) => {
+    targetValueRef.current = toValue;
+    syncProgressValue();
     cancel();
-    if (!motion || reducedMotion) {
+    if (!motion || reducedMotionRef.current) {
       setProgressValue(toValue);
       return;
     }
@@ -90,18 +105,25 @@ export function useSourceMotion(motion: SourceMotion | null): {
     });
     animationRef.current = animation;
     animation.start(({ finished }) => {
-      if (finished) {
+      if (finished && animationRef.current === animation) {
         animationRef.current = null;
       }
     });
-  }, [cancel, motion, progress, reducedMotion, setProgressValue]);
+  }, [cancel, motion, progress, setProgressValue, syncProgressValue]);
 
   const start = useCallback(() => animateTo(1), [animateTo]);
 
   useEffect(() => {
     cancel();
-    setProgressValue(reducedMotion ? 1 : 0);
-  }, [cancel, motion, reducedMotion, setProgressValue]);
+    targetValueRef.current = 0;
+    setProgressValue(0);
+  }, [cancel, motion, setProgressValue]);
+
+  useEffect(() => {
+    reducedMotionRef.current = reducedMotion;
+    cancel();
+    setProgressValue(targetValueRef.current);
+  }, [cancel, reducedMotion, setProgressValue]);
 
   useEffect(() => {
     const listenerId = progress.addListener(({ value }) => {
@@ -156,7 +178,14 @@ export function useSourceMotion(motion: SourceMotion | null): {
       'change',
       (state) => {
         if (state !== 'active') {
+          appStateCancelledRef.current = true;
+          syncProgressValue();
           cancel();
+          return;
+        }
+        if (appStateCancelledRef.current) {
+          appStateCancelledRef.current = false;
+          animateTo(targetValueRef.current);
         }
       },
     );
@@ -164,7 +193,7 @@ export function useSourceMotion(motion: SourceMotion | null): {
       subscription.remove();
       cancel();
     };
-  }, [cancel]);
+  }, [animateTo, cancel, syncProgressValue]);
 
   return { animateTo, progress, start, cancel };
 }

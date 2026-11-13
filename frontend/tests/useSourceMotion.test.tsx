@@ -21,6 +21,7 @@ const native = vi.hoisted(() => {
     addListener: ReturnType<typeof vi.fn>;
     removeListener: ReturnType<typeof vi.fn>;
     setValue: ReturnType<typeof vi.fn>;
+    stopAnimation: ReturnType<typeof vi.fn>;
 
     constructor(value: number) {
       this.value = value;
@@ -32,6 +33,9 @@ const native = vi.hoisted(() => {
       this.removeListener = vi.fn((id: string) => {
         this.listeners.delete(id);
       });
+      this.stopAnimation = vi.fn((callback?: (value: number) => void) => {
+        callback?.(this.value);
+      });
       this.setValue = vi.fn((next: number) => {
         this.value = next;
         this.listeners.forEach((listener) => listener({ value: next }));
@@ -42,6 +46,7 @@ const native = vi.hoisted(() => {
   const appStateListeners = new Set<AppStateListener>();
   const reduceMotionListeners = new Set<ReduceMotionListener>();
   const animations: Array<{
+    complete?: (result: { finished: boolean }) => void;
     config: Record<string, unknown>;
     start: ReturnType<typeof vi.fn>;
     stop: ReturnType<typeof vi.fn>;
@@ -58,9 +63,11 @@ const native = vi.hoisted(() => {
     reduceMotionPromise: Promise.resolve(false),
     timing: vi.fn(
       (value: MockAnimatedValue, config: Record<string, unknown>) => {
-        const animation = {
+        const animation: (typeof animations)[number] = {
           config,
-          start: vi.fn(),
+          start: vi.fn((complete?: (result: { finished: boolean }) => void) => {
+            animation.complete = complete;
+          }),
           stop: vi.fn(),
           value,
         };
@@ -316,6 +323,38 @@ test('web media changes toggle reduced motion and cleanup the listener', () => {
   expect(media.listenerCount()).toBe(0);
 });
 
+test('web reduced-motion changes settle to the latest collapsed target', () => {
+  native.store.platform.OS = 'web';
+  const media = installMatchMedia(false);
+  const harness = renderHookHarness(motion());
+  const progress = harness.api.progress as unknown as {
+    setValue: ReturnType<typeof vi.fn>;
+  };
+  progress.setValue.mockClear();
+
+  act(() => harness.api.animateTo(0));
+  media.emit(true);
+
+  expect(native.store.timing).not.toHaveBeenCalled();
+  expect(progress.setValue).toHaveBeenLastCalledWith(0);
+});
+
+test('web reduced-motion changes settle to the latest expanded target when disabled', () => {
+  native.store.platform.OS = 'web';
+  const media = installMatchMedia(true);
+  const harness = renderHookHarness(motion());
+  const progress = harness.api.progress as unknown as {
+    setValue: ReturnType<typeof vi.fn>;
+  };
+
+  act(() => harness.api.animateTo(1));
+  progress.setValue.mockClear();
+  media.emit(false);
+
+  expect(native.store.timing).not.toHaveBeenCalled();
+  expect(progress.setValue).toHaveBeenLastCalledWith(1);
+});
+
 test('native async reduced motion update completes progress without timing', async () => {
   const reduceMotion = deferred<boolean>();
   native.store.reduceMotionPromise = reduceMotion.promise;
@@ -323,6 +362,9 @@ test('native async reduced motion update completes progress without timing', asy
   const progress = harness.api.progress as unknown as {
     setValue: ReturnType<typeof vi.fn>;
   };
+  await act(async () => {
+    await flushPromises();
+  });
   progress.setValue.mockClear();
 
   await act(async () => {
@@ -333,6 +375,46 @@ test('native async reduced motion update completes progress without timing', asy
 
   expect(native.store.timing).not.toHaveBeenCalled();
   expect(progress.setValue).toHaveBeenCalledWith(1);
+});
+
+test('native reduced-motion event settles collapsed target without flashing expanded', async () => {
+  const harness = renderHookHarness(motion());
+  const progress = harness.api.progress as unknown as {
+    setValue: ReturnType<typeof vi.fn>;
+  };
+  progress.setValue.mockClear();
+
+  act(() => harness.api.animateTo(0));
+  await act(async () => {
+    native.store.reduceMotionListeners.forEach((listener) => listener(true));
+    await flushPromises();
+  });
+
+  expect(native.store.timing).not.toHaveBeenCalled();
+  expect(progress.setValue).toHaveBeenLastCalledWith(0);
+});
+
+test('native reduced-motion event settles expanded target when disabled', async () => {
+  const harness = renderHookHarness(motion());
+  const progress = harness.api.progress as unknown as {
+    setValue: ReturnType<typeof vi.fn>;
+  };
+  await act(async () => {
+    await flushPromises();
+  });
+
+  act(() => harness.api.animateTo(1));
+  await act(async () => {
+    native.store.reduceMotionListeners.forEach((listener) => listener(true));
+    await flushPromises();
+  });
+  progress.setValue.mockClear();
+  await act(async () => {
+    native.store.reduceMotionListeners.forEach((listener) => listener(false));
+    await flushPromises();
+  });
+
+  expect(progress.setValue).toHaveBeenLastCalledWith(1);
 });
 
 test('background states cancel active animation but active state does not', () => {
@@ -350,6 +432,39 @@ test('background states cancel active animation but active state does not', () =
   });
 
   expect(native.store.animations[0].stop).toHaveBeenCalledTimes(1);
+});
+
+test('active state resumes from background toward the latest target and ignores stale callbacks', () => {
+  const harness = renderHookHarness(motion({ durationMs: 1000 }));
+  const progress = harness.api.progress as unknown as {
+    setValue: (next: number) => void;
+  };
+
+  act(() => harness.api.animateTo(1));
+  progress.setValue(0.4);
+  act(() => {
+    native.store.appStateListeners.forEach((listener) => listener('background'));
+  });
+  expect(native.store.animations[0].stop).toHaveBeenCalledTimes(1);
+
+  act(() => {
+    native.store.appStateListeners.forEach((listener) => listener('active'));
+  });
+  expect(native.store.animations[1].config).toMatchObject({
+    duration: 600,
+    toValue: 1,
+  });
+
+  act(() => {
+    native.store.animations[0].complete?.({ finished: true });
+  });
+  act(() => harness.api.animateTo(0));
+
+  expect(native.store.animations[1].stop).toHaveBeenCalledTimes(1);
+  expect(native.store.animations[2].config).toMatchObject({
+    duration: 400,
+    toValue: 0,
+  });
 });
 
 test('unmount removes native listeners, stops animation, and ignores late accessibility promises', async () => {

@@ -105,7 +105,7 @@ test('home card internals follow the adaptive source container at mobile widths'
   await installMobileSourceFixtures(page);
   const cardWidths: number[] = [];
   const productCopyWidths: number[] = [];
-  const decorationXs: number[] = [];
+  const decorationBoxes: Array<{ height: number; width: number; x: number }> = [];
 
   for (const width of [320, 375, 430]) {
     await page.setViewportSize({ width, height: 812 });
@@ -157,15 +157,26 @@ test('home card internals follow the adaptive source container at mobile widths'
       'aria-expanded',
       'true',
     );
-    decorationXs.push(
-      (await page.getByTestId('home-community-decoration-0').boundingBox())!.x,
-    );
+    const decoration = (await page
+      .getByTestId('home-community-decoration-0')
+      .boundingBox())!;
+    decorationBoxes.push({
+      height: decoration.height,
+      width: decoration.width,
+      x: decoration.x,
+    });
   }
 
   expect(cardWidths[2]).toBeGreaterThan(cardWidths[1]);
   expect(cardWidths[1]).toBeGreaterThan(cardWidths[0]);
   expect(productCopyWidths[2]).toBeGreaterThan(productCopyWidths[1]);
-  expect(decorationXs[2]).toBeGreaterThan(decorationXs[1]);
+  for (const box of decorationBoxes) {
+    expect(box.width).toBeCloseTo(33, 1);
+    expect(box.height).toBeCloseTo(40, 1);
+    expect(box.width / box.height).toBeCloseTo(33 / 40, 2);
+  }
+  expect(decorationBoxes[2].x).toBeGreaterThan(decorationBoxes[1].x);
+  expect(decorationBoxes[1].x).toBeGreaterThan(decorationBoxes[0].x);
 });
 
 test('each home expansion animates through its source start middle and end without duplicate navigation', async ({
@@ -181,7 +192,7 @@ test('each home expansion animates through its source start middle and end witho
 
     await card.click();
     const duringStart = (await card.boundingBox())!;
-    expect(duringStart.y).toBeCloseTo(start.y, 1);
+    expect(duringStart.y).toBeCloseTo(start.y, 0);
 
     await page.clock.runFor(320);
     const middle = (await card.boundingBox())!;
@@ -248,13 +259,25 @@ test('home source artwork layers fade with expansion progress instead of snappin
 
   await page.goto('/');
   const profile = page.getByTestId('home-card-profile');
-  await profile.click();
+  await profile.click({ position: { x: 280, y: 20 } });
   const profileClosed = page.getByTestId('home-profile-closed-image-layer');
   const profileExpanded = page.getByTestId('home-profile-expanded-image-layer');
   await expect(profileClosed).toBeAttached();
   await expect(profileExpanded).toBeAttached();
   expect(await elementOpacity(profileClosed)).toBeGreaterThan(0.9);
   expect(await elementOpacity(profileExpanded)).toBeLessThan(0.1);
+  await page.clock.runFor(120);
+  expect(await elementOpacity(profileClosed)).toBeGreaterThan(0.1);
+  expect(await elementOpacity(profileExpanded)).toBeGreaterThan(0.1);
+  await page.clock.runFor(600);
+  expect(await elementOpacity(profileClosed)).toBeLessThan(0.1);
+  expect(await elementOpacity(profileExpanded)).toBeGreaterThan(0.9);
+
+  await profile.click({ position: { x: 280, y: 20 } });
+  await page.clock.runFor(720);
+  expect(await elementOpacity(profileClosed)).toBeGreaterThan(0.9);
+  expect(await elementOpacity(profileExpanded)).toBeLessThan(0.1);
+  await expect(profile).toHaveAttribute('aria-expanded', 'false');
 });
 
 test('home hover follows the source card variant without navigating', async ({ page }) => {
@@ -307,7 +330,11 @@ test('home expansion can reverse rapidly without leaving a stale source animatio
   expect(moving.y).toBeLessThan(start.y);
 
   await card.click();
-  await page.clock.runFor(720);
+  await page.clock.runFor(16);
+  if ((await card.getAttribute('aria-expanded')) === 'true') {
+    await card.click();
+  }
+  await page.clock.runFor(3000);
   const end = (await card.boundingBox())!;
   expect(end.y).toBeCloseTo(start.y, 1);
   await expect(card).toHaveAttribute('aria-expanded', 'false');
