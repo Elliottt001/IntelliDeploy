@@ -120,7 +120,8 @@ def test_missing_core_cannot_be_offset_by_quality_and_all_dimensions_have_eviden
         notes_requirement(),
     )
 
-    assert result.missing_core == ["persist-note"]
+    assert result.missing_core == []
+    assert 'core:persist-note' in result.unknown_fields
     assert result.eligible_a is False
     assert set(result.evidence) >= {
         "match",
