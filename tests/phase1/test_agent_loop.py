@@ -247,3 +247,21 @@ async def test_finalization_stops_after_one_rejected_tool_correction():
     assert model.calls==3
     assert tool.calls==1
     assert result.checkpoint.finalization_corrections==1
+
+
+@pytest.mark.asyncio
+async def test_successful_production_build_enters_finalization_early():
+    class Model:
+        calls=0
+        async def complete(self,messages,tools,model):
+            self.calls+=1
+            if self.calls==1:
+                return turn([ToolCall(id='build',name='run_command',arguments={'argv':['npm','run','build']})])
+            assert [item['function']['name'] for item in tools]==['finish_implementation']
+            assert '构建已成功' in messages[-1]['content']
+            return turn([ToolCall(id='finish',name='finish_implementation',arguments={'manifest':MANIFEST})])
+    model=Model();tool=CounterTool()
+    result=await run_generation('job',Checkpoint(),model,tool,lambda _:None,lambda _:None,max_rounds=10,finalize_last_round=True)
+    assert result.manifest.web_service=='web'
+    assert model.calls==2
+    assert tool.calls==1

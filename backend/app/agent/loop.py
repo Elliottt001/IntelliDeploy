@@ -183,6 +183,24 @@ async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_too
             else:
                 checkpoint.stalled_rounds = 1
                 last_failure = signature
+            argv = call.arguments.get("argv") if call.name == "run_command" else None
+            production_build = (
+                isinstance(argv, list)
+                and (
+                    tuple(argv[:3]) in {
+                        ("npm", "run", "build"),
+                        ("pnpm", "run", "build"),
+                        ("yarn", "run", "build"),
+                    }
+                    or tuple(argv[:2]) in {("pnpm", "build"), ("yarn", "build")}
+                )
+            )
+            if (finalize_last_round and result.ok and production_build
+                    and call.id == turn.calls[-1].id
+                    and checkpoint.generation_phase != "FINALIZE"):
+                checkpoint.generation_phase = "FINALIZE"
+                checkpoint.messages.append({"role": "user", "content":
+                    "生产构建已成功。停止继续修改或添加自测；现在直接调用finish_implementation提交当前源码清单。"})
             await _call(persist, checkpoint)
             if checkpoint.stalled_rounds >= 3:
                 return GenerationOutput(checkpoint=checkpoint, exhausted=True,

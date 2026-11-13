@@ -252,9 +252,14 @@ async def implement_and_build(
             or report.manifest_hash != expected_hash
         ):
             raise RepairableCandidateError("candidate review binding is invalid")
-        if any(item.severity == "BLOCKING" for item in report.findings):
+        blocking = [item for item in report.findings if item.severity == "BLOCKING"]
+        if blocking:
+            details = "; ".join(
+                f"{item.id}[{','.join(item.acceptance_ids)}]: {item.message}"
+                for item in blocking
+            )[:2000]
             raise RepairableCandidateError(
-                "candidate review found blocking issues"
+                f"candidate review found blocking issues: {details}"
             )
     try:
         built = await _await(
