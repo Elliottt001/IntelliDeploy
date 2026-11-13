@@ -5,14 +5,16 @@ import type {FigmaVectorLayer} from '../../design/figmaComponentEvidence';
 import type {FigmaSourceEffect} from './FigmaEffects';
 import {glassEvidence} from '../../design/glassEvidence';
 import {useLiveGlassBackdrop} from './glass/LiveGlassBackdrop.native';
-import {renderNativeGroupScene} from './glass/nativeGroupScene';
+import {renderNativeGroupScene,lastNativeFrameResources,disposeNativeGroupCaches} from './glass/nativeGroupScene';
 import type {FigmaTreeNode} from './FigmaTree';
+let mountedSourceScenes=0;
 export type SceneMatrix=readonly [number,number,number,number,number,number];
 export const identity:SceneMatrix=[1,0,0,1,0,0];
 export function sceneMatrix(text?:string):SceneMatrix{return (text?.match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi)?.map(Number)??identity) as unknown as SceneMatrix;}
 const multiply=(l:SceneMatrix,r:SceneMatrix):SceneMatrix=>[l[0]*r[0]+l[2]*r[1],l[1]*r[0]+l[3]*r[1],l[0]*r[2]+l[2]*r[3],l[1]*r[2]+l[3]*r[3],l[0]*r[4]+l[2]*r[5]+l[4],l[1]*r[4]+l[3]*r[5]+l[5]];
 export type SceneLayer=Omit<FigmaVectorLayer,'paint'|'sourceEffects'> & {sourceEffects?:readonly FigmaSourceEffect[];sourceSize?:{x:number;y:number};paint?:{type:string;transform?:string;gradientStops?:readonly {color?:string;opacity:number;position:number}[]}};
-export function NativeFigmaScene({geometry,width,height,transform,node,testID,sourceHeight,viewBoxY=0,canvasRef,onImage}:{geometry?:readonly SceneLayer[];width:number;height:number;transform?:string;node?:FigmaTreeNode;testID?:string;sourceHeight?:number;viewBoxY?:number;canvasRef?:RefObject<CanvasRef|null>;onImage?:(image:SkImage)=>void}){
+export function NativeFigmaScene({geometry,width,height,transform,node,testID,sourceHeight,viewBoxY=0,canvasRef,onImage,onMetrics}:{geometry?:readonly SceneLayer[];width:number;height:number;transform?:string;node?:FigmaTreeNode;testID?:string;sourceHeight?:number;viewBoxY?:number;canvasRef?:RefObject<CanvasRef|null>;onImage?:(image:SkImage)=>void;onMetrics?:(metrics:{compositionMs:number;resources:{created:number;released:number;live:number}})=>void}){
+ useEffect(()=>{mountedSourceScenes++;return()=>{if(--mountedSourceScenes===0)disposeNativeGroupCaches();};},[]);
  const ref=useRef<View>(null),[layoutWidth,setLayoutWidth]=useState(width),[origins,setOrigins]=useState<ReadonlyMap<View,{x:number;y:number}>>(new Map());const {layers}=useLiveGlassBackdrop();const generation=useRef(0);
  useEffect(()=>{const token=++generation.current;let pending=layers.length;const input=new Map<View,{x:number;y:number}>();
   if(!pending)return;ref.current?.measureInWindow((x,y)=>layers.forEach(l=>l.root.measureInWindow((rx,ry)=>{if(token!==generation.current)return;input.set(l.root,{x:rx-x,y:ry-y});if(--pending===0)setOrigins(input);})));return()=>{generation.current++;};
@@ -22,7 +24,9 @@ export function NativeFigmaScene({geometry,width,height,transform,node,testID,so
  const tree=useMemo(()=>node??geometryTree(geometry??[],width,height),[node,JSON.stringify(geometry),width,height]);
  // Store coordinates, never retired image objects. Every render samples the
  // currently published prefix; late measurement callbacks cannot revive images.
- const image=useMemo(()=>renderNativeGroupScene(Skia,tree,{width:layoutWidth,height,dpr:PixelRatio.get(),world,backdrops:layers.filter(l=>origins.has(l.root)).map(l=>({image:l.image,...origins.get(l.root)!,width:l.image.width()/PixelRatio.get(),height:l.image.height()/PixelRatio.get()}))}),[tree,layoutWidth,height,JSON.stringify(world),layers,origins]);
+ const render=useMemo(()=>{const started=performance.now();const image=renderNativeGroupScene(Skia,tree,{width:layoutWidth,height,dpr:PixelRatio.get(),world,backdrops:layers.filter(l=>origins.has(l.root)).map(l=>({image:l.image,...origins.get(l.root)!,width:l.image.width()/PixelRatio.get(),height:l.image.height()/PixelRatio.get()}))});return {image,compositionMs:performance.now()-started,resources:lastNativeFrameResources};},[tree,layoutWidth,height,JSON.stringify(world),layers,origins]);
+ const image=render.image;
+ useEffect(()=>{onMetrics?.({compositionMs:render.compositionMs,resources:render.resources});},[render,onMetrics]);
  useEffect(()=>{onImage?.(image);},[image,onImage]);
  useEffect(()=>()=>image.dispose(),[image]);
  return <View ref={ref} collapsable={false} testID={testID} pointerEvents="none" accessibilityElementsHidden style={{width:'100%',height}} onLayout={e=>setLayoutWidth(e.nativeEvent.layout.width)}><Canvas ref={canvasRef} style={StyleSheet.absoluteFill}><Image image={image} x={0} y={0} width={layoutWidth} height={height}/></Canvas></View>;

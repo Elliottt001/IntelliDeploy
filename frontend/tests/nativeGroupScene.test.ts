@@ -26,3 +26,11 @@ it('filters only group SourceGraphic while nested glass samples the real prior p
  expect(at(25,25)[1]).toBeGreaterThan(200); // earlier real green graphic remains in lens input
  image.dispose();input.dispose();base.dispose();paint.dispose();
 });
+it('repeated CPU frames reclaim all temporary native factory resources with bounded caches',async()=>{
+ const init=require('canvaskit-wasm/bin/full/canvaskit.js'),ck=await init({locateFile:(f:string)=>require.resolve(`canvaskit-wasm/bin/full/${f}`)});
+ const {JsiSkApi}=require('@shopify/react-native-skia/lib/commonjs/skia/web/JsiSkia'),sk=JsiSkApi(ck);
+ const {lastNativeFrameResources}=await import('../components/mobile/glass/nativeGroupScene');
+ const makeNode=(color:string):FigmaTreeNode=>({sourceNodeId:'990:1',size:{x:24,y:16},transform:{m00:1,m01:0,m02:0,m10:0,m11:1,m12:0},opacity:1,visible:true,clipsContent:false,mask:false,booleanOperation:false,maskPaths:[],children:[],effects:[{type:'GLASS',radius:0,refractionRadius:3,refractionIntensity:.5,specularIntensity:0}],geometry:[{sourceNodeId:'990:1',path:'M0 0 H24 V16 H0 Z',fill:color,opacity:.2,sourceEffects:[]}]});
+ const api=await import('../components/mobile/glass/nativeGroupScene');
+ for(let i=0;i<40;i++){const image=renderNativeGroupScene(sk,makeNode(i%2?'#ff0000':'#00ff00'),{width:24,height:16,dpr:1,backdrops:[]});image.dispose();expect(api.lastNativeFrameResources.live).toBe(0);expect(api.lastNativeFrameResources.released).toBeLessThanOrEqual(api.lastNativeFrameResources.created);}
+});
