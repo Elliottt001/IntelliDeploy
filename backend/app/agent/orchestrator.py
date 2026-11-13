@@ -119,12 +119,15 @@ class AlgorithmOrchestrator:
         *,
         model=None,
         security_model=None,
+        gap_plan=None, packaging_plans=None, integration_contract=None, component_workspaces=None,
     ):
         from app.agent.review import review_deterministic, review_with_model
         from app.agent.security import scan_security, security_review_with_model
 
         deterministic = review_deterministic(
-            attempt_id, draft, requirement, route
+            attempt_id, draft, requirement, route,
+            gap_plan=gap_plan, packaging_plans=packaging_plans,
+            integration_contract=integration_contract, component_workspaces=component_workspaces,
         )
         security_rules = scan_security(
             attempt_id, draft, profile, policy

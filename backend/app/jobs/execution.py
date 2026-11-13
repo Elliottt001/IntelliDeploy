@@ -1128,7 +1128,7 @@ class JobExecution:
             for report in checkpoint.reviews
             if report.attempt_id == attempt_id and report.manifest_hash == digest
         ]
-        if existing:
+        if existing and checkpoint.mode != "hybrid":
             return existing
         route = checkpoint.route or RoutePlan(
             route="GENERATE_APP",
@@ -1160,6 +1160,9 @@ class JobExecution:
             policy,
             model=review_model,
             security_model=security_model,
+            **({"gap_plan": checkpoint.gap_plan, "packaging_plans": checkpoint.packaging_plans,
+                "integration_contract": checkpoint.integration_contract,
+                "component_workspaces": checkpoint.component_workspaces} if checkpoint.mode == "hybrid" else {}),
         )
         evidence_root = Path(settings.ARTIFACTS_ROOT) / "reviews" / self.job_id
         evidence_root.mkdir(parents=True, exist_ok=True, mode=0o700)

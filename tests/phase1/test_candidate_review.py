@@ -239,3 +239,45 @@ async def test_execution_persists_private_reports_and_sanitized_checkpoint(
         assert path.stat().st_mode & 0o777 == 0o600
     serialized = holder._state.model_dump_json()
     assert "PRIVATE_SOURCE_MARKER" not in serialized
+
+
+def test_review_blocks_unresolved_gap(tmp_path):
+    from app.agent.contracts import AcceptanceGap, GapPlan
+    from app.agent.review import review_deterministic
+    req = notes_requirement()
+    gaps = GapPlan(requirement_revision=req.revision, principal_source=None,
+        gaps=[AcceptanceGap(acceptance_id="save-note", status="BLOCKED", capability="persistence",
+                            required_changes=[], preserve=[], evidence_refs=[], reason="missing evidence")],
+        complete=False, input_digest="a" * 64)
+    report = review_deterministic("attempt", draft(tmp_path), req, route(), gap_plan=gaps)
+    assert any(f.id == "gap:blocked:save-note" and f.severity == "BLOCKING" for f in report.findings)
+
+
+def test_composition_can_share_one_final_service_with_explicit_owners(tmp_path):
+    from app.agent.contracts import IntegrationContract
+    from app.agent.review import review_deterministic
+    from test_integration_contract import valid_contract_json, component_route, record_search_requirement
+    payload = valid_contract_json()
+    payload["role_services"] = {"records": "web", "search": "web"}
+    candidate = draft(tmp_path)
+    req = record_search_requirement()
+    candidate = __import__("dataclasses").replace(candidate, browser_checks=[
+        BrowserCheck(item_id=a.id, actor="owner", actions=[{"type": "expect_text", "selector": "#x", "text": "x"}], expected=a.expected)
+        for a in req.acceptance])
+    report = review_deterministic("c", candidate, req, component_route(),
+                                  integration_contract=IntegrationContract.model_validate(payload))
+    assert not any(f.id in {"architecture:component-boundary-missing", "integration:service-owner-mismatch"} for f in report.findings)
+
+
+def test_packaging_finding_is_rechecked_after_builder_fix(tmp_path):
+    from app.agent.packaging import plan_packaging
+    from app.agent.review import review_deterministic
+    candidate = draft(tmp_path)
+    root = Path(candidate.workspace_id)
+    planned = plan_packaging(str(root), None, route())
+    assert planned.action == "GENERATE"
+    before = review_deterministic("before", candidate, notes_requirement(), route(), packaging_plans=[planned])
+    assert any(f.id == "packaging:blocking:DOCKERFILE_MISSING" for f in before.findings)
+    (root / "Dockerfile").write_text('FROM scratch\nCOPY server /server\nCMD ["/server"]\n')
+    after = review_deterministic("after", candidate, notes_requirement(), route(), packaging_plans=[planned])
+    assert not any(f.id.startswith("packaging:blocking:") for f in after.findings)
