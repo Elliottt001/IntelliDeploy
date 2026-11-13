@@ -19,7 +19,7 @@ function detail(status: Status | null): App {
     active_job: active, latest_job: job, instance_status: 'RUNNING', candidate_version_id: null,
     requirement: { prompt: '梦境记录', acceptance: [], revision: 1, facts: [], source_message_ids: [] },
     conversation: [{ id: 'm1', sequence: 1, role: 'user', content: '记录并分析梦境', created_at: timestamp }],
-    delivery: { app_id: 'app', version_id: 'old', instance_id: 'instance', url: 'https://fixture-app.example',
+    delivery: { kind: 'HOSTED_INSTANCE', app_id: 'app', version_id: 'old', instance_id: 'instance', url: 'https://fixture-app.example',
       summary: '原有梦境记录', features: ['保存记录'], report_url: '/api/jobs/old-job/report',
       artifact_url: '/api/apps/app/versions/old/artifact', published_at: timestamp },
   };

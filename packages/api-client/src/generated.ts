@@ -893,6 +893,12 @@ export interface components {
              * @default false
              */
             private_data: boolean;
+            /**
+             * Importance
+             * @default CORE
+             * @enum {string}
+             */
+            importance: "CORE" | "PREFERENCE";
         };
         /** AppDetail */
         AppDetail: {
@@ -916,7 +922,8 @@ export interface components {
             conversation: components["schemas"]["ConversationMessage"][];
             active_job?: components["schemas"]["JobSnapshot"] | null;
             latest_job?: components["schemas"]["JobSnapshot"] | null;
-            delivery?: components["schemas"]["DeliveryResult"] | null;
+            /** Delivery */
+            delivery?: components["schemas"]["DeliveryResult"] | components["schemas"]["ExternalLinkDelivery"] | null;
             /** Candidate Version Id */
             candidate_version_id?: string | null;
             instance?: components["schemas"]["InstanceSnapshot"] | null;
@@ -1022,8 +1029,29 @@ export interface components {
             /** Delete Data */
             delete_data: boolean;
         };
+        /** DeliveryPolicy */
+        DeliveryPolicy: {
+            /**
+             * Preference
+             * @default EXISTING_SERVICE_FIRST
+             * @enum {string}
+             */
+            preference: "EXISTING_SERVICE_FIRST" | "SELF_HOSTED";
+            /**
+             * Allow Generation
+             * @default false
+             */
+            allow_generation: boolean;
+        };
         /** DeliveryResult */
         DeliveryResult: {
+            /**
+             * Kind
+             * @default HOSTED_INSTANCE
+             * @constant
+             * @enum {string}
+             */
+            kind: "HOSTED_INSTANCE";
             /** App Id */
             app_id: string;
             /** Version Id */
@@ -1180,7 +1208,10 @@ export interface components {
             sources?: components["schemas"]["EvaluationSource"][];
             retrieval: components["schemas"]["EvaluationRetrieval"];
             requirement_compilation?: components["schemas"]["EvaluationRequirementCompilation"] | null;
-            result?: components["schemas"]["DeliveryResult"] | null;
+            /** Result */
+            result?: components["schemas"]["DeliveryResult"] | components["schemas"]["ExternalLinkDelivery"] | null;
+            /** Delivery Kind */
+            delivery_kind?: ("EXTERNAL_LINK" | "HOSTED_INSTANCE") | null;
             report: components["schemas"]["JobReport"];
             /**
              * Created At
@@ -1253,6 +1284,41 @@ export interface components {
             name: string;
             /** Kind */
             kind: string;
+        };
+        /** ExternalLinkDelivery */
+        ExternalLinkDelivery: {
+            /**
+             * Kind
+             * @default EXTERNAL_LINK
+             * @constant
+             * @enum {string}
+             */
+            kind: "EXTERNAL_LINK";
+            /** App Id */
+            app_id: string;
+            /** Job Id */
+            job_id: string;
+            /** Url */
+            url: string;
+            /** Repo Url */
+            repo_url: string;
+            /** Source Ref */
+            source_ref: string;
+            /** Summary */
+            summary: string;
+            /** Features */
+            features: string[];
+            /** Differences */
+            differences?: string[];
+            /**
+             * Verified At
+             * Format: date-time
+             */
+            verified_at: string;
+            /** Verification Refs */
+            verification_refs: string[];
+            /** Report Url */
+            report_url: string;
         };
         /** FetchRequest */
         FetchRequest: {
@@ -1389,7 +1455,8 @@ export interface components {
             question?: string | null;
             /** Usage Units */
             usage_units: number;
-            result?: components["schemas"]["DeliveryResult"] | null;
+            /** Result */
+            result?: components["schemas"]["DeliveryResult"] | components["schemas"]["ExternalLinkDelivery"] | null;
             error?: components["schemas"]["PublicError"] | null;
             /**
              * Created At
@@ -1668,6 +1735,7 @@ export interface components {
             facts?: components["schemas"]["DemandFact"][];
             /** Source Message Ids */
             source_message_ids?: string[];
+            delivery_policy?: components["schemas"]["DeliveryPolicy"];
         };
         /** ResumeRequest */
         ResumeRequest: {
