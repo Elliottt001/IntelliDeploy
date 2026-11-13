@@ -96,7 +96,7 @@ def review_deterministic(
 
     for service in draft.manifest.services:
         if not digest_pinned(service.image) and not (
-            gap_plan is not None and any(b.service == service.name for b in draft.manifest.builds)
+            any(b.service == service.name for b in draft.manifest.builds)
         ):
             findings.append(
                 _finding(

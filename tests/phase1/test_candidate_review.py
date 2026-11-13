@@ -281,3 +281,15 @@ def test_packaging_finding_is_rechecked_after_builder_fix(tmp_path):
     (root / "Dockerfile").write_text('FROM scratch\nWORKDIR /\nCOPY server /server\nCMD ["/server"]\n')
     after = review_deterministic("after", candidate, notes_requirement(), route(), packaging_plans=[planned])
     assert not any(f.id.startswith("packaging:blocking:") for f in after.findings)
+
+
+def test_prebuild_review_allows_declared_build_without_fabricated_image_digest(tmp_path):
+    from dataclasses import replace
+    from app.core.types import BuildSpec
+    from app.agent.review import review_deterministic
+    candidate = draft(tmp_path, image='notes-app:pending-build')
+    pending = candidate.manifest.model_copy(deep=True)
+    pending.builds = [BuildSpec(service='web',context='.',dockerfile='Dockerfile')]
+    candidate = replace(candidate,manifest=pending)
+    report = review_deterministic('prebuild',candidate,notes_requirement(),route())
+    assert not any(f.id == 'manifest:unpinned-image' for f in report.findings)
