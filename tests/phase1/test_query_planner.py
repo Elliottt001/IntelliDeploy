@@ -113,3 +113,8 @@ async def test_invalid_known_model_overlay_keeps_deterministic_queries_and_recor
     plan = await plan_queries(value, Model())
     assert 'private notes web app' in plan.github_queries
     assert plan.constraints['planning_mode'] == 'deterministic_model_invalid'
+def test_markdown_requirement_uses_application_category_query():
+    from app.agent.query import deterministic_queries
+    from app.core.types import Requirement
+    value=deterministic_queries(Requirement(prompt='找一个在线 Markdown 编辑器',acceptance=[]))
+    assert 'markdown editor web app' in value.github_queries

@@ -166,11 +166,26 @@ def _algorithm_metrics(records: list[dict]) -> dict:
     }
 
 
+def delivery_kind(record):
+    return record.get('delivery_kind') or (record.get('result') or {}).get('kind') or 'HOSTED_INSTANCE'
+
+
+def summarize_reuse_records(records):
+    return {
+        'external_link_successes':sum(r.get('status')=='SUCCEEDED' and delivery_kind(r)=='EXTERNAL_LINK' for r in records),
+        'hosted_successes':sum(r.get('status')=='SUCCEEDED' and delivery_kind(r)=='HOSTED_INSTANCE' for r in records),
+        'unconfirmed':sum(r.get('status') in {'WAITING_USER','NOT_RUN'} for r in records),
+    }
+
+
 def summarize_pairs(records: list[dict]) -> dict:
     """Conservatively compare durable baseline/hybrid evaluation records."""
     groups: dict[str, list[dict]] = {}
     not_run_reasons: list[str] = []
     for record in records:
+        if delivery_kind(record) == 'EXTERNAL_LINK':
+            not_run_reasons.append('EXTERNAL_LINK_NOT_HOSTED_PAIR')
+            continue
         pair_id = record.get("pair_id")
         if not isinstance(pair_id, str) or not pair_id:
             not_run_reasons.append("UNMATCHED_ALGORITHM_PAIR")
@@ -314,9 +329,10 @@ def summarize(records: list[dict], reviews: list[dict]) -> dict:
         record
         for record in records
         if record.get("source_mode") == "real"
+        and delivery_kind(record) == 'HOSTED_INSTANCE'
         and record.get("routing_mode", "automatic") == "automatic"
     ]
-    release_evidence = _merge_release_evidence(records)
+    release_evidence = _merge_release_evidence([r for r in records if delivery_kind(r)=='HOSTED_INSTANCE'])
     actual_routes = Counter(
         record.get("route")
         for record in automatic_records

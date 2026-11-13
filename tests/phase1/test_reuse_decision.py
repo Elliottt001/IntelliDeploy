@@ -1,5 +1,6 @@
 import pytest
 from app.core.types import Requirement
+from test_default_execution import new_job
 
 
 def test_no_candidates_cannot_silently_generate():
@@ -35,3 +36,31 @@ def test_small_difference_does_not_block_direct_deployment():
     decision=choose_reuse_decision(req,[a],[p])
     assert decision.route=='DEPLOY_EXISTING'
     assert decision.differences==['界面不同']
+
+
+@pytest.mark.asyncio
+async def test_real_orchestrator_entry_selects_repository_without_generation(new_job,session_factory,monkeypatch):
+    import json
+    from app.jobs.execution import JobExecution
+    from app.core.types import RetrievalResult, ModelTurn
+    from test_repository_profiler import retrieval_candidate
+    candidate=retrieval_candidate(repo_url='https://github.com/example/notes',description='private notes web app',
+        file_tree=['README.md','LICENSE','package.json','app/page.tsx','Dockerfile'],
+        key_files={'README.md':'Create private notes','LICENSE':'MIT License',
+            'package.json':'{"scripts":{"build":"next build","start":"next start"},"dependencies":{"next":"16.4.6"}}',
+            'Dockerfile':'FROM node:24\nEXPOSE 3000\nCMD ["npm","start"]','app/page.tsx':'export default function Page(){return "notes";}'})
+    async def retrieve(*args,**kwargs):
+        return RetrievalResult(queries=['private notes'],completed=True,candidates=[candidate])
+    monkeypatch.setattr('app.agent.retrieval.retrieve_sources',retrieve)
+    class Model:
+        async def complete(self,messages,tools,model):
+            assert model != 'generate'
+            return ModelTurn(assistant_message={'content':json.dumps([{'repo_url':candidate.repo_url,'commit':candidate.commit,
+                'requirement_revision':1,'capabilities':[{'acceptance_id':'A1','status':'SUPPORTED','evidence_refs':['README.md'],
+                    'quote':'Create private notes','reason':'notes functionality'}],'differences':['界面不同']}])},input_tokens=1,output_tokens=1)
+    jid,_,_,generation=new_job
+    execution=JobExecution(jid,'worker',generation,session_factory=session_factory,model_client=Model())
+    route=await execution.choose_sources(Requirement(prompt='私人笔记',acceptance=[{'id':'A1','action':'创建笔记','expected':'保存'}]))
+    assert route.route=='DEPLOY_EXISTING'
+    assert route.sources[0].url==candidate.repo_url
+    assert execution.algorithm_checkpoint().reuse_decision.differences==['界面不同']

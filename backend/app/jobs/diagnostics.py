@@ -236,6 +236,7 @@ def build_evaluation_record(session, job: Job) -> EvaluationRecord:
     checkpoint = dict(job.checkpoint or {})
     report = service.job_report(session, job)
     result = job.result or None
+    delivery_kind = (result or {}).get('kind') or ('HOSTED_INSTANCE' if result else None)
     version_id = (result or {}).get("version_id")
     release = session.scalar(
         select(ResourceRecord)
@@ -288,6 +289,7 @@ def build_evaluation_record(session, job: Job) -> EvaluationRecord:
         app_id=job.app_id,
         version_id=version_id,
         status=job.status,
+        delivery_kind=delivery_kind,
         route=_route(checkpoint),
         algorithm=_algorithm(checkpoint),
         source_mode="real" if is_real else "fixture",

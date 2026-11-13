@@ -985,13 +985,13 @@ class JobExecution:
                         prepare_sources, str(workspace), plan
                     )
             await self.ensure_hosted_dependencies()
-            self.prepare_algorithm_inputs(requirement, plan, workspace)
             if plan.route == 'DEPLOY_EXISTING' and attempt_index == 0 and not repair_evidence:
                 from app.runtime.official_deployment import plan_official_deployment, execute_official_deployment
                 algorithm = self.algorithm_checkpoint()
                 profile = next((p for p in algorithm.profiles if plan.sources and p.repo_url == plan.sources[0].url), None)
                 if profile is not None and algorithm.reuse_decision is not None:
                     return await execute_official_deployment(self, plan_official_deployment(profile, algorithm.reuse_decision))
+            self.prepare_algorithm_inputs(requirement, plan, workspace)
             algorithm = self.algorithm_checkpoint()
             policy = None
             if algorithm.component_workspaces:
