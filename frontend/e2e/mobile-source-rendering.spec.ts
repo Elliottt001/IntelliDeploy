@@ -2,6 +2,7 @@ import {makeVisualApp,visualRankingPublications} from './mobileVisualFixtures';
 import {expect,test} from '@playwright/test';
 import {catXml} from '../screens/login/generated/loginSvgAssets';
 import {readFile} from 'node:fs/promises';
+import {effectSupport} from '../design/sourceEffectSupport';
 test('Mibo composer preserves its source first-line baseline independently of the 44pt input target', async ({ page }) => {
  const source = process.env.INTELLIDEPLOY_FIGMA_SOURCE;
  test.skip(!source, 'Requires the original Figma source for the composer parent-chain audit');
@@ -179,7 +180,8 @@ test('visible Mibo actions menu opens real products and quota destinations at 44
  await page.goto('/chatbot');await page.getByTestId('chatbot-settings').click();await page.getByTestId('chatbot-billing').click();await expect(page).toHaveURL(/\/billing$/);
 });
 
-test('Figma GLASS replaces the underlying sharp rear edge with the blurred backdrop',async({page})=>{
+test('supported backdrop blur approximation stays separate from unimplemented optical GLASS',async({page})=>{
+ expect(effectSupport('GLASS','web')).toBe('NOT_IMPLEMENTED');
  await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));
  await page.route('**/api/apps',r=>r.fulfill({json:{items:[],next_cursor:null}}));
  await page.goto('/app-gallery');await expect(page.getByTestId('product-folder-created')).toBeVisible();

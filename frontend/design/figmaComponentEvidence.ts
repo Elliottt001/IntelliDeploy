@@ -39,8 +39,9 @@ export type FigmaVectorLayer = {
 };
 
 export type FigmaEffectEvidence = {
-  type: 'DROP_SHADOW' | 'INNER_SHADOW' | 'LAYER_BLUR' | 'BACKGROUND_BLUR';
+  type: 'DROP_SHADOW' | 'INNER_SHADOW' | 'FOREGROUND_BLUR' | 'LAYER_BLUR' | 'BACKGROUND_BLUR' | 'GLASS' | 'NOISE' | string;
   radius: number;
+  bevelSize?: number;
   blendMode?: string;
   blurOpType?: string;
   clipToShape?: boolean;
@@ -51,6 +52,7 @@ export type FigmaEffectEvidence = {
   noiseType?: string;
   offset?: { x: number; y: number };
   opacity?: number;
+  rawFields?: Record<string, unknown>;
   rawType?: string;
   reflectionDistance?: number;
   refractionIntensity?: number;
@@ -59,6 +61,7 @@ export type FigmaEffectEvidence = {
   secondaryOpacity?: number;
   seed?: number;
   showShadowBehindNode?: boolean;
+  sourceNodeId?: FigmaNodeId;
   spread?: number;
   specularAngle?: number;
   specularIntensity?: number;
@@ -93,6 +96,7 @@ export type FigmaPrimitiveEvidence = {
   symbolNodeId?: FigmaNodeId;
   noSymbolReason?: 'no-instance-or-symbol-in-audited-subtree';
   size: { width: number; height: number };
+  sourcePadding?: { top: number; right: number; bottom: number; left: number };
   geometry: readonly FigmaVectorLayer[];
   fills: readonly FigmaPaintEvidence[];
   strokes: readonly FigmaPaintEvidence[];
@@ -198,6 +202,7 @@ export const figmaComponentEvidence = {
     ],
     "effects": [
       {
+        "bevelSize": 0.550725,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -214,6 +219,22 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 2.202899,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 0.74,
@@ -222,10 +243,11 @@ export const figmaComponentEvidence = {
         "secondaryOpacity": 0.25,
         "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "248:20524",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -236,8 +258,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.304348,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "248:20524",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -399,6 +431,7 @@ export const figmaComponentEvidence = {
     "derivedValues": [],
     "effects": [
       {
+        "bevelSize": 0.550725,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -415,6 +448,22 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 2.202899,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 0.74,
@@ -423,10 +472,11 @@ export const figmaComponentEvidence = {
         "secondaryOpacity": 0.25,
         "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "845:3504",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -437,8 +487,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.304348,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "845:3504",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -590,6 +650,7 @@ export const figmaComponentEvidence = {
     "derivedValues": [],
     "effects": [
       {
+        "bevelSize": 0.550725,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -606,6 +667,22 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 2.202899,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 0.74,
@@ -614,10 +691,11 @@ export const figmaComponentEvidence = {
         "secondaryOpacity": 0.25,
         "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "845:3511",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -628,8 +706,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.304348,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "845:3511",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -962,8 +1050,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 10,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.5753831267356873,
+            "c1": 0.5753831267356873,
+            "c2": 0.5753831267356873,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "845:3539",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -1070,8 +1168,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 10,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.5753831267356873,
+            "c1": 0.5753831267356873,
+            "c2": 0.5753831267356873,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "845:3539",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -1202,8 +1310,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 10,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.5753831267356873,
+            "c1": 0.5753831267356873,
+            "c2": 0.5753831267356873,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26532",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -1349,8 +1467,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 10,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.5753831267356873,
+            "c1": 0.5753831267356873,
+            "c2": 0.5753831267356873,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26532",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -1418,6 +1546,7 @@ export const figmaComponentEvidence = {
     "derivedValues": [],
     "effects": [
       {
+        "bevelSize": 0.66087,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -1434,6 +1563,22 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 2.643479,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 0.74,
@@ -1442,10 +1587,11 @@ export const figmaComponentEvidence = {
         "secondaryOpacity": 0.25,
         "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26538",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -1456,8 +1602,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.965218,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26538",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -1627,6 +1783,7 @@ export const figmaComponentEvidence = {
     ],
     "surfaceEffects": [
       {
+        "bevelSize": 0.66087,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -1643,6 +1800,22 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 2.643479,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 0.74,
@@ -1651,10 +1824,11 @@ export const figmaComponentEvidence = {
         "secondaryOpacity": 0.25,
         "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26538",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -1665,8 +1839,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.965218,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26538",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -1706,6 +1890,7 @@ export const figmaComponentEvidence = {
     "derivedValues": [],
     "effects": [
       {
+        "bevelSize": 0.66087,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -1722,6 +1907,22 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 2.643479,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 0.74,
@@ -1730,10 +1931,11 @@ export const figmaComponentEvidence = {
         "secondaryOpacity": 0.25,
         "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26546",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -1744,8 +1946,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.965218,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26546",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -1869,6 +2081,7 @@ export const figmaComponentEvidence = {
     ],
     "surfaceEffects": [
       {
+        "bevelSize": 0.66087,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -1885,6 +2098,22 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 2.643479,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 0.74,
@@ -1893,10 +2122,11 @@ export const figmaComponentEvidence = {
         "secondaryOpacity": 0.25,
         "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26546",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -1907,8 +2137,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.965218,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26546",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -1948,6 +2188,7 @@ export const figmaComponentEvidence = {
     "derivedValues": [],
     "effects": [
       {
+        "bevelSize": 0.66087,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -1964,6 +2205,22 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 2.643479,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 0.74,
@@ -1972,10 +2229,11 @@ export const figmaComponentEvidence = {
         "secondaryOpacity": 0.25,
         "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26552",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -1986,8 +2244,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.965218,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26552",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -2111,6 +2379,7 @@ export const figmaComponentEvidence = {
     ],
     "surfaceEffects": [
       {
+        "bevelSize": 0.66087,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -2127,6 +2396,22 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 2.643479,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 0.74,
@@ -2135,10 +2420,11 @@ export const figmaComponentEvidence = {
         "secondaryOpacity": 0.25,
         "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26552",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -2149,8 +2435,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.965218,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26552",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -2192,8 +2488,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.130435,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26269",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -2869,6 +3175,7 @@ export const figmaComponentEvidence = {
     "derivedValues": [],
     "effects": [
       {
+        "bevelSize": 0.550725,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -2885,6 +3192,22 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 2.202899,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 0.74,
@@ -2893,10 +3216,11 @@ export const figmaComponentEvidence = {
         "secondaryOpacity": 0.25,
         "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "845:3504",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -2907,8 +3231,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.304348,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "845:3504",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -3046,6 +3380,7 @@ export const figmaComponentEvidence = {
     ],
     "surfaceEffects": [
       {
+        "bevelSize": 0.550725,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -3062,6 +3397,22 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 2.202899,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 0.74,
@@ -3070,10 +3421,11 @@ export const figmaComponentEvidence = {
         "secondaryOpacity": 0.25,
         "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "845:3504",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -3084,8 +3436,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.304348,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "845:3504",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -3126,6 +3488,31 @@ export const figmaComponentEvidence = {
     "effects": [
       {
         "blendMode": "NORMAL",
+        "color": "#BABABA",
+        "offset": {
+          "x": 0,
+          "y": 1.786134
+        },
+        "opacity": 0.25,
+        "radius": 2.679201,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "270:26530",
+        "spread": 0,
+        "type": "DROP_SHADOW"
+      },
+      {
+        "bevelSize": 0.446534,
+        "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
         "chromaticAberration": 0.31,
@@ -3141,6 +3528,22 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 1.786134,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 0.74,
@@ -3149,114 +3552,11 @@ export const figmaComponentEvidence = {
         "secondaryOpacity": 0.25,
         "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26530",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "clipToShape": false,
-        "color": "#000000",
-        "chromaticAberration": 0.31,
-        "density": 1,
-        "noiseSize": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "noiseType": "MONOTONE",
-        "offset": {
-          "x": 0,
-          "y": 2.643479
-        },
-        "opacity": 0.15,
-        "radius": 2.643479,
-        "rawType": "GLASS",
-        "reflectionDistance": 0,
-        "refractionIntensity": 0.74,
-        "refractionRadius": 11.895653,
-        "secondaryColor": "#FFFFFF",
-        "secondaryOpacity": 0.25,
-        "seed": 3832,
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "specularAngle": -45,
-        "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "clipToShape": false,
-        "color": "#000000",
-        "chromaticAberration": 0.31,
-        "density": 1,
-        "noiseSize": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "noiseType": "MONOTONE",
-        "offset": {
-          "x": 0,
-          "y": 2.643479
-        },
-        "opacity": 0.15,
-        "radius": 2.643479,
-        "rawType": "GLASS",
-        "reflectionDistance": 0,
-        "refractionIntensity": 0.74,
-        "refractionRadius": 11.895653,
-        "secondaryColor": "#FFFFFF",
-        "secondaryOpacity": 0.25,
-        "seed": 3832,
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "specularAngle": -45,
-        "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "clipToShape": false,
-        "color": "#000000",
-        "chromaticAberration": 0.31,
-        "density": 1,
-        "noiseSize": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "noiseType": "MONOTONE",
-        "offset": {
-          "x": 0,
-          "y": 2.643479
-        },
-        "opacity": 0.15,
-        "radius": 2.643479,
-        "rawType": "GLASS",
-        "reflectionDistance": 0,
-        "refractionIntensity": 0.74,
-        "refractionRadius": 11.895653,
-        "secondaryColor": "#FFFFFF",
-        "secondaryOpacity": 0.25,
-        "seed": 3832,
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "specularAngle": -45,
-        "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#939393",
-        "offset": {
-          "x": 0,
-          "y": 4
-        },
-        "opacity": 0.25,
-        "radius": 10,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -3267,24 +3567,68 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 4,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.6096577048301697,
+            "c1": 0.5080081820487976,
+            "c2": 0.9146071076393127,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26531",
         "spread": 0,
         "type": "DROP_SHADOW"
       },
       {
+        "bevelSize": 0.66087,
         "blendMode": "NORMAL",
-        "color": "#BABABA",
+        "clipToShape": false,
+        "color": "#000000",
+        "chromaticAberration": 0.31,
+        "density": 1,
+        "noiseSize": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "noiseType": "MONOTONE",
         "offset": {
           "x": 0,
-          "y": 1.786134
+          "y": 2.643479
         },
-        "opacity": 0.25,
-        "radius": 2.679201,
-        "rawType": "DROP_SHADOW",
+        "opacity": 0.15,
+        "radius": 2.643479,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "GLASS",
+        "reflectionDistance": 0,
+        "refractionIntensity": 0.74,
+        "refractionRadius": 11.895653,
+        "secondaryColor": "#FFFFFF",
+        "secondaryOpacity": 0.25,
+        "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26552",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "specularAngle": -45,
+        "specularIntensity": 0.8,
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -3295,10 +3639,68 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.965218,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26552",
         "spread": 0,
         "type": "DROP_SHADOW"
+      },
+      {
+        "bevelSize": 0.66087,
+        "blendMode": "NORMAL",
+        "clipToShape": false,
+        "color": "#000000",
+        "chromaticAberration": 0.31,
+        "density": 1,
+        "noiseSize": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "noiseType": "MONOTONE",
+        "offset": {
+          "x": 0,
+          "y": 2.643479
+        },
+        "opacity": 0.15,
+        "radius": 2.643479,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "GLASS",
+        "reflectionDistance": 0,
+        "refractionIntensity": 0.74,
+        "refractionRadius": 11.895653,
+        "secondaryColor": "#FFFFFF",
+        "secondaryOpacity": 0.25,
+        "seed": 3832,
+        "showShadowBehindNode": false,
+        "sourceNodeId": "270:26546",
+        "spread": 0,
+        "specularAngle": -45,
+        "specularIntensity": 0.8,
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -3309,10 +3711,68 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.965218,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26546",
         "spread": 0,
         "type": "DROP_SHADOW"
+      },
+      {
+        "bevelSize": 0.66087,
+        "blendMode": "NORMAL",
+        "clipToShape": false,
+        "color": "#000000",
+        "chromaticAberration": 0.31,
+        "density": 1,
+        "noiseSize": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "noiseType": "MONOTONE",
+        "offset": {
+          "x": 0,
+          "y": 2.643479
+        },
+        "opacity": 0.15,
+        "radius": 2.643479,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "GLASS",
+        "reflectionDistance": 0,
+        "refractionIntensity": 0.74,
+        "refractionRadius": 11.895653,
+        "secondaryColor": "#FFFFFF",
+        "secondaryOpacity": 0.25,
+        "seed": 3832,
+        "showShadowBehindNode": false,
+        "sourceNodeId": "270:26538",
+        "spread": 0,
+        "specularAngle": -45,
+        "specularIntensity": 0.8,
+        "type": "GLASS"
       },
       {
         "blendMode": "NORMAL",
@@ -3323,8 +3783,42 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.965218,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26538",
+        "spread": 0,
+        "type": "DROP_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#939393",
+        "offset": {
+          "x": 0,
+          "y": 4
+        },
+        "opacity": 0.25,
+        "radius": 10,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.5753831267356873,
+            "c1": 0.5753831267356873,
+            "c2": 0.5753831267356873,
+            "c3": 0.25
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "270:26532",
         "spread": 0,
         "type": "DROP_SHADOW"
       }
@@ -3858,6 +4352,31 @@ export const figmaComponentEvidence = {
     "surfaceEffects": [
       {
         "blendMode": "NORMAL",
+        "color": "#BABABA",
+        "offset": {
+          "x": 0,
+          "y": 1.786134
+        },
+        "opacity": 0.25,
+        "radius": 2.679201,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.72998046875,
+            "c1": 0.72998046875,
+            "c2": 0.72998046875,
+            "c3": 0.25
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "270:26530",
+        "spread": 0,
+        "type": "DROP_SHADOW"
+      },
+      {
+        "bevelSize": 0.446534,
+        "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
         "chromaticAberration": 0.31,
@@ -3873,6 +4392,22 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 1.786134,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 0.74,
@@ -3881,24 +4416,11 @@ export const figmaComponentEvidence = {
         "secondaryOpacity": 0.25,
         "seed": 3832,
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26530",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#BABABA",
-        "offset": {
-          "x": 0,
-          "y": 1.786134
-        },
-        "opacity": 0.25,
-        "radius": 2.679201,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "GLASS"
       }
     ],
     "surfaceFills": [
@@ -3937,6 +4459,30 @@ export const figmaComponentEvidence = {
     "effects": [
       {
         "blendMode": "NORMAL",
+        "color": "#1F2687",
+        "offset": {
+          "x": 0,
+          "y": 8
+        },
+        "opacity": 0.07,
+        "radius": 32,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6570",
+        "spread": 0,
+        "type": "DROP_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
         "blurOpType": "NORMAL",
         "color": "#000000",
         "offset": {
@@ -3945,8 +4491,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 1,
         "radius": 16,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
         "rawType": "BACKGROUND_BLUR",
         "showShadowBehindNode": true,
+        "sourceNodeId": "825:6570",
         "spread": 0,
         "type": "BACKGROUND_BLUR"
       },
@@ -3960,33 +4516,188 @@ export const figmaComponentEvidence = {
         },
         "opacity": 1,
         "radius": 64,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
         "rawType": "FOREGROUND_BLUR",
         "showShadowBehindNode": true,
+        "sourceNodeId": "825:6571",
+        "spread": 0,
+        "type": "FOREGROUND_BLUR"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#BDBDBD",
+        "offset": {
+          "x": 0.584624,
+          "y": 0.584624
+        },
+        "opacity": 0.25,
+        "radius": 0.584624,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.740159273147583,
+            "c1": 0.740159273147583,
+            "c2": 0.740159273147583,
+            "c3": 0.25
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6589",
         "spread": 0,
         "type": "DROP_SHADOW"
       },
       {
         "blendMode": "NORMAL",
-        "color": "#000000",
-        "density": 1,
-        "noiseSize": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "noiseType": "MONOTONE",
+        "color": "#FBB8FF",
         "offset": {
-          "x": 0,
-          "y": 4
+          "x": 1.502452,
+          "y": 1.502452
         },
-        "opacity": 0.15,
-        "radius": 2.077186,
-        "rawType": "FOREGROUND_BLUR",
-        "secondaryColor": "#FFFFFF",
-        "secondaryOpacity": 0.25,
-        "seed": 9231,
+        "opacity": 0.5,
+        "radius": 6.009809,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.9861647486686707,
+            "c1": 0.7232947945594788,
+            "c2": 1,
+            "c3": 0.5
+          }
+        },
+        "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6590",
         "spread": 0,
         "type": "DROP_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FCCCFF",
+        "offset": {
+          "x": -0.584624,
+          "y": -0.584624
+        },
+        "opacity": 0.25,
+        "radius": 4.063138,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.9865372180938721,
+            "c1": 0.7980581521987915,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6590",
+        "spread": 0,
+        "type": "DROP_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FFBB7B",
+        "offset": {
+          "x": -1.529694,
+          "y": -0.382424
+        },
+        "opacity": 0.3,
+        "radius": 3.059388,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 0.7332929372787476,
+            "c2": 0.48379281163215637,
+            "c3": 0.30000001192092896
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6592",
+        "spread": 0,
+        "type": "DROP_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FFFFFF",
+        "offset": {
+          "x": 0,
+          "y": 0
+        },
+        "opacity": 1,
+        "radius": 3.824236,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
+        "rawType": "INNER_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6598",
+        "spread": 0,
+        "type": "INNER_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FFFFFF",
+        "offset": {
+          "x": 0,
+          "y": 0
+        },
+        "opacity": 1,
+        "radius": 3.824236,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
+        "rawType": "INNER_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6599",
+        "spread": 0,
+        "type": "INNER_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FFFFFF",
+        "offset": {
+          "x": 0,
+          "y": 0
+        },
+        "opacity": 1,
+        "radius": 3.059389,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
+        "rawType": "INNER_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6593",
+        "spread": 0,
+        "type": "INNER_SHADOW"
       },
       {
         "blendMode": "NORMAL",
@@ -4003,82 +4714,30 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 2.294541,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 9231,
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6600",
         "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#000000",
-        "density": 1,
-        "noiseSize": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "noiseType": "MONOTONE",
-        "offset": {
-          "x": 0,
-          "y": 4
-        },
-        "opacity": 0.15,
-        "radius": 5.539163,
-        "rawType": "FOREGROUND_BLUR",
-        "secondaryColor": "#FFFFFF",
-        "secondaryOpacity": 0.25,
-        "seed": 8172,
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#000000",
-        "density": 1,
-        "noiseSize": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "noiseType": "MONOTONE",
-        "offset": {
-          "x": 0,
-          "y": 4
-        },
-        "opacity": 0.15,
-        "radius": 5.539163,
-        "rawType": "FOREGROUND_BLUR",
-        "secondaryColor": "#FFFFFF",
-        "secondaryOpacity": 0.25,
-        "seed": 8172,
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#000000",
-        "density": 1,
-        "noiseSize": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "noiseType": "MONOTONE",
-        "offset": {
-          "x": 0,
-          "y": 4
-        },
-        "opacity": 0.15,
-        "radius": 5.539163,
-        "rawType": "FOREGROUND_BLUR",
-        "secondaryColor": "#FFFFFF",
-        "secondaryOpacity": 0.25,
-        "seed": 8172,
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "FOREGROUND_BLUR"
       },
       {
         "blendMode": "NORMAL",
@@ -4095,13 +4754,54 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 6.118777,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 8172,
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6597",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "FOREGROUND_BLUR"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FFFFFF",
+        "offset": {
+          "x": 0,
+          "y": 0
+        },
+        "opacity": 1,
+        "radius": 4.170177,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
+        "rawType": "INNER_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6594",
+        "spread": 0,
+        "type": "INNER_SHADOW"
       },
       {
         "blendMode": "NORMAL",
@@ -4118,13 +4818,30 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 6.118777,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 8172,
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6596",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "FOREGROUND_BLUR"
       },
       {
         "blendMode": "NORMAL",
@@ -4141,55 +4858,30 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.15,
         "radius": 6.118777,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 8172,
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6595",
         "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#000000",
-        "offset": {
-          "x": 0,
-          "y": 4
-        },
-        "opacity": 0.25,
-        "radius": 1.783959,
-        "rawType": "FOREGROUND_BLUR",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#1F2687",
-        "offset": {
-          "x": 0,
-          "y": 8
-        },
-        "opacity": 0.07,
-        "radius": 32,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#59A4FF",
-        "offset": {
-          "x": -1.384791,
-          "y": -0.346198
-        },
-        "opacity": 0.25,
-        "radius": 2.769582,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "FOREGROUND_BLUR"
       },
       {
         "blendMode": "NORMAL",
@@ -4200,22 +4892,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 0.547619,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#BDBDBD",
-        "offset": {
-          "x": 0.584624,
-          "y": 0.584624
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.740159273147583,
+            "c1": 0.740159273147583,
+            "c2": 0.740159273147583,
+            "c3": 0.25
+          }
         },
-        "opacity": 0.25,
-        "radius": 0.584624,
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6607",
         "spread": 0,
         "type": "DROP_SHADOW"
       },
@@ -4228,22 +4916,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.5,
         "radius": 5.629398,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FBB8FF",
-        "offset": {
-          "x": 1.502452,
-          "y": 1.502452
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.9861647486686707,
+            "c1": 0.7232947945594788,
+            "c2": 1,
+            "c3": 0.5
+          }
         },
-        "opacity": 0.5,
-        "radius": 6.009809,
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6608",
         "spread": 0,
         "type": "DROP_SHADOW"
       },
@@ -4256,36 +4940,42 @@ export const figmaComponentEvidence = {
         },
         "opacity": 0.25,
         "radius": 3.805948,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.9865372180938721,
+            "c1": 0.7980581521987915,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6608",
         "spread": 0,
         "type": "DROP_SHADOW"
       },
       {
         "blendMode": "NORMAL",
-        "color": "#FCCCFF",
+        "color": "#59A4FF",
         "offset": {
-          "x": -0.584624,
-          "y": -0.584624
+          "x": -1.384791,
+          "y": -0.346198
         },
         "opacity": 0.25,
-        "radius": 4.063138,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FFBB7B",
-        "offset": {
-          "x": -1.529694,
-          "y": -0.382424
+        "radius": 2.769582,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.34990984201431274,
+            "c1": 0.6424503922462463,
+            "c2": 1,
+            "c3": 0.25
+          }
         },
-        "opacity": 0.3,
-        "radius": 3.059388,
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6610",
         "spread": 0,
         "type": "DROP_SHADOW"
       },
@@ -4298,36 +4988,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 1,
         "radius": 2.769581,
-        "rawType": "INNER_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "INNER_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FFFFFF",
-        "offset": {
-          "x": 0,
-          "y": 0
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
         },
-        "opacity": 1,
-        "radius": 3.059389,
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "INNER_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FFFFFF",
-        "offset": {
-          "x": 0,
-          "y": 0
-        },
-        "opacity": 1,
-        "radius": 3.461976,
-        "rawType": "INNER_SHADOW",
-        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6611",
         "spread": 0,
         "type": "INNER_SHADOW"
       },
@@ -4340,8 +5012,18 @@ export const figmaComponentEvidence = {
         },
         "opacity": 1,
         "radius": 3.461976,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6617",
         "spread": 0,
         "type": "INNER_SHADOW"
       },
@@ -4354,10 +5036,60 @@ export const figmaComponentEvidence = {
         },
         "opacity": 1,
         "radius": 3.775148,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6612",
         "spread": 0,
         "type": "INNER_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#000000",
+        "density": 1,
+        "noiseSize": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "noiseType": "MONOTONE",
+        "offset": {
+          "x": 0,
+          "y": 4
+        },
+        "opacity": 0.15,
+        "radius": 2.077186,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "FOREGROUND_BLUR",
+        "secondaryColor": "#FFFFFF",
+        "secondaryOpacity": 0.25,
+        "seed": 9231,
+        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6618",
+        "spread": 0,
+        "type": "FOREGROUND_BLUR"
       },
       {
         "blendMode": "NORMAL",
@@ -4367,39 +5099,165 @@ export const figmaComponentEvidence = {
           "y": 0
         },
         "opacity": 1,
-        "radius": 3.824236,
+        "radius": 3.461976,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6616",
         "spread": 0,
         "type": "INNER_SHADOW"
       },
       {
         "blendMode": "NORMAL",
-        "color": "#FFFFFF",
+        "color": "#000000",
+        "density": 1,
+        "noiseSize": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "noiseType": "MONOTONE",
         "offset": {
           "x": 0,
-          "y": 0
+          "y": 4
         },
-        "opacity": 1,
-        "radius": 3.824236,
-        "rawType": "INNER_SHADOW",
+        "opacity": 0.15,
+        "radius": 5.539163,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "FOREGROUND_BLUR",
+        "secondaryColor": "#FFFFFF",
+        "secondaryOpacity": 0.25,
+        "seed": 8172,
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6613",
         "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "FOREGROUND_BLUR"
       },
       {
         "blendMode": "NORMAL",
-        "color": "#FFFFFF",
+        "color": "#000000",
+        "density": 1,
+        "noiseSize": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "noiseType": "MONOTONE",
         "offset": {
           "x": 0,
-          "y": 0
+          "y": 4
         },
-        "opacity": 1,
-        "radius": 4.170177,
-        "rawType": "INNER_SHADOW",
+        "opacity": 0.15,
+        "radius": 5.539163,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "FOREGROUND_BLUR",
+        "secondaryColor": "#FFFFFF",
+        "secondaryOpacity": 0.25,
+        "seed": 8172,
         "showShadowBehindNode": false,
+        "sourceNodeId": "825:6615",
         "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "FOREGROUND_BLUR"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#000000",
+        "offset": {
+          "x": 0,
+          "y": 4
+        },
+        "opacity": 0.25,
+        "radius": 1.783959,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          }
+        },
+        "rawType": "FOREGROUND_BLUR",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6623",
+        "spread": 0,
+        "type": "FOREGROUND_BLUR"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#000000",
+        "density": 1,
+        "noiseSize": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "noiseType": "MONOTONE",
+        "offset": {
+          "x": 0,
+          "y": 4
+        },
+        "opacity": 0.15,
+        "radius": 5.539163,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "FOREGROUND_BLUR",
+        "secondaryColor": "#FFFFFF",
+        "secondaryOpacity": 0.25,
+        "seed": 8172,
+        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6614",
+        "spread": 0,
+        "type": "FOREGROUND_BLUR"
       }
     ],
     "fills": [
@@ -5634,6 +6492,12 @@ export const figmaComponentEvidence = {
       "height": 200.5,
       "width": 441.549988
     },
+    "sourcePadding": {
+      "bottom": 24,
+      "left": 24,
+      "right": 24,
+      "top": 24
+    },
     "sourceKind": "node",
     "sourceNodeIds": [
       "825:6570",
@@ -5761,6 +6625,30 @@ export const figmaComponentEvidence = {
     "surfaceEffects": [
       {
         "blendMode": "NORMAL",
+        "color": "#1F2687",
+        "offset": {
+          "x": 0,
+          "y": 8
+        },
+        "opacity": 0.07,
+        "radius": 32,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6570",
+        "spread": 0,
+        "type": "DROP_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
         "blurOpType": "NORMAL",
         "color": "#000000",
         "offset": {
@@ -5769,24 +6657,20 @@ export const figmaComponentEvidence = {
         },
         "opacity": 1,
         "radius": 16,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
         "rawType": "BACKGROUND_BLUR",
         "showShadowBehindNode": true,
+        "sourceNodeId": "825:6570",
         "spread": 0,
         "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#1F2687",
-        "offset": {
-          "x": 0,
-          "y": 8
-        },
-        "opacity": 0.07,
-        "radius": 32,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
       }
     ],
     "surfaceFills": [

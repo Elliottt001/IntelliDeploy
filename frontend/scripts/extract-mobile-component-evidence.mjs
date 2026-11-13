@@ -300,18 +300,51 @@ function normalizePaint(paint) {
   };
 }
 
-function normalizeEffect(effect) {
+export function normalizeSourceEffect(effect, sourceNodeId) {
   if (!effect || effect.visible === false) {
     return null;
   }
-  const typeMap = {
-    BACKGROUND_BLUR: 'BACKGROUND_BLUR',
-    DROP_SHADOW: 'DROP_SHADOW',
-    GLASS: 'BACKGROUND_BLUR',
-    INNER_SHADOW: 'INNER_SHADOW',
-    LAYER_BLUR: 'LAYER_BLUR',
-  };
+  const normalizedKeys = new Set([
+    'bevelSize',
+    'blendMode',
+    'blurOpType',
+    'clipToShape',
+    'color',
+    'chromaticAberration',
+    'density',
+    'noiseSize',
+    'noiseType',
+    'offset',
+    'opacity',
+    'radius',
+    'reflectionDistance',
+    'refractionIntensity',
+    'refractionRadius',
+    'secondaryColor',
+    'seed',
+    'showShadowBehindNode',
+    'spread',
+    'specularAngle',
+    'specularIntensity',
+    'styleId',
+    'type',
+    'visible',
+  ]);
+  const rawFields = Object.fromEntries(
+    Object.entries(effect).filter(([key]) => !normalizedKeys.has(key)),
+  );
+  const supportedTypes = new Set([
+    'BACKGROUND_BLUR',
+    'DROP_SHADOW',
+    'FOREGROUND_BLUR',
+    'GLASS',
+    'INNER_SHADOW',
+    'LAYER_BLUR',
+    'NOISE',
+  ]);
   return {
+    bevelSize:
+      effect.bevelSize == null ? undefined : Number(effect.bevelSize.toFixed(6)),
     blendMode: effect.blendMode,
     blurOpType: effect.blurOpType,
     clipToShape: effect.clipToShape,
@@ -339,6 +372,7 @@ function normalizeEffect(effect) {
           },
     opacity: effectOpacity(effect),
     radius: Number((effect.radius ?? 0).toFixed(6)),
+    rawFields: Object.keys(rawFields).length > 0 ? rawFields : undefined,
     rawType: effect.type,
     reflectionDistance:
       effect.reflectionDistance == null
@@ -368,6 +402,7 @@ function normalizeEffect(effect) {
           ),
     seed: effect.seed,
     showShadowBehindNode: effect.showShadowBehindNode,
+    sourceNodeId,
     spread:
       effect.spread == null ? undefined : Number(effect.spread.toFixed(6)),
     specularAngle:
@@ -380,7 +415,7 @@ function normalizeEffect(effect) {
         : Number(effect.specularIntensity.toFixed(6)),
     styleId:
       effect.styleId?.guid != null ? nodeId(effect.styleId.guid) : undefined,
-    type: typeMap[effect.type] ?? 'DROP_SHADOW',
+    type: supportedTypes.has(effect.type) ? effect.type : effect.type,
   };
 }
 
@@ -417,6 +452,35 @@ function normalizeBorderWidths(node) {
     left: Number((left ?? 0).toFixed(6)),
     right: Number((right ?? 0).toFixed(6)),
     top: Number((top ?? 0).toFixed(6)),
+  };
+}
+
+function normalizeSourcePadding(shell, content) {
+  if (
+    shell?.stackHorizontalPadding != null ||
+    shell?.stackVerticalPadding != null ||
+    shell?.stackPaddingRight != null ||
+    shell?.stackPaddingBottom != null
+  ) {
+    const horizontal = shell.stackHorizontalPadding ?? 0;
+    const vertical = shell.stackVerticalPadding ?? 0;
+    return {
+      bottom: Number((shell.stackPaddingBottom ?? vertical).toFixed(6)),
+      left: Number(horizontal.toFixed(6)),
+      right: Number((shell.stackPaddingRight ?? horizontal).toFixed(6)),
+      top: Number(vertical.toFixed(6)),
+    };
+  }
+  if (!shell?.size || !content?.size || !content?.transform) {
+    return undefined;
+  }
+  const left = content.transform.m02 ?? 0;
+  const top = content.transform.m12 ?? 0;
+  return {
+    bottom: Number(((shell.size.y ?? 0) - top - (content.size.y ?? 0)).toFixed(6)),
+    left: Number(left.toFixed(6)),
+    right: Number(((shell.size.x ?? 0) - left - (content.size.x ?? 0)).toFixed(6)),
+    top: Number(top.toFixed(6)),
   };
 }
 
@@ -720,14 +784,14 @@ function collectTreeStyleEvidence(rootId, maps) {
       }
     }
     for (const effect of node.effects ?? []) {
-      const normalized = normalizeEffect(effect);
+      const normalized = normalizeSourceEffect(effect, nodeId(node.guid));
       if (normalized) {
         effects.push(normalized);
       }
     }
   }
   return {
-    effects: sortByJson(effects),
+    effects,
     fills: sortByJson(fills),
     strokes: sortByJson(strokes),
   };
@@ -735,9 +799,9 @@ function collectTreeStyleEvidence(rootId, maps) {
 
 function collectNodeStyleEvidence(node) {
   return {
-    effects: sortByJson(
-      (node.effects ?? []).map(normalizeEffect).filter(Boolean),
-    ),
+    effects: (node.effects ?? [])
+      .map((effect) => normalizeSourceEffect(effect, nodeId(node.guid)))
+      .filter(Boolean),
     fills: sortByJson(
       (node.fillPaints ?? []).map(normalizePaint).filter(Boolean),
     ),
@@ -926,6 +990,10 @@ function extractNodePrimitive(key, rootIds, maps, blobs) {
   );
   const surfaceStyles = collectNodeStyleEvidence(canonicalRoot);
   const allStyles = collectTreeStyleEvidence(canonicalRootId, maps);
+  const sourcePadding =
+    key === 'glassCard'
+      ? normalizeSourcePadding(canonicalRoot, maps.documentNodeById.get(rootIds[1]))
+      : undefined;
 
   return {
     borderWidths: normalizeBorderWidths(canonicalRoot),
@@ -943,6 +1011,7 @@ function extractNodePrimitive(key, rootIds, maps, blobs) {
       height: Number((canonicalRoot.size?.y ?? 0).toFixed(6)),
       width: Number((canonicalRoot.size?.x ?? 0).toFixed(6)),
     },
+    sourcePadding,
     sourceKind: 'node',
     sourceNodeIds: [
       ...new Set([
@@ -1166,7 +1235,7 @@ async function renameIfPresent(from, to, renamePath) {
 }
 
 function createModuleText(evidence, icons) {
-  return `export type FigmaNodeId = \`${'${number}:${number}'}\`;\nexport type MobilePrimitiveKey =\n  | 'settings' | 'back' | 'share' | 'search' | 'bell'\n  | 'microphone' | 'send' | 'arrowRight'\n  | 'home' | 'store' | 'community' | 'products'\n  | 'brandMark' | 'circleAction' | 'bottomNav' | 'glassCard';\n\nexport type FigmaGradientStopEvidence = {\n  color?: string;\n  opacity: number;\n  position: number;\n  variableIds: readonly string[];\n};\n\nexport type FigmaPaintEvidence = {\n  type: 'SOLID' | 'GRADIENT_LINEAR' | 'GRADIENT_RADIAL' | 'IMAGE';\n  color?: string;\n  end?: { x: number; y: number };\n  gradientStops?: readonly FigmaGradientStopEvidence[];\n  opacity: number;\n  start?: { x: number; y: number };\n  styleId?: string;\n  transform?: string;\n  variableIds: readonly string[];\n};\n\nexport type FigmaVectorLayer = {\n  sourceNodeId: FigmaNodeId;\n  path: string;\n  fill?: string;\n  fillRule?: 'nonzero' | 'evenodd';\n  paint?: FigmaPaintEvidence;\n  stroke?: string;\n  strokeWidth?: number;\n  strokeLinecap?: 'butt' | 'round' | 'square';\n  strokeLinejoin?: 'miter' | 'round' | 'bevel';\n  opacity: number;\n  transform?: string;\n};\n\nexport type FigmaEffectEvidence = {\n  type: 'DROP_SHADOW' | 'INNER_SHADOW' | 'LAYER_BLUR' | 'BACKGROUND_BLUR';\n  radius: number;\n  blendMode?: string;\n  blurOpType?: string;\n  clipToShape?: boolean;\n  color?: string;\n  chromaticAberration?: number;\n  density?: number;\n  noiseSize?: { x: number; y: number };\n  noiseType?: string;\n  offset?: { x: number; y: number };\n  opacity?: number;\n  rawType?: string;\n  reflectionDistance?: number;\n  refractionIntensity?: number;\n  refractionRadius?: number;\n  secondaryColor?: string;\n  secondaryOpacity?: number;\n  seed?: number;\n  showShadowBehindNode?: boolean;\n  spread?: number;\n  specularAngle?: number;\n  specularIntensity?: number;\n  styleId?: string;\n};\n\nexport type FigmaOverrideEvidence = {\n  guidPath: readonly FigmaNodeId[];\n  property: string;\n  value: string | number | boolean | null;\n};\n\nexport type FigmaCornerRadiiEvidence = {\n  topLeft: number;\n  topRight: number;\n  bottomRight: number;\n  bottomLeft: number;\n};\n\nexport type FigmaBorderWidthsEvidence = {\n  top: number;\n  right: number;\n  bottom: number;\n  left: number;\n};\n\nexport type FigmaPrimitiveEvidence = {\n  key: MobilePrimitiveKey;\n  sourceKind: 'symbol' | 'node';\n  sourceNodeIds: readonly FigmaNodeId[];\n  instanceNodeIds: readonly FigmaNodeId[];\n  symbolNodeId?: FigmaNodeId;\n  noSymbolReason?: 'no-instance-or-symbol-in-audited-subtree';\n  size: { width: number; height: number };\n  geometry: readonly FigmaVectorLayer[];\n  fills: readonly FigmaPaintEvidence[];\n  strokes: readonly FigmaPaintEvidence[];\n  effects: readonly FigmaEffectEvidence[];\n  overrides: readonly FigmaOverrideEvidence[];\n  componentValues?: readonly FigmaOverrideEvidence[];\n  derivedValues?: readonly FigmaOverrideEvidence[];\n  instanceTransform?: string;\n  surfaceNodeId?: FigmaNodeId;\n  surfaceFills?: readonly FigmaPaintEvidence[];\n  surfaceStrokes?: readonly FigmaPaintEvidence[];\n  surfaceEffects?: readonly FigmaEffectEvidence[];\n  cornerRadii?: FigmaCornerRadiiEvidence;\n  borderWidths?: FigmaBorderWidthsEvidence;\n};\n\nexport const auditedMobilePrimitiveKeys = ${stableSerialize(
+  return `export type FigmaNodeId = \`${'${number}:${number}'}\`;\nexport type MobilePrimitiveKey =\n  | 'settings' | 'back' | 'share' | 'search' | 'bell'\n  | 'microphone' | 'send' | 'arrowRight'\n  | 'home' | 'store' | 'community' | 'products'\n  | 'brandMark' | 'circleAction' | 'bottomNav' | 'glassCard';\n\nexport type FigmaGradientStopEvidence = {\n  color?: string;\n  opacity: number;\n  position: number;\n  variableIds: readonly string[];\n};\n\nexport type FigmaPaintEvidence = {\n  type: 'SOLID' | 'GRADIENT_LINEAR' | 'GRADIENT_RADIAL' | 'IMAGE';\n  color?: string;\n  end?: { x: number; y: number };\n  gradientStops?: readonly FigmaGradientStopEvidence[];\n  opacity: number;\n  start?: { x: number; y: number };\n  styleId?: string;\n  transform?: string;\n  variableIds: readonly string[];\n};\n\nexport type FigmaVectorLayer = {\n  sourceNodeId: FigmaNodeId;\n  path: string;\n  fill?: string;\n  fillRule?: 'nonzero' | 'evenodd';\n  paint?: FigmaPaintEvidence;\n  stroke?: string;\n  strokeWidth?: number;\n  strokeLinecap?: 'butt' | 'round' | 'square';\n  strokeLinejoin?: 'miter' | 'round' | 'bevel';\n  opacity: number;\n  transform?: string;\n};\n\nexport type FigmaEffectEvidence = {\n  type: 'DROP_SHADOW' | 'INNER_SHADOW' | 'FOREGROUND_BLUR' | 'LAYER_BLUR' | 'BACKGROUND_BLUR' | 'GLASS' | 'NOISE' | string;\n  radius: number;\n  bevelSize?: number;\n  blendMode?: string;\n  blurOpType?: string;\n  clipToShape?: boolean;\n  color?: string;\n  chromaticAberration?: number;\n  density?: number;\n  noiseSize?: { x: number; y: number };\n  noiseType?: string;\n  offset?: { x: number; y: number };\n  opacity?: number;\n  rawFields?: Record<string, unknown>;\n  rawType?: string;\n  reflectionDistance?: number;\n  refractionIntensity?: number;\n  refractionRadius?: number;\n  secondaryColor?: string;\n  secondaryOpacity?: number;\n  seed?: number;\n  showShadowBehindNode?: boolean;\n  sourceNodeId?: FigmaNodeId;\n  spread?: number;\n  specularAngle?: number;\n  specularIntensity?: number;\n  styleId?: string;\n};\n\nexport type FigmaOverrideEvidence = {\n  guidPath: readonly FigmaNodeId[];\n  property: string;\n  value: string | number | boolean | null;\n};\n\nexport type FigmaCornerRadiiEvidence = {\n  topLeft: number;\n  topRight: number;\n  bottomRight: number;\n  bottomLeft: number;\n};\n\nexport type FigmaBorderWidthsEvidence = {\n  top: number;\n  right: number;\n  bottom: number;\n  left: number;\n};\n\nexport type FigmaPrimitiveEvidence = {\n  key: MobilePrimitiveKey;\n  sourceKind: 'symbol' | 'node';\n  sourceNodeIds: readonly FigmaNodeId[];\n  instanceNodeIds: readonly FigmaNodeId[];\n  symbolNodeId?: FigmaNodeId;\n  noSymbolReason?: 'no-instance-or-symbol-in-audited-subtree';\n  size: { width: number; height: number };\n  sourcePadding?: { top: number; right: number; bottom: number; left: number };\n  geometry: readonly FigmaVectorLayer[];\n  fills: readonly FigmaPaintEvidence[];\n  strokes: readonly FigmaPaintEvidence[];\n  effects: readonly FigmaEffectEvidence[];\n  overrides: readonly FigmaOverrideEvidence[];\n  componentValues?: readonly FigmaOverrideEvidence[];\n  derivedValues?: readonly FigmaOverrideEvidence[];\n  instanceTransform?: string;\n  surfaceNodeId?: FigmaNodeId;\n  surfaceFills?: readonly FigmaPaintEvidence[];\n  surfaceStrokes?: readonly FigmaPaintEvidence[];\n  surfaceEffects?: readonly FigmaEffectEvidence[];\n  cornerRadii?: FigmaCornerRadiiEvidence;\n  borderWidths?: FigmaBorderWidthsEvidence;\n};\n\nexport const auditedMobilePrimitiveKeys = ${stableSerialize(
     primitiveOrder,
   )} as const;\n\nexport const figmaComponentEvidence = ${stableSerialize(
     evidence,

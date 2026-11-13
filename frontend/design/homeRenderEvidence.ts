@@ -438,6 +438,85 @@ export const homeRenderEvidence = {
     "sourceNodeId": "270:26288",
     "baseline": 27.200000762939453
   },
+  "sourceEffectSamples": {
+    "storeSearchSurface": {
+      "sourceNodeId": "270:26624",
+      "effects": [
+        {
+          "bevelSize": 0.550725,
+          "blendMode": "NORMAL",
+          "clipToShape": false,
+          "color": "#000000",
+          "chromaticAberration": 0.31,
+          "density": 1,
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "noiseType": "MONOTONE",
+          "offset": {
+            "x": 0,
+            "y": 2.202899
+          },
+          "opacity": 0.15,
+          "radius": 2.202899,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "GLASS",
+          "reflectionDistance": 0,
+          "refractionIntensity": 0.74,
+          "refractionRadius": 9.913044,
+          "secondaryColor": "#FFFFFF",
+          "secondaryOpacity": 0.25,
+          "seed": 3832,
+          "showShadowBehindNode": false,
+          "sourceNodeId": "270:26624",
+          "spread": 0,
+          "specularAngle": -45,
+          "specularIntensity": 0.8,
+          "type": "GLASS"
+        },
+        {
+          "blendMode": "NORMAL",
+          "color": "#BABABA",
+          "offset": {
+            "x": 0,
+            "y": 2.202899
+          },
+          "opacity": 0.25,
+          "radius": 3.304348,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.72998046875,
+              "c1": 0.72998046875,
+              "c2": 0.72998046875,
+              "c3": 0.25
+            }
+          },
+          "rawType": "DROP_SHADOW",
+          "showShadowBehindNode": false,
+          "sourceNodeId": "270:26624",
+          "spread": 0,
+          "type": "DROP_SHADOW"
+        }
+      ]
+    }
+  },
   "avatarTrees": {
     "normal": {
       "sourceNodeId": "270:26291",
@@ -5584,8 +5663,18 @@ export const homeRenderEvidence = {
         },
         "opacity": 0.25,
         "radius": 2,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26311",
         "spread": 0,
         "type": "INNER_SHADOW"
       }
@@ -5679,8 +5768,18 @@ export const homeRenderEvidence = {
         },
         "opacity": 0.25,
         "radius": 2,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26311",
         "spread": 0,
         "type": "INNER_SHADOW"
       }
@@ -7124,72 +7223,171 @@ export const homeRenderEvidence = {
     "effects": [
       {
         "blendMode": "NORMAL",
-        "color": "#000000",
-        "density": 1,
-        "noiseSize": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "noiseType": "MONOTONE",
+        "color": "#BDBDBD",
         "offset": {
-          "x": 0,
-          "y": 4
+          "x": 2,
+          "y": 2
         },
-        "opacity": 0.15,
-        "radius": 20.230003,
-        "rawType": "FOREGROUND_BLUR",
-        "secondaryColor": "#FFFFFF",
-        "secondaryOpacity": 0.25,
-        "seed": 8172,
+        "opacity": 0.25,
+        "radius": 2,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.740159273147583,
+            "c1": 0.740159273147583,
+            "c2": 0.740159273147583,
+            "c3": 0.25
+          }
+        },
+        "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26292",
         "spread": 0,
         "type": "DROP_SHADOW"
       },
       {
         "blendMode": "NORMAL",
-        "color": "#000000",
-        "density": 1,
-        "noiseSize": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "noiseType": "MONOTONE",
+        "color": "#FBB8FF",
         "offset": {
-          "x": 0,
-          "y": 4
+          "x": 5.13989,
+          "y": 5.13989
         },
-        "opacity": 0.15,
-        "radius": 20.230003,
-        "rawType": "FOREGROUND_BLUR",
-        "secondaryColor": "#FFFFFF",
-        "secondaryOpacity": 0.25,
-        "seed": 8172,
+        "opacity": 0.5,
+        "radius": 20.559559,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.9861647486686707,
+            "c1": 0.7232947945594788,
+            "c2": 1,
+            "c3": 0.5
+          }
+        },
+        "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26293",
         "spread": 0,
         "type": "DROP_SHADOW"
       },
       {
         "blendMode": "NORMAL",
-        "color": "#000000",
-        "density": 1,
-        "noiseSize": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "noiseType": "MONOTONE",
+        "color": "#FCCCFF",
         "offset": {
-          "x": 0,
-          "y": 4
+          "x": -2,
+          "y": -2
         },
-        "opacity": 0.15,
-        "radius": 20.230003,
-        "rawType": "FOREGROUND_BLUR",
-        "secondaryColor": "#FFFFFF",
-        "secondaryOpacity": 0.25,
-        "seed": 8172,
+        "opacity": 0.25,
+        "radius": 13.9,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.9865372180938721,
+            "c1": 0.7980581521987915,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26293",
         "spread": 0,
         "type": "DROP_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#59A4FF",
+        "offset": {
+          "x": -5.057501,
+          "y": -1.264375
+        },
+        "opacity": 0.25,
+        "radius": 10.115003,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.34990984201431274,
+            "c1": 0.6424503922462463,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "270:26295",
+        "spread": 0,
+        "type": "DROP_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FFFFFF",
+        "offset": {
+          "x": 0,
+          "y": 0
+        },
+        "opacity": 1,
+        "radius": 10.115,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
+        "rawType": "INNER_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "270:26296",
+        "spread": 0,
+        "type": "INNER_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FFFFFF",
+        "offset": {
+          "x": 0,
+          "y": 0
+        },
+        "opacity": 1,
+        "radius": 12.64375,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
+        "rawType": "INNER_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "270:26302",
+        "spread": 0,
+        "type": "INNER_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FFFFFF",
+        "offset": {
+          "x": 0,
+          "y": 0
+        },
+        "opacity": 1,
+        "radius": 13.787511,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
+        "rawType": "INNER_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "270:26297",
+        "spread": 0,
+        "type": "INNER_SHADOW"
       },
       {
         "blendMode": "NORMAL",
@@ -7206,13 +7404,134 @@ export const homeRenderEvidence = {
         },
         "opacity": 0.15,
         "radius": 7.58625,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 9231,
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26303",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "FOREGROUND_BLUR"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FFFFFF",
+        "offset": {
+          "x": 0,
+          "y": 0
+        },
+        "opacity": 1,
+        "radius": 12.64375,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
+        "rawType": "INNER_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "270:26301",
+        "spread": 0,
+        "type": "INNER_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#000000",
+        "density": 1,
+        "noiseSize": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "noiseType": "MONOTONE",
+        "offset": {
+          "x": 0,
+          "y": 4
+        },
+        "opacity": 0.15,
+        "radius": 20.230003,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "FOREGROUND_BLUR",
+        "secondaryColor": "#FFFFFF",
+        "secondaryOpacity": 0.25,
+        "seed": 8172,
+        "showShadowBehindNode": false,
+        "sourceNodeId": "270:26298",
+        "spread": 0,
+        "type": "FOREGROUND_BLUR"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#000000",
+        "density": 1,
+        "noiseSize": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "noiseType": "MONOTONE",
+        "offset": {
+          "x": 0,
+          "y": 4
+        },
+        "opacity": 0.15,
+        "radius": 20.230003,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "FOREGROUND_BLUR",
+        "secondaryColor": "#FFFFFF",
+        "secondaryOpacity": 0.25,
+        "seed": 8172,
+        "showShadowBehindNode": false,
+        "sourceNodeId": "270:26300",
+        "spread": 0,
+        "type": "FOREGROUND_BLUR"
       },
       {
         "blendMode": "NORMAL",
@@ -7223,122 +7542,60 @@ export const homeRenderEvidence = {
         },
         "opacity": 0.25,
         "radius": 6.515333,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          }
+        },
         "rawType": "FOREGROUND_BLUR",
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26308",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "FOREGROUND_BLUR"
       },
       {
         "blendMode": "NORMAL",
-        "color": "#59A4FF",
-        "offset": {
-          "x": -5.057501,
-          "y": -1.264375
+        "color": "#000000",
+        "density": 1,
+        "noiseSize": {
+          "x": 0.5,
+          "y": 0.5
         },
-        "opacity": 0.25,
-        "radius": 10.115003,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#BDBDBD",
-        "offset": {
-          "x": 2,
-          "y": 2
-        },
-        "opacity": 0.25,
-        "radius": 2,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FBB8FF",
-        "offset": {
-          "x": 5.13989,
-          "y": 5.13989
-        },
-        "opacity": 0.5,
-        "radius": 20.559559,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FCCCFF",
-        "offset": {
-          "x": -2,
-          "y": -2
-        },
-        "opacity": 0.25,
-        "radius": 13.9,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FFFFFF",
+        "noiseType": "MONOTONE",
         "offset": {
           "x": 0,
-          "y": 0
+          "y": 4
         },
-        "opacity": 1,
-        "radius": 10.115,
-        "rawType": "INNER_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "INNER_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FFFFFF",
-        "offset": {
-          "x": 0,
-          "y": 0
+        "opacity": 0.15,
+        "radius": 20.230003,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
         },
-        "opacity": 1,
-        "radius": 12.64375,
-        "rawType": "INNER_SHADOW",
+        "rawType": "FOREGROUND_BLUR",
+        "secondaryColor": "#FFFFFF",
+        "secondaryOpacity": 0.25,
+        "seed": 8172,
         "showShadowBehindNode": false,
+        "sourceNodeId": "270:26299",
         "spread": 0,
-        "type": "INNER_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FFFFFF",
-        "offset": {
-          "x": 0,
-          "y": 0
-        },
-        "opacity": 1,
-        "radius": 12.64375,
-        "rawType": "INNER_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "INNER_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FFFFFF",
-        "offset": {
-          "x": 0,
-          "y": 0
-        },
-        "opacity": 1,
-        "radius": 13.787511,
-        "rawType": "INNER_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "FOREGROUND_BLUR"
       }
     ],
     "fills": [
@@ -7521,29 +7778,28 @@ export const homeRenderEvidence = {
         "transform": "matrix(1 0 0 1 0 0.185547)",
         "sourceEffects": [
           {
-            "type": "DROP_SHADOW",
+            "blendMode": "NORMAL",
+            "color": "#BDBDBD",
             "offset": {
               "x": 2,
               "y": 2
             },
+            "opacity": 0.25,
             "radius": 2,
-            "visible": true,
-            "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0.740159273147583,
-              "g": 0.740159273147583,
-              "b": 0.740159273147583,
-              "a": 0.25
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.740159273147583,
+                "c1": 0.740159273147583,
+                "c2": 0.740159273147583,
+                "c3": 0.25
+              }
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0.740159273147583,
-              "c1": 0.740159273147583,
-              "c2": 0.740159273147583,
-              "c3": 0.25
-            }
+            "rawType": "DROP_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26292",
+            "spread": 0,
+            "type": "DROP_SHADOW"
           }
         ]
       },
@@ -7584,54 +7840,52 @@ export const homeRenderEvidence = {
         "strokeLinejoin": "miter",
         "sourceEffects": [
           {
-            "type": "DROP_SHADOW",
-            "offset": {
-              "x": 5.139889717102051,
-              "y": 5.139889717102051
-            },
-            "radius": 20.559558868408203,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0.9861647486686707,
-              "g": 0.7232947945594788,
-              "b": 1,
-              "a": 0.5
+            "color": "#FBB8FF",
+            "offset": {
+              "x": 5.13989,
+              "y": 5.13989
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0.9861647486686707,
-              "c1": 0.7232947945594788,
-              "c2": 1,
-              "c3": 0.5
-            }
+            "opacity": 0.5,
+            "radius": 20.559559,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.9861647486686707,
+                "c1": 0.7232947945594788,
+                "c2": 1,
+                "c3": 0.5
+              }
+            },
+            "rawType": "DROP_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26293",
+            "spread": 0,
+            "type": "DROP_SHADOW"
           },
           {
-            "type": "DROP_SHADOW",
+            "blendMode": "NORMAL",
+            "color": "#FCCCFF",
             "offset": {
               "x": -2,
               "y": -2
             },
-            "radius": 13.899999618530273,
-            "visible": true,
-            "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0.9865372180938721,
-              "g": 0.7980581521987915,
-              "b": 1,
-              "a": 0.25
+            "opacity": 0.25,
+            "radius": 13.9,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.9865372180938721,
+                "c1": 0.7980581521987915,
+                "c2": 1,
+                "c3": 0.25
+              }
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0.9865372180938721,
-              "c1": 0.7980581521987915,
-              "c2": 1,
-              "c3": 0.25
-            }
+            "rawType": "DROP_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26293",
+            "spread": 0,
+            "type": "DROP_SHADOW"
           }
         ]
       },
@@ -7676,54 +7930,52 @@ export const homeRenderEvidence = {
         "sourceNodeId": "270:26293",
         "sourceEffects": [
           {
-            "type": "DROP_SHADOW",
-            "offset": {
-              "x": 5.139889717102051,
-              "y": 5.139889717102051
-            },
-            "radius": 20.559558868408203,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0.9861647486686707,
-              "g": 0.7232947945594788,
-              "b": 1,
-              "a": 0.5
+            "color": "#FBB8FF",
+            "offset": {
+              "x": 5.13989,
+              "y": 5.13989
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0.9861647486686707,
-              "c1": 0.7232947945594788,
-              "c2": 1,
-              "c3": 0.5
-            }
+            "opacity": 0.5,
+            "radius": 20.559559,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.9861647486686707,
+                "c1": 0.7232947945594788,
+                "c2": 1,
+                "c3": 0.5
+              }
+            },
+            "rawType": "DROP_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26293",
+            "spread": 0,
+            "type": "DROP_SHADOW"
           },
           {
-            "type": "DROP_SHADOW",
+            "blendMode": "NORMAL",
+            "color": "#FCCCFF",
             "offset": {
               "x": -2,
               "y": -2
             },
-            "radius": 13.899999618530273,
-            "visible": true,
-            "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0.9865372180938721,
-              "g": 0.7980581521987915,
-              "b": 1,
-              "a": 0.25
+            "opacity": 0.25,
+            "radius": 13.9,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.9865372180938721,
+                "c1": 0.7980581521987915,
+                "c2": 1,
+                "c3": 0.25
+              }
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0.9865372180938721,
-              "c1": 0.7980581521987915,
-              "c2": 1,
-              "c3": 0.25
-            }
+            "rawType": "DROP_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26293",
+            "spread": 0,
+            "type": "DROP_SHADOW"
           }
         ]
       },
@@ -7763,29 +8015,28 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.982291 -0.202428 0.201023 0.975471 10.262958 24.587724)",
         "sourceEffects": [
           {
-            "type": "INNER_SHADOW",
+            "blendMode": "NORMAL",
+            "color": "#FFFFFF",
             "offset": {
               "x": 0,
               "y": 0
             },
-            "radius": 10.114999771118164,
-            "visible": true,
-            "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 1
+            "opacity": 1,
+            "radius": 10.115,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 1
-            }
+            "rawType": "INNER_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26296",
+            "spread": 0,
+            "type": "INNER_SHADOW"
           }
         ]
       },
@@ -7825,29 +8076,28 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.982291 -0.202428 0.201023 0.975471 10.262958 24.587724)",
         "sourceEffects": [
           {
-            "type": "INNER_SHADOW",
+            "blendMode": "NORMAL",
+            "color": "#FFFFFF",
             "offset": {
               "x": 0,
               "y": 0
             },
-            "radius": 13.787510871887207,
-            "visible": true,
-            "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 1
+            "opacity": 1,
+            "radius": 13.787511,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 1
-            }
+            "rawType": "INNER_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26297",
+            "spread": 0,
+            "type": "INNER_SHADOW"
           }
         ]
       },
@@ -7866,50 +8116,44 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.994582 -0.098068 0.098073 0.994636 6.863387 25.030025)",
         "sourceEffects": [
           {
-            "type": "FOREGROUND_BLUR",
-            "offset": {
-              "x": 0,
-              "y": 4
-            },
-            "radius": 20.230003356933594,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0,
-              "g": 0,
-              "b": 0,
-              "a": 0.25
-            },
-            "secondaryColor": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 0.25
-            },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0,
-              "c1": 0,
-              "c2": 0,
-              "c3": 0.25
-            },
-            "secondaryAuthoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 0.25
-            },
+            "color": "#000000",
+            "density": 1,
             "noiseSize": {
               "x": 0.5,
               "y": 0.5
             },
-            "seed": 8172,
-            "density": 1,
             "noiseType": "MONOTONE",
-            "opacity": 0.15000000596046448
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "opacity": 0.15,
+            "radius": 20.230003,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
+            "rawType": "FOREGROUND_BLUR",
+            "secondaryColor": "#FFFFFF",
+            "secondaryOpacity": 0.25,
+            "seed": 8172,
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26298",
+            "spread": 0,
+            "type": "FOREGROUND_BLUR"
           }
         ]
       },
@@ -7928,50 +8172,44 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.994582 -0.098068 0.098073 0.994636 27.93535 17.108224)",
         "sourceEffects": [
           {
-            "type": "FOREGROUND_BLUR",
-            "offset": {
-              "x": 0,
-              "y": 4
-            },
-            "radius": 20.230003356933594,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0,
-              "g": 0,
-              "b": 0,
-              "a": 0.25
-            },
-            "secondaryColor": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 0.25
-            },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0,
-              "c1": 0,
-              "c2": 0,
-              "c3": 0.25
-            },
-            "secondaryAuthoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 0.25
-            },
+            "color": "#000000",
+            "density": 1,
             "noiseSize": {
               "x": 0.5,
               "y": 0.5
             },
-            "seed": 8172,
-            "density": 1,
             "noiseType": "MONOTONE",
-            "opacity": 0.15000000596046448
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "opacity": 0.15,
+            "radius": 20.230003,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
+            "rawType": "FOREGROUND_BLUR",
+            "secondaryColor": "#FFFFFF",
+            "secondaryOpacity": 0.25,
+            "seed": 8172,
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26299",
+            "spread": 0,
+            "type": "FOREGROUND_BLUR"
           }
         ]
       },
@@ -7990,50 +8228,44 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.994582 -0.098068 0.098073 0.994636 42.027688 15.718688)",
         "sourceEffects": [
           {
-            "type": "FOREGROUND_BLUR",
-            "offset": {
-              "x": 0,
-              "y": 4
-            },
-            "radius": 20.230003356933594,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0,
-              "g": 0,
-              "b": 0,
-              "a": 0.25
-            },
-            "secondaryColor": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 0.25
-            },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0,
-              "c1": 0,
-              "c2": 0,
-              "c3": 0.25
-            },
-            "secondaryAuthoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 0.25
-            },
+            "color": "#000000",
+            "density": 1,
             "noiseSize": {
               "x": 0.5,
               "y": 0.5
             },
-            "seed": 8172,
-            "density": 1,
             "noiseType": "MONOTONE",
-            "opacity": 0.15000000596046448
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "opacity": 0.15,
+            "radius": 20.230003,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
+            "rawType": "FOREGROUND_BLUR",
+            "secondaryColor": "#FFFFFF",
+            "secondaryOpacity": 0.25,
+            "seed": 8172,
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26300",
+            "spread": 0,
+            "type": "FOREGROUND_BLUR"
           }
         ]
       },
@@ -8052,29 +8284,28 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.982291 -0.202428 0.201023 0.975471 10.262958 24.587724)",
         "sourceEffects": [
           {
-            "type": "INNER_SHADOW",
+            "blendMode": "NORMAL",
+            "color": "#FFFFFF",
             "offset": {
               "x": 0,
               "y": 0
             },
-            "radius": 12.643750190734863,
-            "visible": true,
-            "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 1
+            "opacity": 1,
+            "radius": 12.64375,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 1
-            }
+            "rawType": "INNER_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26301",
+            "spread": 0,
+            "type": "INNER_SHADOW"
           }
         ]
       },
@@ -8093,29 +8324,28 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.982291 -0.202428 0.201023 0.975471 10.262958 24.587724)",
         "sourceEffects": [
           {
-            "type": "INNER_SHADOW",
+            "blendMode": "NORMAL",
+            "color": "#FFFFFF",
             "offset": {
               "x": 0,
               "y": 0
             },
-            "radius": 12.643750190734863,
-            "visible": true,
-            "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 1
+            "opacity": 1,
+            "radius": 12.64375,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 1
-            }
+            "rawType": "INNER_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26302",
+            "spread": 0,
+            "type": "INNER_SHADOW"
           }
         ]
       },
@@ -8134,50 +8364,44 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.988656 -0.159845 0.159189 0.984597 28.601088 56.158254)",
         "sourceEffects": [
           {
-            "type": "FOREGROUND_BLUR",
-            "offset": {
-              "x": 0,
-              "y": 4
-            },
-            "radius": 7.586250305175781,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0,
-              "g": 0,
-              "b": 0,
-              "a": 0.25
-            },
-            "secondaryColor": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 0.25
-            },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0,
-              "c1": 0,
-              "c2": 0,
-              "c3": 0.25
-            },
-            "secondaryAuthoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 0.25
-            },
+            "color": "#000000",
+            "density": 1,
             "noiseSize": {
               "x": 0.5,
               "y": 0.5
             },
-            "seed": 9231,
-            "density": 1,
             "noiseType": "MONOTONE",
-            "opacity": 0.15000000596046448
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "opacity": 0.15,
+            "radius": 7.58625,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
+            "rawType": "FOREGROUND_BLUR",
+            "secondaryColor": "#FFFFFF",
+            "secondaryOpacity": 0.25,
+            "seed": 9231,
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26303",
+            "spread": 0,
+            "type": "FOREGROUND_BLUR"
           }
         ]
       },
@@ -8256,29 +8480,28 @@ export const homeRenderEvidence = {
         "transform": "matrix(1 0 0 1 10.574454 15.914619)",
         "sourceEffects": [
           {
-            "type": "FOREGROUND_BLUR",
+            "blendMode": "NORMAL",
+            "color": "#000000",
             "offset": {
               "x": 0,
               "y": 4
             },
-            "radius": 6.51533317565918,
-            "visible": true,
-            "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0,
-              "g": 0,
-              "b": 0,
-              "a": 0.25
+            "opacity": 0.25,
+            "radius": 6.515333,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              }
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0,
-              "c1": 0,
-              "c2": 0,
-              "c3": 0.25
-            }
+            "rawType": "FOREGROUND_BLUR",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "270:26308",
+            "spread": 0,
+            "type": "FOREGROUND_BLUR"
           }
         ]
       }
@@ -8358,72 +8581,171 @@ export const homeRenderEvidence = {
     "effects": [
       {
         "blendMode": "NORMAL",
-        "color": "#000000",
-        "density": 1,
-        "noiseSize": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "noiseType": "MONOTONE",
+        "color": "#BDBDBD",
         "offset": {
-          "x": 0,
-          "y": 4
+          "x": 2.26691,
+          "y": 2.26691
         },
-        "opacity": 0.15,
-        "radius": 22.929802,
-        "rawType": "FOREGROUND_BLUR",
-        "secondaryColor": "#FFFFFF",
-        "secondaryOpacity": 0.25,
-        "seed": 8172,
+        "opacity": 0.25,
+        "radius": 2.26691,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.740159273147583,
+            "c1": 0.740159273147583,
+            "c2": 0.740159273147583,
+            "c3": 0.25
+          }
+        },
+        "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "188:16339",
         "spread": 0,
         "type": "DROP_SHADOW"
       },
       {
         "blendMode": "NORMAL",
-        "color": "#000000",
-        "density": 1,
-        "noiseSize": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "noiseType": "MONOTONE",
+        "color": "#DD8FFF",
         "offset": {
-          "x": 0,
-          "y": 4
+          "x": 2.26691,
+          "y": 4.53382
         },
-        "opacity": 0.15,
-        "radius": 22.929802,
-        "rawType": "FOREGROUND_BLUR",
-        "secondaryColor": "#FFFFFF",
-        "secondaryOpacity": 0.25,
-        "seed": 8172,
+        "opacity": 0.25,
+        "radius": 11.334551,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.8685020804405212,
+            "c1": 0.5616737008094788,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "188:16340",
         "spread": 0,
         "type": "DROP_SHADOW"
       },
       {
         "blendMode": "NORMAL",
-        "color": "#000000",
-        "density": 1,
-        "noiseSize": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "noiseType": "MONOTONE",
+        "color": "#DD81FF",
         "offset": {
-          "x": 0,
-          "y": 4
+          "x": -2.26691,
+          "y": -4.53382
         },
-        "opacity": 0.15,
-        "radius": 22.929802,
-        "rawType": "FOREGROUND_BLUR",
-        "secondaryColor": "#FFFFFF",
-        "secondaryOpacity": 0.25,
-        "seed": 8172,
+        "opacity": 0.25,
+        "radius": 11.334551,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.8685246109962463,
+            "c1": 0.5069674253463745,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceNodeId": "188:16340",
         "spread": 0,
         "type": "DROP_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#59A4FF",
+        "offset": {
+          "x": -5.732451,
+          "y": -1.433113
+        },
+        "opacity": 0.25,
+        "radius": 11.464903,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.34990984201431274,
+            "c1": 0.6424503922462463,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "188:16342",
+        "spread": 0,
+        "type": "DROP_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FFFFFF",
+        "offset": {
+          "x": 0,
+          "y": 0
+        },
+        "opacity": 1,
+        "radius": 11.464898,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
+        "rawType": "INNER_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "188:16343",
+        "spread": 0,
+        "type": "INNER_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FFFFFF",
+        "offset": {
+          "x": 0,
+          "y": 0
+        },
+        "opacity": 1,
+        "radius": 14.331123,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
+        "rawType": "INNER_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "188:16349",
+        "spread": 0,
+        "type": "INNER_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FFFFFF",
+        "offset": {
+          "x": 0,
+          "y": 0
+        },
+        "opacity": 1,
+        "radius": 15.627524,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
+        "rawType": "INNER_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "188:16344",
+        "spread": 0,
+        "type": "INNER_SHADOW"
       },
       {
         "blendMode": "NORMAL",
@@ -8440,13 +8762,134 @@ export const homeRenderEvidence = {
         },
         "opacity": 0.15,
         "radius": 8.598675,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 9231,
         "showShadowBehindNode": false,
+        "sourceNodeId": "188:16350",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "FOREGROUND_BLUR"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#FFFFFF",
+        "offset": {
+          "x": 0,
+          "y": 0
+        },
+        "opacity": 1,
+        "radius": 14.331123,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
+        "rawType": "INNER_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceNodeId": "188:16348",
+        "spread": 0,
+        "type": "INNER_SHADOW"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#000000",
+        "density": 1,
+        "noiseSize": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "noiseType": "MONOTONE",
+        "offset": {
+          "x": 0,
+          "y": 4
+        },
+        "opacity": 0.15,
+        "radius": 22.929802,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "FOREGROUND_BLUR",
+        "secondaryColor": "#FFFFFF",
+        "secondaryOpacity": 0.25,
+        "seed": 8172,
+        "showShadowBehindNode": false,
+        "sourceNodeId": "188:16345",
+        "spread": 0,
+        "type": "FOREGROUND_BLUR"
+      },
+      {
+        "blendMode": "NORMAL",
+        "color": "#000000",
+        "density": 1,
+        "noiseSize": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "noiseType": "MONOTONE",
+        "offset": {
+          "x": 0,
+          "y": 4
+        },
+        "opacity": 0.15,
+        "radius": 22.929802,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawType": "FOREGROUND_BLUR",
+        "secondaryColor": "#FFFFFF",
+        "secondaryOpacity": 0.25,
+        "seed": 8172,
+        "showShadowBehindNode": false,
+        "sourceNodeId": "188:16347",
+        "spread": 0,
+        "type": "FOREGROUND_BLUR"
       },
       {
         "blendMode": "NORMAL",
@@ -8457,122 +8900,60 @@ export const homeRenderEvidence = {
         },
         "opacity": 0.25,
         "radius": 7.384838,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          }
+        },
         "rawType": "FOREGROUND_BLUR",
         "showShadowBehindNode": false,
+        "sourceNodeId": "188:16355",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "FOREGROUND_BLUR"
       },
       {
         "blendMode": "NORMAL",
-        "color": "#59A4FF",
-        "offset": {
-          "x": -5.732451,
-          "y": -1.433113
+        "color": "#000000",
+        "density": 1,
+        "noiseSize": {
+          "x": 0.5,
+          "y": 0.5
         },
-        "opacity": 0.25,
-        "radius": 11.464903,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#BDBDBD",
-        "offset": {
-          "x": 2.26691,
-          "y": 2.26691
-        },
-        "opacity": 0.25,
-        "radius": 2.26691,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#DD81FF",
-        "offset": {
-          "x": -2.26691,
-          "y": -4.53382
-        },
-        "opacity": 0.25,
-        "radius": 11.334551,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#DD8FFF",
-        "offset": {
-          "x": 2.26691,
-          "y": 4.53382
-        },
-        "opacity": 0.25,
-        "radius": 11.334551,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "DROP_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FFFFFF",
+        "noiseType": "MONOTONE",
         "offset": {
           "x": 0,
-          "y": 0
+          "y": 4
         },
-        "opacity": 1,
-        "radius": 11.464898,
-        "rawType": "INNER_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "INNER_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FFFFFF",
-        "offset": {
-          "x": 0,
-          "y": 0
+        "opacity": 0.15,
+        "radius": 22.929802,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
         },
-        "opacity": 1,
-        "radius": 14.331123,
-        "rawType": "INNER_SHADOW",
+        "rawType": "FOREGROUND_BLUR",
+        "secondaryColor": "#FFFFFF",
+        "secondaryOpacity": 0.25,
+        "seed": 8172,
         "showShadowBehindNode": false,
+        "sourceNodeId": "188:16346",
         "spread": 0,
-        "type": "INNER_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FFFFFF",
-        "offset": {
-          "x": 0,
-          "y": 0
-        },
-        "opacity": 1,
-        "radius": 14.331123,
-        "rawType": "INNER_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "INNER_SHADOW"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#FFFFFF",
-        "offset": {
-          "x": 0,
-          "y": 0
-        },
-        "opacity": 1,
-        "radius": 15.627524,
-        "rawType": "INNER_SHADOW",
-        "showShadowBehindNode": false,
-        "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "FOREGROUND_BLUR"
       }
     ],
     "fills": [
@@ -8762,29 +9143,28 @@ export const homeRenderEvidence = {
         "transform": "matrix(1 0 0 1 0.000004 0.210473)",
         "sourceEffects": [
           {
-            "type": "DROP_SHADOW",
-            "offset": {
-              "x": 2.2669100761413574,
-              "y": 2.2669100761413574
-            },
-            "radius": 2.2669100761413574,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0.740159273147583,
-              "g": 0.740159273147583,
-              "b": 0.740159273147583,
-              "a": 0.25
+            "color": "#BDBDBD",
+            "offset": {
+              "x": 2.26691,
+              "y": 2.26691
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0.740159273147583,
-              "c1": 0.740159273147583,
-              "c2": 0.740159273147583,
-              "c3": 0.25
-            }
+            "opacity": 0.25,
+            "radius": 2.26691,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.740159273147583,
+                "c1": 0.740159273147583,
+                "c2": 0.740159273147583,
+                "c3": 0.25
+              }
+            },
+            "rawType": "DROP_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16339",
+            "spread": 0,
+            "type": "DROP_SHADOW"
           }
         ]
       },
@@ -8815,54 +9195,52 @@ export const homeRenderEvidence = {
         "sourceNodeId": "188:16340",
         "sourceEffects": [
           {
-            "type": "DROP_SHADOW",
-            "offset": {
-              "x": 2.2669100761413574,
-              "y": 4.533820152282715
-            },
-            "radius": 11.334550857543945,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0.8685020804405212,
-              "g": 0.5616737008094788,
-              "b": 1,
-              "a": 0.25
+            "color": "#DD8FFF",
+            "offset": {
+              "x": 2.26691,
+              "y": 4.53382
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0.8685020804405212,
-              "c1": 0.5616737008094788,
-              "c2": 1,
-              "c3": 0.25
-            }
+            "opacity": 0.25,
+            "radius": 11.334551,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.8685020804405212,
+                "c1": 0.5616737008094788,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
+            "rawType": "DROP_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16340",
+            "spread": 0,
+            "type": "DROP_SHADOW"
           },
           {
-            "type": "DROP_SHADOW",
-            "offset": {
-              "x": -2.2669100761413574,
-              "y": -4.533820152282715
-            },
-            "radius": 11.334550857543945,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0.8685246109962463,
-              "g": 0.5069674253463745,
-              "b": 1,
-              "a": 0.25
+            "color": "#DD81FF",
+            "offset": {
+              "x": -2.26691,
+              "y": -4.53382
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0.8685246109962463,
-              "c1": 0.5069674253463745,
-              "c2": 1,
-              "c3": 0.25
-            }
+            "opacity": 0.25,
+            "radius": 11.334551,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.8685246109962463,
+                "c1": 0.5069674253463745,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
+            "rawType": "DROP_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16340",
+            "spread": 0,
+            "type": "DROP_SHADOW"
           }
         ]
       },
@@ -8880,54 +9258,52 @@ export const homeRenderEvidence = {
         "sourceNodeId": "188:16340",
         "sourceEffects": [
           {
-            "type": "DROP_SHADOW",
-            "offset": {
-              "x": 2.2669100761413574,
-              "y": 4.533820152282715
-            },
-            "radius": 11.334550857543945,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0.8685020804405212,
-              "g": 0.5616737008094788,
-              "b": 1,
-              "a": 0.25
+            "color": "#DD8FFF",
+            "offset": {
+              "x": 2.26691,
+              "y": 4.53382
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0.8685020804405212,
-              "c1": 0.5616737008094788,
-              "c2": 1,
-              "c3": 0.25
-            }
+            "opacity": 0.25,
+            "radius": 11.334551,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.8685020804405212,
+                "c1": 0.5616737008094788,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
+            "rawType": "DROP_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16340",
+            "spread": 0,
+            "type": "DROP_SHADOW"
           },
           {
-            "type": "DROP_SHADOW",
-            "offset": {
-              "x": -2.2669100761413574,
-              "y": -4.533820152282715
-            },
-            "radius": 11.334550857543945,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0.8685246109962463,
-              "g": 0.5069674253463745,
-              "b": 1,
-              "a": 0.25
+            "color": "#DD81FF",
+            "offset": {
+              "x": -2.26691,
+              "y": -4.53382
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0.8685246109962463,
-              "c1": 0.5069674253463745,
-              "c2": 1,
-              "c3": 0.25
-            }
+            "opacity": 0.25,
+            "radius": 11.334551,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.8685246109962463,
+                "c1": 0.5069674253463745,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
+            "rawType": "DROP_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16340",
+            "spread": 0,
+            "type": "DROP_SHADOW"
           }
         ]
       },
@@ -8967,29 +9343,28 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.982291 -0.202428 0.201023 0.975471 11.632618 27.869167)",
         "sourceEffects": [
           {
-            "type": "INNER_SHADOW",
+            "blendMode": "NORMAL",
+            "color": "#FFFFFF",
             "offset": {
               "x": 0,
               "y": 0
             },
-            "radius": 11.464898109436035,
-            "visible": true,
-            "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 1
+            "opacity": 1,
+            "radius": 11.464898,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 1
-            }
+            "rawType": "INNER_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16343",
+            "spread": 0,
+            "type": "INNER_SHADOW"
           }
         ]
       },
@@ -9029,29 +9404,28 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.982291 -0.202428 0.201023 0.975471 11.632618 27.869167)",
         "sourceEffects": [
           {
-            "type": "INNER_SHADOW",
+            "blendMode": "NORMAL",
+            "color": "#FFFFFF",
             "offset": {
               "x": 0,
               "y": 0
             },
-            "radius": 15.627524375915527,
-            "visible": true,
-            "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 1
+            "opacity": 1,
+            "radius": 15.627524,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 1
-            }
+            "rawType": "INNER_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16344",
+            "spread": 0,
+            "type": "INNER_SHADOW"
           }
         ]
       },
@@ -9070,50 +9444,44 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.994582 -0.098068 0.098073 0.994636 7.779352 28.370291)",
         "sourceEffects": [
           {
-            "type": "FOREGROUND_BLUR",
-            "offset": {
-              "x": 0,
-              "y": 4
-            },
-            "radius": 22.92980194091797,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0,
-              "g": 0,
-              "b": 0,
-              "a": 0.25
-            },
-            "secondaryColor": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 0.25
-            },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0,
-              "c1": 0,
-              "c2": 0,
-              "c3": 0.25
-            },
-            "secondaryAuthoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 0.25
-            },
+            "color": "#000000",
+            "density": 1,
             "noiseSize": {
               "x": 0.5,
               "y": 0.5
             },
-            "seed": 8172,
-            "density": 1,
             "noiseType": "MONOTONE",
-            "opacity": 0.15000000596046448
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "opacity": 0.15,
+            "radius": 22.929802,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
+            "rawType": "FOREGROUND_BLUR",
+            "secondaryColor": "#FFFFFF",
+            "secondaryOpacity": 0.25,
+            "seed": 8172,
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16345",
+            "spread": 0,
+            "type": "FOREGROUND_BLUR"
           }
         ]
       },
@@ -9132,50 +9500,44 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.994582 -0.098068 0.098073 0.994636 31.663477 19.391493)",
         "sourceEffects": [
           {
-            "type": "FOREGROUND_BLUR",
-            "offset": {
-              "x": 0,
-              "y": 4
-            },
-            "radius": 22.92980194091797,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0,
-              "g": 0,
-              "b": 0,
-              "a": 0.25
-            },
-            "secondaryColor": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 0.25
-            },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0,
-              "c1": 0,
-              "c2": 0,
-              "c3": 0.25
-            },
-            "secondaryAuthoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 0.25
-            },
+            "color": "#000000",
+            "density": 1,
             "noiseSize": {
               "x": 0.5,
               "y": 0.5
             },
-            "seed": 8172,
-            "density": 1,
             "noiseType": "MONOTONE",
-            "opacity": 0.15000000596046448
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "opacity": 0.15,
+            "radius": 22.929802,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
+            "rawType": "FOREGROUND_BLUR",
+            "secondaryColor": "#FFFFFF",
+            "secondaryOpacity": 0.25,
+            "seed": 8172,
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16346",
+            "spread": 0,
+            "type": "FOREGROUND_BLUR"
           }
         ]
       },
@@ -9194,50 +9556,44 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.994582 -0.098068 0.098073 0.994636 47.636505 17.816367)",
         "sourceEffects": [
           {
-            "type": "FOREGROUND_BLUR",
-            "offset": {
-              "x": 0,
-              "y": 4
-            },
-            "radius": 22.92980194091797,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0,
-              "g": 0,
-              "b": 0,
-              "a": 0.25
-            },
-            "secondaryColor": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 0.25
-            },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0,
-              "c1": 0,
-              "c2": 0,
-              "c3": 0.25
-            },
-            "secondaryAuthoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 0.25
-            },
+            "color": "#000000",
+            "density": 1,
             "noiseSize": {
               "x": 0.5,
               "y": 0.5
             },
-            "seed": 8172,
-            "density": 1,
             "noiseType": "MONOTONE",
-            "opacity": 0.15000000596046448
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "opacity": 0.15,
+            "radius": 22.929802,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
+            "rawType": "FOREGROUND_BLUR",
+            "secondaryColor": "#FFFFFF",
+            "secondaryOpacity": 0.25,
+            "seed": 8172,
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16347",
+            "spread": 0,
+            "type": "FOREGROUND_BLUR"
           }
         ]
       },
@@ -9256,29 +9612,28 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.982291 -0.202428 0.201023 0.975471 11.632618 27.869167)",
         "sourceEffects": [
           {
-            "type": "INNER_SHADOW",
+            "blendMode": "NORMAL",
+            "color": "#FFFFFF",
             "offset": {
               "x": 0,
               "y": 0
             },
-            "radius": 14.331123352050781,
-            "visible": true,
-            "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 1
+            "opacity": 1,
+            "radius": 14.331123,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 1
-            }
+            "rawType": "INNER_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16348",
+            "spread": 0,
+            "type": "INNER_SHADOW"
           }
         ]
       },
@@ -9297,29 +9652,28 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.982291 -0.202428 0.201023 0.975471 11.632618 27.869167)",
         "sourceEffects": [
           {
-            "type": "INNER_SHADOW",
+            "blendMode": "NORMAL",
+            "color": "#FFFFFF",
             "offset": {
               "x": 0,
               "y": 0
             },
-            "radius": 14.331123352050781,
-            "visible": true,
-            "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 1
+            "opacity": 1,
+            "radius": 14.331123,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 1
-            }
+            "rawType": "INNER_SHADOW",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16349",
+            "spread": 0,
+            "type": "INNER_SHADOW"
           }
         ]
       },
@@ -9338,50 +9692,44 @@ export const homeRenderEvidence = {
         "transform": "matrix(0.988656 -0.159845 0.159189 0.984597 32.418064 63.653122)",
         "sourceEffects": [
           {
-            "type": "FOREGROUND_BLUR",
-            "offset": {
-              "x": 0,
-              "y": 4
-            },
-            "radius": 8.598674774169922,
-            "visible": true,
             "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0,
-              "g": 0,
-              "b": 0,
-              "a": 0.25
-            },
-            "secondaryColor": {
-              "r": 1,
-              "g": 1,
-              "b": 1,
-              "a": 0.25
-            },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0,
-              "c1": 0,
-              "c2": 0,
-              "c3": 0.25
-            },
-            "secondaryAuthoredColor": {
-              "space": "DEFAULT",
-              "c0": 1,
-              "c1": 1,
-              "c2": 1,
-              "c3": 0.25
-            },
+            "color": "#000000",
+            "density": 1,
             "noiseSize": {
               "x": 0.5,
               "y": 0.5
             },
-            "seed": 9231,
-            "density": 1,
             "noiseType": "MONOTONE",
-            "opacity": 0.15000000596046448
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "opacity": 0.15,
+            "radius": 8.598675,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
+            "rawType": "FOREGROUND_BLUR",
+            "secondaryColor": "#FFFFFF",
+            "secondaryOpacity": 0.25,
+            "seed": 9231,
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16350",
+            "spread": 0,
+            "type": "FOREGROUND_BLUR"
           }
         ]
       },
@@ -9460,29 +9808,28 @@ export const homeRenderEvidence = {
         "transform": "matrix(1 0 0 1 11.985683 18.038574)",
         "sourceEffects": [
           {
-            "type": "FOREGROUND_BLUR",
+            "blendMode": "NORMAL",
+            "color": "#000000",
             "offset": {
               "x": 0,
               "y": 4
             },
-            "radius": 7.384837627410889,
-            "visible": true,
-            "blendMode": "NORMAL",
-            "spread": 0,
-            "showShadowBehindNode": false,
-            "color": {
-              "r": 0,
-              "g": 0,
-              "b": 0,
-              "a": 0.25
+            "opacity": 0.25,
+            "radius": 7.384838,
+            "rawFields": {
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              }
             },
-            "authoredColor": {
-              "space": "DEFAULT",
-              "c0": 0,
-              "c1": 0,
-              "c2": 0,
-              "c3": 0.25
-            }
+            "rawType": "FOREGROUND_BLUR",
+            "showShadowBehindNode": false,
+            "sourceNodeId": "188:16355",
+            "spread": 0,
+            "type": "FOREGROUND_BLUR"
           }
         ]
       }
@@ -9882,35 +10229,54 @@ export const homeRenderEvidence = {
       "effects": [
         {
           "blendMode": "NORMAL",
-          "clipToShape": false,
-          "color": "#000000",
-          "chromaticAberration": 0.5,
-          "density": 1,
-          "noiseSize": {
-            "x": 0.5,
-            "y": 0.5
-          },
-          "noiseType": "MONOTONE",
+          "color": "#FFFFFF",
           "offset": {
             "x": 0,
             "y": 4
           },
-          "opacity": 0.15,
+          "opacity": 0.25,
           "radius": 4,
-          "rawType": "GLASS",
-          "reflectionDistance": 0,
-          "refractionIntensity": 0.8,
-          "refractionRadius": 20,
-          "secondaryColor": "#FFFFFF",
-          "secondaryOpacity": 0.25,
-          "seed": 3070,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26347",
           "spread": 0,
-          "specularAngle": -45,
-          "specularIntensity": 0.8,
-          "type": "BACKGROUND_BLUR"
+          "type": "INNER_SHADOW"
         },
         {
+          "blendMode": "NORMAL",
+          "color": "#E8F4FF",
+          "offset": {
+            "x": -2,
+            "y": -2
+          },
+          "opacity": 0.25,
+          "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
+          "showShadowBehindNode": false,
+          "sourceNodeId": "270:26347",
+          "spread": 0,
+          "type": "INNER_SHADOW"
+        },
+        {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
           "clipToShape": false,
           "color": "#FFFFFF",
@@ -9927,6 +10293,22 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.15,
           "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            }
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -9935,24 +10317,11 @@ export const homeRenderEvidence = {
           "secondaryOpacity": 0,
           "seed": 6469,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26347",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "DROP_SHADOW"
-        },
-        {
-          "blendMode": "NORMAL",
-          "color": "#E8F4FF",
-          "offset": {
-            "x": -2,
-            "y": -2
-          },
-          "opacity": 0.25,
-          "radius": 4,
-          "rawType": "INNER_SHADOW",
-          "showShadowBehindNode": false,
-          "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "NOISE"
         },
         {
           "blendMode": "NORMAL",
@@ -9963,24 +10332,68 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.25,
           "radius": 11.1,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26347",
           "spread": 0,
           "type": "INNER_SHADOW"
         },
         {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
-          "color": "#FFFFFF",
+          "clipToShape": false,
+          "color": "#000000",
+          "chromaticAberration": 0.5,
+          "density": 1,
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "noiseType": "MONOTONE",
           "offset": {
             "x": 0,
             "y": 4
           },
-          "opacity": 0.25,
+          "opacity": 0.15,
           "radius": 4,
-          "rawType": "INNER_SHADOW",
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "GLASS",
+          "reflectionDistance": 0,
+          "refractionIntensity": 0.8,
+          "refractionRadius": 20,
+          "secondaryColor": "#FFFFFF",
+          "secondaryOpacity": 0.25,
+          "seed": 3070,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26347",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "specularAngle": -45,
+          "specularIntensity": 0.8,
+          "type": "GLASS"
         }
       ],
       "fills": [
@@ -10033,79 +10446,172 @@ export const homeRenderEvidence = {
           "sourceNodeId": "270:26347",
           "sourceEffects": [
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": 0,
                 "y": 4
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26347",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#E8F4FF",
               "offset": {
                 "x": -2,
                 "y": -2
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.9111515879631042,
-                "g": 0.9585373997688293,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.9111515879631042,
-                "c1": 0.9585373997688293,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26347",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#FFFFFF",
+              "chromaticAberration": 0.5,
+              "density": 0.2,
+              "noiseSize": {
+                "x": 4,
+                "y": 4
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                }
+              },
+              "rawType": "NOISE",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0,
+              "seed": 6469,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26347",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "NOISE"
+            },
+            {
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": -4,
                 "y": 4
               },
-              "radius": 11.100000381469727,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "opacity": 0.25,
+              "radius": 11.1,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26347",
+              "spread": 0,
+              "type": "INNER_SHADOW"
+            },
+            {
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#000000",
+              "chromaticAberration": 0.5,
+              "density": 1,
+              "noiseSize": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
+              "rawType": "GLASS",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0.25,
+              "seed": 3070,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26347",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "GLASS"
             }
           ]
         },
@@ -10146,79 +10652,172 @@ export const homeRenderEvidence = {
           "strokeLinejoin": "miter",
           "sourceEffects": [
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": 0,
                 "y": 4
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26347",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#E8F4FF",
               "offset": {
                 "x": -2,
                 "y": -2
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.9111515879631042,
-                "g": 0.9585373997688293,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.9111515879631042,
-                "c1": 0.9585373997688293,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26347",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#FFFFFF",
+              "chromaticAberration": 0.5,
+              "density": 0.2,
+              "noiseSize": {
+                "x": 4,
+                "y": 4
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                }
+              },
+              "rawType": "NOISE",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0,
+              "seed": 6469,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26347",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "NOISE"
+            },
+            {
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": -4,
                 "y": 4
               },
-              "radius": 11.100000381469727,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "opacity": 0.25,
+              "radius": 11.1,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26347",
+              "spread": 0,
+              "type": "INNER_SHADOW"
+            },
+            {
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#000000",
+              "chromaticAberration": 0.5,
+              "density": 1,
+              "noiseSize": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
+              "rawType": "GLASS",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0.25,
+              "seed": 3070,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26347",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "GLASS"
             }
           ]
         }
@@ -10268,35 +10867,54 @@ export const homeRenderEvidence = {
       "surfaceEffects": [
         {
           "blendMode": "NORMAL",
-          "clipToShape": false,
-          "color": "#000000",
-          "chromaticAberration": 0.5,
-          "density": 1,
-          "noiseSize": {
-            "x": 0.5,
-            "y": 0.5
-          },
-          "noiseType": "MONOTONE",
+          "color": "#FFFFFF",
           "offset": {
             "x": 0,
             "y": 4
           },
-          "opacity": 0.15,
+          "opacity": 0.25,
           "radius": 4,
-          "rawType": "GLASS",
-          "reflectionDistance": 0,
-          "refractionIntensity": 0.8,
-          "refractionRadius": 20,
-          "secondaryColor": "#FFFFFF",
-          "secondaryOpacity": 0.25,
-          "seed": 3070,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26347",
           "spread": 0,
-          "specularAngle": -45,
-          "specularIntensity": 0.8,
-          "type": "BACKGROUND_BLUR"
+          "type": "INNER_SHADOW"
         },
         {
+          "blendMode": "NORMAL",
+          "color": "#E8F4FF",
+          "offset": {
+            "x": -2,
+            "y": -2
+          },
+          "opacity": 0.25,
+          "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
+          "showShadowBehindNode": false,
+          "sourceNodeId": "270:26347",
+          "spread": 0,
+          "type": "INNER_SHADOW"
+        },
+        {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
           "clipToShape": false,
           "color": "#FFFFFF",
@@ -10313,6 +10931,22 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.15,
           "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            }
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -10321,24 +10955,11 @@ export const homeRenderEvidence = {
           "secondaryOpacity": 0,
           "seed": 6469,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26347",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "DROP_SHADOW"
-        },
-        {
-          "blendMode": "NORMAL",
-          "color": "#E8F4FF",
-          "offset": {
-            "x": -2,
-            "y": -2
-          },
-          "opacity": 0.25,
-          "radius": 4,
-          "rawType": "INNER_SHADOW",
-          "showShadowBehindNode": false,
-          "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "NOISE"
         },
         {
           "blendMode": "NORMAL",
@@ -10349,24 +10970,68 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.25,
           "radius": 11.1,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26347",
           "spread": 0,
           "type": "INNER_SHADOW"
         },
         {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
-          "color": "#FFFFFF",
+          "clipToShape": false,
+          "color": "#000000",
+          "chromaticAberration": 0.5,
+          "density": 1,
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "noiseType": "MONOTONE",
           "offset": {
             "x": 0,
             "y": 4
           },
-          "opacity": 0.25,
+          "opacity": 0.15,
           "radius": 4,
-          "rawType": "INNER_SHADOW",
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "GLASS",
+          "reflectionDistance": 0,
+          "refractionIntensity": 0.8,
+          "refractionRadius": 20,
+          "secondaryColor": "#FFFFFF",
+          "secondaryOpacity": 0.25,
+          "seed": 3070,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26347",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "specularAngle": -45,
+          "specularIntensity": 0.8,
+          "type": "GLASS"
         }
       ],
       "surfaceFills": [
@@ -10449,35 +11114,54 @@ export const homeRenderEvidence = {
       "effects": [
         {
           "blendMode": "NORMAL",
-          "clipToShape": false,
-          "color": "#000000",
-          "chromaticAberration": 0.5,
-          "density": 1,
-          "noiseSize": {
-            "x": 0.5,
-            "y": 0.5
-          },
-          "noiseType": "MONOTONE",
+          "color": "#FFFFFF",
           "offset": {
             "x": 0,
             "y": 4
           },
-          "opacity": 0.15,
+          "opacity": 0.25,
           "radius": 4,
-          "rawType": "GLASS",
-          "reflectionDistance": 0,
-          "refractionIntensity": 0.8,
-          "refractionRadius": 20,
-          "secondaryColor": "#FFFFFF",
-          "secondaryOpacity": 0.25,
-          "seed": 8977,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26433",
           "spread": 0,
-          "specularAngle": -45,
-          "specularIntensity": 0.8,
-          "type": "BACKGROUND_BLUR"
+          "type": "INNER_SHADOW"
         },
         {
+          "blendMode": "NORMAL",
+          "color": "#E8F4FF",
+          "offset": {
+            "x": -2,
+            "y": -2
+          },
+          "opacity": 0.25,
+          "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
+          "showShadowBehindNode": false,
+          "sourceNodeId": "270:26433",
+          "spread": 0,
+          "type": "INNER_SHADOW"
+        },
+        {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
           "clipToShape": false,
           "color": "#FFFFFF",
@@ -10494,6 +11178,22 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.15,
           "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            }
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -10502,24 +11202,11 @@ export const homeRenderEvidence = {
           "secondaryOpacity": 0,
           "seed": 6469,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26433",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "DROP_SHADOW"
-        },
-        {
-          "blendMode": "NORMAL",
-          "color": "#E8F4FF",
-          "offset": {
-            "x": -2,
-            "y": -2
-          },
-          "opacity": 0.25,
-          "radius": 4,
-          "rawType": "INNER_SHADOW",
-          "showShadowBehindNode": false,
-          "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "NOISE"
         },
         {
           "blendMode": "NORMAL",
@@ -10530,24 +11217,68 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.25,
           "radius": 11.1,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26433",
           "spread": 0,
           "type": "INNER_SHADOW"
         },
         {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
-          "color": "#FFFFFF",
+          "clipToShape": false,
+          "color": "#000000",
+          "chromaticAberration": 0.5,
+          "density": 1,
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "noiseType": "MONOTONE",
           "offset": {
             "x": 0,
             "y": 4
           },
-          "opacity": 0.25,
+          "opacity": 0.15,
           "radius": 4,
-          "rawType": "INNER_SHADOW",
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "GLASS",
+          "reflectionDistance": 0,
+          "refractionIntensity": 0.8,
+          "refractionRadius": 20,
+          "secondaryColor": "#FFFFFF",
+          "secondaryOpacity": 0.25,
+          "seed": 8977,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26433",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "specularAngle": -45,
+          "specularIntensity": 0.8,
+          "type": "GLASS"
         }
       ],
       "fills": [
@@ -10600,79 +11331,172 @@ export const homeRenderEvidence = {
           "sourceNodeId": "270:26433",
           "sourceEffects": [
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": 0,
                 "y": 4
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26433",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#E8F4FF",
               "offset": {
                 "x": -2,
                 "y": -2
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.9111515879631042,
-                "g": 0.9585373997688293,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.9111515879631042,
-                "c1": 0.9585373997688293,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26433",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#FFFFFF",
+              "chromaticAberration": 0.5,
+              "density": 0.2,
+              "noiseSize": {
+                "x": 4,
+                "y": 4
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                }
+              },
+              "rawType": "NOISE",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0,
+              "seed": 6469,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26433",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "NOISE"
+            },
+            {
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": -4,
                 "y": 4
               },
-              "radius": 11.100000381469727,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "opacity": 0.25,
+              "radius": 11.1,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26433",
+              "spread": 0,
+              "type": "INNER_SHADOW"
+            },
+            {
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#000000",
+              "chromaticAberration": 0.5,
+              "density": 1,
+              "noiseSize": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
+              "rawType": "GLASS",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0.25,
+              "seed": 8977,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26433",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "GLASS"
             }
           ]
         },
@@ -10713,79 +11537,172 @@ export const homeRenderEvidence = {
           "strokeLinejoin": "miter",
           "sourceEffects": [
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": 0,
                 "y": 4
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26433",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#E8F4FF",
               "offset": {
                 "x": -2,
                 "y": -2
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.9111515879631042,
-                "g": 0.9585373997688293,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.9111515879631042,
-                "c1": 0.9585373997688293,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26433",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#FFFFFF",
+              "chromaticAberration": 0.5,
+              "density": 0.2,
+              "noiseSize": {
+                "x": 4,
+                "y": 4
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                }
+              },
+              "rawType": "NOISE",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0,
+              "seed": 6469,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26433",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "NOISE"
+            },
+            {
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": -4,
                 "y": 4
               },
-              "radius": 11.100000381469727,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "opacity": 0.25,
+              "radius": 11.1,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26433",
+              "spread": 0,
+              "type": "INNER_SHADOW"
+            },
+            {
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#000000",
+              "chromaticAberration": 0.5,
+              "density": 1,
+              "noiseSize": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
+              "rawType": "GLASS",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0.25,
+              "seed": 8977,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26433",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "GLASS"
             }
           ]
         }
@@ -10835,35 +11752,54 @@ export const homeRenderEvidence = {
       "surfaceEffects": [
         {
           "blendMode": "NORMAL",
-          "clipToShape": false,
-          "color": "#000000",
-          "chromaticAberration": 0.5,
-          "density": 1,
-          "noiseSize": {
-            "x": 0.5,
-            "y": 0.5
-          },
-          "noiseType": "MONOTONE",
+          "color": "#FFFFFF",
           "offset": {
             "x": 0,
             "y": 4
           },
-          "opacity": 0.15,
+          "opacity": 0.25,
           "radius": 4,
-          "rawType": "GLASS",
-          "reflectionDistance": 0,
-          "refractionIntensity": 0.8,
-          "refractionRadius": 20,
-          "secondaryColor": "#FFFFFF",
-          "secondaryOpacity": 0.25,
-          "seed": 8977,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26433",
           "spread": 0,
-          "specularAngle": -45,
-          "specularIntensity": 0.8,
-          "type": "BACKGROUND_BLUR"
+          "type": "INNER_SHADOW"
         },
         {
+          "blendMode": "NORMAL",
+          "color": "#E8F4FF",
+          "offset": {
+            "x": -2,
+            "y": -2
+          },
+          "opacity": 0.25,
+          "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
+          "showShadowBehindNode": false,
+          "sourceNodeId": "270:26433",
+          "spread": 0,
+          "type": "INNER_SHADOW"
+        },
+        {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
           "clipToShape": false,
           "color": "#FFFFFF",
@@ -10880,6 +11816,22 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.15,
           "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            }
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -10888,24 +11840,11 @@ export const homeRenderEvidence = {
           "secondaryOpacity": 0,
           "seed": 6469,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26433",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "DROP_SHADOW"
-        },
-        {
-          "blendMode": "NORMAL",
-          "color": "#E8F4FF",
-          "offset": {
-            "x": -2,
-            "y": -2
-          },
-          "opacity": 0.25,
-          "radius": 4,
-          "rawType": "INNER_SHADOW",
-          "showShadowBehindNode": false,
-          "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "NOISE"
         },
         {
           "blendMode": "NORMAL",
@@ -10916,24 +11855,68 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.25,
           "radius": 11.1,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26433",
           "spread": 0,
           "type": "INNER_SHADOW"
         },
         {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
-          "color": "#FFFFFF",
+          "clipToShape": false,
+          "color": "#000000",
+          "chromaticAberration": 0.5,
+          "density": 1,
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "noiseType": "MONOTONE",
           "offset": {
             "x": 0,
             "y": 4
           },
-          "opacity": 0.25,
+          "opacity": 0.15,
           "radius": 4,
-          "rawType": "INNER_SHADOW",
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "GLASS",
+          "reflectionDistance": 0,
+          "refractionIntensity": 0.8,
+          "refractionRadius": 20,
+          "secondaryColor": "#FFFFFF",
+          "secondaryOpacity": 0.25,
+          "seed": 8977,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26433",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "specularAngle": -45,
+          "specularIntensity": 0.8,
+          "type": "GLASS"
         }
       ],
       "surfaceFills": [
@@ -11016,33 +11999,54 @@ export const homeRenderEvidence = {
       "effects": [
         {
           "blendMode": "NORMAL",
-          "clipToShape": false,
-          "color": "#000000",
-          "chromaticAberration": 0.5,
-          "noiseSize": {
-            "x": 4,
-            "y": 4
-          },
+          "color": "#FFFFFF",
           "offset": {
             "x": 0,
             "y": 4
           },
           "opacity": 0.25,
           "radius": 4,
-          "rawType": "GLASS",
-          "reflectionDistance": 0,
-          "refractionIntensity": 0.8,
-          "refractionRadius": 20,
-          "secondaryColor": "#FFFFFF",
-          "secondaryOpacity": 0,
-          "seed": 4940,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26462",
           "spread": 0,
-          "specularAngle": -45,
-          "specularIntensity": 0.8,
-          "type": "BACKGROUND_BLUR"
+          "type": "INNER_SHADOW"
         },
         {
+          "blendMode": "NORMAL",
+          "color": "#E8F4FF",
+          "offset": {
+            "x": -2,
+            "y": -2
+          },
+          "opacity": 0.25,
+          "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
+          "showShadowBehindNode": false,
+          "sourceNodeId": "270:26462",
+          "spread": 0,
+          "type": "INNER_SHADOW"
+        },
+        {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
           "clipToShape": false,
           "color": "#FFFFFF",
@@ -11059,6 +12063,22 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.15,
           "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            }
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -11067,24 +12087,11 @@ export const homeRenderEvidence = {
           "secondaryOpacity": 0,
           "seed": 6469,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26462",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "DROP_SHADOW"
-        },
-        {
-          "blendMode": "NORMAL",
-          "color": "#E8F4FF",
-          "offset": {
-            "x": -2,
-            "y": -2
-          },
-          "opacity": 0.25,
-          "radius": 4,
-          "rawType": "INNER_SHADOW",
-          "showShadowBehindNode": false,
-          "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "NOISE"
         },
         {
           "blendMode": "NORMAL",
@@ -11095,24 +12102,66 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.25,
           "radius": 11.1,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26462",
           "spread": 0,
           "type": "INNER_SHADOW"
         },
         {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
-          "color": "#FFFFFF",
+          "clipToShape": false,
+          "color": "#000000",
+          "chromaticAberration": 0.5,
+          "noiseSize": {
+            "x": 4,
+            "y": 4
+          },
           "offset": {
             "x": 0,
             "y": 4
           },
           "opacity": 0.25,
           "radius": 4,
-          "rawType": "INNER_SHADOW",
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            }
+          },
+          "rawType": "GLASS",
+          "reflectionDistance": 0,
+          "refractionIntensity": 0.8,
+          "refractionRadius": 20,
+          "secondaryColor": "#FFFFFF",
+          "secondaryOpacity": 0,
+          "seed": 4940,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26462",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "specularAngle": -45,
+          "specularIntensity": 0.8,
+          "type": "GLASS"
         }
       ],
       "fills": [
@@ -11165,79 +12214,170 @@ export const homeRenderEvidence = {
           "sourceNodeId": "270:26462",
           "sourceEffects": [
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": 0,
                 "y": 4
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26462",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#E8F4FF",
               "offset": {
                 "x": -2,
                 "y": -2
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.9111515879631042,
-                "g": 0.9585373997688293,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.9111515879631042,
-                "c1": 0.9585373997688293,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26462",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#FFFFFF",
+              "chromaticAberration": 0.5,
+              "density": 0.2,
+              "noiseSize": {
+                "x": 4,
+                "y": 4
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                }
+              },
+              "rawType": "NOISE",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0,
+              "seed": 6469,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26462",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "NOISE"
+            },
+            {
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": -4,
                 "y": 4
               },
-              "radius": 11.100000381469727,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "opacity": 0.25,
+              "radius": 11.1,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26462",
+              "spread": 0,
+              "type": "INNER_SHADOW"
+            },
+            {
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#000000",
+              "chromaticAberration": 0.5,
+              "noiseSize": {
+                "x": 4,
+                "y": 4
+              },
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.25,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                }
+              },
+              "rawType": "GLASS",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0,
+              "seed": 4940,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26462",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "GLASS"
             }
           ]
         },
@@ -11278,79 +12418,170 @@ export const homeRenderEvidence = {
           "strokeLinejoin": "miter",
           "sourceEffects": [
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": 0,
                 "y": 4
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26462",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#E8F4FF",
               "offset": {
                 "x": -2,
                 "y": -2
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.9111515879631042,
-                "g": 0.9585373997688293,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.9111515879631042,
-                "c1": 0.9585373997688293,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26462",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#FFFFFF",
+              "chromaticAberration": 0.5,
+              "density": 0.2,
+              "noiseSize": {
+                "x": 4,
+                "y": 4
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                }
+              },
+              "rawType": "NOISE",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0,
+              "seed": 6469,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26462",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "NOISE"
+            },
+            {
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": -4,
                 "y": 4
               },
-              "radius": 11.100000381469727,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "opacity": 0.25,
+              "radius": 11.1,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26462",
+              "spread": 0,
+              "type": "INNER_SHADOW"
+            },
+            {
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#000000",
+              "chromaticAberration": 0.5,
+              "noiseSize": {
+                "x": 4,
+                "y": 4
+              },
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.25,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                }
+              },
+              "rawType": "GLASS",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0,
+              "seed": 4940,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26462",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "GLASS"
             }
           ]
         }
@@ -11400,33 +12631,54 @@ export const homeRenderEvidence = {
       "surfaceEffects": [
         {
           "blendMode": "NORMAL",
-          "clipToShape": false,
-          "color": "#000000",
-          "chromaticAberration": 0.5,
-          "noiseSize": {
-            "x": 4,
-            "y": 4
-          },
+          "color": "#FFFFFF",
           "offset": {
             "x": 0,
             "y": 4
           },
           "opacity": 0.25,
           "radius": 4,
-          "rawType": "GLASS",
-          "reflectionDistance": 0,
-          "refractionIntensity": 0.8,
-          "refractionRadius": 20,
-          "secondaryColor": "#FFFFFF",
-          "secondaryOpacity": 0,
-          "seed": 4940,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26462",
           "spread": 0,
-          "specularAngle": -45,
-          "specularIntensity": 0.8,
-          "type": "BACKGROUND_BLUR"
+          "type": "INNER_SHADOW"
         },
         {
+          "blendMode": "NORMAL",
+          "color": "#E8F4FF",
+          "offset": {
+            "x": -2,
+            "y": -2
+          },
+          "opacity": 0.25,
+          "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
+          "showShadowBehindNode": false,
+          "sourceNodeId": "270:26462",
+          "spread": 0,
+          "type": "INNER_SHADOW"
+        },
+        {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
           "clipToShape": false,
           "color": "#FFFFFF",
@@ -11443,6 +12695,22 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.15,
           "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            }
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -11451,24 +12719,11 @@ export const homeRenderEvidence = {
           "secondaryOpacity": 0,
           "seed": 6469,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26462",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "DROP_SHADOW"
-        },
-        {
-          "blendMode": "NORMAL",
-          "color": "#E8F4FF",
-          "offset": {
-            "x": -2,
-            "y": -2
-          },
-          "opacity": 0.25,
-          "radius": 4,
-          "rawType": "INNER_SHADOW",
-          "showShadowBehindNode": false,
-          "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "NOISE"
         },
         {
           "blendMode": "NORMAL",
@@ -11479,24 +12734,66 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.25,
           "radius": 11.1,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26462",
           "spread": 0,
           "type": "INNER_SHADOW"
         },
         {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
-          "color": "#FFFFFF",
+          "clipToShape": false,
+          "color": "#000000",
+          "chromaticAberration": 0.5,
+          "noiseSize": {
+            "x": 4,
+            "y": 4
+          },
           "offset": {
             "x": 0,
             "y": 4
           },
           "opacity": 0.25,
           "radius": 4,
-          "rawType": "INNER_SHADOW",
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            }
+          },
+          "rawType": "GLASS",
+          "reflectionDistance": 0,
+          "refractionIntensity": 0.8,
+          "refractionRadius": 20,
+          "secondaryColor": "#FFFFFF",
+          "secondaryOpacity": 0,
+          "seed": 4940,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26462",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "specularAngle": -45,
+          "specularIntensity": 0.8,
+          "type": "GLASS"
         }
       ],
       "surfaceFills": [
@@ -11579,35 +12876,54 @@ export const homeRenderEvidence = {
       "effects": [
         {
           "blendMode": "NORMAL",
-          "clipToShape": false,
-          "color": "#000000",
-          "chromaticAberration": 0.5,
-          "density": 1,
-          "noiseSize": {
-            "x": 4,
-            "y": 4
-          },
-          "noiseType": "MONOTONE",
+          "color": "#FFFFFF",
           "offset": {
             "x": 0,
             "y": 4
           },
-          "opacity": 0.15,
+          "opacity": 0.25,
           "radius": 4,
-          "rawType": "GLASS",
-          "reflectionDistance": 0,
-          "refractionIntensity": 0.8,
-          "refractionRadius": 20,
-          "secondaryColor": "#FFFFFF",
-          "secondaryOpacity": 0,
-          "seed": 9861,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26506",
           "spread": 0,
-          "specularAngle": -45,
-          "specularIntensity": 0.8,
-          "type": "BACKGROUND_BLUR"
+          "type": "INNER_SHADOW"
         },
         {
+          "blendMode": "NORMAL",
+          "color": "#E8F4FF",
+          "offset": {
+            "x": -2,
+            "y": -2
+          },
+          "opacity": 0.25,
+          "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
+          "showShadowBehindNode": false,
+          "sourceNodeId": "270:26506",
+          "spread": 0,
+          "type": "INNER_SHADOW"
+        },
+        {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
           "clipToShape": false,
           "color": "#FFFFFF",
@@ -11624,6 +12940,22 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.15,
           "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            }
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -11632,38 +12964,59 @@ export const homeRenderEvidence = {
           "secondaryOpacity": 0,
           "seed": 6469,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26506",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "DROP_SHADOW"
+          "type": "NOISE"
         },
         {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
-          "color": "#E8F4FF",
-          "offset": {
-            "x": -2,
-            "y": -2
+          "clipToShape": false,
+          "color": "#000000",
+          "chromaticAberration": 0.5,
+          "density": 1,
+          "noiseSize": {
+            "x": 4,
+            "y": 4
           },
-          "opacity": 0.25,
-          "radius": 4,
-          "rawType": "INNER_SHADOW",
-          "showShadowBehindNode": false,
-          "spread": 0,
-          "type": "INNER_SHADOW"
-        },
-        {
-          "blendMode": "NORMAL",
-          "color": "#FFFFFF",
+          "noiseType": "MONOTONE",
           "offset": {
             "x": 0,
             "y": 4
           },
-          "opacity": 0.25,
+          "opacity": 0.15,
           "radius": 4,
-          "rawType": "INNER_SHADOW",
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            }
+          },
+          "rawType": "GLASS",
+          "reflectionDistance": 0,
+          "refractionIntensity": 0.8,
+          "refractionRadius": 20,
+          "secondaryColor": "#FFFFFF",
+          "secondaryOpacity": 0,
+          "seed": 9861,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26506",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "specularAngle": -45,
+          "specularIntensity": 0.8,
+          "type": "GLASS"
         }
       ],
       "fills": [
@@ -11716,54 +13069,148 @@ export const homeRenderEvidence = {
           "sourceNodeId": "270:26506",
           "sourceEffects": [
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": 0,
                 "y": 4
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26506",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#E8F4FF",
               "offset": {
                 "x": -2,
                 "y": -2
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.9111515879631042,
-                "g": 0.9585373997688293,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.9111515879631042,
-                "c1": 0.9585373997688293,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26506",
+              "spread": 0,
+              "type": "INNER_SHADOW"
+            },
+            {
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#FFFFFF",
+              "chromaticAberration": 0.5,
+              "density": 0.5,
+              "noiseSize": {
+                "x": 4,
+                "y": 4
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                }
+              },
+              "rawType": "NOISE",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0,
+              "seed": 6469,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26506",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "NOISE"
+            },
+            {
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#000000",
+              "chromaticAberration": 0.5,
+              "density": 1,
+              "noiseSize": {
+                "x": 4,
+                "y": 4
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                }
+              },
+              "rawType": "GLASS",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0,
+              "seed": 9861,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26506",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "GLASS"
             }
           ]
         },
@@ -11804,54 +13251,148 @@ export const homeRenderEvidence = {
           "strokeLinejoin": "miter",
           "sourceEffects": [
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#FFFFFF",
               "offset": {
                 "x": 0,
                 "y": 4
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 1,
-                "g": 1,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 1,
-                "c1": 1,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26506",
+              "spread": 0,
+              "type": "INNER_SHADOW"
             },
             {
-              "type": "INNER_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#E8F4FF",
               "offset": {
                 "x": -2,
                 "y": -2
               },
+              "opacity": 0.25,
               "radius": 4,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.9111515879631042,
-                "g": 0.9585373997688293,
-                "b": 1,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.9111515879631042,
-                "c1": 0.9585373997688293,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawType": "INNER_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26506",
+              "spread": 0,
+              "type": "INNER_SHADOW"
+            },
+            {
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#FFFFFF",
+              "chromaticAberration": 0.5,
+              "density": 0.5,
+              "noiseSize": {
+                "x": 4,
+                "y": 4
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                }
+              },
+              "rawType": "NOISE",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0,
+              "seed": 6469,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26506",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "NOISE"
+            },
+            {
+              "bevelSize": 1,
+              "blendMode": "NORMAL",
+              "clipToShape": false,
+              "color": "#000000",
+              "chromaticAberration": 0.5,
+              "density": 1,
+              "noiseSize": {
+                "x": 4,
+                "y": 4
+              },
+              "noiseType": "MONOTONE",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "opacity": 0.15,
+              "radius": 4,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                }
+              },
+              "rawType": "GLASS",
+              "reflectionDistance": 0,
+              "refractionIntensity": 0.8,
+              "refractionRadius": 20,
+              "secondaryColor": "#FFFFFF",
+              "secondaryOpacity": 0,
+              "seed": 9861,
+              "showShadowBehindNode": false,
+              "sourceNodeId": "270:26506",
+              "spread": 0,
+              "specularAngle": -45,
+              "specularIntensity": 0.8,
+              "type": "GLASS"
             }
           ]
         }
@@ -11901,35 +13442,54 @@ export const homeRenderEvidence = {
       "surfaceEffects": [
         {
           "blendMode": "NORMAL",
-          "clipToShape": false,
-          "color": "#000000",
-          "chromaticAberration": 0.5,
-          "density": 1,
-          "noiseSize": {
-            "x": 4,
-            "y": 4
-          },
-          "noiseType": "MONOTONE",
+          "color": "#FFFFFF",
           "offset": {
             "x": 0,
             "y": 4
           },
-          "opacity": 0.15,
+          "opacity": 0.25,
           "radius": 4,
-          "rawType": "GLASS",
-          "reflectionDistance": 0,
-          "refractionIntensity": 0.8,
-          "refractionRadius": 20,
-          "secondaryColor": "#FFFFFF",
-          "secondaryOpacity": 0,
-          "seed": 9861,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26506",
           "spread": 0,
-          "specularAngle": -45,
-          "specularIntensity": 0.8,
-          "type": "BACKGROUND_BLUR"
+          "type": "INNER_SHADOW"
         },
         {
+          "blendMode": "NORMAL",
+          "color": "#E8F4FF",
+          "offset": {
+            "x": -2,
+            "y": -2
+          },
+          "opacity": 0.25,
+          "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
+          "rawType": "INNER_SHADOW",
+          "showShadowBehindNode": false,
+          "sourceNodeId": "270:26506",
+          "spread": 0,
+          "type": "INNER_SHADOW"
+        },
+        {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
           "clipToShape": false,
           "color": "#FFFFFF",
@@ -11946,6 +13506,22 @@ export const homeRenderEvidence = {
           },
           "opacity": 0.15,
           "radius": 4,
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            }
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -11954,38 +13530,59 @@ export const homeRenderEvidence = {
           "secondaryOpacity": 0,
           "seed": 6469,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26506",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "DROP_SHADOW"
+          "type": "NOISE"
         },
         {
+          "bevelSize": 1,
           "blendMode": "NORMAL",
-          "color": "#E8F4FF",
-          "offset": {
-            "x": -2,
-            "y": -2
+          "clipToShape": false,
+          "color": "#000000",
+          "chromaticAberration": 0.5,
+          "density": 1,
+          "noiseSize": {
+            "x": 4,
+            "y": 4
           },
-          "opacity": 0.25,
-          "radius": 4,
-          "rawType": "INNER_SHADOW",
-          "showShadowBehindNode": false,
-          "spread": 0,
-          "type": "INNER_SHADOW"
-        },
-        {
-          "blendMode": "NORMAL",
-          "color": "#FFFFFF",
+          "noiseType": "MONOTONE",
           "offset": {
             "x": 0,
             "y": 4
           },
-          "opacity": 0.25,
+          "opacity": 0.15,
           "radius": 4,
-          "rawType": "INNER_SHADOW",
+          "rawFields": {
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            }
+          },
+          "rawType": "GLASS",
+          "reflectionDistance": 0,
+          "refractionIntensity": 0.8,
+          "refractionRadius": 20,
+          "secondaryColor": "#FFFFFF",
+          "secondaryOpacity": 0,
+          "seed": 9861,
           "showShadowBehindNode": false,
+          "sourceNodeId": "270:26506",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "specularAngle": -45,
+          "specularIntensity": 0.8,
+          "type": "GLASS"
         }
       ],
       "surfaceFills": [
@@ -12081,7 +13678,105 @@ export const homeRenderEvidence = {
               "variableIds": []
             },
             "path": "M0 30.000002 C0 13.43146 13.431458 0 30 0 L273 0 C289.568542 0 303 13.431457 303 29.999998 L303 81 C303 97.568542 289.568542 111 273 111 L29.99999 111 C13.431449 111 0 97.568542 0 81 L0 30.000002 Z",
-            "sourceNodeId": "270:26319"
+            "sourceNodeId": "270:26319",
+            "sourceEffects": [
+              {
+                "blendMode": "NORMAL",
+                "color": "#FFFFFF",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "opacity": 0.25,
+                "radius": 4,
+                "rawFields": {
+                  "authoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 1,
+                    "c1": 1,
+                    "c2": 1,
+                    "c3": 0.25
+                  }
+                },
+                "rawType": "INNER_SHADOW",
+                "showShadowBehindNode": false,
+                "sourceNodeId": "270:26319",
+                "spread": 0,
+                "type": "INNER_SHADOW"
+              },
+              {
+                "blendMode": "NORMAL",
+                "color": "#E8F4FF",
+                "offset": {
+                  "x": -2,
+                  "y": -2
+                },
+                "opacity": 0.25,
+                "radius": 4,
+                "rawFields": {
+                  "authoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 0.9111515879631042,
+                    "c1": 0.9585373997688293,
+                    "c2": 1,
+                    "c3": 0.25
+                  }
+                },
+                "rawType": "INNER_SHADOW",
+                "showShadowBehindNode": false,
+                "sourceNodeId": "270:26319",
+                "spread": 0,
+                "type": "INNER_SHADOW"
+              },
+              {
+                "bevelSize": 1,
+                "blendMode": "NORMAL",
+                "clipToShape": false,
+                "color": "#FFFFFF",
+                "chromaticAberration": 0.5,
+                "density": 0.5,
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "noiseType": "MONOTONE",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "opacity": 0.15,
+                "radius": 4,
+                "rawFields": {
+                  "authoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 1,
+                    "c1": 1,
+                    "c2": 1,
+                    "c3": 0.25
+                  },
+                  "secondaryAuthoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 1,
+                    "c1": 1,
+                    "c2": 1,
+                    "c3": 0
+                  }
+                },
+                "rawType": "NOISE",
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.8,
+                "refractionRadius": 20,
+                "secondaryColor": "#FFFFFF",
+                "secondaryOpacity": 0,
+                "seed": 6469,
+                "showShadowBehindNode": false,
+                "sourceNodeId": "270:26319",
+                "spread": 0,
+                "specularAngle": -45,
+                "specularIntensity": 0.8,
+                "type": "NOISE"
+              }
+            ]
           },
           {
             "fillRule": "nonzero",
@@ -12117,7 +13812,105 @@ export const homeRenderEvidence = {
             "path": "M30 0 L30 1 L273 1 L273 0 L273 -1 L30 -1 L30 0 Z M303 29.999998 L302 29.999998 L302 81 L303 81 L304 81 L304 29.999998 L303 29.999998 Z M273 111 L273 110 L29.99999 110 L29.99999 111 L29.99999 112 L273 112 L273 111 Z M0 81 L1 81 L1 30.000002 L0 30.000002 L-1 30.000002 L-1 81 L0 81 Z M29.99999 111 L29.99999 110 C13.983734 110 1 97.016258 1 81 L0 81 L-1 81 C-1 98.120827 12.879164 112 29.99999 112 L29.99999 111 Z M303 81 L302 81 C302 97.016258 289.016266 110 273 110 L273 111 L273 112 C290.120819 112 304 98.120827 304 81 L303 81 Z M273 0 L273 1 C289.016266 1 302 13.983741 302 29.999998 L303 29.999998 L304 29.999998 C304 12.879172 290.12085 -1 273 -1 L273 0 Z M30 0 L30 -1 C12.879173 -1 -1 12.879175 -1 30.000002 L0 30.000002 L1 30.000002 C1 13.983745 13.983743 1 30 1 L30 0 Z",
             "sourceNodeId": "270:26319",
             "strokeLinecap": "butt",
-            "strokeLinejoin": "miter"
+            "strokeLinejoin": "miter",
+            "sourceEffects": [
+              {
+                "blendMode": "NORMAL",
+                "color": "#FFFFFF",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "opacity": 0.25,
+                "radius": 4,
+                "rawFields": {
+                  "authoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 1,
+                    "c1": 1,
+                    "c2": 1,
+                    "c3": 0.25
+                  }
+                },
+                "rawType": "INNER_SHADOW",
+                "showShadowBehindNode": false,
+                "sourceNodeId": "270:26319",
+                "spread": 0,
+                "type": "INNER_SHADOW"
+              },
+              {
+                "blendMode": "NORMAL",
+                "color": "#E8F4FF",
+                "offset": {
+                  "x": -2,
+                  "y": -2
+                },
+                "opacity": 0.25,
+                "radius": 4,
+                "rawFields": {
+                  "authoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 0.9111515879631042,
+                    "c1": 0.9585373997688293,
+                    "c2": 1,
+                    "c3": 0.25
+                  }
+                },
+                "rawType": "INNER_SHADOW",
+                "showShadowBehindNode": false,
+                "sourceNodeId": "270:26319",
+                "spread": 0,
+                "type": "INNER_SHADOW"
+              },
+              {
+                "bevelSize": 1,
+                "blendMode": "NORMAL",
+                "clipToShape": false,
+                "color": "#FFFFFF",
+                "chromaticAberration": 0.5,
+                "density": 0.5,
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "noiseType": "MONOTONE",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "opacity": 0.15,
+                "radius": 4,
+                "rawFields": {
+                  "authoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 1,
+                    "c1": 1,
+                    "c2": 1,
+                    "c3": 0.25
+                  },
+                  "secondaryAuthoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 1,
+                    "c1": 1,
+                    "c2": 1,
+                    "c3": 0
+                  }
+                },
+                "rawType": "NOISE",
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.8,
+                "refractionRadius": 20,
+                "secondaryColor": "#FFFFFF",
+                "secondaryOpacity": 0,
+                "seed": 6469,
+                "showShadowBehindNode": false,
+                "sourceNodeId": "270:26319",
+                "spread": 0,
+                "specularAngle": -45,
+                "specularIntensity": 0.8,
+                "type": "NOISE"
+              }
+            ]
           }
         ],
         "nodeTransform": {

@@ -681,7 +681,8 @@ describe('Figma component evidence', () => {
           opacity: 0.15,
           rawType: 'GLASS',
           secondaryColor: '#FFFFFF',
-          type: 'BACKGROUND_BLUR',
+          sourceNodeId: '270:26530',
+          type: 'GLASS',
         }),
       ]),
     );
@@ -706,6 +707,12 @@ describe('Figma component evidence', () => {
         width: 441.549988,
       },
       sourceNodeIds: expect.arrayContaining(['825:6570', '825:6575']),
+      sourcePadding: {
+        bottom: 24,
+        left: 24,
+        right: 24,
+        top: 24,
+      },
       surfaceNodeId: '825:6570',
     });
     expect(figmaComponentEvidence.glassCard.surfaceFills).toEqual([
@@ -727,26 +734,46 @@ describe('Figma component evidence', () => {
     expect(figmaComponentEvidence.glassCard.surfaceEffects).toEqual([
       {
         blendMode: 'NORMAL',
+        color: '#1F2687',
+        offset: { x: 0, y: 8 },
+        opacity: 0.07,
+        radius: 32,
+        rawFields: {
+          authoredColor: {
+            c0: 0.12156862765550613,
+            c1: 0.14901961386203766,
+            c2: 0.529411792755127,
+            c3: 0.07000000029802322,
+            space: 'DEFAULT',
+          },
+        },
+        rawType: 'DROP_SHADOW',
+        showShadowBehindNode: false,
+        sourceNodeId: '825:6570',
+        spread: 0,
+        type: 'DROP_SHADOW',
+      },
+      {
+        blendMode: 'NORMAL',
         blurOpType: 'NORMAL',
         color: '#000000',
         offset: { x: 0, y: 0 },
         opacity: 1,
         radius: 16,
+        rawFields: {
+          authoredColor: {
+            c0: 0,
+            c1: 0,
+            c2: 0,
+            c3: 1,
+            space: 'DEFAULT',
+          },
+        },
         rawType: 'BACKGROUND_BLUR',
         showShadowBehindNode: true,
+        sourceNodeId: '825:6570',
         spread: 0,
         type: 'BACKGROUND_BLUR',
-      },
-      {
-        blendMode: 'NORMAL',
-        color: '#1F2687',
-        offset: { x: 0, y: 8 },
-        opacity: 0.07,
-        radius: 32,
-        rawType: 'DROP_SHADOW',
-        showShadowBehindNode: false,
-        spread: 0,
-        type: 'DROP_SHADOW',
       },
     ]);
   });

@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import {
+  Platform,
   StyleSheet,
   View,
   type ViewProps,
@@ -42,6 +43,9 @@ export function GlassCard({ children, style, testID }: GlassCardProps) {
   const shadow = (surfaceEffects ?? []).find(
     (effect) => effect.type === 'DROP_SHADOW',
   );
+  const backdropBlur = (surfaceEffects ?? []).find(
+    (effect) => effect.rawType === 'BACKGROUND_BLUR',
+  );
   const solidFill = surfaceFills?.find(
     (paint) => paint.type === 'SOLID' && paint.color,
   );
@@ -60,13 +64,25 @@ export function GlassCard({ children, style, testID }: GlassCardProps) {
       : undefined,
     shadowOpacity: shadow?.opacity,
     shadowRadius: shadow?.radius,
+    ...(Platform.OS === 'web' && backdropBlur
+      ? ({ backdropFilter: `blur(${backdropBlur.radius}px)` } as ViewStyle)
+      : null),
   };
+  const sourcePadding = shell.sourcePadding
+    ? {
+        paddingBottom: shell.sourcePadding.bottom,
+        paddingLeft: shell.sourcePadding.left,
+        paddingRight: shell.sourcePadding.right,
+        paddingTop: shell.sourcePadding.top,
+      }
+    : null;
 
   return (
     <View
       style={[
         styles.card,
         evidenceStyle,
+        sourcePadding,
         style,
       ]}
       testID={testID}

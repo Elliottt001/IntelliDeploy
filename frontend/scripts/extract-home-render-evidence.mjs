@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { extractMobileComponentEvidence } from "./extract-mobile-component-evidence.mjs";
+import { extractMobileComponentEvidence, normalizeSourceEffect } from "./extract-mobile-component-evidence.mjs";
 const source = process.env.INTELLIDEPLOY_FIGMA_SOURCE;
 if (!source) throw Error("Set INTELLIDEPLOY_FIGMA_SOURCE");
 const doc = JSON.parse(
@@ -107,10 +107,11 @@ try {
     sourceEffects:
       nodes
         .get(layer.sourceNodeId)
-        .effects?.filter((e) => e.visible !== false) ?? [],
+        .effects?.map((e) => normalizeSourceEffect(e, layer.sourceNodeId))
+        .filter(Boolean) ?? [],
   }));
   paintOrder.length=0;visit('188:16338');p.send.geometry.sort((a,b)=>paintOrder.indexOf(a.sourceNodeId)-paintOrder.indexOf(b.sourceNodeId));
-  p.send.geometry=p.send.geometry.flatMap(layer=>{const n=nodes.get(layer.sourceNodeId),current={...layer,sourceEffects:n.effects?.filter(e=>e.visible!==false)??[]};if(layer.sourceNodeId!=='188:16340'||layer.fill!=='#D9D9D9')return [current];const paint=n.fillPaints.find(p=>p.type==='GRADIENT_LINEAR'),hex=c=>'#'+[c.r,c.g,c.b].map(v=>Math.round(v*255).toString(16).padStart(2,'0')).join('').toUpperCase();return [{...current,fill:undefined,opacity:paint.opacity??1,paint:{type:paint.type,opacity:paint.opacity??1,variableIds:[],transform:`matrix(${paint.transform.m00} ${paint.transform.m10} ${paint.transform.m01} ${paint.transform.m11} ${paint.transform.m02} ${paint.transform.m12})`,gradientStops:paint.stops.map(s=>({position:s.position,color:hex(s.color),opacity:s.color.a??1,variableIds:[]}))}},current];});
+  p.send.geometry=p.send.geometry.flatMap(layer=>{const n=nodes.get(layer.sourceNodeId),current={...layer,sourceEffects:n.effects?.map(e=>normalizeSourceEffect(e,layer.sourceNodeId)).filter(Boolean)??[]};if(layer.sourceNodeId!=='188:16340'||layer.fill!=='#D9D9D9')return [current];const paint=n.fillPaints.find(p=>p.type==='GRADIENT_LINEAR'),hex=c=>'#'+[c.r,c.g,c.b].map(v=>Math.round(v*255).toString(16).padStart(2,'0')).join('').toUpperCase();return [{...current,fill:undefined,opacity:paint.opacity??1,paint:{type:paint.type,opacity:paint.opacity??1,variableIds:[],transform:`matrix(${paint.transform.m00} ${paint.transform.m10} ${paint.transform.m01} ${paint.transform.m11} ${paint.transform.m02} ${paint.transform.m12})`,gradientStops:paint.stops.map(s=>({position:s.position,color:hex(s.color),opacity:s.color.a??1,variableIds:[]}))}},current];});
   const decorations={community:['settings','share','bell','microphone','circleAction','brandMark'].map(key=>{const primitive=p[key];paintOrder.length=0;visit(primitive.surfaceNodeId);primitive.geometry.sort((a,b)=>paintOrder.indexOf(a.sourceNodeId)-paintOrder.indexOf(b.sourceNodeId));return {...primitive,nodeTransform:nodes.get(primitive.surfaceNodeId).transform};})};
   const cards = {};
   for (const [key, primitive] of Object.entries({
@@ -122,7 +123,7 @@ try {
     cards[key] = {
       ...primitive,
       nodeTransform: nodes.get(primitive.surfaceNodeId).transform,
-      geometry: primitive.geometry.filter(g=>g.sourceNodeId===primitive.surfaceNodeId).map(g=>({...g,sourceEffects:nodes.get(g.sourceNodeId).effects?.filter(e=>e.visible!==false&&['INNER_SHADOW','DROP_SHADOW','FOREGROUND_BLUR'].includes(e.type))??[]})),
+      geometry: primitive.geometry.filter(g=>g.sourceNodeId===primitive.surfaceNodeId).map(g=>({...g,sourceEffects:nodes.get(g.sourceNodeId).effects?.map(e=>normalizeSourceEffect(e,g.sourceNodeId)).filter(Boolean)??[]})),
     };
   const storeFold = {
     sourceNodeId: '268:23090',
@@ -210,7 +211,7 @@ try {
       frameId,
       sourceNodeId: rootId,
       background: {
-        geometry: p.back.geometry.filter((g) => g.sourceNodeId === bgId),
+        geometry: p.back.geometry.filter((g) => g.sourceNodeId === bgId).map((g)=>({...g,sourceEffects:nodes.get(g.sourceNodeId).effects?.map(e=>normalizeSourceEffect(e,g.sourceNodeId)).filter(Boolean)??[]})),
         nodeTransform: nodes.get(bgId).transform,
       },
       noSymbolReason: "no-instance-or-symbol-in-actual-cloud-subtree",
@@ -287,7 +288,7 @@ try {
     }
   await writeFile(
     new URL("../design/homeRenderEvidence.ts", import.meta.url),
-    `// Actual Kiwi primitives, visible static glyphs and classified standalone illustration sources.\nexport const homeRenderEvidence = ${JSON.stringify({ question:text(nodes.get("270:26289")),greetingMetrics:{sourceNodeId:"270:26288",baseline:nodes.get("270:26288").derivedTextData.glyphs[0].position.y}, avatarTrees, cardCopy, decorations, storeFold, sectionIcon:p.arrowRight,sectionLabels:{inspiration:text(nodes.get("270:26312")),functions:text(nodes.get("270:26317")),refresh:text(nodes.get("270:26313"))}, avatar: p.home, avatarPressed: p.send, avatarPressedTransform: nodes.get("188:16338").transform, miboLink:p.search, cards, clouds, images }, null, 2)} as const;\n`,
+    `// Actual Kiwi primitives, visible static glyphs and classified standalone illustration sources.\nexport const homeRenderEvidence = ${JSON.stringify({ question:text(nodes.get("270:26289")),greetingMetrics:{sourceNodeId:"270:26288",baseline:nodes.get("270:26288").derivedTextData.glyphs[0].position.y}, sourceEffectSamples:{storeSearchSurface:{sourceNodeId:"270:26624",effects:nodes.get("270:26624").effects?.map(e=>normalizeSourceEffect(e,"270:26624")).filter(Boolean)??[]}}, avatarTrees, cardCopy, decorations, storeFold, sectionIcon:p.arrowRight,sectionLabels:{inspiration:text(nodes.get("270:26312")),functions:text(nodes.get("270:26317")),refresh:text(nodes.get("270:26313"))}, avatar: p.home, avatarPressed: p.send, avatarPressedTransform: nodes.get("188:16338").transform, miboLink:p.search, cards, clouds, images }, null, 2)} as const;\n`,
   );
 } finally {
   await rm(temporary, { recursive: true, force: true });
