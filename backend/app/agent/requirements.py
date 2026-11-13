@@ -43,10 +43,17 @@ class RequirementNeedsAnswer(ValueError):
 
 def delivery_policy_from_messages(messages, previous=None):
     policy = previous.delivery_policy.model_copy() if previous else DeliveryPolicy()
+    deployment_question = False
     for message in sorted(messages, key=lambda m: m['sequence']):
+        if message.get('role') == 'assistant':
+            deployment_question = '是否部署独立实例' in message['content']
+            continue
         if message.get('role') != 'user' or (previous and message['id'] in previous.source_message_ids):
             continue
         text = message['content'].lower()
+        if deployment_question and text.strip('！!。 .') in {'同意','确认','可以','是','yes','ok'}:
+            policy.preference = 'SELF_HOSTED'
+        deployment_question = False
         if any(x in text for x in ('自托管', '独立部署', '平台管理', 'self-host', 'self host')):
             policy.preference = 'SELF_HOSTED'
         if any(x in text for x in ('直接给链接', '官方服务链接', 'use official service')):

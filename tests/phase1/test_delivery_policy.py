@@ -38,3 +38,11 @@ def test_private_acceptance_cannot_be_downgraded_to_preference():
     value.acceptance[0].importance='PREFERENCE'
     with pytest.raises(RequirementCoverageError,match='core'):
         validate_revision(None,value,rows('保存私人笔记'))
+
+
+def test_confirmation_is_bound_to_the_actual_deployment_question():
+    from app.agent.requirements import delivery_policy_from_messages
+    messages=[{'id':'q','role':'assistant','sequence':1,'content':'是否部署独立实例？'},
+              {'id':'a','role':'user','sequence':2,'content':'同意'}]
+    assert delivery_policy_from_messages(messages).preference=='SELF_HOSTED'
+    assert delivery_policy_from_messages(rows('同意')).preference=='EXISTING_SERVICE_FIRST'

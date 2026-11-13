@@ -24,6 +24,10 @@ def plan_official_deployment(profile, decision):
         digest=profile.commit,location='Dockerfile')
 
 
+def can_execute_official_plan(plan, workspace, profile):
+    return plan.kind != 'SOURCE_BUILD' or (len(profile.ports)==1 and checked_path(workspace,'Dockerfile').is_file())
+
+
 def compose_manifest(body):
     try:
         data = yaml.safe_load(body)

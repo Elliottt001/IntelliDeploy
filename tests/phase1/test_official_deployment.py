@@ -32,3 +32,11 @@ def test_official_command_and_nonsecret_environment_survive_rendering():
     rendered=render_compose(manifest,'test-instance',{})
     assert rendered['services']['web']['command']==['node','server.js']
     assert rendered['services']['web']['environment']['NODE_ENV']=='production'
+
+
+def test_missing_deployment_material_uses_config_builder_not_from_scratch(tmp_path):
+    from app.runtime.official_deployment import can_execute_official_plan
+    from app.agent.contracts import DeploymentPlan
+    p=profile('notes')
+    plan=DeploymentPlan(kind='SOURCE_BUILD',location='Dockerfile',source_ref='source',digest='a'*40)
+    assert can_execute_official_plan(plan,tmp_path,p) is False

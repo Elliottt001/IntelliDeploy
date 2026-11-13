@@ -967,6 +967,10 @@ class JobExecution:
                     plan.route = "COMPOSE_COMPONENTS"
             else:
                 plan = await self.choose_sources(requirement)
+                selected = self.algorithm_checkpoint().reuse_decision
+                if selected and selected.delivery_kind == 'HOSTED_INSTANCE' and plan.route != 'GENERATE_APP' and requirement.delivery_policy.preference != 'SELF_HOSTED':
+                    self.wait_for_user('已找到可复用主体 '+plan.sources[0].url+'，尚未确认满足需求的官方在线服务。是否部署独立实例？也可以继续搜索官方服务。'
+                        if plan.sources else '尚未确认官方服务，是否明确要求从头生成并部署独立实例？')
                 if plan.route == "GENERATE_APP":
                     root = (
                         Path(__file__).resolve().parents[3] / "scaffolds/nextjs-prisma"
@@ -986,11 +990,13 @@ class JobExecution:
                     )
             await self.ensure_hosted_dependencies()
             if plan.route == 'DEPLOY_EXISTING' and attempt_index == 0 and not repair_evidence:
-                from app.runtime.official_deployment import plan_official_deployment, execute_official_deployment
+                from app.runtime.official_deployment import plan_official_deployment, execute_official_deployment, can_execute_official_plan
                 algorithm = self.algorithm_checkpoint()
                 profile = next((p for p in algorithm.profiles if plan.sources and p.repo_url == plan.sources[0].url), None)
                 if profile is not None and algorithm.reuse_decision is not None:
-                    return await execute_official_deployment(self, plan_official_deployment(profile, algorithm.reuse_decision))
+                    official_plan=plan_official_deployment(profile, algorithm.reuse_decision)
+                    if can_execute_official_plan(official_plan,workspace,profile):
+                        return await execute_official_deployment(self, official_plan)
             self.prepare_algorithm_inputs(requirement, plan, workspace)
             algorithm = self.algorithm_checkpoint()
             policy = None
