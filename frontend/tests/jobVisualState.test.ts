@@ -402,7 +402,7 @@ test("composer shell uses measured Kiwi surface geometry and remains fluid", () 
     shadowRadius: 2.679201,
     width: "100%",
   });
-  const paint = (propsOf(composer).children as ReactElement[])[0];
+  const paint = (propsOf(composer).children as ReactElement[]).find(child=>flattenStyle(propsOf(child).style).borderWidth===1.339601)!;
   expect(flattenStyle(propsOf(paint).style)).toMatchObject({
     borderWidth: 1.339601,
     borderColor: "#FFFFFF",

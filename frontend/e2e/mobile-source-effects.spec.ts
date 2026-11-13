@@ -32,9 +32,9 @@ test('GlassCard runtime consumes source padding and supported background blur', 
   expect(style.shadowColor).toContain('rgba(31, 38, 135');
 });
 
-test('unsupported source optical effects stay classified as unsupported at runtime boundary', () => {
-  expect(effectSupport('GLASS', 'web')).toBe('NOT_IMPLEMENTED');
-  expect(effectSupport('NOISE', 'web')).toBe('NOT_IMPLEMENTED');
+test('tested source optics are supported on Web while native device evidence stays NOT_RUN', () => {
+  expect(effectSupport('GLASS', 'web')).toBe('PASS');
+  expect(effectSupport('NOISE', 'web')).toBe('PASS');
   expect(effectSupport('DROP_SHADOW', 'ios')).toBe('NOT_RUN');
   expect(effectSupport('BACKGROUND_BLUR', 'ios')).toBe('NOT_IMPLEMENTED');
   expect(effectSupport('LAYER_BLUR', 'web')).toBe('NOT_IMPLEMENTED');
@@ -50,7 +50,9 @@ test('shared source renderers apply supported effects with source color, order, 
 
   const storeComposite = page.locator('g[data-source-effect-node="270:26347"]');
   await expect(storeComposite).toHaveCount(1);
-  await expect(storeComposite).toHaveAttribute('filter', 'url(#home-store-effect-270-26347)');
+  await expect(storeComposite).not.toHaveAttribute('filter');
+  await expect(storeComposite.locator('g[filter]')).toHaveAttribute('filter', 'url(#home-store-effect-270-26347)');
+  await expect(storeComposite.locator('[data-glass-backdrop=live]')).toHaveCount(1);
   await expect(storeComposite.locator('path[data-source-node="270:26347"]')).toHaveCount(2);
   await expect(
     page.locator('path[data-source-node="270:26347"][filter]'),

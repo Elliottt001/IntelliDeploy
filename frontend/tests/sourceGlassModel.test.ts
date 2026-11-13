@@ -32,3 +32,25 @@ describe('source optical controls',()=>{
   expect(evaluateGlassField({...e,seed:200},point).noise).not.toBe(evaluateGlassField(e,point).noise);
  });
 });
+it('invisible effects remove all optics and NOISE does not enable inherited refraction fields',()=>{
+ const glass=glassEvidence['270:26624'].effects[0];
+ expect(evaluateGlassField({...glass,visible:false},point).displacement).toEqual({x:0,y:0});
+ expect(evaluateGlassField({...glass,type:'NOISE'},point).displacement).toEqual({x:0,y:0});
+});
+it('audits every selected raw field and original effect array order against Kiwi',()=>{
+ const doc=JSON.parse(fs.readFileSync(`${process.env.INTELLIDEPLOY_FIGMA_SOURCE}/design-data/document.kiwi.json`,'utf8'));
+ const index=new Map(doc.nodeChanges.map((n:any)=>[`${n.guid.sessionID}:${n.guid.localID}`,n]));
+ for(const [id,actual] of Object.entries(glassEvidence)){
+  const raw=index.get(id) as any;expect(actual.size).toEqual(raw.size);
+  expect(actual.effects).toEqual(raw.effects.map(({authoredColor,secondaryAuthoredColor,...e}:any)=>e));
+ }
+});
+it('extracts deterministic runtime evidence only to the requested temporary output',async()=>{
+ const {mkdtemp,readFile,rm}=await import('node:fs/promises');const {tmpdir}=await import('node:os');
+ const {extractGlassEvidence}=await import('../scripts/extract-glass-evidence.mjs');const directory=await mkdtemp(`${tmpdir()}/glass-evidence-`);
+ try{
+  await extractGlassEvidence({source:process.env.INTELLIDEPLOY_FIGMA_SOURCE,output:`${directory}/one.ts`});
+  await extractGlassEvidence({source:process.env.INTELLIDEPLOY_FIGMA_SOURCE,output:`${directory}/two.ts`});
+  expect(await readFile(`${directory}/one.ts`,'utf8')).toBe(await readFile(`${directory}/two.ts`,'utf8'));
+ }finally{await rm(directory,{recursive:true,force:true});}
+});

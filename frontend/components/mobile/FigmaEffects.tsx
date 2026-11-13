@@ -5,11 +5,11 @@ import type {FigmaEffectEvidence} from '../../design/figmaComponentEvidence';
 type LegacyColor={r:number;g:number;b:number;a:number};
 export type FigmaSourceEffect=Omit<FigmaEffectEvidence,'color'|'secondaryColor'> & {color?:string|LegacyColor;secondaryColor?:string|LegacyColor};
 const renderableTypes=['DROP_SHADOW','INNER_SHADOW','FOREGROUND_BLUR'];
-export const hasRenderableSourceEffects=(effects:readonly FigmaSourceEffect[]|undefined)=>Boolean(effects?.some(e=>renderableTypes.includes(e.type)));
+export const hasRenderableSourceEffects=(effects:readonly FigmaSourceEffect[]|undefined)=>Boolean(effects?.some(e=>e.visible!==false&&renderableTypes.includes(e.type)));
 const rgbFromHex=(hex:string)=>{const value=hex.replace('#','');return value.length===6?[0,2,4].map(i=>Number.parseInt(value.slice(i,i+2),16)):null;};
 const effectColor=(e:FigmaSourceEffect)=>{const c=e.sourceColor??(typeof e.color==='object'?e.color:undefined);if(c)return{color:`rgb(${Math.round(c.r*255)},${Math.round(c.g*255)},${Math.round(c.b*255)})`,opacity:e.opacity??c.a};const rgb=typeof e.color==='string'?rgbFromHex(e.color):null;return{color:rgb?`rgb(${rgb.join(',')})`:typeof e.color==='string'?e.color:'rgb(0,0,0)',opacity:e.opacity??1};};
 export function FigmaEffects({effects,id}:{effects:readonly FigmaSourceEffect[];id:string}){
- const supported=effects.filter(e=>renderableTypes.includes(e.type));
+ const supported=effects.filter(e=>e.visible!==false&&renderableTypes.includes(e.type));
  const previous=(index:number)=>index===0?'SourceGraphic':`effect-${index-1}`;
  return <Filter id={id} x="-100%" y="-100%" width="300%" height="300%" {...(Platform.OS==='web'?{colorInterpolationFilters:'sRGB'}:{})}>
   <FeColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>

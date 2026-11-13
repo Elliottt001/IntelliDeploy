@@ -81,11 +81,11 @@ export function FigmaGeometry({
         transform={layer.transform}
       />
     );
-  const renderOptics=(layer:Layer,layers:readonly Layer[])=>{
+  const renderOptics=(layer:Layer,layers:readonly Layer[],stage:'GLASS'|'NOISE'='GLASS')=>{
     const source=glassEvidence[layer.sourceNodeId];
     const effects=layer.sourceEffects??source?.effects;
     if(!source||!effects)return null;
-    return <SourceGlassLayer effects={effects} width={source.size.x} height={source.size.y} paths={layers.map(l=>({path:l.path,fillRule:l.fillRule}))} transform={layer.transform} sourceNodeId={layer.sourceNodeId}/>;
+    return <SourceGlassLayer effects={effects.filter(e=>e.type===stage)} width={source.size.x} height={source.size.y} paths={layers.map(l=>({path:l.path,fillRule:l.fillRule}))} transform={layer.transform} sourceNodeId={layer.sourceNodeId}/>;
   };
   return (
     <Svg
@@ -150,9 +150,9 @@ export function FigmaGeometry({
           if (grouped.has(index) && !groupByFirstIndex.has(index)) return null;
           const group = groupByFirstIndex.get(index);
           if (group) {
-            return <G key={group.id} {...(Platform.OS === "web" ? { "data-source-effect-node": group.sourceNodeId } : {})}>{renderOptics(layer,group.indexes.map(i=>geometry[i]))}<G filter={hasRenderableSourceEffects(group.effects)?`url(#${group.id})`:undefined}>{group.indexes.map((layerIndex)=>renderPath(geometry[layerIndex], layerIndex))}</G></G>;
+            return <G key={group.id} {...(Platform.OS === "web" ? { "data-source-effect-node": group.sourceNodeId } : {})}>{renderOptics(layer,group.indexes.map(i=>geometry[i]))}<G filter={hasRenderableSourceEffects(group.effects)?`url(#${group.id})`:undefined}>{group.indexes.map((layerIndex)=>renderPath(geometry[layerIndex], layerIndex))}</G>{renderOptics(layer,group.indexes.map(i=>geometry[i]),'NOISE')}</G>;
           }
-          return <G key={index}>{renderOptics(layer,[layer])}{renderPath(layer, index)}</G>;
+          return <G key={index}>{renderOptics(layer,[layer])}{renderPath(layer, index)}{renderOptics(layer,[layer],'NOISE')}</G>;
         })}
       </G>
     </Svg>

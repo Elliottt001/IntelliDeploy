@@ -1,9 +1,10 @@
+import {ProductFolderScene} from './ProductFolderScene';
+import {SourceGlassLayer} from '../../components/mobile/glass/SourceGlassLayer';
 import { useEffect, useMemo, useState, type PropsWithChildren, type ReactNode } from 'react';
 import { Image as NativeImage, useWindowDimensions, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
 import Svg, { ClipPath, Defs, FeDropShadow, FeGaussianBlur, Filter, G, Image, LinearGradient, Path, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import {formalMobileControls} from '../../design/formalMobileControls';
 import {getMobileLayout} from '../../theme/responsive';
-import {MobileBackdrop} from '../../components/mobile/MobileBackdrop';
 import { AppBackground, CircleAction } from '../../components/mobile';
 import type { FigmaPaintEvidence, FigmaVectorLayer } from '../../design/figmaComponentEvidence';
 import { mobileAssets } from '../../design/generated/mobileAssetManifest';
@@ -44,7 +45,7 @@ function FolderShape({ kind, gradientId }: { kind: 'closed' | 'closedFront' | 'o
     </LinearGradient></Defs>}
     {definition.geometry.map((raw, index) => {
       const layer = raw as FigmaVectorLayer;
-      return <Path key={index} d={layer.path} fill={paint.type === 'GRADIENT_LINEAR' ? `url(#${gradientId})` : layer.fill} fillRule={layer.fillRule} opacity={layer.opacity} transform={layer.transform} />;
+      return <Path {...(Platform.OS==='web'?{'data-source-folder-paint':kind}:{})} key={index} d={layer.path} fill={paint.type === 'GRADIENT_LINEAR' ? `url(#${gradientId})` : layer.fill} fillRule={layer.fillRule} opacity={layer.opacity} transform={layer.transform} />;
     })}
   </>;
 }
@@ -69,13 +70,9 @@ export function ProductFolder({ id, title, items, expanded, hasMore, onToggle }:
   useEffect(()=>animateTo(expanded?1:0),[animateTo,expanded]);
   const folderWidth=fitSourceWidth(source.closed.size.width,source.sourceFrameWidth,viewport.width,'relative');
   const scale=folderWidth/source.closed.size.width;
-  const safeScale=scale||1;
   const localHeight=240+105*presentation;
   const back=localMatrix(source.closedBackTransform,source.openBackTransform,presentation);
   const front=localMatrix(source.closedFrontTransform,source.openFrontTransform,presentation);
-  const glass = source.closedFront.surfaceEffects.find(effect => effect.rawType === 'GLASS');
-  const backdropX=-(viewport.width-folderWidth)/(2*safeScale);
-  const backdropY=-255/safeScale;
   const preview = (item: Item, index: number, accessible: boolean) => {
     const closedSlot=source.closedPreviewSlots[index],openSlot=source.previewSlots[index];
     const opacity=index===0?1:Math.max(0,Math.min(1,presentation));
@@ -89,29 +86,21 @@ export function ProductFolder({ id, title, items, expanded, hasMore, onToggle }:
   };
   return <Pressable accessibilityRole="button" accessibilityLabel={`${title}文件夹`} accessibilityState={{ expanded }} aria-expanded={expanded}
     onPress={onToggle} style={[styles.folder,{width:folderWidth,marginTop:69-30*scale*presentation}]} testID={`product-folder-${id}`}>
+    <ProductFolderScene width={folderWidth} height={localHeight*scale} sourceHeight={localHeight} viewBoxY={-30*presentation} items={items} presentation={presentation} back={back} front={front}>
     <Svg {...(Platform.OS === 'web' ? { 'aria-hidden': true } : { accessibilityElementsHidden: true })} width={folderWidth} height={localHeight*scale} viewBox={`0 ${-30*presentation} 260 ${localHeight}`} style={styles.folderArt}>
       <G transform={back}>
+        <SourceGlassLayer effects={source.closed.surfaceEffects} width={source.closed.size.width} height={source.closed.size.height} paths={source.closed.geometry} sourceNodeId={source.closed.surfaceNodeId}/>
         <FolderShape kind="closed" gradientId={`folder-gradient-${id}`} />
 
       </G>
       {items.slice(0,source.previewSlots.length).map((item,index)=>preview(item,index,true))}
-      {glass && <>
-        <Defs>
-          <Filter id={`folder-blur-${id}`} x="-100%" y="-100%" width="300%" height="300%"><FeGaussianBlur stdDeviation={glass.radius/2} /></Filter>
-          <ClipPath id={`folder-front-clip-${id}`}><Path d={source.closedFront.geometry[0].path} transform={front} /></ClipPath>
-        </Defs>
-        {/* Local blur is only the current fallback; raw GLASS remains NOT_IMPLEMENTED. */}
-        <G clipPath={`url(#folder-front-clip-${id})`}><G filter={`url(#folder-blur-${id})`}>
-          <G transform={`translate(${backdropX} ${backdropY})`}><MobileBackdrop width={viewport.width/safeScale} height={viewport.height/safeScale} prefix={`folder-${id}`}/></G>
-          <G transform={back}><FolderShape kind="closed" gradientId={`folder-background-${id}`} /></G>
-          {items.slice(0,source.previewSlots.length).map((item,index)=>preview(item,index,false))}
-        </G></G>
-      </>}
       <G transform={front}>
+        <SourceGlassLayer effects={source.closedFront.surfaceEffects} width={source.closedFront.size.width} height={source.closedFront.size.height} paths={source.closedFront.geometry} sourceNodeId={source.closedFront.surfaceNodeId}/>
         <FolderShape kind="closedFront" gradientId={`folder-front-${id}`} />
         <G transform="translate(17 113)"><SourceText evidence={source.slogan} color="#FFFFFF" /></G>
       </G>
     </Svg>
+    </ProductFolderScene>
     <Text style={styles.folderCount}>{hasMore ? '已加载 ' : ''}{items.length} 个应用 · {expanded ? '点击收起' : '点击展开'}</Text>
   </Pressable>;
 }

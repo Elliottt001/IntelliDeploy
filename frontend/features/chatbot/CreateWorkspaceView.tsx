@@ -1,3 +1,4 @@
+import {SourceGlassSurface} from '../../components/mobile/glass/SourceGlassSurface';
 import { useEffect, useRef, useState, type PropsWithChildren } from "react";
 import {
   Keyboard,
@@ -330,7 +331,7 @@ export function CreateWorkspaceView({
               <View
                 testID={`mibo-suggestion-face-${suggestion.nodeId}`}
                 style={[viewStyles.suggestion, { width: suggestion.width }]}
-              ></View>
+              ><SourceGlassSurface sourceNodeId={suggestion.nodeId}/></View>
               <View
                 pointerEvents="none"
                 style={{

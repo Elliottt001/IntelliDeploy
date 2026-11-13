@@ -11,12 +11,13 @@ const clamp=(v:number)=>Math.max(0,Math.min(1,v));
 // directional Lambert rim and seeded cell noise. Figma's proprietary BRDF/RNG
 // are unpublished; this is parameter fidelity, not a claim of shader identity.
 export function evaluateGlassField(e:FigmaSourceEffect,p:FieldPoint){
- const radius=e.refractionRadius??0;
+ const glass=e.type==='GLASS'&&e.visible!==false;
+ const radius=glass?(e.refractionRadius??0):0;
  const edge=radius>0?clamp(1-Math.max(0,p.distance)/radius):0;
  const bend=(e.refractionIntensity??0)*radius*edge*edge;
  const displacement={x:bend===0?0:p.normal.x*bend,y:bend===0?0:p.normal.y*bend};
  const angle=(e.specularAngle??0)*Math.PI/180;
- const bevel=(e.bevelSize??0)>0?Math.exp(-Math.max(0,p.distance)/(e.bevelSize!*4)):0;
+ const bevel=glass&&(e.bevelSize??0)>0?Math.exp(-Math.max(0,p.distance)/(e.bevelSize!*4)):0;
  const light=(e.specularIntensity??0)*Math.max(0,p.normal.x*Math.cos(angle)+p.normal.y*Math.sin(angle))*bevel;
  const nx=Math.floor(p.x/Math.max(e.noiseSize?.x??1,0.0001));
  const ny=Math.floor(p.y/Math.max(e.noiseSize?.y??1,0.0001));
@@ -24,9 +25,9 @@ export function evaluateGlassField(e:FigmaSourceEffect,p:FieldPoint){
  seed=Math.imul(seed^(seed>>>13),1274126177);seed^=seed>>>16;
  const noise=(seed>>>0)/4294967296;
  const active=noise<clamp(e.density??1);
- const reflectionDistance=e.reflectionDistance??0;
+ const reflectionDistance=glass?(e.reflectionDistance??0):0;
  return {displacement,dispersion:(e.chromaticAberration??0)*edge,light,bevel,
   reflection:{x:reflectionDistance===0?0:reflectionDistance*p.normal.x,y:reflectionDistance===0?0:reflectionDistance*p.normal.y},
-  noise,noiseAlpha:e.type==='NOISE'&&active?(e.opacity??0):0};
+  noise,noiseAlpha:e.type==='NOISE'&&e.visible!==false&&active?(e.opacity??0):0};
 }
 export const hasSourceOptics=(effects:readonly FigmaSourceEffect[]|undefined)=>Boolean(effects?.some(e=>e.visible!==false&&(e.type==='GLASS'||e.type==='NOISE')));

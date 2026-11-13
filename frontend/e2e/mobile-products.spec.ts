@@ -137,8 +137,8 @@ test('app initial/paging errors and 401 retain retry and the protected destinati
 test('formal folder paths, gradients and upward glyph coordinates reach the runtime unchanged', async ({ page }, testInfo) => {
   await apps(page); await page.goto('/app-gallery');
   const folder = page.getByTestId('product-folder-created');
-  await expect(folder.locator('path').first()).toHaveAttribute('d', /^M0 20 C0 8\.954305 8\.954306 0 20 0 L73\.16523 0/);
-  await expect(folder.locator('path').first()).not.toHaveAttribute('stroke');
+  await expect(folder.locator('path[data-source-folder-paint="closed"]').first()).toHaveAttribute('d', /^M0 20 C0 8\.954305 8\.954306 0 20 0 L73\.16523 0/);
+  await expect(folder.locator('path[data-source-folder-paint="closed"]').first()).not.toHaveAttribute('stroke');
   await expect(folder.locator('stop').first()).toHaveAttribute('stop-color', '#7C62FF');
   await expect(folder.locator('path[fill="#FFFFFF"][opacity="0.1"]')).toHaveAttribute('d', /^M0 20 C0 8\.954305 8\.954306 0 20 0 L240 0/);
   await expect(folder.locator('path[fill="#FFFFFF"][opacity="0.1"]').locator('..')).toHaveAttribute('transform', 'matrix(1 0 0 1 0 55)');
@@ -146,9 +146,9 @@ test('formal folder paths, gradients and upward glyph coordinates reach the runt
   await expect(page.getByLabel('COLLECTION').locator('path').first()).toHaveAttribute('transform', /scale\(24 -24\)/);
   if (process.env.INTELLIDEPLOY_PRODUCT_CAPTURE) await page.screenshot({ path: testInfo.outputPath('products-closed.png'), fullPage: true });
   await folder.click();
-  await expect(folder.locator('path').first().locator('..')).toHaveAttribute('transform', /matrix\(0\.9938837289810181 0\.11043152958154678 0 1 0 0\)/);
+  await expect(folder.locator('path[data-source-folder-paint="closed"]').first().locator('..')).toHaveAttribute('transform', /matrix\(0\.9938837289810181 0\.11043152958154678 0 1 0 0\)/);
   await expect(folder.getByTestId(/^folder-item-/)).toHaveCount(1);
-  await expect(folder.locator('filter[id^="folder-blur-"] feGaussianBlur')).toHaveAttribute('stdDeviation', '40');
+  await expect(folder.locator('[data-source-glass="280:26962"] filter feGaussianBlur')).toHaveAttribute('stdDeviation', '40');
   if (process.env.INTELLIDEPLOY_PRODUCT_CAPTURE) await page.screenshot({ path: testInfo.outputPath('products-open.png'), fullPage: true });
 });
 
@@ -198,7 +198,7 @@ test('closed and expanded folder origins stay at formal screen coordinates acros
         const point = new DOMPoint(0, 0).matrixTransform(transform);
         return { x: point.x, y: point.y };
       });
-      const svg = await folder.locator('svg').boundingBox();
+      const svg = await folder.locator('svg[viewBox]').boundingBox();
       return { rear, front, svg };
     };
     const closed = await origins();
@@ -260,7 +260,7 @@ test('folder keeps its current spring presentation while the viewport resizes', 
   await page.waitForTimeout(200);
   await page.setViewportSize({ width: 430, height: 932 });
   await expect.poll(async () => (await folder.boundingBox())!.width).toBeCloseTo((260 / 375) * 430, 1);
-  await expect(folder.locator('path').first().locator('..')).toHaveAttribute('transform', 'matrix(0.9938837289810181 0.11043152958154678 0 1 0 0)');
+  await expect(folder.locator('path[data-source-folder-paint="closed"]').first().locator('..')).toHaveAttribute('transform', 'matrix(0.9938837289810181 0.11043152958154678 0 1 0 0)');
 });
 
 test('five source slots retain their IDs and order while six real apps page without examples', async ({ page }) => {
@@ -304,7 +304,7 @@ test('reduced motion reaches the source endpoint immediately on short and long s
   for (const size of [{ width: 320, height: 640 }, { width: 430, height: 932 }]) {
     await page.setViewportSize(size); await page.goto('/app-gallery');
     const folder = page.getByTestId('product-folder-created'); await folder.click();
-    await expect(folder.locator('path').first().locator('..')).toHaveAttribute('transform', 'matrix(0.9938837289810181 0.11043152958154678 0 1 0 0)');
+    await expect(folder.locator('path[data-source-folder-paint="closed"]').first().locator('..')).toHaveAttribute('transform', 'matrix(0.9938837289810181 0.11043152958154678 0 1 0 0)');
     await expect(folder).toHaveAttribute('aria-expanded', 'true');
     await expect(page.getByTestId('mobile-products')).toHaveCSS('transform', 'none');
   }

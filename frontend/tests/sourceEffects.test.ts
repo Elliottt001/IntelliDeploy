@@ -90,8 +90,10 @@ describe('source paint, mask, and effect preservation', () => {
     expect(effectSupport('BACKGROUND_BLUR', 'web')).toBe('PASS');
     expect(effectSupport('BACKGROUND_BLUR', 'ios')).toBe('NOT_IMPLEMENTED');
     expect(effectSupport('LAYER_BLUR', 'web')).toBe('NOT_IMPLEMENTED');
-    expect(effectSupport('GLASS', 'web')).toBe('NOT_IMPLEMENTED');
-    expect(effectSupport('NOISE', 'web')).toBe('NOT_IMPLEMENTED');
+    expect(effectSupport('GLASS', 'web')).toBe('PASS');
+    expect(effectSupport('NOISE', 'web')).toBe('PASS');
+    expect(effectSupport('GLASS','ios')).toBe('NOT_RUN');
+    expect(effectSupport('NOISE','android')).toBe('NOT_RUN');
     expect(effectSupport('FUTURE_EFFECT', 'ios')).toBe('NOT_IMPLEMENTED');
   });
 

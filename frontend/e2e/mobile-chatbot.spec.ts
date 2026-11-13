@@ -1,3 +1,4 @@
+import {sourceCubicTravelBound} from './sourceCubicTravelBound';
 import fs from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
@@ -492,8 +493,11 @@ for (const viewportHeight of [640, 812, 932]) {
     await page.goto("/app-detail/app");
     await page.getByTestId("chatbot-settings").click();
     await page.getByTestId("delivery-management-toggle").click();
+    // Freeze before starting the animation: DOM assertions must not consume
+    // real-clock motion time before the explicit source midpoint runFor.
+    await page.clock.pauseAt(await page.evaluate(()=>new Date(Date.now()+100)));
     advance = true;
-    await page.getByTestId("refresh-job").click();
+    await page.getByTestId("refresh-job").dispatchEvent('click');
     const current = page.getByTestId("mibo-composition-current"),
       previous = page.getByTestId("mibo-composition-previous"),
       offset = async () =>
@@ -523,6 +527,9 @@ for (const viewportHeight of [640, 812, 932]) {
       ) / viewportHeight,
     ).toBeLessThan(0.08);
     await page.clock.runFor(motion.durationMs / 2);
+    // The800.0000119ms source endpoint may fall just after an integer browser
+    // clock tick; observe its rendered endpoint and cleanup on the next60Hz frame.
+    await page.clock.runFor(1000/60+1);
     expect(await offset()).toBeCloseTo(0, 1);
     await expect(page.getByTestId("mibo-composition-previous")).toHaveCount(0);
   });
@@ -885,8 +892,9 @@ test("Mibo replaces an in-flight transition, pauses in background, and resumes w
     let last = transformY(
       document.querySelector('[data-testid="mibo-composition-current"]')!,
     );
-    let frame = 0;
-    const sample = () => {
+    let frame = 0,lastAt=performance.now();
+    const sample = (timestamp:number) => {
+      lastAt=timestamp;
       const current = document.querySelector(
         '[data-testid="mibo-composition-current"]',
       );
@@ -896,7 +904,7 @@ test("Mibo replaces an in-flight transition, pauses in background, and resumes w
     frame = requestAnimationFrame(sample);
     (
       window as typeof window & {
-        __slideContinuity?: Promise<{ before: number; after: number }>;
+        __slideContinuity?: Promise<{ before: number; after: number;beforeAt:number;afterAt:number }>;
       }
     ).__slideContinuity = new Promise((resolve) => {
       const observer = new MutationObserver(() => {
@@ -906,7 +914,7 @@ test("Mibo replaces an in-flight transition, pauses in background, and resumes w
         if (!previous) return;
         cancelAnimationFrame(frame);
         observer.disconnect();
-        resolve({ before: last, after: transformY(previous) });
+        resolve({ before: last, after: transformY(previous),beforeAt:lastAt,afterAt:performance.now() });
       });
       observer.observe(stage, { childList: true, subtree: true });
     });
@@ -923,12 +931,18 @@ test("Mibo replaces an in-flight transition, pauses in background, and resumes w
     () =>
       (
         window as typeof window & {
-          __slideContinuity?: Promise<{ before: number; after: number }>;
+          __slideContinuity?: Promise<{ before: number; after: number;beforeAt:number;afterAt:number }>;
         }
       ).__slideContinuity!,
   );
-  // The observer samples the last painted 60Hz frame before React commits the replacement.
-  expect(Math.abs(continuity.after - continuity.before)).toBeLessThan(25);
+  // Original800ms cubic can legitimately travel29.16pt per60Hz frame.
+  // Bound the actual sampled interval, including one last-painted frame, rather
+  // than a25pt ceiling that was lower than the source curve itself.
+  const motion=getSourceMotion('852:4150','AFTER_TIMEOUT','852:4391')!;
+  const interval=Math.max(1000/60,continuity.afterAt-continuity.beforeAt);
+  const sourceBound=sourceCubicTravelBound(motion.easingFunction,motion.durationMs,page.viewportSize()!.height,interval);
+  expect(Math.abs(continuity.after-continuity.before)).toBeLessThanOrEqual(sourceBound+.5);
+  expect(continuity.after).toBeLessThanOrEqual(continuity.before+.5);
   await page.clock.runFor(800);
   await expect(current.getByTestId("job-status")).toHaveText("应用已交付");
   await expect(page.getByTestId("mibo-composition-previous")).toHaveCount(0);
@@ -1170,7 +1184,7 @@ test("chatbot layout binds source geometry from the provided Figma package", asy
     const style = getComputedStyle(element);
     const box = element.getBoundingClientRect();
     // Chromium rounds computed border width to physical pixels; compare the authored RN declaration.
-    const paint = element.firstElementChild as HTMLElement,
+    const paint = Array.from(element.children).find(child=>parseFloat(getComputedStyle(child).borderTopWidth)>0) as HTMLElement,
       paintStyle = getComputedStyle(paint);
     const declarations = Array.from(document.styleSheets)
       .flatMap((sheet) => Array.from(sheet.cssRules))

@@ -1,3 +1,5 @@
+import {OrderedHomeCards} from './OrderedHomeCards';
+import {LiveGlassBackdrop} from '../../components/mobile/glass/LiveGlassBackdrop';
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -294,6 +296,7 @@ export function MobileHome() {
             }
           />
         </View>
+        <LiveGlassBackdrop mode="flow" underlay={<>
         <View style={styles.hero}>
           <Pressable
             accessibilityRole="button"
@@ -389,7 +392,8 @@ export function MobileHome() {
           <View style={{width:source.sectionIcon.size.width,height:source.sectionIcon.size.height}}><FigmaGeometry geometry={source.sectionIcon.geometry as readonly FigmaVectorLayer[]} width={source.sectionIcon.size.width} height={source.sectionIcon.size.height} prefix="home-functions-icon"/></View>
           <FigmaText evidence={source.sectionLabels.functions}/>
         </View>
-        <View style={styles.cards}>
+        </>}>
+        <OrderedHomeCards style={styles.cards} expandedKey={expandedCard}>
           {homeCards.map((card) => {
             return (
               <HomeCard
@@ -407,7 +411,8 @@ export function MobileHome() {
               />
             );
           })}
-        </View>
+        </OrderedHomeCards>
+        </LiveGlassBackdrop>
       </ScrollView>
       <View
         style={{

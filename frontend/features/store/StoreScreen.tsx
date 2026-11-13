@@ -1,3 +1,4 @@
+import {SourceGlassSurface} from '../../components/mobile/glass/SourceGlassSurface';
 import { ApiError, type components } from '@intellideploy/api-client';
 import { Stack, useRouter, type Href } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -216,7 +217,7 @@ export default function StoreScreen() {
                 },
               ]}
               testID="store-search-surface"
-            />
+            ><SourceGlassSurface sourceNodeId={source.search.surface.sourceNodeId}/></View>
             <TextInput
               accessibilityLabel="搜索已加载的应用"
               onChangeText={setQuery}

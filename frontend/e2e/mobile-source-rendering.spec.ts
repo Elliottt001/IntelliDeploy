@@ -120,7 +120,7 @@ test('closed home card paint overflows its source 70pt advance without overlappi
 });
 test('home card surface preserves the three actual source inner shadow paints',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'Oasis'}}));await page.goto('/');
- const path=page.getByTestId('home-card-store-shell').locator('path[data-source-node="270:26347"]').first();const group=path.locator('xpath=ancestor::*[@data-source-effect-node][1]');await expect(group).toHaveAttribute('filter',/home-store-effect/);const filter=await group.getAttribute('filter');await expect(page.locator(filter!.slice(4,-1)).locator('feComposite[operator=\"arithmetic\"]')).toHaveCount(3);
+ const path=page.getByTestId('home-card-store-shell').locator('path[data-source-node="270:26347"]').first();const group=path.locator('xpath=ancestor::*[@filter][1]');await expect(group).toHaveAttribute('filter',/home-store-effect/);const filter=await group.getAttribute('filter');await expect(page.locator(filter!.slice(4,-1)).locator('feComposite[operator=\"arithmetic\"]')).toHaveCount(3);
 });
 test('home static Gallery and product copy uses the original glyph paints and source offsets',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'Oasis'}}));await page.goto('/');
@@ -178,8 +178,8 @@ test('visible Mibo actions menu opens real products and quota destinations at 44
  await page.goto('/chatbot');await page.getByTestId('chatbot-settings').click();await page.getByTestId('chatbot-billing').click();await expect(page).toHaveURL(/\/billing$/);
 });
 
-test('supported backdrop blur approximation stays separate from unimplemented optical GLASS',async({page})=>{
- expect(effectSupport('GLASS','web')).toBe('NOT_IMPLEMENTED');
+test('source background blur remains separate from tested optical GLASS',async({page})=>{
+ expect(effectSupport('GLASS','web')).toBe('PASS');
  await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));
  await page.route('**/api/apps',r=>r.fulfill({json:{items:[],next_cursor:null}}));
  await page.goto('/app-gallery');await expect(page.getByTestId('product-folder-created')).toBeVisible();
@@ -208,7 +208,7 @@ test('product categories stay reachable through the visible native actions menu'
 test('formal home settings uses its actual gear geometry rather than the arrow component variant',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));
  await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'Oasis'}}));
- await page.goto('/');const paths=page.getByTestId('home-settings').locator('path');
+ await page.goto('/');const paths=page.getByTestId('home-settings').locator('[data-source-icon="settings"] path');
  await expect(paths).toHaveCount(1);
  await expect(paths.first()).toHaveAttribute('fill-rule','evenodd');
 });

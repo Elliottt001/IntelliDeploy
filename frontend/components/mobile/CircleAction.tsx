@@ -98,6 +98,7 @@ export function MobileIcon({
 
   return (
     <Svg
+      {...(Platform.OS === 'web' ? {'data-source-icon':name} : {})}
       {...(Platform.OS === 'web' ? { 'aria-hidden': true } : { accessibilityElementsHidden: true })}
       style={name==='home-arrow'?{transform:[{rotate:'180deg'}]}:undefined}
       height={size}
@@ -227,7 +228,7 @@ export function CircleAction({
           },
         ]}
       >
-        <SourceGlassSurface sourceNodeId={shellEvidence.surfaceNodeId}/>
+        <SourceGlassSurface sourceNodeId={shellEvidence.surfaceNodeId} canvasSize={{width:surfaceSize,height:surfaceSize}} transform={shellEvidence.geometry.find(layer=>layer.sourceNodeId===shellEvidence.surfaceNodeId)?.transform}/>
         <View style={iconOffset?{transform:[{translateX:iconOffset.x},{translateY:iconOffset.y}]}:undefined}><MobileIcon
           color={primary ? '#FFFFFF' : mobileColors.text}
           name={icon}

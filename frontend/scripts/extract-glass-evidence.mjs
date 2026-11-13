@@ -6,13 +6,14 @@ export async function extractGlassEvidence({source=process.env.INTELLIDEPLOY_FIG
  if(!source)throw Error('INTELLIDEPLOY_FIGMA_SOURCE required');
  const doc=JSON.parse(await readFile(path.join(source,'design-data/document.kiwi.json'),'utf8'));
  const evidence={};
- const selected=new Set(Object.keys(JSON.parse(await readFile(new URL('../../.superpowers/sdd/2026-11-13-mobile-glass-motion/glass-source-preflight.json',import.meta.url),'utf8'))));
+ const framePath=n=>{const w=n.size.x,h=n.size.y;const radius=k=>Math.min(w/2,h/2,n[k]??n.cornerRadius??0);const tl=radius('rectangleTopLeftCornerRadius'),tr=radius('rectangleTopRightCornerRadius'),br=radius('rectangleBottomRightCornerRadius'),bl=radius('rectangleBottomLeftCornerRadius');return `M${tl} 0 H${w-tr} A${tr} ${tr} 0 0 1 ${w} ${tr} V${h-br} A${br} ${br} 0 0 1 ${w-br} ${h} H${bl} A${bl} ${bl} 0 0 1 0 ${h-bl} V${tl} A${tl} ${tl} 0 0 1 ${tl} 0 Z`;};
+ const selected=new Set(JSON.parse(await readFile(new URL('./glass-source-node-ids.json',import.meta.url),'utf8')));
  for(const n of doc.nodeChanges){
   if(!n.effects?.some(e=>e.type==='GLASS'||e.type==='NOISE'))continue;
   const id=`${n.guid.sessionID}:${n.guid.localID}`;
   if(!selected.has(id))continue;
   const decode=index=>{const bytes=Buffer.from(doc.blobs[index].bytes.data,'base64');let offset=0,commands=[];while(offset<bytes.length){const op=bytes[offset++],letter={0:'Z',1:'M',2:'L',3:'Q',4:'C'}[op];if(!letter)throw Error('Invalid Kiwi path opcode');const count=op===0?0:op===4?6:op===3?4:2;commands.push(letter+Array.from({length:count},()=>{const value=bytes.readFloatLE(offset);offset+=4;return Number(value.toFixed(6));}).join(' '));}return commands.join(' ').replace(/^(?:Z\s*)+/,'');};
-  evidence[id]={type:n.type,size:n.size,cornerRadius:n.cornerRadius??0,paths:(n.fillGeometry??[]).map(g=>({path:decode(g.commandsBlob),fillRule:g.windingRule==='ODD'?'evenodd':'nonzero'})),effects:n.effects.map(({authoredColor,secondaryAuthoredColor,...effect})=>effect)};
+  evidence[id]={type:n.type,size:n.size,cornerRadius:n.cornerRadius??0,paths:n.fillGeometry?.length?n.fillGeometry.map(g=>({path:decode(g.commandsBlob),fillRule:g.windingRule==='ODD'?'evenodd':'nonzero'})):[{path:framePath(n),fillRule:'nonzero'}],effects:n.effects.map(({authoredColor,secondaryAuthoredColor,...effect})=>effect)};
  }
  await mkdir(path.dirname(output),{recursive:true});
  const temporary=`${output}.tmp-${process.pid}`;
