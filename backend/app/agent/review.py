@@ -238,6 +238,7 @@ async def review_with_model(
                 "content": __import__("json").dumps(
                     {
                         "attempt_id": attempt_id,
+                        "schema": _StrictReviewPayload.model_json_schema(),
                         "requirement": requirement.model_dump(mode="json"),
                         "route": route.model_dump(mode="json"),
                         "manifest": draft.manifest.model_dump(mode="json"),
