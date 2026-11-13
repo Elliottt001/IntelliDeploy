@@ -2,6 +2,10 @@ import {expect,test,type Locator} from '@playwright/test';
 import {getSourceMotion} from '../../design/sourceMotionEvidence';
 import {communityEvidence as source} from '../../features/community/communityEvidence';
 import {sampleSourceEasing} from '../../features/navigation/sourceMotionPolicy';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { sourceNode } from '../../tests/figmaSource';
+import { mobileEvidence } from '../../design/mobileEvidence';
 
 async function railX(rail:Locator){
  return rail.evaluate(element=>new DOMMatrix(getComputedStyle(element).transform).m41);
@@ -146,4 +150,49 @@ test('source cards expose supported paints and effects without treating GLASS as
  await expect(card).toHaveCSS('border-radius','24px');
  await expect(card).toHaveCSS('box-shadow',/rgba?\(/);
  await expect(card).toHaveAttribute('data-source-glass','NOT_IMPLEMENTED');
+});
+
+test('records original-source 59/60 component measurements without certifying production post data', async ({ page }) => {
+ const root = process.env.INTELLIDEPLOY_FIGMA_SOURCE;
+ expect(root, 'Original source is required for acceptance records').toBeTruthy();
+ const bytes = await readFile(`${root}/design-data/document.kiwi.json`);
+ const surface = sourceNode('270:24544'), initial = sourceNode('825:5887'), target = sourceNode('825:6488');
+ const expectedOffset = target.transform.m02 - initial.transform.m02;
+ const records = [];
+ for (const width of [320, 360, 375, 390, 430]) {
+  await page.setViewportSize({ width, height: 812 }); await page.emulateMedia({ reducedMotion: 'no-preference' }); await page.goto('/');
+  const rail = page.getByTestId('community-source-rail'), responder = page.getByTestId('community-source-drag-responder');
+  const capture = async () => ({
+   rail: await rail.boundingBox(), offset: await railX(rail),
+   cards: await page.getByTestId(/^community-source-card-/).evaluateAll(elements => elements.map(element => {
+    const css = getComputedStyle(element), box = element.getBoundingClientRect();
+    return { id: element.getAttribute('data-testid'), x: box.x, y: box.y, width: box.width, height: box.height,
+     background: css.backgroundColor, radius: css.borderRadius, shadow: css.boxShadow,
+     copy: Array.from(element.querySelectorAll('[data-testid="community-card-author"],[data-testid="community-card-time"],[data-testid="community-card-body"]')).map(e => {
+      const text = e.getAttribute('data-testid') === 'community-card-body' ? e.querySelector('[dir="auto"]') ?? e : e;
+      const c = getComputedStyle(text); return { text: e.textContent, font: c.font, fontSize: c.fontSize, lineHeight: c.lineHeight, color: c.color, scrollTop: e.scrollTop, scrollHeight: e.scrollHeight };
+     }) };
+   })),
+  });
+  const before = await capture();
+  expect(before.cards[0].width).toBeCloseTo(surface.size.x, 5);
+  expect(before.cards[0].height).toBeCloseTo(surface.size.y, 5);
+  expect(parseFloat(before.cards[0].radius)).toBe(surface.cornerRadius);
+  const actualAlpha = Number(before.cards[0].background.match(/,\s*([\d.]+)\)$/)![1]);
+  expect(actualAlpha).toBeCloseTo(surface.fillPaints[0].opacity, 5);
+  const box = (await responder.boundingBox())!;
+  await page.mouse.move(box.x + 120, box.y + 30); await page.mouse.down(); await page.mouse.move(box.x + 20, box.y + 30, { steps: 6 }); await page.mouse.up();
+  await page.waitForTimeout(150); const middle = await capture();
+  await expect.poll(() => railX(rail)).toBeCloseTo(expectedOffset, 1); const after = await capture();
+  await page.emulateMedia({ reducedMotion: 'reduce' }); await rail.hover(); await page.mouse.wheel(-94, 0);
+  await expect.poll(() => railX(rail)).toBeCloseTo(0, 1); const reducedReverse = await capture();
+  records.push({ viewport: { width, height: 812 }, frame59: before, frame60: after, middle, reducedReverse });
+ }
+ await mkdir('artifacts/source-acceptance', { recursive: true });
+ await writeFile('artifacts/source-acceptance/community-component.json', JSON.stringify({
+  sourceSha256: createHash('sha256').update(bytes).digest('hex'), frameIds: mobileEvidence.community.frameIds,
+  scope: 'Isolated component fixture only; production post DATA_BINDING API_UNAVAILABLE',
+  expected: { surface, initial, target, expectedOffset }, measurements: records,
+  checks: { selectedPaintAndRadius: 'PASS', dragEndpoints: 'PASS', wholeFrame: 'NOT_RUN', native: 'NOT_RUN', data: 'API_UNAVAILABLE', glass: 'NOT_IMPLEMENTED' },
+ }, null, 2));
 });

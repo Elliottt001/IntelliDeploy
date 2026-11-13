@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { getSourceMotion } from '../design/sourceMotionEvidence';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { sourceNode } from '../tests/figmaSource';
 
 const app = (id: string, source: string | null = null, status: string | null = 'RUNNING') => ({ id, name: `真实应用-${id}`, updated_at: '', source_version_id: source, active_job_id: null, instance_status: status });
 const publication = (id: string) => ({ id, app_id: `private-${id}`, instance_id: `instance-${id}`, version_id: `version-${id}`, name: `公开应用-${id}`, summary: `${id}摘要`, features: [], creator: '真实作者', preview_url: null, url: null, available: true, payer_policy: 'VISITOR', sponsor_period: 'DAY', sponsor_limit_units: 100, copy_url: `/api/publications/${id}/copies`, updated_at: '' });
@@ -305,4 +308,31 @@ test('reduced motion reaches the source endpoint immediately on short and long s
     await expect(folder).toHaveAttribute('aria-expanded', 'true');
     await expect(page.getByTestId('mobile-products')).toHaveCSS('transform', 'none');
   }
+});
+
+test('product folder and header respect actual non-zero browser safe areas', async ({ page }) => {
+  await apps(page); await page.emulateMedia({ reducedMotion: 'reduce' });
+  const cdp = await page.context().newCDPSession(page);
+  const insets = { top: 60, left: 20, bottom: 16, right: 20 };
+  await (cdp.send as (method: string, params: unknown) => Promise<unknown>)('Emulation.setSafeAreaInsetsOverride', { insets });
+  const measurements = [];
+  for (const width of [320, 360, 375, 390, 430]) {
+    await page.setViewportSize({ width, height: 812 }); await page.goto('/app-gallery');
+    const folder = page.getByTestId('product-folder-created'); await expect(folder).toBeVisible();
+    const header = (await page.getByTestId('products-header').boundingBox())!;
+    expect(header.y).toBeGreaterThanOrEqual(insets.top);
+    expect(header.x).toBeGreaterThanOrEqual(insets.left);
+    expect(header.x + header.width).toBeLessThanOrEqual(width - insets.right);
+    const closed = (await folder.boundingBox())!; await folder.click(); const expanded = (await folder.boundingBox())!;
+    for (const box of [closed, expanded]) {
+      expect(box.x).toBeGreaterThanOrEqual(insets.left); expect(box.x + box.width).toBeLessThanOrEqual(width - insets.right);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+    const font = await page.getByText('点击查看我创建的应用', { exact: true }).evaluate(element => getComputedStyle(element).fontSize);
+    expect(parseFloat(font)).toBe(sourceNode('825:5845').fontSize); measurements.push({ viewport: { width, height: 812 }, insets, header, closed, expanded, font });
+  }
+  await mkdir('artifacts/source-acceptance', { recursive: true });
+  const sourceBytes = await readFile(`${process.env.INTELLIDEPLOY_FIGMA_SOURCE}/design-data/document.kiwi.json`);
+  await writeFile('artifacts/source-acceptance/product-safe-area.json', JSON.stringify({ sourceSha256: createHash('sha256').update(sourceBytes).digest('hex'), platform: 'Chromium CDP browser override; physical native NOT_RUN', measurements }, null, 2));
+  await cdp.detach();
 });
