@@ -118,3 +118,31 @@ async def test_contract_rejects_duplicate_source_with_rewritten_role():
             [profile(route.sources[0]), profile(route.sources[1])],
             model=FakeContractModel(payload),
         )
+
+
+def test_component_sources_with_same_filename_do_not_overwrite(tmp_path):
+    import subprocess
+    from app.agent.integration import prepare_component_workspaces, verify_component_workspaces
+    from algorithm_plan_fixtures import profile, route
+    sources = []
+    for role in ("records", "search"):
+        repo = tmp_path / role
+        repo.mkdir()
+        subprocess.run(["git", "init", str(repo)], check=True, capture_output=True)
+        (repo / "shared.txt").write_text(role)
+        subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(repo), "-c", "user.name=fixture",
+                        "-c", "user.email=fixture@test", "commit", "-m", "fixture"],
+                       check=True, capture_output=True)
+        sha = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
+        sources.append(RepoSource(url=str(repo), commit=sha, role=role))
+    output = tmp_path / "workspace"
+    output.mkdir()
+    components = prepare_component_workspaces(str(output), route("COMPOSE_COMPONENTS", sources),
+                                             [profile(s) for s in sources], allow_local=True)
+    assert (output / "components/records/shared.txt").read_text() == "records"
+    assert (output / "components/search/shared.txt").read_text() == "search"
+    verify_component_workspaces(str(output), components)
+    (output / "components/search/shared.txt").write_text("changed")
+    with pytest.raises(ValueError, match="component source changed"):
+        verify_component_workspaces(str(output), components)

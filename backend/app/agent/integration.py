@@ -101,3 +101,51 @@ async def build_integration_contract(
     )
     contract = IntegrationContract.model_validate_json(_content(turn))
     return validate_integration_contract(contract, requirement, plan, profiles)
+
+
+def prepare_component_workspaces(workspace_id, plan, profiles, allow_local=False):
+    import re
+    from pathlib import Path
+    from app.agent.contracts import ComponentWorkspace
+    from app.agent.packaging import tree_digest
+    from app.agent.routing import prepare_sources
+    from app.core.types import RoutePlan
+    root = Path(workspace_id)
+    facts = {(p.repo_url, p.commit): p for p in profiles}
+    roles = [s.role for s in plan.sources]
+    if plan.route != "COMPOSE_COMPONENTS" or len(roles) < 2 or len(roles) != len(set(roles)):
+        raise ValueError("composition requires distinct roles")
+    if any(not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", role) for role in roles):
+        raise ValueError("unsafe component role")
+    for source in plan.sources:
+        profile = facts.get((source.url, source.commit))
+        if profile is None or profile.license_status != "ALLOWED":
+            raise ValueError("component license evidence missing")
+    result = []
+    for source in plan.sources:
+        relative = "components/" + source.role
+        path = root / relative
+        if path.exists():
+            raise ValueError("component destination already exists")
+        prepare_sources(str(path), RoutePlan(route="MODIFY_EXISTING", sources=[source],
+            steps=["extract fixed source"], reason="component snapshot"), allow_local=allow_local)
+        result.append(ComponentWorkspace(role=source.role, source=source, relative_path=relative,
+            read_only_source_path=relative, tree_digest=tree_digest(path)))
+    (root / "app").mkdir(exist_ok=True)
+    return result
+
+
+def verify_component_workspaces(workspace_id, components):
+    from app.agent.packaging import checked_path, tree_digest
+    for component in components:
+        path = checked_path(workspace_id, component.relative_path)
+        if not path.is_dir() or tree_digest(path) != component.tree_digest:
+            raise ValueError("component source changed")
+
+
+def assert_component_write_allowed(path, components):
+    from pathlib import PurePosixPath
+    from app.agent.contracts import validate_plan_path
+    validate_plan_path(path)
+    if components and (not PurePosixPath(path).parts or PurePosixPath(path).parts[0] != "app"):
+        raise ValueError("component sources are read-only")

@@ -317,3 +317,22 @@ class AlgorithmCheckpoint(BaseModel):
             mode=mode,
             algorithm_version=algorithm_version,
         )
+
+
+class ComponentPolicyEntry(PlanValue):
+    role: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,31}$")
+    relative_path: str
+    tree_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class ComponentWorkspacePolicy(PlanValue):
+    mode: Literal["COMPOSITION"] = "COMPOSITION"
+    writable_root: Literal["app"] = "app"
+    components: list[ComponentPolicyEntry] = Field(min_length=2)
+
+    @model_validator(mode="after")
+    def safe_roles(self):
+        roles = [p.role for p in self.components]
+        if len(roles) != len(set(roles)) or any(p.relative_path != "components/" + p.role for p in self.components):
+            raise ValueError("component policy paths or roles conflict")
+        return self

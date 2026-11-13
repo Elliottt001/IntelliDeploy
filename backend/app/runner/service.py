@@ -119,6 +119,31 @@ class RunnerService:
         if generation > current:
             self.save(path, {"generation": generation})
 
+    def workspace_policy(self, job):
+        path = self.job_root(job) / "upload.json"
+        return json.loads(path.read_text()).get("policy") if path.exists() else None
+
+    def verify_policy(self, workspace, policy):
+        from app.agent.contracts import ComponentWorkspacePolicy
+        from app.agent.packaging import checked_path, tree_digest
+        if not policy:
+            return
+        value = ComponentWorkspacePolicy.model_validate(policy)
+        for component in value.components:
+            path = checked_path(workspace, component.relative_path)
+            if not path.is_dir() or tree_digest(path) != component.tree_digest:
+                raise HTTPException(409, "component source changed")
+
+    def assert_write(self, job, path):
+        from app.agent.integration import assert_component_write_allowed
+        from app.agent.packaging import checked_path
+        if self.workspace_policy(job):
+            try:
+                assert_component_write_allowed(path, [True])
+                checked_path(self.job_root(job) / "source", path)
+            except ValueError as exc:
+                raise HTTPException(422, "component sources are read-only") from exc
+
     async def tool(self, job, call):
         if not re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", call.id):
             raise HTTPException(422, "invalid tool identifier")
@@ -134,6 +159,10 @@ class RunnerService:
         workspace = root / "source"
         if not workspace.is_dir():
             raise HTTPException(409, "workspace is not prepared")
+        policy = self.workspace_policy(job)
+        if call.name in {"write_file", "apply_patch"}:
+            self.assert_write(job, call.arguments.get("path", ""))
+        self.verify_policy(workspace, policy)
         identity = hashlib.sha256(call.id.encode()).hexdigest()
         path = root / "operations" / f"{identity}.json"
         digest = hashlib.sha256(call.model_dump_json().encode()).hexdigest()
@@ -156,6 +185,7 @@ class RunnerService:
                 args.argv,
                 args.timeout,
                 f"{job}-{identity}",
+                **({"workspace_policy": policy} if policy else {}),
             )
             tool = ToolResult(
                 call_id=call.id, ok=result["ok"], content=result["content"][:65536]
@@ -165,6 +195,7 @@ class RunnerService:
             # Only scoped file operations run on the trusted node; code runs in containers.
             tool = await asyncio.to_thread(execute_tool, str(workspace), call)
             duration = max(1, int((time.monotonic() - started) * 1000))
+        self.verify_policy(workspace, policy)
         result = {"result": tool.model_dump(mode="json"), "duration_ms": duration}
         self.save(
             path, {"request_hash": digest, "state": "COMPLETED", "result": result}
@@ -209,10 +240,16 @@ def create_app(service, token):
             data = await request.body()
             if len(data) > 64 * 1024 * 1024:
                 raise HTTPException(413, "source upload exceeds limit")
+            from app.agent.contracts import ComponentWorkspacePolicy
+            try:
+                raw_policy = request.headers.get("X-Workspace-Policy")
+                policy = ComponentWorkspacePolicy.model_validate_json(raw_policy).model_dump(mode="json") if raw_policy else None
+            except ValueError as exc:
+                raise HTTPException(422, "invalid workspace policy") from exc
             digest = hashlib.sha256(data).hexdigest()
             saved = root / "upload.json"
             if saved.exists():
-                if json.loads(saved.read_text())["digest"] != digest:
+                if json.loads(saved.read_text())["digest"] != digest or json.loads(saved.read_text()).get("policy") != policy:
                     raise HTTPException(409, "initial source already exists")
                 return {"ok": True}
             workspace = (
@@ -228,13 +265,17 @@ def create_app(service, token):
                 for path in workspace.rglob("*"):
                     if not path.is_symlink():
                         os.chown(path, 10001, 10001)
-            service.save(saved, {"digest": digest})
+            if policy:
+                (workspace / "app").mkdir(exist_ok=True)
+                service.verify_policy(workspace, policy)
+            service.save(saved, {"digest": digest, "policy": policy})
             return {"ok": True}
 
     @app.get("/v1/jobs/{job}/workspace")
     async def snapshot(job: str, x_lease_generation: int = Header()):
         async with service.lock(job):
             service.fence(job, x_lease_generation)
+            service.verify_policy(service.job_root(job) / "source", service.workspace_policy(job))
             return Response(
                 content=source_archive(service.job_root(job) / "source"),
                 media_type="application/zip",
@@ -251,6 +292,7 @@ def create_app(service, token):
         async with service.lock(job):
             service.fence(job, x_lease_generation)
             root = service.job_root(job)
+            service.assert_write(job, destination)
             data = await request.body()
             if len(data) > 64 * 1024 * 1024:
                 raise HTTPException(413, "source upload exceeds limit")

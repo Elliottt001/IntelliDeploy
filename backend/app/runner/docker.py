@@ -36,7 +36,7 @@ class ContainerCommands:
             if (value := os.environ.get(name))
         }
 
-    def run(self, workspace, argv, timeout, operation_id):
+    def run(self, workspace, argv, timeout, operation_id, *, workspace_policy=None):
         if (
             not argv
             or any(not isinstance(item, str) for item in argv)
@@ -76,6 +76,13 @@ class ContainerCommands:
             "-w",
             "/workspace",
         ]
+        if workspace_policy:
+            from app.agent.contracts import ComponentWorkspacePolicy
+            ComponentWorkspacePolicy.model_validate(workspace_policy)
+            root = Path(workspace).resolve()
+            mount_index = command.index("-v")
+            command[mount_index:] = ["-v", str(root) + ":/workspace:ro", "-v",
+                str(root / "app") + ":/workspace/app:rw", "-w", "/workspace/app"]
         if self.proxy_url:
             command += [
                 "-e",

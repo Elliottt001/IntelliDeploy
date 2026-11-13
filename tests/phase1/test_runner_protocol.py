@@ -208,3 +208,39 @@ async def test_runner_service_returns_sanitized_build_failure_code(
         "message": "candidate build failed",
     }
     assert "private build output" not in response.text
+
+
+@pytest.mark.asyncio
+async def test_composition_policy_blocks_writes_and_survives_runner_restart(tmp_path):
+    import json
+    from app.agent.packaging import tree_digest
+    from app.runner.service import RunnerService, create_app
+    from app.runner.client import RunnerClient
+    from app.core.types import ToolCall
+    source = tmp_path / "input"
+    (source / "components/records").mkdir(parents=True)
+    (source / "components/search").mkdir()
+    for role in ("records", "search"):
+        (source / f"components/{role}/source.txt").write_text(role)
+    policy = {"mode": "COMPOSITION", "writable_root": "app", "components": [
+        {"role": role, "relative_path": f"components/{role}",
+         "tree_digest": tree_digest(source / f"components/{role}")} for role in ("records", "search")]}
+    from app.runtime.artifacts import source_archive
+    job = "12345678-1234-1234-1234-123456789abc"
+    app = create_app(RunnerService(tmp_path / "runner"), "test-rpc-token")
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="https://runner.test",
+                                headers={"Authorization": "Bearer test-rpc-token"}) as http:
+        client = RunnerClient(http)
+        await client.upload(job, source, 1, policy=policy)
+        for path, expected in (("components/search/source.txt", 422), ("app/output.txt", 200)):
+            response = await http.post(f"/v1/jobs/{job}/tools", headers={"X-Lease-Generation": "1"},
+                json={"call": ToolCall(id="write-" + str(expected), name="write_file",
+                                       arguments={"path": path, "content": "new"}).model_dump(mode="json")})
+            assert response.status_code == expected
+    restarted = create_app(RunnerService(tmp_path / "runner"), "test-rpc-token")
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=restarted), base_url="https://runner.test") as http:
+        response = await http.post(f"/v1/jobs/{job}/tools",
+            headers={"X-Lease-Generation": "1", "Authorization": "Bearer test-rpc-token"},
+            json={"call": {"id": "patch", "name": "apply_patch", "arguments": {
+                "path": "components/search/source.txt", "old_text": "search", "new_text": "bad"}}})
+        assert response.status_code == 422

@@ -28,3 +28,23 @@ def test_command_process_is_scoped_and_does_not_inherit_control_credentials(
     assert args[args.index("--network") + 1] == "none"
     assert "--read-only" in args and "--cap-drop" in args
     assert not any("docker.sock" in value for value in args)
+
+
+def test_composition_command_mounts_root_readonly_and_app_writable(tmp_path, monkeypatch):
+    import subprocess
+    from app.runner.docker import ContainerCommands
+    captured = []
+    monkeypatch.setattr("shutil.which", lambda _: "docker")
+    def run(args, **kwargs):
+        captured.append(args)
+        return subprocess.CompletedProcess(args, 0, "done", "")
+    monkeypatch.setattr(subprocess, "run", run)
+    policy = {"mode": "COMPOSITION", "writable_root": "app", "components": [
+        {"role": role, "relative_path": "components/" + role, "tree_digest": "a" * 64}
+        for role in ("records", "search")]}
+    ContainerCommands("image@sha256:" + "a" * 64).run(
+        str(tmp_path), ["python", "app.py"], 10, "job-operation", workspace_policy=policy)
+    args = captured[0]
+    assert str(tmp_path) + ":/workspace:ro" in args
+    assert str(tmp_path / "app") + ":/workspace/app:rw" in args
+    assert args[args.index("-w") + 1] == "/workspace/app"

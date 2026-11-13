@@ -1,4 +1,5 @@
 import ssl
+import json
 from pathlib import Path
 from urllib.parse import urlsplit, quote
 import httpx
@@ -65,7 +66,7 @@ class RunnerClient:
         )
         try:
             response = await self.client.request(
-                method, path, headers=headers, **kwargs
+                method, path, headers={**headers, **kwargs.pop("headers", {})}, **kwargs
             )
         except httpx.RequestError as exc:
             raise RunnerUnavailable("执行节点结果待核对，不能盲目重放") from exc
@@ -86,12 +87,13 @@ class RunnerClient:
     async def health(self):
         return (await self.request("GET", "/v1/health")).json()
 
-    async def upload(self, job_id, root, generation):
+    async def upload(self, job_id, root, generation, *, policy=None):
         await self.request(
             "POST",
             f"/v1/jobs/{quote(job_id, safe='')}/workspace",
             generation=generation,
             content=source_archive(root),
+            headers={"X-Workspace-Policy": json.dumps(policy)} if policy else {},
         )
 
     async def snapshot(self, job_id, root, generation):
