@@ -123,6 +123,9 @@ def validate_route_plan(
         if len(plan.sources) < 2 or len(roles) < 2 or len(urls) < 2:
             raise ValueError("route C requires two distinct component roles")
     else:
+        if not requirement.delivery_policy.allow_generation:
+            from app.agent.reuse import NoReusableSolution
+            raise NoReusableSolution(profiles)
         if plan.sources:
             raise ValueError("generation route cannot select repository sources")
         if not _user_requested_generation(requirement):

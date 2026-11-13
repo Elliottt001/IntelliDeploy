@@ -556,6 +556,85 @@ class JobExecution:
             self.model(f"route:{requirement.revision}"),
         )
 
+    async def select_reuse_sources(self, requirement):
+        from app.agent.query import plan_queries
+        from app.agent.retrieval import retrieve_sources, SearchUnavailable
+        from app.agent.repository_index import load_index
+        from app.agent.profiling import profile_repository
+        from app.agent.assessment import assess_candidates, relevance
+        from app.agent.reuse import choose_reuse_decision, route_from_decision, NoReusableSolution
+        from app.agent.contracts import AlgorithmStageRecord
+        from app.agent.checkpoint import stage_input_hash
+        from app.agent_core.brains.github_retriever import GitHubRepositorySearchClient
+        import base64
+        checkpoint = self.algorithm_checkpoint()
+        query = await plan_queries(requirement, self.model(f'query:{requirement.revision}')
+            if checkpoint.mode == 'hybrid' else None)
+        checkpoint.query_plan = query
+        client = GitHubRepositorySearchClient()
+        for search_round in range(2):
+            started = time.monotonic()
+            retrieval = await retrieve_sources(requirement, query, github_client=client,
+                repository_index=load_index(Path(settings.REPOSITORY_INDEX_PATH)))
+            checkpoint.retrieval = retrieval
+            self.save_algorithm_checkpoint(checkpoint)
+            if not retrieval.completed:
+                raise SearchUnavailable('仓库检索未完成，不能直接生成')
+            # Read bounded business handlers at the already resolved commit, not branch HEAD.
+            candidates = sorted(retrieval.candidates,key=lambda c:(relevance(c,requirement),c.stars),reverse=True)[:5]
+            for c in candidates:
+                owner_repo = c.repo_url.removeprefix('https://github.com/')
+                paths = [p for p in c.file_tree if p not in c.key_files and p.endswith(('.ts','.tsx','.js','.py','.go'))
+                         and not any(x in p for x in ('node_modules/','vendor/','.git/'))
+                         and any(x in p.lower() for x in ('route','auth','note','model','schema','controller'))][:6]
+                for path in paths:
+                    try:
+                        from urllib.parse import quote
+                        value = await client._request_json(f'/repos/{owner_repo}/contents/{quote(path,safe="/")}',
+                            params={'ref':c.commit})
+                        if value.get('encoding') == 'base64' and value.get('size',0) <= 50000:
+                            c.key_files[path] = base64.b64decode(value['content']).decode(errors='replace')[:20000]
+                    except Exception as exc:
+                        # Unknown evidence does not become a negative capability claim.
+                        c.enrichment_status = 'PARTIAL'
+            profiles = [profile_repository(c,requirement) for c in candidates if c.commit]
+            assessments = await assess_candidates(requirement,candidates,profiles,
+                self.model(f'assessment:{requirement.revision}:{search_round}'))
+            from app.agent.contracts import EvidenceRef
+            for assessment in assessments:
+                profile = next(p for p in profiles if p.repo_url == assessment.repo_url)
+                for capability in assessment.capabilities:
+                    if capability.status == 'SUPPORTED' and capability.evidence_refs:
+                        profile.evidence_refs.append(EvidenceRef(kind='PROFILE',
+                            reference='coverage:'+capability.acceptance_id,
+                            digest=stage_input_hash(capability),access='PRIVATE'))
+            checkpoint.profiles = profiles
+            checkpoint.assessments = assessments
+            checkpoint.stages.append(AlgorithmStageRecord(operation_id=f'job:{self.job_id}:reuse:{requirement.revision}:{search_round}',
+                stage='RANK',input_hash=stage_input_hash(retrieval),implementation_version='reuse-v1',
+                status='SUCCEEDED',duration_ms=int((time.monotonic()-started)*1000),attempt=search_round+1))
+            self.save_algorithm_checkpoint(checkpoint)
+            try:
+                decision = choose_reuse_decision(requirement,assessments,profiles)
+            except NoReusableSolution:
+                if search_round == 1:
+                    raise
+                query = query.model_copy(update={'github_queries':list(dict.fromkeys([
+                    *query.github_queries,*[term+' self hosted web application' for term in query.translated_terms[:2]]]))})
+                continue
+            checkpoint.reuse_decision = decision
+            checkpoint.selected_sources = decision.selected_sources
+            self.save_algorithm_checkpoint(checkpoint)
+            route = route_from_decision(decision)
+            if checkpoint.mode == 'hybrid' and route.sources:
+                from app.agent.orchestrator import AlgorithmOrchestrator
+                route, _ = await AlgorithmOrchestrator(self).plan_gaps_and_finalize_route(
+                    requirement,route,retrieval,profiles,checkpoint.evaluations)
+                checkpoint = self.algorithm_checkpoint()
+            checkpoint.route = route
+            self.save_algorithm_checkpoint(checkpoint)
+            return route
+
     async def select_sources_hybrid(self, requirement):
         from app.agent.checkpoint import stage_input_hash
         from app.agent.contracts import AlgorithmStageRecord

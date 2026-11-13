@@ -17,6 +17,9 @@ class AlgorithmOrchestrator:
 
     async def select_sources(self, requirement: Requirement) -> RoutePlan:
         checkpoint = self.execution.algorithm_checkpoint()
+        reuse_selector = getattr(self.execution, 'select_reuse_sources', None)
+        if reuse_selector is not None and checkpoint.mode != 'shadow':
+            return await reuse_selector(requirement)
         if checkpoint.mode == "baseline":
             route = await self.execution.select_sources_baseline(requirement)
             checkpoint = self.execution.algorithm_checkpoint()

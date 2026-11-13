@@ -124,6 +124,15 @@ class CandidateAssessment(BaseModel):
         return all(route in self.route_verdicts and self.route_verdicts[route].status == 'INELIGIBLE'
                    and self.route_verdicts[route].evidence_refs for route in ('A', 'B', 'C'))
 
+class ReuseDecision(BaseModel):
+    delivery_kind: Literal['EXTERNAL_LINK', 'HOSTED_INSTANCE']
+    route: Literal['DEPLOY_EXISTING', 'MODIFY_EXISTING', 'COMPOSE_COMPONENTS', 'GENERATE_APP'] | None = None
+    selected_sources: list[RepoSource] = Field(default_factory=list)
+    assessment_refs: list[str] = Field(default_factory=list)
+    deployment_asset: DeploymentAsset | None = None
+    differences: list[str] = Field(default_factory=list)
+    adaptations: list[str] = Field(default_factory=list)
+
 class RepositoryProfile(BaseModel):
     repo_url: str
     commit: str
@@ -318,6 +327,7 @@ class ComponentWorkspace(PlanValue):
 
 class AlgorithmCheckpoint(BaseModel):
     assessments: list[CandidateAssessment] = Field(default_factory=list)
+    reuse_decision: ReuseDecision | None = None
     gap_plan: GapPlan | None = None
     packaging_plans: list[PackagingPlan] = Field(default_factory=list)
     component_workspaces: list[ComponentWorkspace] = Field(default_factory=list)

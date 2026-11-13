@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+from app.agent.reuse import NoReusableSolution
 from pathlib import Path
 from dataclasses import dataclass, replace
 from typing import Any, Awaitable, Callable
@@ -858,6 +859,15 @@ async def run_pipeline(
     except LeaseLost:
         raise
     except WaitingForUser:
+        return
+    except NoReusableSolution as exc:
+        if execution is not None:
+            execution.save(reuse_unconfirmed=[a.model_dump(mode='json') for a in exc.closest_candidates])
+            try:
+                execution.wait_for_user(str(exc))
+            except WaitingForUser:
+                return
+        _finish_failure(session_factory, job_id, 'REUSE_UNCONFIRMED', str(exc))
         return
     except RequirementInvalid as exc:
         count = len(exc.details.get("unresolved_issues") or [])
