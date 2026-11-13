@@ -8,8 +8,9 @@ Task 11 produces a reviewable frontend acceptance collection. Strict source acce
 - SHA-256 freshly checked with `shasum -a 256`: `378b0b88b0e2a5fa420f0178c830f25186b787efc5c1b9d77064aab505ff334e`. Runtime collection independently hashes those bytes.
 - The single 26-frame manifest is [mobileEvidence.ts](../../../frontend/design/mobileEvidence.ts). The collector reads original Kiwi nodes, parent chains, geometry blobs, paints, glyph commands, effects and interactions. It does not derive expected values from screenshots or generated rendering constants.
 - Existing worktree: `/Users/bytedance/Projects/my/byte-intelli/.worktrees/intellideploy-mobile-figma`, branch `codex/intellideploy-mobile-figma`. Preserve this worktree and the ignored SDD ledger.
-- Original recorded baseline: `d390128606973d944427dfad863950c1f38ef8de`. Latest-main sync: merge `a91df57`, upstream main `9265b5e`. Do not substitute changing main for the original baseline.
-- `git diff d390128 HEAD -- backend web packages/api-client infra tests/phase1` equals `git diff d390128 9265b5e -- <same paths>` byte for byte (`cmp` exit 0). `git diff 9265b5e HEAD -- <same paths>` has no changes. Those baseline-range backend/client changes belong to upstream main.
+- Original recorded baseline: `d390128606973d944427dfad863950c1f38ef8de`. Initial acceptance sync: merge `a91df57`, upstream main `9265b5e`. Final controller sync: merge `d427532`, upstream main `968432e`, without conflicts. Do not substitute changing main for the original baseline.
+- At the original Task11 acceptance endpoint `08e9a6c`, the prohibited-path diff from `d390128` equalled `d390128..9265b5e` byte for byte (`cmp` exit 0), and `9265b5e..08e9a6c` had no prohibited-path changes. This earlier verification point is retained as history.
+- The controller reports the final `968432e..d427532` prohibited-path delta is zero. The later main changes affect backend types/implementation/docs/tests; frontend and shared API-client code have no new upstream changes. Attribute those changes to upstream main, not Task11. Source/DTO and typecheck post-sync revalidation is recorded separately below.
 - Task11 changes frontend tests, the conservative summarizer, this handoff, and the controller-authorized minimal `useSourceMotion` layout-reset repair. No API generation, database migration/seed, backend/shared-DTO/Web-client/source-package/comparator/baseline edits. The main workspace's five WIP files remain owned by the user/controller; Task11 never edits that workspace.
 
 ## Implemented collection and limits
@@ -71,7 +72,7 @@ Strict accepted states: **0 / 26**. No state has all six required checks verifie
 
 ## API, effects and devices
 
-[capability-final-readonly.json](../../../.superpowers/sdd/2026-11-13-mobile-frontend-source-alignment/capability-final-readonly.json) is the controller's current main GET-only ASGI audit (`9265b5e`), without login/token writes, workers or mutable transactions. It reports 10 apps, four public publications, six database posts, zero favorites and zero recent uses. The snapshot is acceptance evidence, never runtime business fallback.
+[capability-final-readonly.json](../../../.superpowers/sdd/2026-11-13-mobile-frontend-source-alignment/capability-final-readonly.json) is the controller's GET-only ASGI audit at the earlier main validation point `9265b5e`, without login/token writes, workers or mutable transactions. It reports 10 apps, four public publications, six database posts, zero favorites and zero recent uses. This snapshot is retained without a new API/database collection at `968432e`; it is acceptance evidence, never runtime business fallback.
 
 The four exact read-only detail failures remain `BACKEND_BLOCKED`:
 
@@ -115,6 +116,8 @@ Command outcomes and exact logs are recorded in `task-11-report.md`. The product
 Verification version boundary: the 176-test run used collector **C1**, before the additional untagged SVG/source-path pairing and image-load metadata. Dedicated **C2** validated those additions after the component run. The final collector **C3** additionally classifies the unavailable post-data origins accurately and stamps producer hashes; SHA-256 `f430dd19fc46cc008fa09d46ec5de44b0e1a1565aa13371725d4da8ea73f0145`. C3 receives its own final dedicated run; the earlier 176-test result is not represented as a run of C3. Those later changes are acceptance-test metadata only; product code and all three exported product bundles are unchanged. `records.json.producer` identifies the final collector and product implementation.
 
 Final C3 dedicated collection: **1 PASS, 26 records, zero errors**, strict INCOMPLETE (`logs/task-11-acceptance-producer-final.log`). Final typecheck and diff check pass; record/producer/supplement integrity checks pass. The persisted/cross-client suite has the specific schema preflight blocker above.
+
+Post-sync compatibility revalidation at controller merge `d427532` / main `968432e` is complete: the controller ran full npm units with the original Figma environment and real DTO Python interpreter, yielding **30 files / 213 PASS / 0 skips, exit 0**; typecheck and `git diff --check` also exited 0. These are fresh upstream compatibility checks, separate from the earlier runtime acceptance. This metadata sync does not rerun or refresh the 26-state records, devices, API/database snapshot or exports. Existing collector/product producer hashes and all recorded acceptance gaps remain unchanged.
 
 The existing pixel report remains an independent historical **10 PASS / 16 FAIL**. No source/DTO test count or export result changes those numbers.
 
