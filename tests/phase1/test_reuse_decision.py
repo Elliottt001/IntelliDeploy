@@ -53,6 +53,18 @@ def test_external_service_does_not_require_permission_to_redistribute_code():
     with pytest.raises(NoReusableSolution): choose_reuse_decision(req,[a],[p])
 
 
+def test_equally_capable_principal_prefers_smaller_adaptation_scope():
+    from app.agent.reuse import choose_reuse_decision
+    from app.agent.contracts import CandidateAssessment
+    from test_candidate_ranking import profile
+    req=Requirement(prompt='笔记',acceptance=[{'id':'A1','action':'保存','expected':'可见'}],delivery_policy={'preference':'SELF_HOSTED'})
+    ps=[profile('popular'),profile('small')]
+    assessments=[CandidateAssessment(repo_url=p.repo_url,commit=p.commit,requirement_revision=1,
+        capabilities=[{'acceptance_id':'A1','status':'SUPPORTED','reason':'notes','evidence_refs':['README.md'],'quote':'notes'}],
+        adaptations=['rewrite auth','rewrite config','replace storage'] if i==0 else ['configure port']) for i,p in enumerate(ps)]
+    assert choose_reuse_decision(req,assessments,ps).selected_sources[0].url==ps[1].repo_url
+
+
 @pytest.mark.asyncio
 async def test_real_orchestrator_entry_selects_repository_without_generation(new_job,session_factory,monkeypatch):
     import json

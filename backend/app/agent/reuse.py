@@ -1,6 +1,7 @@
 """Reuse route decisions separated from raw keyword scores."""
 from app.agent.contracts import ReuseDecision
 from app.core.types import RepoSource, RoutePlan
+from app.agent.ranking import _WEB_TYPES
 
 
 class NoReusableSolution(ValueError):
@@ -44,6 +45,11 @@ def validate_reuse_decision(decision, requirement, assessments):
 
 def choose_reuse_decision(requirement, assessments, profiles):
     facts = {(p.repo_url,p.commit):p for p in profiles}
+    core_ids={a.id for a in requirement.acceptance if a.importance=='CORE'}
+    assessments=sorted(assessments,key=lambda a:(
+        not core_supported(requirement,a),
+        -sum(c.status=='SUPPORTED' and c.acceptance_id in core_ids for c in a.capabilities),
+        len(a.adaptations)))
     usable = [a for a in assessments if (a.repo_url,a.commit) in facts
               and facts[(a.repo_url,a.commit)].license_status == 'ALLOWED']
     if requirement.delivery_policy.preference == 'EXISTING_SERVICE_FIRST':
@@ -58,7 +64,7 @@ def choose_reuse_decision(requirement, assessments, profiles):
                     assessment_refs=[a.repo_url+'@'+a.commit],deployment_asset=asset,differences=a.differences),requirement,assessments)
     for a in usable:
         p = facts[(a.repo_url,a.commit)]
-        if p.compatibility.status != 'SUPPORTED' or p.project_type in {'unknown','library'}:
+        if p.compatibility.status != 'SUPPORTED' or p.project_type not in _WEB_TYPES:
             continue
         direct = core_supported(requirement,a)
         b = a.route_verdicts.get('B')
