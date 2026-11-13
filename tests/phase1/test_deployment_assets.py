@@ -76,3 +76,24 @@ async def test_empty_repository_commit_resolution_keeps_empty_rejection(monkeypa
     client=GitHubRepositorySearchClient(token_pool=pool)
     with pytest.raises(EmptyRepository):
         await client._request_json('/repos/example/empty/commits/main')
+
+
+@pytest.mark.asyncio
+async def test_nested_docs_cannot_displace_root_official_compose(monkeypatch):
+    import base64
+    from app.agent_core.brains.github_retriever import GitHubRepositorySearchClient
+    from app.agent_core.brains.context_rag_agent import RepositoryCandidate
+    from app.agent.deployment_assets import discover_deployment_assets
+    from app.agent.retrieval import normalize_candidate
+    client = GitHubRepositorySearchClient()
+    value = RepositoryCandidate(full_name='example/editor', repo_url='https://github.com/example/editor',
+        html_url='https://github.com/example/editor', default_branch='main', commit='a' * 40,
+        file_tree=[f'assets/{i}/LICENSE' for i in range(20)] + ['desktop-app/docker-compose.yml', 'docker-compose.yml'])
+    async def request(path, **kwargs):
+        body = 'services:\n  web:\n    image: example/editor:1\n    ports: ["8080:80"]' if path.endswith('/docker-compose.yml') else 'license'
+        return {'content': base64.b64encode(body.encode()).decode()}
+    monkeypatch.setattr(client, '_request_json', request)
+    await client._attach_key_files('example/editor', 'a' * 40, value)
+    assert 'docker-compose.yml' in value.key_files
+    assets = discover_deployment_assets(RetrievalCandidate.model_validate(normalize_candidate(value)))
+    assert next(a for a in assets if a.kind == 'COMPOSE').location == 'docker-compose.yml'

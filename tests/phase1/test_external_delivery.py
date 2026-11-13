@@ -52,7 +52,7 @@ async def test_public_spa_verification_executes_edit_and_preview_without_credent
     class Model:
         async def complete(self, messages, tools, purpose):
             if purpose == 'external-verification':
-                value = {'service_kind': 'OFFICIAL_SERVICE', 'requires_user_action': False}
+                value = {'service_kind': 'OFFICIAL_SERVICE', 'requires_user_action': True}
             else:
                 value = [{'item_id': 'A1', 'actor': 'anonymous', 'expected': 'preview updated', 'actions': [
                     {'type': 'fill', 'selector': '#editor', 'value': 'reuse-preview'},

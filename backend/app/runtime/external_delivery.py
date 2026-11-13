@@ -144,7 +144,7 @@ class OfficialServiceVerifier:
                 text = (await page.content())[:128000]
                 value = await self._assess_observation(current, text, response.status if response else 0)
                 value['executed_core_checks'] = []
-                if value.get('requires_user_action') or value.get('service_kind') != 'OFFICIAL_SERVICE':
+                if value.get('service_kind') != 'OFFICIAL_SERVICE':
                     return value
                 try:
                     checks = await compile_browser_checks(self.requirement,

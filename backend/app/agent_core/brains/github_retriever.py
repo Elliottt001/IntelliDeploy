@@ -305,7 +305,7 @@ class GitHubRepositorySearchClient:
             name = path.replace("\\", "/").rsplit("/", 1)[-1].lower()
             if name in _KEY_FILE_NAMES or path.lower() in _KEY_FILE_NAMES:
                 selected.append(path)
-        return selected
+        return sorted(selected, key=lambda path: (path.count('/'), path.lower()))
 
     async def _request_json(
         self,
