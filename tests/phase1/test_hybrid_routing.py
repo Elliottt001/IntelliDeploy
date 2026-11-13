@@ -187,3 +187,52 @@ def test_blocked_license_and_incomplete_search_are_rejected():
             [evaluation(item)],
             notes_requirement(),
         )
+
+
+@pytest.mark.asyncio
+async def test_route_model_receives_schema_and_corrects_invalid_route():
+    import json
+    from app.agent.routing import choose_route
+    from app.core.types import ModelTurn
+
+    class RouteModel:
+        def __init__(self):
+            self.requests = []
+
+        async def complete(self, messages, tools, model):
+            self.requests.append(messages)
+            value = ({"route": "build_from_scratch"} if len(self.requests) == 1
+                     else route_plan("GENERATE_APP").model_dump(mode="json"))
+            return ModelTurn(assistant_message={"content": json.dumps(value)}, calls=[])
+
+    model = RouteModel()
+    plan = await choose_route(notes_requirement(), retrieval(rejections=[{"reason": "no candidates"}]), [], [], model)
+    assert plan.route == "GENERATE_APP"
+    assert len(model.requests) == 2
+    payload = json.loads(model.requests[0][1]["content"])
+    assert payload["schema"] == RoutePlan.model_json_schema()
+    assert "feedback" in json.loads(model.requests[1][1]["content"])
+
+
+@pytest.mark.asyncio
+async def test_invalid_route_model_is_bounded_and_upstream_errors_propagate():
+    from app.agent.routing import choose_route
+    from app.core.types import ModelTurn
+
+    class InvalidModel:
+        count = 0
+        async def complete(self, *args):
+            self.count += 1
+            return ModelTurn(assistant_message={"content": '{"route":"build_from_scratch"}'}, calls=[])
+
+    model = InvalidModel()
+    with pytest.raises(ValueError):
+        await choose_route(notes_requirement(), retrieval(rejections=[{"reason": "no candidates"}]), [], [], model)
+    assert model.count == 3
+
+    class OfflineModel:
+        async def complete(self, *args):
+            raise RuntimeError("upstream unavailable")
+
+    with pytest.raises(RuntimeError, match="upstream unavailable"):
+        await choose_route(notes_requirement(), retrieval(rejections=[{"reason": "no candidates"}]), [], [], OfflineModel())
