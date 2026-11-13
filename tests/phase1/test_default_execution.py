@@ -1255,3 +1255,24 @@ async def test_cancelled_waiting_model_request_is_explicit_unknown(new_job, sess
         unknown = session.scalar(select(UnknownUsage).where(UnknownUsage.operation_id==record.operation_id))
         assert unknown is not None
         assert session.get(Job,job_id).used_units == 0
+
+
+@pytest.mark.asyncio
+async def test_requested_cancellation_prevents_new_paid_model_calls(new_job, session_factory):
+    from app.jobs.execution import JobExecution
+    from app.jobs.pipeline import PipelineCancelled
+    from app.runtime.models import ResourceRecord
+
+    job_id, _, _, generation = new_job
+    with session_factory() as session:
+        session.get(Job,job_id).cancel_requested = True
+        session.commit()
+    class ForbiddenModel:
+        async def complete(self,*args):
+            pytest.fail('cancelled job issued a new paid model request')
+    execution = JobExecution(job_id,'worker',generation,session_factory=session_factory,model_client=ForbiddenModel())
+    with pytest.raises(PipelineCancelled):
+        await execution.model('cancel-guard').complete([],[],'model')
+    with session_factory() as session:
+        assert session.scalar(select(ResourceRecord).where(ResourceRecord.job_id==job_id,ResourceRecord.type=='MODEL_CALL')) is None
+        assert session.get(Job,job_id).used_units == 0

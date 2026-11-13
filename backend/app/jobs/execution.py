@@ -88,6 +88,9 @@ class DurableModel:
         digest = request_hash(payload)
         with execution.sessions() as session:
             job = execution.job(session)
+            if job.cancel_requested:
+                from app.jobs.pipeline import PipelineCancelled
+                raise PipelineCancelled("job cancellation requested before model call")
             parent = execution.reservation(session, job)
             for kind in (
                 f"{prefix}.input",
