@@ -12,11 +12,16 @@ const node = (nodeId) => {
   if (!value) throw Error(`Missing source node ${nodeId}`);
   return value;
 };
-const color = (value) =>
-  `#${[value.r, value.g, value.b]
-    .map((channel) => Math.round(channel * 255).toString(16).padStart(2, '0'))
-    .join('')
-    .toUpperCase()}`;
+const requestedIds = ['270:26244', '376:4769'];
+for (const requestedId of requestedIds) {
+  if (nodes.has(requestedId)) throw Error(`Previously absent source node now exists: ${requestedId}`);
+}
+const formalFrame = node('270:26597');
+if (formalFrame.type !== 'FRAME' || formalFrame.size.x !== 375 || formalFrame.size.y !== 812) {
+  throw Error('Store formal frame 270:26597 must remain a 375x812 FRAME');
+}
+
+const identity = { m00: 1, m01: 0, m02: 0, m10: 0, m11: 1, m12: 0 };
 const multiply = (left, right) => ({
   m00: left.m00 * right.m00 + left.m01 * right.m10,
   m01: left.m00 * right.m01 + left.m01 * right.m11,
@@ -25,20 +30,51 @@ const multiply = (left, right) => ({
   m11: left.m10 * right.m01 + left.m11 * right.m11,
   m12: left.m10 * right.m02 + left.m11 * right.m12 + left.m12,
 });
+const inverse = (matrix) => {
+  const determinant = matrix.m00 * matrix.m11 - matrix.m01 * matrix.m10;
+  if (Math.abs(determinant) < 1e-12) throw Error('Non-invertible source matrix');
+  return {
+    m00: matrix.m11 / determinant,
+    m01: -matrix.m01 / determinant,
+    m02: (matrix.m01 * matrix.m12 - matrix.m11 * matrix.m02) / determinant,
+    m10: -matrix.m10 / determinant,
+    m11: matrix.m00 / determinant,
+    m12: (matrix.m10 * matrix.m02 - matrix.m00 * matrix.m12) / determinant,
+  };
+};
+const color = (value) => ({
+  alpha: value.a,
+  hex: `#${[value.r, value.g, value.b]
+    .map((channel) => Math.round(channel * 255).toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase()}`,
+});
 const paint = (value) => ({
-  color: color(value.color),
+  blendMode: value.blendMode ?? 'NORMAL',
+  color: value.color ? color(value.color) : null,
+  imageHash: value.image?.hash ?? null,
   opacity: value.opacity,
   type: value.type,
   visible: value.visible,
 });
-const effects = (value) =>
-  (value.effects ?? []).filter((effect) => effect.visible !== false).map((effect) => ({
-    color: effect.color ? color(effect.color) : null,
-    offset: effect.offset ?? null,
-    radius: effect.radius ?? null,
-    rawType: effect.type,
-    spread: effect.spread ?? null,
-  }));
+const effect = (value) => ({
+  blendMode: value.blendMode ?? 'NORMAL',
+  chromaticAberration: value.chromaticAberration ?? null,
+  color: value.color ? color(value.color) : null,
+  density: value.density ?? null,
+  offset: value.offset ?? null,
+  opacity: value.opacity ?? null,
+  radius: value.radius ?? null,
+  rawType: value.type,
+  refractionIntensity: value.refractionIntensity ?? null,
+  refractionRadius: value.refractionRadius ?? null,
+  seed: value.seed ?? null,
+  specularAngle: value.specularAngle ?? null,
+  specularIntensity: value.specularIntensity ?? null,
+  spread: value.spread ?? null,
+  visible: value.visible,
+});
+const effects = (value) => (value.effects ?? []).map(effect);
 const text = (nodeId) => {
   const value = node(nodeId);
   return {
@@ -47,7 +83,7 @@ const text = (nodeId) => {
     fontName: value.fontName,
     lineHeight: value.lineHeight.value,
     size: value.size,
-    textColor: color(value.fillPaints[0].color),
+    textColor: color(value.fillPaints[0].color).hex,
   };
 };
 const surface = (nodeId, matrix = node(nodeId).transform) => {
@@ -57,8 +93,134 @@ const surface = (nodeId, matrix = node(nodeId).transform) => {
     size: value.size,
     matrix,
     cornerRadius: value.cornerRadius,
+    strokeWeight: value.strokeWeight ?? 0,
     fill: paint(value.fillPaints[0]),
+    strokes: (value.strokePaints ?? []).map(paint),
     effects: effects(value),
+  };
+};
+const children = new Map();
+for (const value of document.nodeChanges) {
+  if (!value.parentIndex?.guid) continue;
+  const parentId = id(value.parentIndex.guid);
+  children.set(parentId, [...(children.get(parentId) ?? []), value]);
+}
+const descendants = (rootId) => {
+  const result = [];
+  const visit = (parentId) => {
+    for (const child of children.get(parentId) ?? []) {
+      result.push(child);
+      visit(id(child.guid));
+    }
+  };
+  visit(rootId);
+  return result;
+};
+const geometry = (values = []) => values.map((value) => ({
+  commandsBlob: value.commandsBlob,
+  styleID: value.styleID,
+  windingRule: value.windingRule,
+}));
+const subtreeNode = (value) => ({
+  nodeId: id(value.guid),
+  parentId: value.parentIndex?.guid ? id(value.parentIndex.guid) : null,
+  type: value.type,
+  size: value.size ?? null,
+  transform: value.transform ?? identity,
+  visible: value.visible,
+  opacity: value.opacity,
+  clipsContent: value.frameMaskDisabled === false,
+  cornerRadius: value.cornerRadius ?? null,
+  fillPaints: (value.fillPaints ?? []).map(paint),
+  strokePaints: (value.strokePaints ?? []).map(paint),
+  effects: effects(value),
+  fillGeometry: geometry(value.fillGeometry),
+  strokeGeometry: geometry(value.strokeGeometry),
+});
+const interaction = (value) => ({
+  interactionId: id(value.id),
+  event: value.event.interactionType,
+  isDeleted: value.isDeleted,
+  actions: value.actions.map((action) => ({
+    durationMs: action.transitionDuration * 1000,
+    easingFunction: action.easingFunction,
+    easingType: action.easingType,
+    navigationType: action.navigationType,
+    targetNodeId: action.transitionNodeID ? id(action.transitionNodeID) : null,
+    transition: action.transitionType,
+  })),
+});
+const pageDescendants = descendants('270:26597');
+const pageAudit = {
+  descendantCount: pageDescendants.length,
+  paintedNodeCount: pageDescendants.filter(
+    (value) => value.fillPaints?.length || value.strokePaints?.length,
+  ).length,
+  effectNodeCount: pageDescendants.filter((value) => value.effects?.length).length,
+  paintEffectNodes: pageDescendants
+    .filter((value) => value.fillPaints?.length || value.strokePaints?.length || value.effects?.length)
+    .map(subtreeNode),
+  instances: pageDescendants.filter((value) => value.type === 'INSTANCE').map((value) => ({
+    nodeId: id(value.guid),
+    symbolId: id(value.symbolData.symbolID),
+    overrides: value.symbolData.symbolOverrides,
+    interactions: (value.prototypeInteractions ?? []).map(interaction),
+    runtimeSupport: 'NOT_IMPLEMENTED',
+    runtimeReason: 'PublicationResponse has no social reaction state; the authored like interaction is not fabricated',
+  })),
+  prototypeInteractions: pageDescendants
+    .filter((value) => value.prototypeInteractions?.length)
+    .map((value) => ({
+      nodeId: id(value.guid),
+      interactions: value.prototypeInteractions.map(interaction),
+    })),
+};
+
+const rearLayer = ({ rootId, surfaceId, iconId, iconSurfaceId, titleId, titleTextId, metaTextId, summaryId, pagerId, dividerId, previewId }) => {
+  const root = node(rootId);
+  const rootMatrix = root.transform ?? identity;
+  const absolute = (nodeId) => multiply(rootMatrix, node(nodeId).transform ?? identity);
+  const surfaceMatrix = absolute(surfaceId);
+  const local = (nodeId) => multiply(inverse(surfaceMatrix), absolute(nodeId));
+  const pager = node(pagerId);
+  return {
+    rootNodeId: rootId,
+    surface: surface(surfaceId, surfaceMatrix),
+    content: {
+      icon: {
+        sourceNodeId: iconId,
+        size: node(iconId).size,
+        matrix: local(iconId),
+        surface: surface(iconSurfaceId, node(iconSurfaceId).transform),
+      },
+      title: { sourceNodeId: titleId, size: node(titleId).size, matrix: local(titleId), text: text(titleTextId) },
+      metadata: text(metaTextId),
+      summary: { sourceNodeId: summaryId, size: node(summaryId).size, matrix: local(summaryId), text: text(summaryId) },
+      pager: {
+        sourceNodeId: pagerId,
+        size: pager.size,
+        matrix: local(pagerId),
+        dots: (children.get(pagerId) ?? []).map((value) => ({
+          sourceNodeId: id(value.guid),
+          size: value.size,
+          transform: value.transform,
+          fill: paint(value.fillPaints[0]),
+        })),
+      },
+      divider: {
+        sourceNodeId: dividerId,
+        size: node(dividerId).size,
+        matrix: local(dividerId),
+        strokes: (node(dividerId).strokePaints ?? []).map(paint),
+      },
+      preview: {
+        sourceNodeId: previewId,
+        size: node(previewId).size,
+        matrix: local(previewId),
+        clipsContent: node(previewId).frameMaskDisabled === false,
+      },
+    },
+    subtree: descendants(rootId).map(subtreeNode),
   };
 };
 
@@ -75,39 +237,46 @@ const backFive = node('270:26675');
 const backTen = node('270:26640');
 const foregroundMatrix = multiply(foregroundGroup.transform, foreground.transform);
 const backFiveMatrix = multiply(backFiveGroup.transform, backFive.transform);
+const backTenLayer = rearLayer({
+  rootId: '270:26639', surfaceId: '270:26640', iconId: '270:26641', iconSurfaceId: '270:26642', titleId: '270:26644',
+  titleTextId: '270:26645', metaTextId: '270:26646', summaryId: '270:26659',
+  pagerId: '270:26653', dividerId: '270:26671', previewId: '270:26672',
+});
+const backFiveLayer = rearLayer({
+  rootId: '270:26674', surfaceId: '270:26675', iconId: '270:26676', iconSurfaceId: '270:26677', titleId: '270:26679',
+  titleTextId: '270:26680', metaTextId: '270:26681', summaryId: '270:26694',
+  pagerId: '270:26688', dividerId: '270:26706', previewId: '270:26707',
+});
 
 const result = {
   sourceFrameId: '270:26597',
-  sourceFrameSize: node('270:26597').size,
+  sourceFrameSize: formalFrame.size,
   sourceAudit: {
-    requestedIdsAbsent: ['270:26244', '376:4769'],
-    instance: {
-      nodeId: '270:26760',
-      symbolId: id(node('270:26760').symbolData.symbolID),
-      overrideCount: node('270:26760').symbolData.symbolOverrides.length,
-      prototypeInteractionCount: node('270:26760').prototypeInteractions.length,
-    },
+    requestedIdsAbsent: requestedIds.filter((requestedId) => !nodes.has(requestedId)),
+    page: pageAudit,
   },
   search: {
     frameNodeId: '270:26623',
     size: node('270:26623').size,
+    transform: node('270:26623').transform,
     surface: surface('270:26624'),
+    unsupportedEffects: ['GLASS', 'NOISE'],
   },
   carousel: {
     sourceNodeId: '270:26636',
     size: carousel.size,
     transform: carousel.transform,
-    // The nearest authored rear surface supplies the interval gap; it is not a guessed cap.
     sourceGap: backFiveMatrix.m02 - foregroundGroup.transform.m02,
     layers: {
-      backTen: surface('270:26640', backTen.transform),
-      backFive: surface('270:26675', backFiveMatrix),
+      backTen: backTenLayer.surface,
+      backFive: backFiveLayer.surface,
       foreground: surface('270:26713', foregroundMatrix),
     },
   },
+  rearLayers: { backTen: backTenLayer, backFive: backFiveLayer },
   sourceNodeId: '270:26712',
   size: foregroundGroup.size,
-  backgroundColor: color(foreground.fillPaints[0].color),
+  backgroundColor: color(foreground.fillPaints[0].color).hex,
   title: { ...text('270:26718'), position: titleParent.transform },
   secondaryText: text('270:26719'),
   initial: {
@@ -116,7 +285,7 @@ const result = {
     x: iconParent.transform.m02 + icon.transform.m02,
     y: iconParent.transform.m12 + icon.transform.m12,
     cornerRadius: icon.cornerRadius,
-    backgroundColor: color(icon.fillPaints[0].color),
+    backgroundColor: color(icon.fillPaints[0].color).hex,
   },
   summary: { ...text('270:26732'), position: summary.transform },
   preview: {
@@ -128,6 +297,7 @@ const result = {
 };
 
 await fs.writeFile(
-  new URL('../design/storeCardRenderEvidence.ts', import.meta.url),
-  `// Generated from the actual store frame; business copy remains Publication API-only.\nexport const storeCardRenderEvidence=${JSON.stringify(result, null, 2)} as const;\n`,
+  process.env.INTELLIDEPLOY_EVIDENCE_OUTPUT ??
+    new URL('../design/storeCardRenderEvidence.ts', import.meta.url),
+  `// Generated from the validated store03 frame; business copy remains Publication API-only.\nexport const storeCardRenderEvidence=${JSON.stringify(result, null, 2)} as const;\n`,
 );

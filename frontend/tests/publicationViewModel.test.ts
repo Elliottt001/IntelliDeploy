@@ -1,4 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { expect, test } from 'vitest';
 
@@ -10,6 +12,7 @@ import {
   toStoreCard,
 } from '../features/store/publicationViewModel';
 import { rankingRenderEvidence } from '../design/rankingRenderEvidence';
+import { storeCardRenderEvidence } from '../design/storeCardRenderEvidence';
 
 const publication: Publication = {
   id: 'p',
@@ -67,6 +70,62 @@ test('recent update sorting puts invalid dates last and breaks every tie by id',
   ).toEqual(['newest', 'tie-a', 'tie-z', 'invalid-a', 'invalid-z']);
 });
 
+test.each([
+  ['extract-store-card-render-evidence.mjs', '270:26597'],
+  ['extract-ranking-render-evidence.mjs', '825:6804'],
+])('the %s generator rejects a non-375 formal frame', (script, frameId) => {
+  const root = mkdtempSync(path.join(tmpdir(), 'task7-invalid-source-'));
+  mkdirSync(path.join(root, 'design-data'));
+  const [sessionID, localID] = frameId.split(':').map(Number);
+  writeFileSync(
+    path.join(root, 'design-data/document.kiwi.json'),
+    JSON.stringify({
+      nodeChanges: [{
+        guid: { sessionID, localID },
+        type: 'FRAME',
+        size: { x: 374, y: 812 },
+      }],
+    }),
+  );
+  const result = spawnSync(process.execPath, [path.join('scripts', script)], {
+    cwd: path.resolve('.'),
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      INTELLIDEPLOY_EVIDENCE_OUTPUT: path.join(root, 'output.ts'),
+      INTELLIDEPLOY_FIGMA_SOURCE: root,
+    },
+  });
+  expect(result.status).not.toBe(0);
+  expect(result.stderr).toContain('must remain a 375x812 FRAME');
+});
+
+test('store evidence generation rejects a requested ID that is no longer absent', () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'task7-present-requested-id-'));
+  mkdirSync(path.join(root, 'design-data'));
+  writeFileSync(
+    path.join(root, 'design-data/document.kiwi.json'),
+    JSON.stringify({
+      nodeChanges: [{
+        guid: { sessionID: 270, localID: 26244 },
+        type: 'FRAME',
+        size: { x: 375, y: 812 },
+      }],
+    }),
+  );
+  const result = spawnSync(
+    process.execPath,
+    [path.join('scripts', 'extract-store-card-render-evidence.mjs')],
+    {
+      cwd: path.resolve('.'),
+      encoding: 'utf8',
+      env: { ...process.env, INTELLIDEPLOY_FIGMA_SOURCE: root },
+    },
+  );
+  expect(result.status).not.toBe(0);
+  expect(result.stderr).toContain('Previously absent source node now exists: 270:26244');
+});
+
 test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE)('store source audit (NOT_RUN unless INTELLIDEPLOY_FIGMA_SOURCE is set)', () => {
   const source = process.env.INTELLIDEPLOY_FIGMA_SOURCE!;
   const document = JSON.parse(
@@ -75,6 +134,16 @@ test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE)('store source audit (NOT_RU
     nodeChanges: Array<{
       guid: { localID: number; sessionID: number };
       parentIndex?: { guid: { localID: number; sessionID: number } };
+      prototypeInteractions?: Array<{
+        actions: Array<{
+          easingFunction: number[];
+          easingType: string;
+          navigationType: string;
+          transitionDuration: number;
+          transitionNodeID: { localID: number; sessionID: number };
+          transitionType: string;
+        }>;
+      }>;
       effects?: Array<{
         color?: { a: number; b: number; g: number; r: number };
         offset?: { x: number; y: number };
@@ -168,6 +237,43 @@ test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE)('store source audit (NOT_RU
     instance: { nodeId: '825:6884', overrideCount: 0, symbolId: '228:19794' },
     navigation: { nodeId: '825:6984', interactionCount: 1 },
   });
+  expect(storeCardRenderEvidence.sourceAudit.requestedIdsAbsent).toEqual(
+    ['270:26244', '376:4769'].filter((nodeId) => !nodes.has(nodeId)),
+  );
+  expect(storeCardRenderEvidence.rearLayers.backTen.subtree).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ nodeId: '270:26640', fillGeometry: expect.any(Array) }),
+      expect.objectContaining({ nodeId: '270:26645', type: 'TEXT' }),
+      expect.objectContaining({ nodeId: '270:26672', clipsContent: true }),
+    ]),
+  );
+  expect(storeCardRenderEvidence.rearLayers.backFive.subtree).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ nodeId: '270:26675', fillGeometry: expect.any(Array) }),
+      expect.objectContaining({ nodeId: '270:26680', type: 'TEXT' }),
+      expect.objectContaining({ nodeId: '270:26707', clipsContent: true }),
+    ]),
+  );
+  const titleShadow = nodes.get('825:7006')!.effects![0];
+  expect(rankingRenderEvidence.introTitle.effects).toEqual([
+    expect.objectContaining({
+      rawType: titleShadow.type,
+      color: expect.objectContaining({ alpha: titleShadow.color!.a }),
+      offset: titleShadow.offset,
+      radius: titleShadow.radius,
+    }),
+  ]);
+  const navigation = nodes.get('825:6984')!.prototypeInteractions![0];
+  expect(rankingRenderEvidence.sourceAudit.navigation.actions).toEqual(
+    navigation.actions.map((action) => ({
+      durationMs: action.transitionDuration * 1000,
+      easingFunction: action.easingFunction,
+      easingType: action.easingType,
+      navigationType: action.navigationType,
+      targetNodeId: `${action.transitionNodeID.sessionID}:${action.transitionNodeID.localID}`,
+      transition: action.transitionType,
+    })),
+  );
   expect(sourceBox(storeFigmaEvidence.detail.frame.id)).toEqual(
     storeFigmaEvidence.detail.frame,
   );

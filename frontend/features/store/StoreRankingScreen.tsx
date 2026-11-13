@@ -33,6 +33,15 @@ import {
 
 type PublicationPage = components['schemas']['PublicationPage'];
 
+const rgba = (hex: string, alpha: number) => {
+  const value = hex.slice(1);
+  const channels = [0, 2, 4].map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16));
+  return `rgba(${channels[0]}, ${channels[1]}, ${channels[2]}, ${alpha})`;
+};
+const rankingTitleShadow = rowSource.introTitle.effects.find(
+  (effect) => effect.rawType === 'DROP_SHADOW',
+)!;
+
 export default function StoreRankingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -115,7 +124,7 @@ export default function StoreRankingScreen() {
         </View>
 
         <ScrollView style={{flex:1}} contentContainerStyle={{paddingTop:19,paddingBottom:24}}>
-        <View style={{marginLeft:Math.max(0,source.header.x-layout.gutter)}}><Text style={{fontFamily:mobileFontFamilies.pingFang,fontWeight:'900',fontSize:rowSource.introTitle.fontSize,lineHeight:rowSource.introTitle.size.y,color:rowSource.introTitle.textColor}}>{rowSource.introTitle.characters}</Text><Text style={{fontFamily:mobileFontFamilies.pingFang,fontSize:rowSource.introSubtitle.fontSize,lineHeight:rowSource.introSubtitle.size.y,color:rowSource.introSubtitle.textColor}}>{rowSource.introSubtitle.characters}</Text></View>
+        <View style={{marginLeft:Math.max(0,source.header.x-layout.gutter)}}><Text style={styles.introTitle}>{rowSource.introTitle.characters}</Text><Text style={{fontFamily:mobileFontFamilies.pingFang,fontSize:rowSource.introSubtitle.fontSize,lineHeight:rowSource.introSubtitle.size.y,color:rowSource.introSubtitle.textColor}}>{rowSource.introSubtitle.characters}</Text></View>
         <View style={[styles.hero,{marginTop:26,width:Math.min(source.hero.width,layout.contentWidth)}]}>
           <Text style={styles.heroTitle}>公开应用近期更新</Text>
           <Text style={styles.heroCopy}>
@@ -152,14 +161,17 @@ export default function StoreRankingScreen() {
                 <Text style={styles.position}>{index + 1}</Text>
                 <View pointerEvents="none" accessibilityLabel={`${item.name}暂无应用预览`} style={styles.previewInitial}><Text style={styles.previewInitialText}>{Array.from(item.name.trim())[0]??'·'}</Text></View>
                 <View style={styles.rowCopy}>
-                  <Text numberOfLines={1} style={styles.name}>
+                  <Text style={styles.name} testID={`store-ranking-name-${item.id}`}>
                     {item.name}
                   </Text>
-                  <Text numberOfLines={1} style={styles.creator}>
+                  <Text style={styles.creator}>
                     {item.summary}
                   </Text>
                 </View>
-                <Text style={styles.availability}>
+                <Text
+                  style={styles.availability}
+                  testID={`store-ranking-availability-${item.id}`}
+                >
                   {item.available ? '可使用' : '暂不可用'}
                 </Text>
               </Pressable>
@@ -221,6 +233,22 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
   },
+  introTitle: {
+    color: rowSource.introTitle.textColor,
+    fontFamily: mobileFontFamilies.pingFang,
+    fontSize: rowSource.introTitle.fontSize,
+    fontWeight: '900',
+    lineHeight: rowSource.introTitle.size.y,
+    textShadowColor: rgba(
+      rankingTitleShadow.color!.hex,
+      rankingTitleShadow.color!.alpha,
+    ),
+    textShadowOffset: {
+      width: rankingTitleShadow.offset!.x,
+      height: rankingTitleShadow.offset!.y,
+    },
+    textShadowRadius: rankingTitleShadow.radius!,
+  },
   hero: {
     alignSelf: 'center',
     backgroundColor: rowSource.surfaces.heroFace.fill.color,
@@ -230,12 +258,12 @@ const styles = StyleSheet.create({
     height: 123,
     justifyContent: 'center',
     paddingHorizontal: 22,
-    shadowColor: rowSource.surfaces.heroGroup.effects[0].color,
+    shadowColor: rowSource.surfaces.heroGroup.effects[0].color!.hex,
     shadowOffset: {
       width: rowSource.surfaces.heroGroup.effects[0].offset.x,
       height: rowSource.surfaces.heroGroup.effects[0].offset.y,
     },
-    shadowOpacity: 1,
+    shadowOpacity: rowSource.surfaces.heroGroup.effects[0].color!.alpha,
     shadowRadius: rowSource.surfaces.heroGroup.effects[0].radius,
     width: '91%',
   },
@@ -266,12 +294,12 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     flexGrow: 0,
     height: rowSource.surfaces.list.size.y,
-    shadowColor: rowSource.surfaces.list.effects[0].color,
+    shadowColor: rowSource.surfaces.list.effects[0].color!.hex,
     shadowOffset: {
       width: rowSource.surfaces.list.effects[0].offset.x,
       height: rowSource.surfaces.list.effects[0].offset.y,
     },
-    shadowOpacity: 1,
+    shadowOpacity: rowSource.surfaces.list.effects[0].color!.alpha,
     shadowRadius: rowSource.surfaces.list.effects[0].radius,
     width: '91%',
   },
@@ -285,23 +313,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     flexDirection: 'row',
     minHeight: 55.813331604003906,
-    width:rowSource.row.size.x,
-    maxWidth:'100%',
-    position:'relative',
+    paddingLeft: 13.738615,
+    paddingRight: 13.738615,
+    paddingVertical: 10.303956985473633,
+    width: '100%',
   },
   position: {
-    position:'absolute',left:13.738615,top:19,
     color: '#6B7280',
+    flexShrink: 0,
     fontFamily: mobileFontFamilies.pingFang,
     fontSize: 12,
     textAlign: 'center',
     width: 24.042665,
   },
   rowCopy: {
-    position:'absolute',
-    left:rowSource.row.copy.x,
-    top:rowSource.row.copy.y,
-    width:rowSource.row.copy.size.x,
+    flex: 1,
+    marginLeft: 10.30399,
+    minWidth: 0,
   },
   name: {
     color: rowSource.name.textColor,
@@ -317,11 +345,10 @@ const styles = StyleSheet.create({
     lineHeight:rowSource.summary.size.y,
   },
   availability: {
-    position:'absolute',
-    left:rowSource.row.availability.transform.m02,
-    top:rowSource.row.availability.transform.m12,
+    flexShrink: 0,
+    marginLeft: 8,
     width:rowSource.row.availability.size.x,
-    height:rowSource.row.availability.size.y,
+    minHeight:rowSource.row.availability.size.y,
     backgroundColor: 'rgba(223,140,255,0.1)',
     borderColor:rowSource.row.availability.borderColor,
     borderWidth:1,
@@ -333,7 +360,7 @@ const styles = StyleSheet.create({
     textAlign:'center',
     overflow: 'hidden',
   },
-  previewInitial:{position:'absolute',left:rowSource.row.preview.transform.m02,top:rowSource.row.preview.transform.m12,width:rowSource.row.preview.size.x,height:rowSource.row.preview.size.y,borderRadius:rowSource.row.preview.cornerRadius,backgroundColor:'#F4F2FA',justifyContent:'center',alignItems:'center'},
+  previewInitial:{flexShrink:0,marginLeft:10.30399,width:rowSource.row.preview.size.x,height:rowSource.row.preview.size.y,borderRadius:rowSource.row.preview.cornerRadius,backgroundColor:'#F4F2FA',justifyContent:'center',alignItems:'center'},
   previewInitialText:{fontFamily:mobileFontFamilies.pingFang,fontSize:16,color:'#7F80A1'},
   moreBlock: {
     alignItems: 'center',

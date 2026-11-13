@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -24,7 +25,8 @@ import {
 import { authAPI, phase1Api } from '../../services/api';
 import { mobileColors, mobileRadii, mobileSpacing } from '../../theme/tokens';
 import { mobileFontFamilies, mobileTypography } from '../../theme/typography';
-import { fitSourceWidth } from '../../theme/responsive';
+import { fitSourceWidth, getMobileLayout } from '../../theme/responsive';
+import { storeCardRenderEvidence as source } from '../../design/storeCardRenderEvidence';
 import { PublicationCarousel } from './PublicationCarousel';
 import {
   filterLoadedPublications,
@@ -34,6 +36,12 @@ import {
 } from './publicationViewModel';
 
 type PublicationPage = components['schemas']['PublicationPage'];
+
+const rgba = (hex: string, alpha: number) => {
+  const value = hex.slice(1);
+  const channels = [0, 2, 4].map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16));
+  return `rgba(${channels[0]}, ${channels[1]}, ${channels[2]}, ${alpha})`;
+};
 
 async function readFavoriteIds() {
   const ids = new Set<string>();
@@ -50,8 +58,16 @@ export default function StoreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const viewport = useWindowDimensions();
-  const usableWidth = Math.max(0, viewport.width - insets.left - insets.right);
-  const searchWidth = fitSourceWidth(295, 375, usableWidth, 'relative');
+  const layout = getMobileLayout(viewport.width, insets);
+  const searchWidth = fitSourceWidth(
+    source.search.size.x,
+    source.search.size.x,
+    layout.contentWidth,
+    'fixed',
+  );
+  const searchShadow = source.search.surface.effects.find(
+    (effect) => effect.rawType === 'DROP_SHADOW',
+  )!;
   const [items, setItems] = useState<Publication[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -167,9 +183,40 @@ export default function StoreScreen() {
           }
         />
 
-        <View style={styles.main}>
+        <ScrollView
+          contentContainerStyle={styles.main}
+          style={styles.mainScroll}
+          testID="store-main-scroll"
+        >
           <View style={[styles.searchTarget, { width: searchWidth }]}>
-            <View pointerEvents="none" style={styles.searchSurface} testID="store-search-surface" />
+            <View
+              pointerEvents="none"
+              style={[
+                styles.searchSurface,
+                {
+                  backgroundColor: rgba(
+                    source.search.surface.fill.color!.hex,
+                    source.search.surface.fill.opacity,
+                  ),
+                  borderColor: rgba(
+                    source.search.surface.strokes[0].color!.hex,
+                    source.search.surface.strokes[0].opacity,
+                  ),
+                  borderRadius: source.search.surface.cornerRadius,
+                  borderWidth: source.search.surface.strokeWeight,
+                  height: source.search.size.y,
+                  shadowColor: searchShadow.color!.hex,
+                  shadowOffset: {
+                    width: searchShadow.offset!.x,
+                    height: searchShadow.offset!.y,
+                  },
+                  shadowOpacity: searchShadow.color!.alpha,
+                  shadowRadius: searchShadow.radius!,
+                  top: (mobileSpacing.controlMin - source.search.size.y) / 2,
+                },
+              ]}
+              testID="store-search-surface"
+            />
             <TextInput
               accessibilityLabel="搜索已加载的应用"
               onChangeText={setQuery}
@@ -213,6 +260,7 @@ export default function StoreScreen() {
             />
           ) : (
             <PublicationCarousel
+              availableWidth={layout.contentWidth}
               favoriteBusyId={favoriteBusy}
               favoriteIds={favoriteIds}
               items={filteredItems.map(toStoreCard)}
@@ -243,7 +291,7 @@ export default function StoreScreen() {
               </Pressable>
             </View>
           ) : null}
-        </View>
+        </ScrollView>
 
         <BottomNav
           active="store"
@@ -261,9 +309,13 @@ const styles = StyleSheet.create({
   },
   main: {
     alignItems: 'center',
-    flex: 1,
+    flexGrow: 1,
     gap: 6,
-    minHeight: 0,
+    paddingBottom: 8,
+  },
+  mainScroll: {
+    flex: 1,
+    width: '100%',
   },
   searchTarget: {
     alignItems: 'center',
@@ -275,19 +327,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   searchSurface: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderColor: '#FFFFFF',
-    borderRadius: mobileRadii.pill,
-    borderWidth: 1.6521741151809692,
-    height: 36,
     left: 0,
     position: 'absolute',
     right: 0,
-    top: 4,
-    shadowColor: '#BABABA',
-    shadowOffset: { width: 0, height: 2.2028987407684326 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.3043482303619385,
   },
   searchInput: {
     color: mobileColors.text,

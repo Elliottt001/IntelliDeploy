@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   Image,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -23,6 +25,25 @@ type PublicationCardProps = {
   onSelect: (id: string) => void;
   selected: boolean;
   width: number;
+};
+
+type RearLayerEvidence =
+  | typeof source.rearLayers.backFive
+  | typeof source.rearLayers.backTen;
+
+type RearPublicationCardProps = {
+  item: StoreCard;
+  layer: RearLayerEvidence;
+  layerKey: '5' | '10';
+  width: number;
+};
+
+const rotation = (matrix: { m00: number; m10: number }) =>
+  `${Math.atan2(matrix.m10, matrix.m00)}rad`;
+const rgba = (hex: string, alpha: number) => {
+  const value = hex.slice(1);
+  const channels = [0, 2, 4].map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16));
+  return `rgba(${channels[0]}, ${channels[1]}, ${channels[2]}, ${alpha})`;
 };
 
 // Static design content is intentionally separate from item.previewUrl and all API facts.
@@ -68,6 +89,195 @@ function PreviewArtwork({ item }: { item: StoreCard }) {
   );
 }
 
+function RearPreview({
+  item,
+  layerKey,
+}: {
+  item: StoreCard;
+  layerKey: RearPublicationCardProps['layerKey'];
+}) {
+  const [failed, setFailed] = useState(!item.previewUrl);
+  useEffect(() => setFailed(!item.previewUrl), [item.previewUrl]);
+  return !failed && item.previewUrl ? (
+    <Image
+      accessibilityLabel={`${item.name}相邻卡片预览`}
+      onError={() => setFailed(true)}
+      resizeMode="cover"
+      source={{ uri: item.previewUrl }}
+      style={styles.previewImage}
+      testID={`store-carousel-back-${layerKey}-preview`}
+    />
+  ) : (
+    <View style={styles.rearPreviewPlaceholder} testID={`store-carousel-back-${layerKey}-preview-missing`}>
+      <Text style={styles.rearPreviewPlaceholderText}>
+        {item.previewUrl ? '预览加载失败' : '暂无应用预览'}
+      </Text>
+    </View>
+  );
+}
+
+export function RearPublicationCard({
+  item,
+  layer,
+  layerKey,
+  width,
+}: RearPublicationCardProps) {
+  const scale = width / layer.surface.size.x;
+  const slot = (matrix: { m02: number; m12: number }) => ({
+    left: matrix.m02 * scale,
+    top: matrix.m12,
+  });
+  const content = layer.content;
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <View
+        style={[
+          styles.rearInitial,
+          slot(content.icon.matrix),
+          {
+            height: content.icon.size.y,
+            transform: [{ rotate: rotation(content.icon.matrix) }],
+            width: content.icon.size.x,
+          },
+        ]}
+        testID={`store-carousel-back-${layerKey}-icon`}
+      >
+        <View
+          style={[
+            styles.rearIconSurface,
+            {
+              backgroundColor: rgba(
+                content.icon.surface.fill.color!.hex,
+                content.icon.surface.fill.opacity * content.icon.surface.fill.color!.alpha,
+              ),
+              borderRadius: content.icon.surface.cornerRadius,
+              height: content.icon.surface.size.y,
+              left: content.icon.surface.matrix.m02,
+              top: content.icon.surface.matrix.m12,
+              width: content.icon.surface.size.x,
+              ...(Platform.OS === 'web'
+                ? {
+                    boxShadow: content.icon.surface.effects
+                      .filter((effect) => effect.rawType === 'DROP_SHADOW')
+                      .map((effect) => `${effect.offset?.x ?? 0}px ${effect.offset?.y ?? 0}px ${effect.radius ?? 0}px ${effect.spread ?? 0}px ${rgba(effect.color!.hex, effect.color!.alpha)}`)
+                      .join(', '),
+                  }
+                : {}),
+            },
+          ]}
+        >
+          <Text style={styles.rearInitialText}>{Array.from(item.name.trim())[0] ?? '·'}</Text>
+        </View>
+      </View>
+      <View
+        style={[
+          styles.rearHeading,
+          slot(content.title.matrix),
+          {
+            transform: [{ rotate: rotation(content.title.matrix) }],
+            width: Math.max(72, width - content.title.matrix.m02 * scale - 14),
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.rearName,
+            {
+              color: content.title.text.textColor,
+              fontSize: content.title.text.fontSize,
+              lineHeight: content.title.text.lineHeight,
+            },
+          ]}
+          testID={`store-carousel-back-${layerKey}-name`}
+        >
+          {item.name}
+        </Text>
+        <Text
+          style={[
+            styles.rearMetadata,
+            {
+              color: content.metadata.textColor,
+              fontSize: content.metadata.fontSize,
+              lineHeight: content.metadata.lineHeight,
+            },
+          ]}
+        >
+          {item.creator} · {item.availability}
+        </Text>
+      </View>
+      <View
+        style={[
+          styles.rearDivider,
+          slot(content.divider.matrix),
+          {
+            backgroundColor: content.divider.strokes[0].color?.hex,
+            opacity: (content.divider.strokes[0].opacity ?? 1) *
+              (content.divider.strokes[0].color?.alpha ?? 1),
+            transform: [{ rotate: rotation(content.divider.matrix) }],
+            width: content.divider.size.x * scale,
+          },
+        ]}
+      />
+      <Text
+        style={[
+          styles.rearSummary,
+          slot(content.summary.matrix),
+          {
+            color: content.summary.text.textColor,
+            fontSize: content.summary.text.fontSize,
+            lineHeight: content.summary.text.lineHeight,
+            transform: [{ rotate: rotation(content.summary.matrix) }],
+            width: content.summary.size.x * scale,
+          },
+        ]}
+        testID={`store-carousel-back-${layerKey}-summary`}
+      >
+        {item.summary}
+      </Text>
+      <View
+        style={[
+          styles.rearPager,
+          slot(content.pager.matrix),
+          {
+            transform: [{ rotate: rotation(content.pager.matrix) }],
+            width: content.pager.size.x * scale,
+          },
+        ]}
+      >
+        {content.pager.dots.map((dot) => (
+          <View
+            key={dot.sourceNodeId}
+            style={{
+              backgroundColor: dot.fill.color?.hex ?? 'transparent',
+              borderRadius: dot.size.x / 2,
+              height: dot.size.y,
+              left: dot.transform.m02 * scale,
+              opacity: (dot.fill.opacity ?? 1) * (dot.fill.color?.alpha ?? 1),
+              position: 'absolute',
+              top: dot.transform.m12,
+              width: dot.size.x,
+            }}
+            testID={`store-carousel-back-${layerKey}-pager-dot`}
+          />
+        ))}
+      </View>
+      <View
+        style={[
+          styles.rearPreview,
+          slot(content.preview.matrix),
+          {
+            height: content.preview.size.y,
+            transform: [{ rotate: rotation(content.preview.matrix) }],
+            width: content.preview.size.x * scale,
+          },
+        ]}
+      >
+        <RearPreview item={item} layerKey={layerKey} />
+      </View>
+    </View>
+  );
+}
+
 export function PublicationCard({
   favorite,
   favoriteBusy,
@@ -92,11 +302,24 @@ export function PublicationCard({
     >
       <View testID={selected ? 'store-detail' : undefined} style={{height:source.size.y,position:'relative'}}>
         <View pointerEvents="none" accessibilityLabel={`${item.name}暂无应用图标`} style={styles.initial}><Text style={styles.initialText}>{Array.from(item.name.trim())[0]??'·'}</Text></View>
-        <View style={styles.heading}>
+        <View
+          style={[
+            styles.heading,
+            { width: Math.max(80, width - source.title.position.m02 - 18) },
+          ]}
+        >
           <View style={styles.headingCopy}>
-            <Text numberOfLines={1} style={styles.name}>
-              {item.name}
-            </Text>
+            <ScrollView
+              accessibilityLabel={`${item.name}完整应用名称`}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.nameViewport}
+              testID={`store-card-name-scroll-${item.id}`}
+            >
+              <Text style={styles.name} testID={`store-card-name-${item.id}`}>
+                {item.name}
+              </Text>
+            </ScrollView>
             <Text numberOfLines={1} style={styles.creator}>
               {item.creator}
             </Text>
@@ -158,7 +381,6 @@ const styles = StyleSheet.create({
     position:'absolute',
     left:source.title.position.m02,
     top:source.title.position.m12,
-    width:128,
     alignItems:'flex-start',
   },
   headingCopy: {
@@ -170,6 +392,9 @@ const styles = StyleSheet.create({
     fontWeight:'500',
     fontSize: source.title.fontSize,
     lineHeight: source.title.lineHeight,
+  },
+  nameViewport: {
+    maxWidth: '100%',
   },
   creator: {
     fontFamily:mobileFontFamilies.pingFang,
@@ -237,6 +462,61 @@ const styles = StyleSheet.create({
     ...mobileTypography.caption,
     color: mobileColors.muted,
     marginTop: 4,
+  },
+  rearDivider: {
+    backgroundColor: '#E4E4E7',
+    height: 1,
+    position: 'absolute',
+  },
+  rearHeading: {
+    position: 'absolute',
+  },
+  rearInitial: {
+    position: 'absolute',
+  },
+  rearIconSurface: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+  },
+  rearInitialText: {
+    color: '#6B7280',
+    fontFamily: mobileFontFamilies.pingFang,
+    fontSize: 20,
+  },
+  rearMetadata: {
+    fontFamily: mobileFontFamilies.pingFang,
+  },
+  rearName: {
+    fontFamily: mobileFontFamilies.pingFang,
+    fontWeight: '500',
+  },
+  rearPager: {
+    height: 5,
+    position: 'absolute',
+  },
+  rearPreview: {
+    backgroundColor: '#FCFCFC',
+    overflow: 'hidden',
+    position: 'absolute',
+  },
+  rearPreviewPlaceholder: {
+    alignItems: 'center',
+    backgroundColor: '#F4F2FA',
+    height: '100%',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  rearPreviewPlaceholderText: {
+    color: mobileColors.muted,
+    fontFamily: mobileFontFamilies.body,
+    fontSize: 10,
+  },
+  rearSummary: {
+    fontFamily: mobileFontFamilies.pingFang,
+    fontWeight: '300',
+    height: 60,
+    position: 'absolute',
   },
   actions: {
     position:'absolute',left:18,right:18,top:355,

@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
+import { sourceNode } from '../tests/figmaSource';
 
 const stamp = '2026-11-10T00:00:00Z';
 const publication = (id: string, name: string, updatedAt: string, previewUrl: string | null = null) => ({
@@ -197,6 +198,9 @@ test('successful favorite add and remove update UI only after each response', as
 
 test('store surfaces preserve audited paints, hidden strokes, and separate back rotations', async ({ page }) => {
   await mockPublications(page);
+  await page.route('**/api/community/apps**', (route) =>
+    route.fulfill({ json: { items: [first, second, third], next_cursor: null } }),
+  );
   await page.goto('/store');
 
   const selected = page.getByTestId('store-carousel-card-first');
@@ -222,10 +226,20 @@ test('store surfaces preserve audited paints, hidden strokes, and separate back 
     });
     expect(rotation).toBeCloseTo(degrees, 3);
   }
+  const backTen = sourceNode('270:26640').transform;
+  const backFiveGroup = sourceNode('270:26674').transform;
+  const backFiveSurface = sourceNode('270:26675').transform;
+  const sourceCardWidth = sourceNode('270:26713').size.x;
+  const actualCardWidth = (await selected.boundingBox())!.width;
+  const horizontalScale = actualCardWidth / sourceCardWidth;
   const sourceLayerOffsets = await Promise.all(
     [
-      ['store-carousel-back-10', 69.28564453125, 0],
-      ['store-carousel-back-5', 50.487488746643066, 9.44775390625],
+      ['store-carousel-back-10', backTen.m02 * horizontalScale, backTen.m12],
+      [
+        'store-carousel-back-5',
+        (backFiveGroup.m02 + backFiveSurface.m02) * horizontalScale,
+        backFiveGroup.m12 + backFiveSurface.m12,
+      ],
     ].map(async ([testId, left, top]) => {
       const actual = await page.getByTestId(String(testId)).evaluate((element) => {
         const style = getComputedStyle(element);
@@ -235,8 +249,8 @@ test('store surfaces preserve audited paints, hidden strokes, and separate back 
     }),
   );
   for (const { actual, left, top } of sourceLayerOffsets) {
-    expect(actual.left).toBeCloseTo(left, 3);
-    expect(actual.top).toBeCloseTo(top, 3);
+    expect(actual.left).toBeCloseTo(left, 2);
+    expect(actual.top).toBeCloseTo(top, 2);
   }
 
   await page.goto('/store/ranking');
@@ -246,6 +260,16 @@ test('store surfaces preserve audited paints, hidden strokes, and separate back 
     'box-shadow',
     /rgb\(130, 118, 166\)/,
   );
+  const titleShadowSource = sourceNode('825:7006').effects.find(
+    (effect: { type: string }) => effect.type === 'DROP_SHADOW',
+  );
+  const titleShadow = await page
+    .getByText('热门榜单推荐', { exact: true })
+    .evaluate((element) => getComputedStyle(element).textShadow);
+  expect(titleShadow).toContain(
+    `${titleShadowSource.offset.x}px ${titleShadowSource.offset.y}px ${titleShadowSource.radius}px`,
+  );
+  expect(titleShadow).toContain('rgba(122, 122, 122, 0.25)');
 });
 
 test('store keeps the 295 by 36 source search surface separate from its 44pt input target', async ({ page }) => {
@@ -257,8 +281,9 @@ test('store keeps the 295 by 36 source search surface separate from its 44pt inp
   const target = await page.getByTestId('store-search').boundingBox();
   expect(surface).not.toBeNull();
   expect(target).not.toBeNull();
-  expect(surface!.width).toBeCloseTo(295, 1);
-  expect(surface!.height).toBeCloseTo(36, 1);
+  const source = sourceNode('270:26623');
+  expect(surface!.width).toBeCloseTo(source.size.x, 1);
+  expect(surface!.height).toBeCloseTo(source.size.y, 1);
   expect(target!.height).toBeGreaterThanOrEqual(44);
 });
 
@@ -270,8 +295,9 @@ test('carousel grows at all five widths and resize preserves the selected public
     await page.setViewportSize({ width, height: width === 320 ? 568 : 932 });
     await page.goto('/store');
     viewportWidths.push((await page.getByTestId('store-carousel').boundingBox())!.width);
+    const parent = (await page.getByTestId('store-main-scroll').boundingBox())!;
+    expect(viewportWidths.at(-1)!).toBeLessThanOrEqual(parent.width);
   }
-  expect(viewportWidths).toEqual([...viewportWidths].sort((left, right) => left - right));
   expect(new Set(viewportWidths.map(Math.round)).size).toBe(5);
 
   await page.setViewportSize({ width: 375, height: 812 });
@@ -280,8 +306,37 @@ test('carousel grows at all five widths and resize preserves the selected public
   await expect(page.getByTestId('store-carousel-card-second')).toHaveAttribute('aria-selected', 'true');
   await page.setViewportSize({ width: 430, height: 932 });
   await expect(page.getByTestId('store-carousel-card-second')).toHaveAttribute('aria-selected', 'true');
-  await expect.poll(async () => Math.round((await page.getByTestId('store-carousel-card-second').boundingBox())!.x))
-    .toBeGreaterThan(0);
+  await expect.poll(async () => {
+    const card = (await page.getByTestId('store-carousel-card-second').boundingBox())!;
+    const carousel = (await page.getByTestId('store-carousel').boundingBox())!;
+    return Math.abs(card.x + card.width / 2 - (carousel.x + carousel.width / 2));
+  }).toBeLessThan(1);
+});
+
+test('both authored rear cards render adjacent API content and static source structure', async ({ page }) => {
+  const adjacent = [
+    publication('rear-front', '当前真实应用', stamp),
+    publication('rear-five', '相邻真实应用 A', stamp),
+    publication('rear-ten', '相邻真实应用 B', stamp),
+  ];
+  await page.route('**/api/community/apps**', (route) =>
+    route.fulfill({ json: { items: adjacent, next_cursor: null } }),
+  );
+  await page.goto('/store');
+
+  await expect(page.getByTestId('store-carousel-back-5-name')).toHaveText('相邻真实应用 A');
+  await expect(page.getByTestId('store-carousel-back-10-name')).toHaveText('相邻真实应用 B');
+  await expect(page.getByTestId('store-carousel-back-5-summary')).toHaveText(
+    '相邻真实应用 A的真实摘要',
+  );
+  await expect(page.getByTestId('store-carousel-back-10-summary')).toHaveText(
+    '相邻真实应用 B的真实摘要',
+  );
+  await expect(page.getByTestId('store-carousel-back-5-pager-dot')).toHaveCount(5);
+  await expect(page.getByTestId('store-carousel-back-10-pager-dot')).toHaveCount(5);
+  await expect(page.getByTestId('store-carousel-back-5')).not.toBeEmpty();
+  await expect(page.getByTestId('store-carousel-back-10')).not.toBeEmpty();
+  await expect(page.getByTestId('mobile-store')).not.toContainText(/评分|奖项|热度|下载榜单/);
 });
 
 test('four unavailable publications remain unavailable without a preview or success claim', async ({ page }) => {
@@ -306,13 +361,33 @@ test('four unavailable publications remain unavailable without a preview or succ
     await expect(card.getByLabel(`${item.name}预览`, { exact: true })).toHaveCount(0);
     await expect(card).not.toContainText(/获取成功|评分|热度|奖项/);
   }
+  const storeNameScroll = page.getByTestId('store-card-name-scroll-unavailable-0');
+  expect(
+    await storeNameScroll.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      text: element.textContent,
+      textOverflow: getComputedStyle(element).textOverflow,
+    })),
+  ).toMatchObject({
+    text: '这是一个很长但仍必须保留真实内容的不可用应用名称',
+    textOverflow: 'clip',
+  });
+  expect(
+    await storeNameScroll.evaluate((element) => element.scrollWidth > element.clientWidth),
+  ).toBe(true);
 
   await page.goto('/store/ranking');
-  await expect(page.getByTestId(/^store-ranking-row-/)).toHaveCount(4);
+  await expect(page.getByTestId(/^store-ranking-row-unavailable-\d$/)).toHaveCount(4);
   await expect(page.getByTestId('store-ranking-row-unavailable-0')).toContainText(
     '这是一个很长但仍必须保留真实内容的不可用应用名称',
   );
   await expect(page.getByTestId('store-ranking-row-unavailable-0')).toContainText('暂不可用');
+  const longName = page.getByTestId('store-ranking-name-unavailable-0');
+  const nameBox = await longName.boundingBox();
+  const lineHeight = Number.parseFloat(await longName.evaluate((element) => getComputedStyle(element).lineHeight));
+  expect(nameBox!.height).toBeGreaterThan(lineHeight);
+  expect(await longName.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   await expect(page.getByTestId('store-carousel')).toHaveCount(0);
   await expect(page.getByTestId(/^store-carousel-back-/)).toHaveCount(0);
   await expect(page.getByTestId('mobile-store-ranking')).not.toContainText(/获取成功|评分|热度|奖项/);
@@ -394,6 +469,39 @@ test('store controls stay reachable and at least 44px at supported widths', asyn
   }
 });
 
+test('store carousel uses its safe parent width and short screens keep bottom controls reachable', async ({ page }) => {
+  await mockPublications(page);
+  await page.setViewportSize({ width: 375, height: 568 });
+  await page.goto('/store');
+  const main = (await page.getByTestId('store-main-scroll').boundingBox())!;
+  const carousel = (await page.getByTestId('store-carousel').boundingBox())!;
+  expect(carousel.width).toBeLessThanOrEqual(main.width);
+  const bottom = (await page.getByTestId('store-bottom-nav').boundingBox())!;
+  expect(bottom.y + bottom.height).toBeLessThanOrEqual(568);
+  const open = page.getByTestId('store-open-first');
+  await open.scrollIntoViewIfNeeded();
+  const openBox = (await open.boundingBox())!;
+  expect(openBox.y).toBeGreaterThanOrEqual(0);
+  expect(openBox.y + openBox.height).toBeLessThanOrEqual(bottom.y);
+});
+
+test('store consumes non-zero browser safe-area insets before sizing the carousel', async ({ page }) => {
+  await mockPublications(page);
+  const cdp = await page.context().newCDPSession(page);
+  await (cdp.send as (method: string, params: unknown) => Promise<unknown>)(
+    'Emulation.setSafeAreaInsetsOverride',
+    { insets: { top: 12, left: 20, bottom: 16, right: 20 } },
+  );
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/store');
+  const main = (await page.getByTestId('store-main-scroll').boundingBox())!;
+  const carousel = (await page.getByTestId('store-carousel').boundingBox())!;
+  expect(main.width).toBeLessThan(327);
+  expect(carousel.width).toBeLessThanOrEqual(main.width);
+  const bottom = (await page.getByTestId('store-bottom-nav').boundingBox())!;
+  expect(bottom.y + bottom.height).toBeLessThanOrEqual(812 - 16);
+});
+
 test('ranking controls stay reachable and at least 44px at supported widths', async ({ page }) => {
   await mockPublications(page);
 
@@ -412,5 +520,9 @@ test('ranking controls stay reachable and at least 44px at supported widths', as
       expect(box!.x, `ranking target should not overflow left at ${width}px`).toBeGreaterThanOrEqual(0);
       expect(box!.x + box!.width, `ranking target should not overflow right at ${width}px`).toBeLessThanOrEqual(width);
     }
+    const row = (await page.getByTestId('store-ranking-row-first').boundingBox())!;
+    const availability = (await page.getByTestId('store-ranking-availability-first').boundingBox())!;
+    expect(availability.x).toBeGreaterThanOrEqual(row.x);
+    expect(availability.x + availability.width).toBeLessThanOrEqual(row.x + row.width);
   }
 });

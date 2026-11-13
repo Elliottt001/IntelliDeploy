@@ -3,13 +3,12 @@ import {
   FlatList,
   Platform,
   StyleSheet,
-  useWindowDimensions,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
 
-import { PublicationCard } from './PublicationCard';
+import { PublicationCard, RearPublicationCard } from './PublicationCard';
 import { storeCardRenderEvidence as source } from '../../design/storeCardRenderEvidence';
 import { fitSourceWidth } from '../../theme/responsive';
 import type { StoreCard } from './publicationViewModel';
@@ -22,6 +21,7 @@ type PublicationCarouselProps = {
   onOpen: (id: string) => void;
   onSelect: (id: string) => void;
   selectedId: string | null;
+  availableWidth: number;
 };
 
 const rotation = (matrix: { m00: number; m10: number }) =>
@@ -35,19 +35,14 @@ export function PublicationCarousel({
   onOpen,
   onSelect,
   selectedId,
+  availableWidth,
 }: PublicationCarouselProps) {
-  const { width: windowWidth } = useWindowDimensions();
-  const viewportWidth = fitSourceWidth(
-    source.carousel.size.x,
-    source.sourceFrameSize.x,
-    windowWidth,
-    'relative',
-  );
+  const viewportWidth = Math.max(0, availableWidth);
   const cardWidth = fitSourceWidth(
     source.size.x,
-    source.carousel.size.x,
+    source.size.x,
     viewportWidth,
-    'relative',
+    'fixed',
   );
   const horizontalScale = cardWidth / source.size.x;
   const sourceGap = source.carousel.sourceGap * horizontalScale;
@@ -59,6 +54,8 @@ export function PublicationCarousel({
     () => Math.max(0, items.findIndex((item) => item.id === selectedId)),
     [items, selectedId],
   );
+  const rearFive = items[selectedIndex + 1] ?? null;
+  const rearTen = items[selectedIndex + 2] ?? null;
   useEffect(() => {
     if (!items.length || Math.abs(laidOutWidth - viewportWidth) > 0.5) return;
     userScrolling.current = false;
@@ -86,32 +83,74 @@ export function PublicationCarousel({
 
   return (
     <View style={[styles.viewport, { width: viewportWidth }]} onTouchMove={()=>{userScrolling.current=true;}} {...(Platform.OS==='web'?{onWheel:()=>{userScrolling.current=true;}}:{})}>
-      <View
-        pointerEvents="none"
-        style={[
-          styles.backLayer,
-          {
-            left: source.carousel.layers.backTen.matrix.m02 * horizontalScale,
-            top: source.carousel.layers.backTen.matrix.m12,
-            transform: [{ rotate: rotation(source.carousel.layers.backTen.matrix) }],
-            width: cardWidth,
-          },
-        ]}
-        testID="store-carousel-back-10"
-      />
-      <View
-        pointerEvents="none"
-        style={[
-          styles.backLayer,
-          {
-            left: source.carousel.layers.backFive.matrix.m02 * horizontalScale,
-            top: source.carousel.layers.backFive.matrix.m12,
-            transform: [{ rotate: rotation(source.carousel.layers.backFive.matrix) }],
-            width: cardWidth,
-          },
-        ]}
-        testID="store-carousel-back-5"
-      />
+      {rearTen ? (
+        <View
+          {...(Platform.OS === 'web'
+            ? { 'aria-hidden': true }
+            : { accessibilityElementsHidden: true })}
+          pointerEvents="none"
+          style={[
+            styles.backLayer,
+            {
+              backgroundColor: source.carousel.layers.backTen.fill.color?.hex,
+              borderRadius: source.carousel.layers.backTen.cornerRadius,
+              left: source.carousel.layers.backTen.matrix.m02 * horizontalScale,
+              shadowColor: source.carousel.layers.backTen.effects[0].color?.hex,
+              shadowOffset: {
+                width: source.carousel.layers.backTen.effects[0].offset?.x ?? 0,
+                height: source.carousel.layers.backTen.effects[0].offset?.y ?? 0,
+              },
+              shadowOpacity: source.carousel.layers.backTen.effects[0].color?.alpha ?? 0,
+              shadowRadius: source.carousel.layers.backTen.effects[0].radius ?? 0,
+              top: source.carousel.layers.backTen.matrix.m12,
+              transform: [{ rotate: rotation(source.carousel.layers.backTen.matrix) }],
+              width: cardWidth,
+            },
+          ]}
+          testID="store-carousel-back-10"
+        >
+          <RearPublicationCard
+            item={rearTen}
+            layer={source.rearLayers.backTen}
+            layerKey="10"
+            width={cardWidth}
+          />
+        </View>
+      ) : null}
+      {rearFive ? (
+        <View
+          {...(Platform.OS === 'web'
+            ? { 'aria-hidden': true }
+            : { accessibilityElementsHidden: true })}
+          pointerEvents="none"
+          style={[
+            styles.backLayer,
+            {
+              backgroundColor: source.carousel.layers.backFive.fill.color?.hex,
+              borderRadius: source.carousel.layers.backFive.cornerRadius,
+              left: source.carousel.layers.backFive.matrix.m02 * horizontalScale,
+              shadowColor: source.carousel.layers.backFive.effects[0].color?.hex,
+              shadowOffset: {
+                width: source.carousel.layers.backFive.effects[0].offset?.x ?? 0,
+                height: source.carousel.layers.backFive.effects[0].offset?.y ?? 0,
+              },
+              shadowOpacity: source.carousel.layers.backFive.effects[0].color?.alpha ?? 0,
+              shadowRadius: source.carousel.layers.backFive.effects[0].radius ?? 0,
+              top: source.carousel.layers.backFive.matrix.m12,
+              transform: [{ rotate: rotation(source.carousel.layers.backFive.matrix) }],
+              width: cardWidth,
+            },
+          ]}
+          testID="store-carousel-back-5"
+        >
+          <RearPublicationCard
+            item={rearFive}
+            layer={source.rearLayers.backFive}
+            layerKey="5"
+            width={cardWidth}
+          />
+        </View>
+      ) : null}
       <FlatList
         contentContainerStyle={{
           paddingHorizontal: (viewportWidth - cardWidth) / 2,
@@ -172,14 +211,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   backLayer: {
-    backgroundColor: '#FCFCFC',
-    borderRadius: 30,
     height: 399,
     position: 'absolute',
-    shadowColor: '#897AB9',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 10,
     top: 0,
     transformOrigin: [0, 0, 0],
   },
