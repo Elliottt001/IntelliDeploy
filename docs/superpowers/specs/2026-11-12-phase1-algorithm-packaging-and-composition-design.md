@@ -47,6 +47,7 @@ F0—F5 已把查询规划、混合检索、仓库画像、候选排序、A/B/C/
 - 不恢复旧脚手架生成器；D 路线继续使用当前固定 Next.js/TypeScript/PostgreSQL/Prisma 脚手架。
 - 不实现任意语言、任意框架的自动 Dockerfile 重写器。
 - 不让模型修改基础镜像、系统依赖、网络策略、凭据或平台预算。
+- 上述限制针对模型的计划批准权和确定性自动改写；基础镜像或系统依赖问题可进入明确的 Builder 修复任务，并须经现有 Security/Review 和构建验证，不能凭模型建议直接批准。
 - 不把文件存在、镜像构建成功或服务启动当作业务验收成功。
 - 不在本设计中把 Hybrid 切为普通用户默认。
 
@@ -118,6 +119,8 @@ class PackagingPlan(BaseModel):
 
 `PackagingPlan` 必须绑定来源 commit、Dockerfile 输入 hash 和 profiler 版本。对同一输入重复执行必须产生相同计划和相同输出。
 
+阶段、路径和已有命令必须先得到确认。多阶段 Dockerfile 只分析最终运行阶段；不能盲目插入 WORKDIR 改变既有相对 COPY/RUN 语义，不能丢弃 ENTRYPOINT wrapper。将开发命令替换成生产命令前，必须证明对应生产构建、实际 start script 和运行依赖存在；没有这些证据时生成 Builder Finding。
+
 命令使用 argv 语义，不保存未经解析的 shell 拼接字符串。无法安全转换为 argv 的命令进入 `BLOCKED` 或 Builder 任务。
 
 `action="GENERATE"` 只表示 Builder 需要在受控工具和 Review 下创建 Dockerfile；确定性 Packaging 阶段本身不从零生成 Dockerfile。
@@ -158,6 +161,10 @@ class GapPlan(BaseModel):
 - `BLOCKED` 不能进入自动 Builder 修改。
 - `complete=false` 时不能发布，也不能用 D 路线绕过未知缺口。
 
+`complete` 表示规划完整，而非功能验证通过。`SATISFIED` 只表示来源材料支持现成能力，仍须完成候选业务验证；关键词匹配和模型断言不能独立成为正向覆盖证据。`LOCAL_REPAIR` 必须在候选验收中通过后才能交付。
+
+B→C 的成本条件以可空的 typed `CompositionCost` 保存：`local_units`、`composition_units` 为非负整数，`evidence_refs` 为受保护证据引用，均在同一冻结价格/预算口径下计算；这只是规划估计，不是实际扣费。未知成本保持空值并拒绝自动升级。完整合同及成本比较须在提交最终 C 路线前验证，失败时保留可行的 B 局部修复方案。
+
 ### 4.3 ComponentWorkspace
 
 ```python
@@ -166,6 +173,7 @@ class ComponentWorkspace(BaseModel):
     source: RepoSource
     relative_path: str
     read_only_source_path: str
+    tree_digest: str
 ```
 
 C 路线的来源必须分别落在稳定命名空间，例如：
@@ -263,6 +271,8 @@ Gap Planner 使用 Requirement、RepositoryProfile、CandidateEvaluation、Route
 - 路径由平台生成，模型不能提供绝对路径或 `..`。
 - 最终应用位于 `app/`，Builder 的写权限不扩展到来源快照。
 - C 路线下 `write_file` 和 `apply_patch` 必须在工具边界拒绝写入 `components/`；不能只依赖事后 Review 发现来源被修改。
+- Runner 保存受租约保护、绑定上传 hash 的工作区策略。RPC 文件写入/import 只允许 `app/`；命令容器将工作区根挂为只读、`app/` 挂为可写并以 `/workspace/app` 为工作目录。不能仅依赖上传前 chmod，因为解包会重新创建文件。
+- RPC 读取和快照仍使用原工作区根，构建路径必须位于 `app/`。来源 tree_digest 按实际清理并上传的字节计算；重启、恢复、调整和版本归档都保留这一策略和来源证明。
 - 来源快照与 commit、hash、许可证证据绑定。
 
 ### 7.2 Builder 输入
@@ -287,10 +297,13 @@ Builder 可以通过受控工具读取组件源码，并在 `app/` 实现适配�
 - 每类持久数据有 owner。
 - API mapping 只引用选中的 component role。
 - 最终 manifest 的服务与 IntegrationContract 一致。
+- 合同增加 defaulted `role_services: dict[str, str]`，显式映射角色到最终 manifest 服务；允许多个角色共享一个服务，但不能缺失角色或指向不存在的服务。不能以“仓库数量”机械要求容器数量。
 - 组件快照未被原地修改。
 - 私有数据、密钥和原实例数据没有被复制。
 
 任何阻塞 Finding 都不能进入构建。
+
+Review 使用 Builder 完成后的实际文件重新核对 Packaging Finding；已经安全解决的问题保留历史记录，不再永久阻断。不可通过删除验收映射或只修改计划状态宣称解决。
 
 ## 8. 旧 classify_fallback_request 规则审计
 
