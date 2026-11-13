@@ -286,11 +286,26 @@ try {
         });
       }
     }
+  const homeStates = [
+    ["store", "266:21248", "268:22904", "268:23005"],
+    ["products", "266:21339", "268:23238", "268:23425"],
+    ["community", "266:21373", "268:23572", "268:23788"],
+    ["profile", "268:22898", "268:23906", "268:24166"],
+  ].map(([card, closedNodeId, expandedFrameId, expandedNodeId]) => ({
+    card,
+    closedNodeId,
+    expandedFrameId,
+    expandedNodeId,
+    sourceY: {
+      closed: world(closedNodeId, "266:21147").m12,
+      expanded: world(expandedNodeId, expandedFrameId).m12,
+    },
+  }));
   await writeFile(
     process.env.INTELLIDEPLOY_HOME_RENDER_OUTPUT
       ? path.resolve(process.env.INTELLIDEPLOY_HOME_RENDER_OUTPUT)
       : new URL("../design/homeRenderEvidence.ts", import.meta.url),
-    `// Actual Kiwi primitives, visible static glyphs and classified standalone illustration sources.\nexport const homeRenderEvidence = ${JSON.stringify({ question:text(nodes.get("270:26289")),greetingMetrics:{sourceNodeId:"270:26288",baseline:nodes.get("270:26288").derivedTextData.glyphs[0].position.y}, sourceEffectSamples:{storeSearchSurface:{sourceNodeId:"270:26624",effects:nodes.get("270:26624").effects?.map(e=>normalizeSourceEffect(e,"270:26624")).filter(Boolean)??[]}}, avatarTrees, cardCopy, decorations, storeFold, sectionIcon:p.arrowRight,sectionLabels:{inspiration:text(nodes.get("270:26312")),functions:text(nodes.get("270:26317")),refresh:text(nodes.get("270:26313"))}, avatar: p.home, avatarPressed: p.send, avatarPressedTransform: nodes.get("188:16338").transform, miboLink:p.search, cards, clouds, images }, null, 2)} as const;\n`,
+    `// Actual Kiwi primitives, visible static glyphs and classified standalone illustration sources.\nexport const homeRenderEvidence = ${JSON.stringify({ question:text(nodes.get("270:26289")),greetingMetrics:{sourceNodeId:"270:26288",baseline:nodes.get("270:26288").derivedTextData.glyphs[0].position.y}, sourceEffectSamples:{storeSearchSurface:{sourceNodeId:"270:26624",effects:nodes.get("270:26624").effects?.map(e=>normalizeSourceEffect(e,"270:26624")).filter(Boolean)??[]}}, homeStates, avatarTrees, cardCopy, decorations, storeFold, sectionIcon:p.arrowRight,sectionLabels:{inspiration:text(nodes.get("270:26312")),functions:text(nodes.get("270:26317")),refresh:text(nodes.get("270:26313"))}, avatar: p.home, avatarPressed: p.send, avatarPressedTransform: nodes.get("188:16338").transform, miboLink:p.search, cards, clouds, images }, null, 2)} as const;\n`,
   );
 } finally {
   await rm(temporary, { recursive: true, force: true });

@@ -122,7 +122,7 @@ test('closed home card paint overflows its source 70pt advance without overlappi
 });
 test('home card surface preserves the three actual source inner shadow paints',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'Oasis'}}));await page.goto('/');
- const path=page.getByTestId('home-card-store-shell').locator('path[data-source-node="270:26347"]').first();await expect(path).toHaveAttribute('filter',/home-store-effect/);const filter=await path.getAttribute('filter');await expect(page.locator(filter!.slice(4,-1)).locator('feComposite[operator=\"arithmetic\"]')).toHaveCount(3);
+ const path=page.getByTestId('home-card-store-shell').locator('path[data-source-node="270:26347"]').first();const group=path.locator('xpath=ancestor::*[@data-source-effect-node][1]');await expect(group).toHaveAttribute('filter',/home-store-effect/);const filter=await group.getAttribute('filter');await expect(page.locator(filter!.slice(4,-1)).locator('feComposite[operator=\"arithmetic\"]')).toHaveCount(3);
 });
 test('home static Gallery and product copy uses the original glyph paints and source offsets',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'Oasis'}}));await page.goto('/');

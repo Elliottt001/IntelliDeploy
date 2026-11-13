@@ -616,6 +616,48 @@ export const homeRenderEvidence = {
       ]
     }
   },
+  "homeStates": [
+    {
+      "card": "store",
+      "closedNodeId": "266:21248",
+      "expandedFrameId": "268:22904",
+      "expandedNodeId": "268:23005",
+      "sourceY": {
+        "closed": 447,
+        "expanded": 328
+      }
+    },
+    {
+      "card": "products",
+      "closedNodeId": "266:21339",
+      "expandedFrameId": "268:23238",
+      "expandedNodeId": "268:23425",
+      "sourceY": {
+        "closed": 517,
+        "expanded": 401
+      }
+    },
+    {
+      "card": "community",
+      "closedNodeId": "266:21373",
+      "expandedFrameId": "268:23572",
+      "expandedNodeId": "268:23788",
+      "sourceY": {
+        "closed": 587,
+        "expanded": 465
+      }
+    },
+    {
+      "card": "profile",
+      "closedNodeId": "268:22898",
+      "expandedFrameId": "268:23906",
+      "expandedNodeId": "268:24166",
+      "sourceY": {
+        "closed": 657,
+        "expanded": 544
+      }
+    }
+  ],
   "avatarTrees": {
     "normal": {
       "sourceNodeId": "270:26291",

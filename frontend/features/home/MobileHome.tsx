@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
   Pressable,
   Platform,
   ScrollView,
@@ -9,7 +10,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import {
   AppBackground,
   BottomNav,
@@ -23,7 +24,9 @@ import { homeRenderEvidence as source } from "../../design/homeRenderEvidence";
 import type { FigmaVectorLayer } from "../../design/figmaComponentEvidence";
 import { authAPI } from "../../services/api";
 import { mobileFontFamilies } from "../../theme/typography";
-import { getMobileLayout } from "../../theme/responsive";
+import { fitSourceWidth, getMobileLayout } from "../../theme/responsive";
+import { getSourceMotion, type SourceMotion } from "../../design/sourceMotionEvidence";
+import { sampleSourceEasing } from "../navigation/sourceMotionPolicy";
 import {
   homeCards,
   homeFigmaEvidence,
@@ -31,6 +34,227 @@ import {
   type HomeCardKey,
 } from "./homeContent";
 import { HomeAvatar, HomeCardArtwork, matrix } from "./HomeArtwork";
+
+const sourceCardWidth = 321;
+
+function isReducedMotionEnabled() {
+  if (Platform.OS !== "web") {
+    return false;
+  }
+  return (
+    (globalThis as typeof globalThis & {
+      matchMedia?: (query: string) => { matches: boolean };
+    }).matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
+  );
+}
+
+function HomeCard({
+  card,
+  cardWidth,
+  expanded,
+  navigate,
+  onOpen,
+  onToggle,
+}: {
+  card: (typeof homeCards)[number];
+  cardWidth: number;
+  expanded: boolean;
+  navigate: (href: string) => void;
+  onOpen: () => void;
+  onToggle: () => void;
+}) {
+  const e = homeFigmaEvidence.cards.find((item) => item.key === card.key)!;
+  const target = homeFigmaEvidence.homeStateTargets.find(
+    (item) => item.card === card.key,
+  )!;
+  const motion = useMemo(
+    () =>
+      getSourceMotion(
+        target.interactionNodeId,
+        "ON_HOVER",
+        target.motionTargetNodeId,
+      ),
+    [target.interactionNodeId, target.motionTargetNodeId],
+  );
+  const progress = useRef(new Animated.Value(expanded ? 1 : 0)).current;
+  const animation = useRef<ReturnType<typeof Animated.timing> | null>(null);
+  const hoverOpened = useRef(false);
+  const right = card.key === "products" || card.key === "profile";
+  const sourceCopy =
+    card.key === "profile" ? null : source.cardCopy[card.key];
+  const sourceX = (value: number) => (value / sourceCardWidth) * cardWidth;
+  const animate = (toValue: number, sourceMotion: SourceMotion | null) => {
+    animation.current?.stop();
+    if (!sourceMotion || isReducedMotionEnabled()) {
+      progress.setValue(toValue);
+      return;
+    }
+    const current = (progress as any).__getValue?.() ?? 0;
+    const distance = Math.abs(toValue - current);
+    animation.current = Animated.timing(progress, {
+      toValue,
+      duration: sourceMotion.durationMs * distance,
+      easing: (t: number) =>
+        toValue === 1
+          ? sampleSourceEasing(sourceMotion, t)
+          : 1 - sampleSourceEasing(sourceMotion, 1 - t),
+      useNativeDriver: false,
+    });
+    animation.current.start(({ finished }: { finished: boolean }) => {
+      if (finished) {
+        animation.current = null;
+      }
+    });
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => animate(expanded ? 1 : 0, motion), 16);
+    return () => {
+      clearTimeout(timer);
+      animation.current?.stop();
+    };
+  }, [expanded, motion]);
+
+  const animatedStyle = {
+    height: progress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [e.closed.height, e.expandedSurface.height],
+    }),
+    transform: [
+      {
+        translateY: progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, target.sourceY.expanded - target.sourceY.closed],
+        }),
+      },
+    ],
+  };
+
+  return (
+    <View
+      testID={`home-card-${card.key}-shell`}
+      style={[
+        styles.cardSlot,
+        { width: cardWidth, zIndex: expanded ? 10 : 1 },
+      ]}
+    >
+      <Animated.View style={[styles.card, animatedStyle]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${sourceCopy?.title.characters ?? card.title}，${sourceCopy?.description.characters ?? card.description}`}
+          accessibilityState={{ expanded }}
+          aria-expanded={expanded}
+          testID={`home-card-${card.key}`}
+          onHoverIn={() => {
+            if (!expanded) {
+              hoverOpened.current = true;
+              onOpen();
+            }
+          }}
+          onPress={() => {
+            if (expanded && hoverOpened.current) {
+              hoverOpened.current = false;
+              onOpen();
+              return;
+            }
+            onToggle();
+          }}
+          style={StyleSheet.absoluteFill}
+        />
+        <HomeCardArtwork kind={card.key} expanded={expanded} />
+        <View
+          pointerEvents="none"
+          style={[
+            styles.cardCopy,
+            { top: sourceCopy?.title.transform.m12 ?? 12 },
+            right
+              ? { right: sourceX(27), width: 160 }
+              : { left: sourceX(31), width: 160 },
+          ]}
+        >
+          {sourceCopy ? (
+            <View style={right ? { position: "absolute", right: 1 } : undefined}>
+              <FigmaText
+                evidence={sourceCopy.title}
+                testID={`home-${card.key}-source-title`}
+              />
+            </View>
+          ) : (
+            <Text style={[styles.cardTitle, right && { textAlign: "right" }]}>
+              {card.title}
+            </Text>
+          )}
+          {sourceCopy ? (
+            <View
+              style={[
+                {
+                  position: "absolute",
+                  top:
+                    sourceCopy.description.transform.m12 -
+                    sourceCopy.title.transform.m12,
+                },
+                right ? { right: 1 } : undefined,
+              ]}
+            >
+              <FigmaText evidence={sourceCopy.description} />
+            </View>
+          ) : (
+            <Text
+              style={[
+                styles.cardDescription,
+                right && { right: 0, textAlign: "right" },
+              ]}
+            >
+              {card.description}
+            </Text>
+          )}
+        </View>
+        {!expanded && (
+          <View
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            aria-hidden
+            style={[
+              styles.arrow,
+              right ? { left: sourceX(22) } : { right: sourceX(17) },
+            ]}
+          >
+            <CircleAction
+              accessibilityLabel="展开"
+              decorative
+              icon="home-arrow"
+              onPress={() => undefined}
+            />
+          </View>
+        )}
+        {expanded && (
+          <CircleAction
+            accessibilityLabel={`进入${card.title}`}
+            icon="home-arrow"
+            testID={`home-card-${card.key}-open`}
+            onPress={() => navigate(card.href)}
+            style={[
+              styles.arrow,
+              right ? { left: sourceX(22) } : { right: sourceX(17) },
+            ]}
+          />
+        )}
+        {expanded && card.key === "store" && (
+          <Text pointerEvents="none" style={styles.detail}>
+            探索公开应用，发现适合你的工具
+          </Text>
+        )}
+        {expanded && card.key === "community" && (
+          <Text pointerEvents="none" style={styles.detail}>
+            探索公开应用，收藏灵感与工具
+          </Text>
+        )}
+      </Animated.View>
+    </View>
+  );
+}
+
 export function MobileHome() {
   const router = useRouter(),
     insets = useSafeAreaInsets(),
@@ -56,6 +280,13 @@ export function MobileHome() {
   }, []);
   const navigate = (href: string) => router.push(href as never),
     cloud = source.clouds[cloudIndex];
+  const usableWidth = viewport.width - insets.left - insets.right;
+  const cardWidth = fitSourceWidth(
+    sourceCardWidth,
+    375,
+    usableWidth,
+    "relative",
+  );
   return (
     <AppBackground
       insets={insets}
@@ -63,6 +294,7 @@ export function MobileHome() {
       atmosphere={expandedCard === 'profile' ? 'profile' : 'default'}
       contentStyle={{ position: "relative" }}
     >
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -188,113 +420,20 @@ export function MobileHome() {
         </View>
         <View style={styles.cards}>
           {homeCards.map((card) => {
-            const expanded = expandedCard === card.key,
-              e = homeFigmaEvidence.cards.find((e) => e.key === card.key)!;
-            const right = card.key === "products" || card.key === "profile";
-            const sourceCopy = card.key === 'profile' ? null : source.cardCopy[card.key];
             return (
-              <View
+              <HomeCard
                 key={card.key}
-                testID={`home-card-${card.key}-shell`}
-                style={[styles.cardSlot, { zIndex: expanded ? 10 : 1 }]}
-              >
-                <View
-                  style={[
-                    styles.card,
-                    {height:e.closed.height},
-                    expanded && {
-                      position: "absolute",
-                      top: e.expandedState.y - e.closed.y,
-                      height: e.expandedSurface.height,
-                    },
-                  ]}
-                >
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`${sourceCopy?.title.characters ?? card.title}，${sourceCopy?.description.characters ?? card.description}`}
-                    accessibilityState={{ expanded }}
-                    aria-expanded={expanded}
-                    testID={`home-card-${card.key}`}
-                    onPress={() =>
-                      setExpandedCard((value) =>
-                        value === card.key ? null : card.key,
-                      )
-                    }
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <HomeCardArtwork kind={card.key} expanded={expanded} />
-                  <View
-                    pointerEvents="none"
-                    style={[
-                      styles.cardCopy,
-                      {top:sourceCopy?.title.transform.m12 ?? 12},
-                      right
-                        ? { right: 27, width: 160 }
-                        : { left: 31, width: 160 },
-                    ]}
-                  >
-                    {sourceCopy ? <View style={right?{position:'absolute',right:1}:undefined}><FigmaText evidence={sourceCopy.title} testID={`home-${card.key}-source-title`}/></View> : <Text
-                      style={[
-                        styles.cardTitle,
-                        right && { textAlign: "right" },
-                      ]}
-                    >
-                      {card.title}
-                    </Text>}
-                    {sourceCopy ? <View style={[{position:'absolute',top:sourceCopy.description.transform.m12-sourceCopy.title.transform.m12},right?{right:1}:undefined]}><FigmaText evidence={sourceCopy.description}/></View> : <Text
-                      style={[
-                        styles.cardDescription,
-                        right && { right: 0, textAlign: "right" },
-                      ]}
-                    >
-                      {card.description}
-                    </Text>}
-                  </View>
-                  {!expanded && (
-                    <View
-                      pointerEvents="none"
-                      accessibilityElementsHidden
-                      importantForAccessibility="no-hide-descendants"
-                      aria-hidden
-                      style={[
-                        styles.arrow,
-                        right ? { left: 22 } : { right: 17 },
-                      ]}
-                    >
-                      <CircleAction
-                        accessibilityLabel="展开"
-                        decorative
-                        icon="home-arrow"
-                        onPress={() => undefined}
-
-                      />
-                    </View>
-                  )}
-                  {expanded && (
-                    <CircleAction
-                      accessibilityLabel={`进入${card.title}`}
-                      icon="home-arrow"
-                      testID={`home-card-${card.key}-open`}
-                      onPress={() => navigate(card.href)}
-                      style={[
-                        styles.arrow,
-                        right ? { left: 22 } : { right: 17 },
-
-                      ]}
-                    />
-                  )}
-                  {expanded && card.key === "store" && (
-                    <Text pointerEvents="none" style={styles.detail}>
-                      探索公开应用，发现适合你的工具
-                    </Text>
-                  )}
-                  {expanded && card.key === "community" && (
-                    <Text pointerEvents="none" style={styles.detail}>
-                      探索公开应用，收藏灵感与工具
-                    </Text>
-                  )}
-                </View>
-              </View>
+                card={card}
+                cardWidth={cardWidth}
+                expanded={expandedCard === card.key}
+                navigate={navigate}
+                onOpen={() => setExpandedCard(card.key)}
+                onToggle={() =>
+                  setExpandedCard((value) =>
+                    value === card.key ? null : card.key,
+                  )
+                }
+              />
             );
           })}
         </View>
@@ -416,8 +555,6 @@ const styles = StyleSheet.create({
   cardSlot: {
     left:1,
     height: 70,
-    width: "100%",
-    maxWidth: 321,
     alignSelf: "center",
     position: "relative",
   },
@@ -445,7 +582,7 @@ const styles = StyleSheet.create({
     color: "#7F80A1",
     minWidth: 100,
   },
-  arrow: { position: "absolute", top: 19, width: 44, height: 44 },
+  arrow: { position: "absolute", top: 19, width: 44.5, height: 44.5 },
   detail: {
     position: "absolute",
     top: 92,
