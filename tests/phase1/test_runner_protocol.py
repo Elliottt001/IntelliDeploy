@@ -148,15 +148,23 @@ async def test_runner_client_preserves_repairable_build_failure_code():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ('build_output','expected_message'),
+    [
+        ('private build output','candidate build failed'),
+        ("private prefix\nModule not found: Can't resolve '@/components/note-editor'\nprivate suffix",
+         "candidate build failed: Module not found: Can't resolve '@/components/note-editor'"),
+    ],
+)
 async def test_runner_service_returns_sanitized_build_failure_code(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, build_output, expected_message
 ):
     from app.runner.service import RunnerService, create_app
 
     class FailingBuilder:
         async def build(self, argv):
             del argv
-            raise RuntimeError("private build output")
+            raise RuntimeError(build_output)
 
         async def resolve(self, image):
             del image
@@ -205,9 +213,10 @@ async def test_runner_service_returns_sanitized_build_failure_code(
     assert response.status_code == 422
     assert response.json()["detail"] == {
         "code": "BUILD_FAILED",
-        "message": "candidate build failed",
+        "message": expected_message,
     }
-    assert "private build output" not in response.text
+    assert "private prefix" not in response.text
+    assert "private suffix" not in response.text
 
 
 @pytest.mark.asyncio

@@ -361,11 +361,15 @@ def create_app(service, token):
                     build_executor=service.builder,
                 )
             except (BuildFailed, ValueError) as exc:
+                match = re.search(
+                    r"Module not found: Can't resolve ['\"][^'\"]+['\"]",
+                    str(exc),
+                )
                 raise HTTPException(
                     422,
                     {
                         "code": "BUILD_FAILED",
-                        "message": "candidate build failed",
+                        "message": "candidate build failed" + (f": {match.group(0)}" if match else ""),
                     },
                 ) from exc
             return {

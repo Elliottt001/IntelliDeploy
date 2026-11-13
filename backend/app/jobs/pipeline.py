@@ -266,8 +266,9 @@ async def implement_and_build(
 
         if not isinstance(exc, (BuildFailed, RunnerBuildFailed, ValueError)):
             raise
+        detail = str(exc).strip()[-2000:]
         raise RepairableCandidateError(
-            "candidate build failed",
+            "candidate build failed" + (f": {detail}" if detail else ""),
             stage="build",
             code="BUILD_FAILED",
         ) from exc
@@ -829,7 +830,7 @@ async def run_pipeline(
                     break
                 next_healing = decision
                 repair_evidence = append_repair_evidence(
-                    session_factory, job_id, exc.report, "candidate repair required"
+                    session_factory, job_id, exc.report, str(exc)
                 )
             finally:
                 if runtime is not None:

@@ -758,8 +758,9 @@ class JobExecution:
             job = self.job(session)
             used = session.scalar(select(func.count()).select_from(ResourceRecord).where(
                 ResourceRecord.job_id == job.id, ResourceRecord.type == "MODEL_CALL"))
-        # Reserve six calls for independent checks/review; the global cap still fences every request.
-        return max(0, min(32, settings.MAX_JOB_MODEL_CALLS - used - 6)) + int(model is not None and model.has_recorded_turn())
+        # The first attempt keeps room for one bounded repair; repair attempts only reserve checks/review.
+        reserved = 10 if getattr(self, "attempt_index", 0) == 0 else 3
+        return max(0, min(32, settings.MAX_JOB_MODEL_CALLS - used - reserved)) + int(model is not None and model.has_recorded_turn())
 
     def prepare_algorithm_inputs(self, requirement, plan, workspace):
         from app.agent.gaps import deterministic_gap_plan

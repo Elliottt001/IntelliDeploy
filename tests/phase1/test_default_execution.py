@@ -1278,7 +1278,7 @@ async def test_requested_cancellation_prevents_new_paid_model_calls(new_job, ses
         assert session.get(Job,job_id).used_units == 0
 
 
-@pytest.mark.parametrize('used,expected', [(3,31),(23,11),(39,0)])
+@pytest.mark.parametrize('used,expected', [(3,27),(23,7),(39,0)])
 def test_generation_round_budget_uses_remaining_job_calls_and_reserves_review(new_job,session_factory,used,expected):
     from app.jobs.execution import JobExecution
     from app.runtime.models import ResourceRecord
@@ -1290,6 +1290,20 @@ def test_generation_round_budget_uses_remaining_job_calls_and_reserves_review(ne
         session.commit()
     execution=JobExecution(job_id,'worker',generation,session_factory=session_factory)
     assert execution.generation_round_budget()==expected
+
+
+def test_repair_generation_reserves_only_post_repair_review_calls(new_job,session_factory):
+    from app.jobs.execution import JobExecution
+    from app.runtime.models import ResourceRecord
+    job_id,app_id,_,generation=new_job
+    with session_factory() as session:
+        for i in range(34):
+            operation=f'repair-budget:{job_id}:{i}'
+            session.add(ResourceRecord(type='MODEL_CALL',job_id=job_id,app_id=app_id,operation_id=operation,state='METERED',reference=operation,metadata_json={}))
+        session.commit()
+    execution=JobExecution(job_id,'worker',generation,session_factory=session_factory)
+    execution.attempt_index=1
+    assert execution.generation_round_budget()==3
 
 
 def test_builder_receives_runtime_alias_and_final_submission_contract(new_job,session_factory):
