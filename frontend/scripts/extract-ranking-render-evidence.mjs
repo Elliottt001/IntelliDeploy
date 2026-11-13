@@ -111,101 +111,62 @@ const descendants = (rootId) => {
   visit(rootId);
   return result;
 };
-const geometry = (values = []) => values.map((value) => ({
-  commandsBlob: value.commandsBlob,
-  styleID: value.styleID,
-  windingRule: value.windingRule,
-}));
-const auditNode = (value) => ({
-  nodeId: id(value.guid),
-  parentId: value.parentIndex?.guid ? id(value.parentIndex.guid) : null,
-  type: value.type,
-  size: value.size ?? null,
-  transform: value.transform ?? null,
-  visible: value.visible,
-  opacity: value.opacity,
-  clipsContent: value.frameMaskDisabled === false,
-  cornerRadius: value.cornerRadius ?? null,
-  fillPaints: (value.fillPaints ?? []).map(paint),
-  strokePaints: (value.strokePaints ?? []).map(paint),
-  effects: effects(value),
-  fillGeometry: geometry(value.fillGeometry),
-  strokeGeometry: geometry(value.strokeGeometry),
-});
-const action = (value) => ({
-  durationMs: value.transitionDuration * 1000,
-  easingFunction: value.easingFunction,
-  easingType: value.easingType,
-  navigationType: value.navigationType,
-  targetNodeId: value.transitionNodeID ? id(value.transitionNodeID) : null,
-  transition: value.transitionType,
-});
-const interaction = (value) => ({
-  interactionId: id(value.id),
-  event: value.event.interactionType,
-  isDeleted: value.isDeleted,
-  actions: value.actions.map(action),
-});
 const pageDescendants = descendants('825:6804');
-const pageAudit = {
+const ancestors = (value) => {
+  const result = [];
+  let parentGuid = value.parentIndex?.guid;
+  while (parentGuid) {
+    const parent = node(id(parentGuid));
+    result.push({ nodeId: id(parent.guid), name: parent.name, type: parent.type });
+    parentGuid = parent.parentIndex?.guid;
+  }
+  return result;
+};
+const auditEntry = (value) => ({
+  nodeId: id(value.guid),
+  ancestors: ancestors(value),
+  raw: value,
+});
+const sharedBottomNavInstance = (value) => ({
+  ...auditEntry(value),
+  semanticScope: 'shared-bottom-navigation-state-control',
+  sharedPrimitive: 'BottomNav',
+  runtimeSupport: 'NOT_IMPLEMENTED',
+  runtimeReason:
+    'BottomNav switches selected route state immediately; source SWAP_STATE SMART_ANIMATE is not implemented by the shared BottomNav primitive',
+});
+const sourceAudit = {
+  sourceFrameId: '825:6804',
+  requestedIdsAbsent: requestedIds.filter((requestedId) => !nodes.has(requestedId)),
+  formalFrame: auditEntry(formalFrame),
   descendantCount: pageDescendants.length,
-  paintedNodeCount: pageDescendants.filter(
-    (value) => value.fillPaints?.length || value.strokePaints?.length,
-  ).length,
-  effectNodeCount: pageDescendants.filter((value) => value.effects?.length).length,
-  paintEffectNodes: pageDescendants
-    .filter((value) => value.fillPaints?.length || value.strokePaints?.length || value.effects?.length)
-    .map(auditNode),
-  instances: pageDescendants.filter((value) => value.type === 'INSTANCE').map((value) => ({
-    nodeId: id(value.guid),
-    symbolId: id(value.symbolData.symbolID),
-    overrides: value.symbolData.symbolOverrides,
-    interactions: (value.prototypeInteractions ?? []).map(interaction),
-    runtimeSupport: 'NOT_IMPLEMENTED',
-    runtimeReason: 'PublicationResponse has no social reaction state; the authored like interaction is not fabricated',
-  })),
+  descendants: pageDescendants.map(auditEntry),
+  instances: pageDescendants
+    .filter((value) => value.type === 'INSTANCE')
+    .map(sharedBottomNavInstance),
   prototypeInteractions: pageDescendants
     .filter((value) => value.prototypeInteractions?.length)
     .map((value) => ({
       nodeId: id(value.guid),
-      interactions: value.prototypeInteractions.map(interaction),
+      ancestors: ancestors(value),
+      raw: value.prototypeInteractions,
     })),
+  navigation: {
+    ...auditEntry(node('825:6984')),
+    runtimeSupport: 'NOT_IMPLEMENTED',
+    runtimeReason:
+      'Expo Router navigation remains immediate; no source-timed visual route transition is available',
+  },
 };
 
-const instance = node('825:6884');
-const navigation = node('825:6984');
 const copy = node('825:7034');
 const preview = node('825:7032');
 const availability = node('825:7041');
 const row = node('825:7027');
-const navigationInteraction = navigation.prototypeInteractions[0];
 
 const ranking = {
   sourceFrameId: '825:6804',
   sourceFrameSize: formalFrame.size,
-  sourceAudit: {
-    requestedIdsAbsent: requestedIds.filter((requestedId) => !nodes.has(requestedId)),
-    page: pageAudit,
-    instance: {
-      nodeId: '825:6884',
-      symbolId: id(instance.symbolData.symbolID),
-      overrides: instance.symbolData.symbolOverrides,
-      interactions: instance.prototypeInteractions.map(interaction),
-      overrideCount: instance.symbolData.symbolOverrides.length,
-      interactionCount: instance.prototypeInteractions.length,
-      runtimeSupport: 'NOT_IMPLEMENTED',
-      runtimeReason: 'PublicationResponse has no social reaction state; the authored like interaction is not fabricated',
-    },
-    navigation: {
-      nodeId: '825:6984',
-      interactionId: id(navigationInteraction.id),
-      interactionCount: navigation.prototypeInteractions.length,
-      event: navigationInteraction.event.interactionType,
-      actions: navigationInteraction.actions.map(action),
-      runtimeSupport: 'NOT_IMPLEMENTED',
-      runtimeReason: 'Expo Router navigation remains immediate; no source-timed visual route transition is available',
-    },
-  },
   layout: {
     header: box('825:6983'),
     hero: box('845:3359'),
@@ -249,7 +210,13 @@ const ranking = {
 };
 
 await fs.writeFile(
-  process.env.INTELLIDEPLOY_EVIDENCE_OUTPUT ??
+  process.env.INTELLIDEPLOY_RUNTIME_EVIDENCE_OUTPUT ??
+    process.env.INTELLIDEPLOY_EVIDENCE_OUTPUT ??
     new URL('../design/rankingRenderEvidence.ts', import.meta.url),
   `// Generated from the validated ranking40 frame; rows bind only existing Publication DTO fields.\nexport const rankingRenderEvidence=${JSON.stringify(ranking, null, 2)} as const;\n`,
+);
+await fs.writeFile(
+  process.env.INTELLIDEPLOY_AUDIT_EVIDENCE_OUTPUT ??
+    new URL('../design/rankingSourceAudit.ts', import.meta.url),
+  `// Audit-only raw ranking40 source; runtime modules must not import this artifact.\nexport const rankingSourceAudit=${JSON.stringify(sourceAudit, null, 2)} as const;\n`,
 );

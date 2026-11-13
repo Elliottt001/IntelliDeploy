@@ -116,63 +116,45 @@ const descendants = (rootId) => {
   visit(rootId);
   return result;
 };
-const geometry = (values = []) => values.map((value) => ({
-  commandsBlob: value.commandsBlob,
-  styleID: value.styleID,
-  windingRule: value.windingRule,
-}));
-const subtreeNode = (value) => ({
-  nodeId: id(value.guid),
-  parentId: value.parentIndex?.guid ? id(value.parentIndex.guid) : null,
-  type: value.type,
-  size: value.size ?? null,
-  transform: value.transform ?? identity,
-  visible: value.visible,
-  opacity: value.opacity,
-  clipsContent: value.frameMaskDisabled === false,
-  cornerRadius: value.cornerRadius ?? null,
-  fillPaints: (value.fillPaints ?? []).map(paint),
-  strokePaints: (value.strokePaints ?? []).map(paint),
-  effects: effects(value),
-  fillGeometry: geometry(value.fillGeometry),
-  strokeGeometry: geometry(value.strokeGeometry),
-});
-const interaction = (value) => ({
-  interactionId: id(value.id),
-  event: value.event.interactionType,
-  isDeleted: value.isDeleted,
-  actions: value.actions.map((action) => ({
-    durationMs: action.transitionDuration * 1000,
-    easingFunction: action.easingFunction,
-    easingType: action.easingType,
-    navigationType: action.navigationType,
-    targetNodeId: action.transitionNodeID ? id(action.transitionNodeID) : null,
-    transition: action.transitionType,
-  })),
-});
 const pageDescendants = descendants('270:26597');
-const pageAudit = {
+const ancestors = (value) => {
+  const result = [];
+  let parentGuid = value.parentIndex?.guid;
+  while (parentGuid) {
+    const parent = node(id(parentGuid));
+    result.push({ nodeId: id(parent.guid), name: parent.name, type: parent.type });
+    parentGuid = parent.parentIndex?.guid;
+  }
+  return result;
+};
+const auditEntry = (value) => ({
+  nodeId: id(value.guid),
+  ancestors: ancestors(value),
+  raw: value,
+});
+const sharedBottomNavInstance = (value) => ({
+  ...auditEntry(value),
+  semanticScope: 'shared-bottom-navigation-state-control',
+  sharedPrimitive: 'BottomNav',
+  runtimeSupport: 'NOT_IMPLEMENTED',
+  runtimeReason:
+    'BottomNav switches selected route state immediately; source SWAP_STATE SMART_ANIMATE is not implemented by the shared BottomNav primitive',
+});
+const sourceAudit = {
+  sourceFrameId: '270:26597',
+  requestedIdsAbsent: requestedIds.filter((requestedId) => !nodes.has(requestedId)),
+  formalFrame: auditEntry(formalFrame),
   descendantCount: pageDescendants.length,
-  paintedNodeCount: pageDescendants.filter(
-    (value) => value.fillPaints?.length || value.strokePaints?.length,
-  ).length,
-  effectNodeCount: pageDescendants.filter((value) => value.effects?.length).length,
-  paintEffectNodes: pageDescendants
-    .filter((value) => value.fillPaints?.length || value.strokePaints?.length || value.effects?.length)
-    .map(subtreeNode),
-  instances: pageDescendants.filter((value) => value.type === 'INSTANCE').map((value) => ({
-    nodeId: id(value.guid),
-    symbolId: id(value.symbolData.symbolID),
-    overrides: value.symbolData.symbolOverrides,
-    interactions: (value.prototypeInteractions ?? []).map(interaction),
-    runtimeSupport: 'NOT_IMPLEMENTED',
-    runtimeReason: 'PublicationResponse has no social reaction state; the authored like interaction is not fabricated',
-  })),
+  descendants: pageDescendants.map(auditEntry),
+  instances: pageDescendants
+    .filter((value) => value.type === 'INSTANCE')
+    .map(sharedBottomNavInstance),
   prototypeInteractions: pageDescendants
     .filter((value) => value.prototypeInteractions?.length)
     .map((value) => ({
       nodeId: id(value.guid),
-      interactions: value.prototypeInteractions.map(interaction),
+      ancestors: ancestors(value),
+      raw: value.prototypeInteractions,
     })),
 };
 
@@ -220,7 +202,6 @@ const rearLayer = ({ rootId, surfaceId, iconId, iconSurfaceId, titleId, titleTex
         clipsContent: node(previewId).frameMaskDisabled === false,
       },
     },
-    subtree: descendants(rootId).map(subtreeNode),
   };
 };
 
@@ -251,10 +232,6 @@ const backFiveLayer = rearLayer({
 const result = {
   sourceFrameId: '270:26597',
   sourceFrameSize: formalFrame.size,
-  sourceAudit: {
-    requestedIdsAbsent: requestedIds.filter((requestedId) => !nodes.has(requestedId)),
-    page: pageAudit,
-  },
   search: {
     frameNodeId: '270:26623',
     size: node('270:26623').size,
@@ -297,7 +274,13 @@ const result = {
 };
 
 await fs.writeFile(
-  process.env.INTELLIDEPLOY_EVIDENCE_OUTPUT ??
+  process.env.INTELLIDEPLOY_RUNTIME_EVIDENCE_OUTPUT ??
+    process.env.INTELLIDEPLOY_EVIDENCE_OUTPUT ??
     new URL('../design/storeCardRenderEvidence.ts', import.meta.url),
   `// Generated from the validated store03 frame; business copy remains Publication API-only.\nexport const storeCardRenderEvidence=${JSON.stringify(result, null, 2)} as const;\n`,
+);
+await fs.writeFile(
+  process.env.INTELLIDEPLOY_AUDIT_EVIDENCE_OUTPUT ??
+    new URL('../design/storeCardSourceAudit.ts', import.meta.url),
+  `// Audit-only raw store03 source; runtime modules must not import this artifact.\nexport const storeCardSourceAudit=${JSON.stringify(sourceAudit, null, 2)} as const;\n`,
 );

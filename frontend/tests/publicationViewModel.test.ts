@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -13,6 +13,8 @@ import {
 } from '../features/store/publicationViewModel';
 import { rankingRenderEvidence } from '../design/rankingRenderEvidence';
 import { storeCardRenderEvidence } from '../design/storeCardRenderEvidence';
+import { storeCardSourceAudit } from '../design/storeCardSourceAudit';
+import { rankingSourceAudit } from '../design/rankingSourceAudit';
 
 const publication: Publication = {
   id: 'p',
@@ -233,27 +235,38 @@ test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE)('store source audit (NOT_RU
     list: sourceBox('845:3357'),
     listSurface: sourceBox('825:7026'),
   });
-  expect(rankingRenderEvidence.sourceAudit).toMatchObject({
-    instance: { nodeId: '825:6884', overrideCount: 0, symbolId: '228:19794' },
-    navigation: { nodeId: '825:6984', interactionCount: 1 },
-  });
-  expect(storeCardRenderEvidence.sourceAudit.requestedIdsAbsent).toEqual(
+  expect('sourceAudit' in storeCardRenderEvidence).toBe(false);
+  expect('sourceAudit' in rankingRenderEvidence).toBe(false);
+  expect('subtree' in storeCardRenderEvidence.rearLayers.backTen).toBe(false);
+  expect('subtree' in storeCardRenderEvidence.rearLayers.backFive).toBe(false);
+  expect(storeCardSourceAudit.requestedIdsAbsent).toEqual(
     ['270:26244', '376:4769'].filter((nodeId) => !nodes.has(nodeId)),
   );
-  expect(storeCardRenderEvidence.rearLayers.backTen.subtree).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ nodeId: '270:26640', fillGeometry: expect.any(Array) }),
-      expect.objectContaining({ nodeId: '270:26645', type: 'TEXT' }),
-      expect.objectContaining({ nodeId: '270:26672', clipsContent: true }),
-    ]),
+  expect(storeCardSourceAudit.descendants).toHaveLength(179);
+  expect(rankingSourceAudit.descendants).toHaveLength(295);
+  const storeRaw = (nodeId: string) =>
+    storeCardSourceAudit.descendants.find((entry) => entry.nodeId === nodeId)!.raw as unknown as Record<string, any>;
+  const rankingRaw = (nodeId: string) =>
+    rankingSourceAudit.descendants.find((entry) => entry.nodeId === nodeId)!.raw as unknown as Record<string, any>;
+  expect(storeRaw('270:26755')).toEqual(nodes.get('270:26755'));
+  expect(storeRaw('270:26739')).toEqual(nodes.get('270:26739'));
+  expect(rankingRaw('825:7130')).toEqual(nodes.get('825:7130'));
+  expect(storeRaw('270:26760').prototypeInteractions).toEqual(
+    nodes.get('270:26760')!.prototypeInteractions,
   );
-  expect(storeCardRenderEvidence.rearLayers.backFive.subtree).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ nodeId: '270:26675', fillGeometry: expect.any(Array) }),
-      expect.objectContaining({ nodeId: '270:26680', type: 'TEXT' }),
-      expect.objectContaining({ nodeId: '270:26707', clipsContent: true }),
-    ]),
+  expect(rankingRaw('825:6984').prototypeInteractions).toEqual(
+    nodes.get('825:6984')!.prototypeInteractions,
   );
+  for (const audit of [storeCardSourceAudit, rankingSourceAudit]) {
+    const instance = audit.instances[0];
+    expect(instance.semanticScope).toBe('shared-bottom-navigation-state-control');
+    expect(instance.runtimeSupport).toBe('NOT_IMPLEMENTED');
+    expect(instance.runtimeReason).toContain('BottomNav');
+    expect(instance.runtimeReason).not.toContain('PublicationResponse');
+    expect(instance.ancestors.map((ancestor) => ancestor.name)).toEqual(
+      expect.arrayContaining(['CONTAINER', '设置', 'Frame 2147238705', '底部文字框']),
+    );
+  }
   const titleShadow = nodes.get('825:7006')!.effects![0];
   expect(rankingRenderEvidence.introTitle.effects).toEqual([
     expect.objectContaining({
@@ -264,15 +277,10 @@ test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE)('store source audit (NOT_RU
     }),
   ]);
   const navigation = nodes.get('825:6984')!.prototypeInteractions![0];
-  expect(rankingRenderEvidence.sourceAudit.navigation.actions).toEqual(
-    navigation.actions.map((action) => ({
-      durationMs: action.transitionDuration * 1000,
-      easingFunction: action.easingFunction,
-      easingType: action.easingType,
-      navigationType: action.navigationType,
-      targetNodeId: `${action.transitionNodeID.sessionID}:${action.transitionNodeID.localID}`,
-      transition: action.transitionType,
-    })),
+  expect(rankingSourceAudit.prototypeInteractions.find(
+    (entry) => entry.nodeId === '825:6984',
+  )!.raw).toEqual(
+    nodes.get('825:6984')!.prototypeInteractions,
   );
   expect(sourceBox(storeFigmaEvidence.detail.frame.id)).toEqual(
     storeFigmaEvidence.detail.frame,
@@ -386,4 +394,23 @@ test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE)('store source audit (NOT_RU
     localID: 19794,
   });
   expect(nodes.get('228:19794')?.type).toBe('SYMBOL');
+});
+
+test('runtime store modules stay compact and cannot import audit-only artifacts', () => {
+  const runtimeEvidence = [
+    path.join('design', 'storeCardRenderEvidence.ts'),
+    path.join('design', 'rankingRenderEvidence.ts'),
+  ];
+  for (const file of runtimeEvidence) {
+    expect(statSync(file).size).toBeLessThan(60_000);
+    expect(readFileSync(file, 'utf8')).not.toMatch(/SourceAudit|sourceAudit|paintEffectNodes/);
+  }
+  for (const file of [
+    path.join('features', 'store', 'StoreScreen.tsx'),
+    path.join('features', 'store', 'StoreRankingScreen.tsx'),
+    path.join('features', 'store', 'PublicationCarousel.tsx'),
+    path.join('features', 'store', 'PublicationCard.tsx'),
+  ]) {
+    expect(readFileSync(file, 'utf8')).not.toMatch(/SourceAudit|SourceAudit\.ts/);
+  }
 });
