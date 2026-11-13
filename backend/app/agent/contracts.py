@@ -92,6 +92,13 @@ class QueryPlan(BaseModel):
     constraints: dict[str, str]
 
 
+class DeploymentAsset(BaseModel):
+    kind: Literal['OFFICIAL_SERVICE', 'DEMO', 'IMAGE', 'COMPOSE', 'SCRIPT', 'INSTALL_DOC']
+    location: str
+    source_ref: str
+    source_digest: str = Field(pattern=r'^[0-9a-f]{64}$')
+    verification_status: Literal['NOT_RUN', 'PASS', 'FAIL'] = 'NOT_RUN'
+
 class RepositoryProfile(BaseModel):
     repo_url: str
     commit: str
@@ -121,6 +128,7 @@ class RepositoryProfile(BaseModel):
     risks: list[Finding] = Field(default_factory=list)
     unknowns: list[str] = Field(default_factory=list)
     evidence_refs: list[EvidenceRef] = Field(default_factory=list)
+    deployment_assets: list[DeploymentAsset] = Field(default_factory=list)
 
 
 class OrchestrationDecision(BaseModel):
