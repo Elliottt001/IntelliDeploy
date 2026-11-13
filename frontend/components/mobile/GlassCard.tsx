@@ -1,3 +1,4 @@
+import {SourceGlassSurface} from './glass/SourceGlassSurface';
 import type { PropsWithChildren } from 'react';
 import {
   Platform,
@@ -89,6 +90,7 @@ export function GlassCard({ children, style, testID }: GlassCardProps) {
       ]}
       testID={testID}
     >
+      <SourceGlassSurface sourceNodeId={shell.surfaceNodeId}/>
       {children}
     </View>
   );

@@ -1,3 +1,6 @@
+import {SourceGlassLayer} from './glass/SourceGlassLayer';
+import {hasSourceOptics} from './glass/sourceGlassModel';
+import {glassEvidence} from '../../design/glassEvidence';
 import { FigmaEffects, hasRenderableSourceEffects, type FigmaSourceEffect } from "./FigmaEffects";
 import { Platform } from "react-native";
 import Svg, {
@@ -37,17 +40,17 @@ export function FigmaGeometry({
   const grouped = new Set<number>();
   for (let index = 0; index < geometry.length; index += 1) {
     const layer = geometry[index];
-    if (grouped.has(index) || !hasRenderableSourceEffects(layer.sourceEffects)) continue;
-    const signature = JSON.stringify(layer.sourceEffects);
+    if (grouped.has(index) || !(hasRenderableSourceEffects(layer.sourceEffects)||hasSourceOptics(layer.sourceEffects??glassEvidence[layer.sourceNodeId]?.effects))) continue;
+    const signature = JSON.stringify(layer.sourceEffects??glassEvidence[layer.sourceNodeId]?.effects);
     const indexes = [index];
     for (let next = index + 1; next < geometry.length; next += 1) {
       const candidate = geometry[next];
-      if (candidate.sourceNodeId !== layer.sourceNodeId || JSON.stringify(candidate.sourceEffects) !== signature) break;
+      if (candidate.sourceNodeId !== layer.sourceNodeId || JSON.stringify(candidate.sourceEffects??glassEvidence[candidate.sourceNodeId]?.effects) !== signature) break;
       indexes.push(next);
     }
     for (const groupedIndex of indexes) grouped.add(groupedIndex);
     effectGroups.push({
-      effects: layer.sourceEffects!,
+      effects: layer.sourceEffects??glassEvidence[layer.sourceNodeId]?.effects??[],
       id: `${prefix}-effect-${sanitize(layer.sourceNodeId)}`,
       indexes,
       sourceNodeId: layer.sourceNodeId,
@@ -78,6 +81,12 @@ export function FigmaGeometry({
         transform={layer.transform}
       />
     );
+  const renderOptics=(layer:Layer,layers:readonly Layer[])=>{
+    const source=glassEvidence[layer.sourceNodeId];
+    const effects=layer.sourceEffects??source?.effects;
+    if(!source||!effects)return null;
+    return <SourceGlassLayer effects={effects} width={source.size.x} height={source.size.y} paths={layers.map(l=>({path:l.path,fillRule:l.fillRule}))} transform={layer.transform} sourceNodeId={layer.sourceNodeId}/>;
+  };
   return (
     <Svg
       pointerEvents="none"
@@ -141,9 +150,9 @@ export function FigmaGeometry({
           if (grouped.has(index) && !groupByFirstIndex.has(index)) return null;
           const group = groupByFirstIndex.get(index);
           if (group) {
-            return <G key={group.id} filter={`url(#${group.id})`} {...(Platform.OS === "web" ? { "data-source-effect-node": group.sourceNodeId } : {})}>{group.indexes.map((layerIndex)=>renderPath(geometry[layerIndex], layerIndex))}</G>;
+            return <G key={group.id} {...(Platform.OS === "web" ? { "data-source-effect-node": group.sourceNodeId } : {})}>{renderOptics(layer,group.indexes.map(i=>geometry[i]))}<G filter={hasRenderableSourceEffects(group.effects)?`url(#${group.id})`:undefined}>{group.indexes.map((layerIndex)=>renderPath(geometry[layerIndex], layerIndex))}</G></G>;
           }
-          return renderPath(layer, index);
+          return <G key={index}>{renderOptics(layer,[layer])}{renderPath(layer, index)}</G>;
         })}
       </G>
     </Svg>

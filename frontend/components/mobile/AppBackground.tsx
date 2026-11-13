@@ -1,3 +1,4 @@
+import {LiveGlassBackdrop} from './glass/LiveGlassBackdrop';
 import type { PropsWithChildren } from 'react';
 import Svg from 'react-native-svg';
 import {MobileBackdrop} from './MobileBackdrop';
@@ -38,9 +39,9 @@ export function AppBackground({
 
   return (
     <View style={[styles.background, style]} testID={testID}>
-      <Svg testID="mobile-source-atmosphere" pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={StyleSheet.absoluteFill} width="100%" height="100%">
+      <LiveGlassBackdrop underlay={<Svg testID="mobile-source-atmosphere" pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={StyleSheet.absoluteFill} width="100%" height="100%">
         <MobileBackdrop width={viewportWidth} height={viewportHeight} variant={atmosphere}/>
-      </Svg>
+      </Svg>}>
       <View
         style={[
           styles.safeArea,
@@ -61,6 +62,7 @@ export function AppBackground({
           {children}
         </View>
       </View>
+      </LiveGlassBackdrop>
     </View>
   );
 }

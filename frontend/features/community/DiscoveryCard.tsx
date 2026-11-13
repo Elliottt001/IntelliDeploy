@@ -1,3 +1,4 @@
+import {SourceGlassSurface} from '../../components/mobile/glass/SourceGlassSurface';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { Animated, Image, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderHandlers, type ImageSourcePropType, type ViewStyle } from 'react-native';
 import Svg, { Defs, FeDropShadow, Filter, G, Path } from 'react-native-svg';
@@ -40,6 +41,7 @@ export function CommunitySourceCard({copy,id,kind='tall'}:{copy:CommunityCardCop
  const definition=source[kind],surface=communitySurface(definition),tall=kind==='tall';
  const glass=definition.surfaceEffects.some(effect=>effect.rawType==='BACKGROUND_BLUR')?'NOT_IMPLEMENTED':'NONE';
  return <WebDataView testID={`community-source-card-${id}`} dataSet={{sourceGlass:glass}} style={[surface,styles.card,{width:definition.size.width,height:definition.size.height},tall&&{padding:0,borderWidth:0}]}>
+  <SourceGlassSurface sourceNodeId={definition.surfaceNodeId}/>
   {tall?<>
    <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:surface.borderWidth,borderColor:surface.borderColor,borderRadius:surface.borderRadius}]} />
    <View pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={{position:'absolute',left:slots.avatar.x,top:slots.avatar.y,width:slots.avatar.width,height:slots.avatar.height}}><FigmaTree node={mascot.tree as unknown as FigmaTreeNode} prefix={`community-source-mascot-${id}`} testID={`community-source-mascot-${id}`}/></View>
@@ -137,6 +139,7 @@ export default function DiscoveryCard({card,kind='tall',onOpen}:{card:DiscoveryC
  const definition=source[kind];const tall=kind==='tall';
  const surface=communitySurface(definition);
  return <Pressable accessibilityRole="button" accessibilityLabel={`查看${card.title}，${card.creator}，${card.summary}，${card.availability}`} onPress={onOpen} testID={`discovery-publication-${card.id}`} style={[surface,styles.card,{width:definition.size.width,height:definition.size.height},tall&&{padding:0,borderWidth:0}]}>
+  <SourceGlassSurface sourceNodeId={definition.surfaceNodeId}/>
   {tall?<>
    <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:surface.borderWidth,borderColor:surface.borderColor,borderRadius:surface.borderRadius}]} />
    <View style={{position:'absolute',left:slots.header.x,top:slots.header.y,width:slots.header.width,height:slots.header.height}}>

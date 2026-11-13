@@ -1,3 +1,4 @@
+import {SourceGlassSurface} from './glass/SourceGlassSurface';
 import { Platform, StyleSheet, TextInput, View } from "react-native";
 
 import { mobileColors, mobileSpacing } from "../../theme/tokens";
@@ -56,6 +57,7 @@ export function ChatComposer({
 
   return (
     <View style={styles.composer} testID={testID}>
+      <SourceGlassSurface sourceNodeId={chatComposerFigmaEvidence.shellNodeId}/>
       <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:chatComposerFigmaEvidence.borderWidth,borderColor:'#FFFFFF',borderRadius:chatComposerFigmaEvidence.cornerRadius}]}/>
       <TextInput
         accessibilityLabel={inputLabel}

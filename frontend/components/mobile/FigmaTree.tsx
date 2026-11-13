@@ -1,3 +1,4 @@
+import {SourceGlassLayer} from './glass/SourceGlassLayer';
 import Svg,{ClipPath,Defs,G,Path,Rect} from 'react-native-svg';
 import {Platform} from 'react-native';
 import {FigmaEffects,hasRenderableSourceEffects,type FigmaSourceEffect} from './FigmaEffects';
@@ -27,8 +28,9 @@ function Node({node,prefix,root=false}:{node:FigmaTreeNode;prefix:string;root?:b
    {node.children.filter(c=>c.mask).map(c=><ClipPath key={c.sourceNodeId} id={`${prefix}-mask-${c.sourceNodeId.replace(':','-')}`}>{c.maskPaths.map((p,i)=><Path key={i} d={p.path} fill="white" transform={matrix(c.transform)} fillRule={p.fillRule}/>)}</ClipPath>)}
    {effects.length>0&&<FigmaEffects effects={effects} id={`${id}-effects`}/>}
   </Defs>
-  <G clipPath={node.clipsContent?`url(#${id}-frame)`:undefined} filter={effects.length>0?`url(#${id}-effects)`:undefined}>
-   {node.geometry.length>0&&<Svg width={node.size.x} height={node.size.y} style={{overflow:'visible'}}><FigmaGeometry geometry={node.geometry} width={node.size.x} height={node.size.y} prefix={id} overflow="visible"/></Svg>}
+  <G clipPath={node.clipsContent?`url(#${id}-frame)`:undefined}>
+   <SourceGlassLayer effects={node.effects} width={node.size.x} height={node.size.y} paths={node.geometry.length?node.geometry.map(p=>({path:p.path,fillRule:p.fillRule})):[{path:`M0 0 H${node.size.x} V${node.size.y} H0 Z`}]} sourceNodeId={node.sourceNodeId}/>
+   <G filter={effects.length>0?`url(#${id}-effects)`:undefined}>{node.geometry.length>0&&<Svg width={node.size.x} height={node.size.y} style={{overflow:'visible'}}><FigmaGeometry geometry={node.geometry} width={node.size.x} height={node.size.y} prefix={id} overflow="visible"/></Svg>}</G>
    {children}
   </G>
  </G>;

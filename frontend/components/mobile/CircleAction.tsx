@@ -1,3 +1,4 @@
+import {SourceGlassSurface} from './glass/SourceGlassSurface';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Platform,
@@ -226,6 +227,7 @@ export function CircleAction({
           },
         ]}
       >
+        <SourceGlassSurface sourceNodeId={shellEvidence.surfaceNodeId}/>
         <View style={iconOffset?{transform:[{translateX:iconOffset.x},{translateY:iconOffset.y}]}:undefined}><MobileIcon
           color={primary ? '#FFFFFF' : mobileColors.text}
           name={icon}

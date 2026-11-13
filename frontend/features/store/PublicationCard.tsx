@@ -1,3 +1,4 @@
+import {SourceGlassSurface} from '../../components/mobile/glass/SourceGlassSurface';
 import { useEffect, useState } from 'react';
 import {
   Image,
@@ -301,6 +302,7 @@ export function PublicationCard({
       testID={`store-carousel-card-${item.id}`}
     >
       <View testID={selected ? 'store-detail' : undefined} style={{height:source.size.y,position:'relative'}}>
+        <SourceGlassSurface sourceNodeId={source.sourceNodeId}/>
         <View pointerEvents="none" accessibilityLabel={`${item.name}暂无应用图标`} style={styles.initial}><Text style={styles.initialText}>{Array.from(item.name.trim())[0]??'·'}</Text></View>
         <View
           style={[
