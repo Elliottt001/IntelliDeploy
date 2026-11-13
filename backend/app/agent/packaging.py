@@ -91,6 +91,21 @@ def plan_packaging(workspace_id, profile, route) -> PackagingPlan:
         return plan
     final = lines[starts[-1]:]
     commands = [line for line in final if line.strip().upper().startswith(("CMD ", "ENTRYPOINT "))]
+    missing_command = not commands
+    if missing_command:
+        try:
+            scripts = json.loads(data.get("package.json", "{}")).get("scripts", {})
+            start = scripts.get("start", "")
+            if not start or any(marker in start for marker in (" dev", "--reload", "vite")):
+                raise ValueError("missing verified production command")
+            if "next" in start and (scripts.get("build") != "next build" or not any("run build" in line for line in lines)):
+                raise ValueError("missing verified production build")
+            if len(starts) != 1 or not any(line.strip().startswith("WORKDIR ") for line in final):
+                raise ValueError("missing verified runtime working directory")
+            commands = ['CMD ["npm", "run", "start"]']
+        except (ValueError, TypeError):
+            block("START_COMMAND_AMBIGUOUS", "Builder must supply a verified production command")
+            return plan
     if len(commands) != 1 or commands[0].strip().upper().startswith("ENTRYPOINT "):
         block("START_COMMAND_AMBIGUOUS", "Keep the entrypoint wrapper; Builder must verify the runtime command")
         return plan
@@ -121,8 +136,8 @@ def plan_packaging(workspace_id, profile, route) -> PackagingPlan:
             else:
                 replacement += ["--host", "0.0.0.0"]
         plan.start_command = replacement
-        if replacement != command:
-            edit("SET_START_COMMAND", commands[0], "CMD " + json.dumps(replacement))
+        if replacement != command or missing_command:
+            edit("SET_START_COMMAND", None if missing_command else commands[0], "CMD " + json.dumps(replacement))
     except (ValueError, KeyError, IndexError, TypeError) as exc:
         block("START_COMMAND_AMBIGUOUS", str(exc))
         plan.safe_edits = []
@@ -139,7 +154,10 @@ def plan_packaging(workspace_id, profile, route) -> PackagingPlan:
         if match and int(match[1]) != plan.container_port:
             block("PORT_CONFLICT", "Runtime command and source port disagree")
         elif len(exposed) == 1 and exposed[0].strip() != f"EXPOSE {plan.container_port}":
-            edit("SET_EXPOSE", exposed[0], f"EXPOSE {plan.container_port}")
+            if match and int(match[1]) == plan.container_port:
+                edit("SET_EXPOSE", exposed[0], f"EXPOSE {plan.container_port}")
+            else:
+                block("PORT_CONFLICT", "EXPOSE and profile disagree without a verified runtime port")
         elif not exposed:
             edit("SET_EXPOSE", None, f"EXPOSE {plan.container_port}")
     if plan.install_command:
@@ -152,7 +170,7 @@ def plan_packaging(workspace_id, profile, route) -> PackagingPlan:
     elif plan.safe_edits:
         plan.action = "NORMALIZE"
     else:
-        plan.output_digest = hashlib.sha256(data["Dockerfile"].encode()).hexdigest()
+        plan.output_digest = stage_input_hash(data)
     return plan
 
 
@@ -161,7 +179,7 @@ def apply_packaging_plan(workspace_id, plan):
     data = _inputs(workspace_id, plan.dockerfile_path)
     if stage_input_hash(data) != plan.input_digest:
         # Successful repeated application is allowed only for the same exact output.
-        if plan.output_digest and path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == plan.output_digest:
+        if plan.output_digest and stage_input_hash(data) == plan.output_digest:
             return plan
         raise ValueError("packaging input changed")
     if plan.action not in {"REUSE", "NORMALIZE"}:
@@ -185,4 +203,4 @@ def apply_packaging_plan(workspace_id, plan):
             os.replace(temporary, path)
         finally:
             Path(temporary).unlink(missing_ok=True)
-    return plan.model_copy(update={"output_digest": hashlib.sha256(text.encode()).hexdigest()})
+    return plan.model_copy(update={"output_digest": stage_input_hash({**data, plan.dockerfile_path: text})})

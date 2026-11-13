@@ -998,3 +998,84 @@ async def test_default_pipeline_assembles_existing_modules_and_reaches_bound_rel
         from app.apps.models import Instance
 
         assert session.get(Instance, job.result["instance_id"]).kind == "PRODUCTION"
+
+
+@pytest.mark.asyncio
+async def test_hybrid_component_builder_consumes_contract_through_runner(
+    new_job, session_factory, tmp_path, monkeypatch
+):
+    import httpx
+    from app.config import settings
+    from app.agent.contracts import ComponentWorkspace
+    from app.agent.packaging import tree_digest
+    from app.core.types import AppManifest, ServiceSpec, ToolCall
+    from app.jobs.execution import JobExecution
+    from app.runner.client import RunnerClient
+    from app.runner.service import RunnerService, create_app
+    from test_integration_contract import component_route, record_search_requirement, valid_contract_json
+    from test_hybrid_routing import profile
+
+    job_id, _, _, generation = new_job
+    plan, req = component_route(), record_search_requirement()
+    payload = valid_contract_json()
+    payload["role_services"] = {"records": "web", "search": "web"}
+    with session_factory() as session:
+        job = session.get(Job, job_id)
+        cp = json.loads(json.dumps(job.checkpoint))
+        cp["algorithm"].update(mode="hybrid", route=plan.model_dump(mode="json"),
+            profiles=[profile(s).model_dump(mode="json") for s in plan.sources], integration_contract=payload)
+        job.checkpoint = cp
+        session.commit()
+    monkeypatch.setattr(settings, "AGENT_WORKSPACE_ROOT", str(tmp_path / "control"))
+    async def choose(self, requirement):
+        return plan
+    monkeypatch.setattr(JobExecution, "choose_sources", choose)
+    def prepare(root, route, profiles):
+        root = __import__("pathlib").Path(root)
+        components = []
+        for source in route.sources:
+            path = root / "components" / source.role
+            path.mkdir(parents=True)
+            (path / "source.txt").write_text(source.role)
+            relative = f"components/{source.role}"
+            components.append(ComponentWorkspace(role=source.role, source=source, relative_path=relative,
+                read_only_source_path=relative, tree_digest=tree_digest(path)))
+        (root / "app").mkdir()
+        return components
+    monkeypatch.setattr("app.agent.integration.prepare_component_workspaces", prepare)
+    manifest = AppManifest(web_service="web", services=[ServiceSpec(
+        name="web", image="registry.test/app@sha256:" + "a" * 64, port=3000)])
+    class Model:
+        calls = 0
+        async def complete(self, messages, tools, model):
+            assert tools
+            initial = json.loads(messages[1]["content"])
+            assert initial["integration_contract"]["role_services"] == {"records": "web", "search": "web"}
+            assert len(initial["component_workspaces"]) == 2
+            assert initial["gap_plan"]["requirement_revision"] == req.revision
+            self.calls += 1
+            if self.calls == 1:
+                call = ToolCall(id="dockerfile", name="write_file", arguments={"path": "app/Dockerfile",
+                    "content": 'FROM scratch\nCOPY server /server\nCMD ["/server"]\n'})
+            else:
+                call = ToolCall(id="finish", name="finish_implementation", arguments={"manifest": manifest.model_dump(mode="json")})
+            return ModelTurn(assistant_message={"role": "assistant", "content": None,
+                "tool_calls": [{"id": call.id, "type": "function", "function": {
+                    "name": call.name, "arguments": json.dumps(call.arguments)}}]},
+                calls=[call], input_tokens=1, output_tokens=1)
+    runner_root = tmp_path / "runner"
+    app = create_app(RunnerService(runner_root), "test-rpc-token")
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="https://runner.test",
+                                headers={"Authorization": "Bearer test-rpc-token"}) as http:
+        execution = JobExecution(job_id, "worker", generation, session_factory=session_factory,
+                                  model_client=Model(), runner=RunnerClient(http))
+        with session_factory() as session:
+            job = session.get(Job, job_id)
+        candidate = await execution.generate_candidate(job_id=job_id, job=job, requirement=req,
+                                                        attempt_index=0, repair_evidence=[])
+        assert candidate.manifest == manifest
+        assert (runner_root / job_id / "source/app/Dockerfile").is_file()
+        assert (runner_root / job_id / "source/components/search/source.txt").read_text() == "search"
+        with pytest.raises(ValueError, match="read-only"):
+            await execution.execute_tool(ToolCall(id="forbidden", name="write_file",
+                                                 arguments={"path": "components/search/source.txt", "content": "bad"}))

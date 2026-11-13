@@ -48,3 +48,33 @@ def test_composition_command_mounts_root_readonly_and_app_writable(tmp_path, mon
     assert str(tmp_path) + ":/workspace:ro" in args
     assert str(tmp_path / "app") + ":/workspace/app:rw" in args
     assert args[args.index("-w") + 1] == "/workspace/app"
+
+
+def test_real_composition_command_cannot_mutate_component_snapshot(tmp_path):
+    import os
+    import pytest
+    from app.runner.docker import ContainerCommands
+    image = os.environ.get("ALGORITHM_VERIFY_IMAGE")
+    if not image:
+        pytest.skip("fixed local verification image is not selected")
+    (tmp_path / "app").mkdir()
+    (tmp_path / "app").chmod(0o777)
+    (tmp_path / "components/records").mkdir(parents=True)
+    (tmp_path / "components/search").mkdir()
+    protected = tmp_path / "components/search/source.txt"
+    protected.write_text("original")
+    policy = {"mode": "COMPOSITION", "writable_root": "app", "components": [
+        {"role": role, "relative_path": "components/" + role, "tree_digest": "a" * 64}
+        for role in ("records", "search")]}
+    script = (
+        "from pathlib import Path\n"
+        "try:\n Path('/workspace/components/search/source.txt').write_text('bad')\n"
+        "except OSError:\n print('read-only')\n"
+        "Path('result.txt').write_text('ok')\n"
+    )
+    result = ContainerCommands(image).run(str(tmp_path), ["python", "-c", script], 30,
+        "composition-native-test", workspace_policy=policy)
+    assert result["ok"], result["content"]
+    assert "read-only" in result["content"]
+    assert protected.read_text() == "original"
+    assert (tmp_path / "app/result.txt").read_text() == "ok"

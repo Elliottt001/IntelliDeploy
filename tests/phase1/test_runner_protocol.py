@@ -212,7 +212,6 @@ async def test_runner_service_returns_sanitized_build_failure_code(
 
 @pytest.mark.asyncio
 async def test_composition_policy_blocks_writes_and_survives_runner_restart(tmp_path):
-    import json
     from app.agent.packaging import tree_digest
     from app.runner.service import RunnerService, create_app
     from app.runner.client import RunnerClient
@@ -225,7 +224,6 @@ async def test_composition_policy_blocks_writes_and_survives_runner_restart(tmp_
     policy = {"mode": "COMPOSITION", "writable_root": "app", "components": [
         {"role": role, "relative_path": f"components/{role}",
          "tree_digest": tree_digest(source / f"components/{role}")} for role in ("records", "search")]}
-    from app.runtime.artifacts import source_archive
     job = "12345678-1234-1234-1234-123456789abc"
     app = create_app(RunnerService(tmp_path / "runner"), "test-rpc-token")
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="https://runner.test",

@@ -54,3 +54,44 @@ def test_provider_requires_contract_and_known_cheaper_cost():
                                             evidence_refs=["fixed-price:dev-v1"])
     assert finalize_route_with_gaps(route(), gaps, retrieval, profiles, evaluations, req,
         integration_contract=contract).route == "COMPOSE_COMPONENTS"
+
+
+@pytest.mark.asyncio
+async def test_invalid_integration_contract_never_persists_route_c():
+    import json
+    from app.agent.contracts import AlgorithmCheckpoint
+    from app.agent.orchestrator import AlgorithmOrchestrator
+    from app.core.types import ModelTurn, RetrievalCandidate, RetrievalResult
+    req = requirement()
+    principal, provider = source(), source("search", "b")
+    profiles = [profile(principal, ["save"]), profile(provider, ["search"])]
+    evaluations = [rank_candidate(p, req) for p in profiles]
+    retrieval = RetrievalResult(queries=["notes"], completed=True,
+        candidates=[RetrievalCandidate(repo_url=s.url, commit=s.commit) for s in (principal, provider)])
+    class Execution:
+        def __init__(self):
+            self.state = AlgorithmCheckpoint.empty(1, "hybrid")
+            self.saved_routes = []
+        def algorithm_checkpoint(self):
+            return self.state.model_copy(deep=True)
+        def save_algorithm_checkpoint(self, checkpoint):
+            self.state = checkpoint.model_copy(deep=True)
+            self.saved_routes.append(checkpoint.route.route)
+        def model(self, phase):
+            return self
+        async def complete(self, messages, tools, model):
+            if model == "gap-plan":
+                payload = json.loads(messages[1]["content"])["base"]
+                payload["gaps"][1].update(status="COMPONENT_SOURCE", provider_source=provider.model_dump(),
+                    evidence_refs=["coverage:search"])
+                payload["composition_cost"] = {"local_units": 1000, "composition_units": 100,
+                                                 "evidence_refs": ["fixed-price"]}
+            else:
+                payload = {}
+            return ModelTurn(assistant_message={"role": "assistant", "content": json.dumps(payload)})
+    execution = Execution()
+    final, gaps = await AlgorithmOrchestrator(execution).plan_gaps_and_finalize_route(
+        req, route(), retrieval, profiles, evaluations)
+    assert final.route == "MODIFY_EXISTING"
+    assert execution.saved_routes == ["MODIFY_EXISTING"]
+    assert gaps.gaps[1].status == "LOCAL_REPAIR"

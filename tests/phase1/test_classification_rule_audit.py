@@ -21,3 +21,10 @@ def test_active_algorithms_do_not_import_old_solvers():
                     assert all(a.name != "classify_fallback_request" for a in node.names)
                 elif isinstance(node, ast.Import):
                     assert all(not a.name.startswith("fallback.solvers") for a in node.names)
+
+
+def test_audit_has_no_unresolved_migrations():
+    text = AUDIT.read_text()
+    assert "| MIGRATE |" not in text
+    rows = [line for line in text.splitlines() if "| COVERED |" in line]
+    assert all("tests/phase1/" in line and "backend/app/" in line for line in rows)
