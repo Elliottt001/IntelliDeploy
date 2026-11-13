@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
-import { Animated, Image, Platform, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
+import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
+import { Animated, Image, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
 import Svg, { Defs, FeDropShadow, Filter, G, Path } from 'react-native-svg';
 import type { FigmaPrimitiveEvidence } from '../../design/figmaComponentEvidence';
 import { mobileAssets } from '../../design/generated/mobileAssetManifest';
@@ -12,8 +12,10 @@ import {communityCardSlots as slots} from '../../design/communityCardSlots';
 import {FigmaTree,type FigmaTreeNode} from '../../components/mobile/FigmaTree';
 import {communityAvatarRenderEvidence as mascot} from '../../design/communityAvatarRenderEvidence';
 const neutralArtwork=mobileAssets['845:3522:114'].source as ImageSourcePropType;
-const WebWheelView=View as unknown as ComponentType<{children:ReactNode;style:ViewStyle;onWheel:(event:{nativeEvent?:{deltaX?:number;deltaY?:number}})=>void}>;
-const WebAnimatedView=Animated.View as unknown as ComponentType<{children:ReactNode;testID:string;dataSet:Record<string,string>;style:unknown}>;
+type WebPointerEvent={nativeEvent?:{clientX?:number;clientY?:number;deltaX?:number;deltaY?:number}};
+const WebWheelView=View as unknown as ComponentType<{children:ReactNode;style:ViewStyle;onWheel:(event:WebPointerEvent)=>void;onPointerDown:(event:WebPointerEvent)=>void;onPointerMove:(event:WebPointerEvent)=>void;onPointerUp:(event:WebPointerEvent)=>void;onPointerCancel:(event:WebPointerEvent)=>void;testID?:string;dataSet?:Record<string,string>}&Record<string,unknown>>;
+const WebAnimatedView=Animated.View as unknown as ComponentType<{children:ReactNode;testID:string;dataSet:Record<string,string>;style:unknown}&Record<string,unknown>>;
+const WebDataView=View as unknown as ComponentType<{children:ReactNode;testID:string;dataSet?:Record<string,string>;style:unknown;pointerEvents?:'none'}>;
 const rgba=(color:string,opacity:number)=>{const hex=color.slice(1);return `rgba(${parseInt(hex.slice(0,2),16)},${parseInt(hex.slice(2,4),16)},${parseInt(hex.slice(4,6),16)},${opacity})`;};
 export function communitySurface(definition:FigmaPrimitiveEvidence):ViewStyle {
  const fill=definition.surfaceFills?.find(p=>p.type==='SOLID');const stroke=definition.surfaceStrokes?.find(p=>p.type==='SOLID');
@@ -35,31 +37,44 @@ export function PublicationPreview({card,tall=false}:{card:DiscoveryCardModel;ta
 }
 export function CommunitySourceCard({copy,id,kind='tall'}:{copy:CommunityCardCopy;id:string;kind?:'tall'|'standard'|'square'}) {
  const definition=source[kind],surface=communitySurface(definition),tall=kind==='tall';
- return <View testID={`community-source-card-${id}`} style={[surface,styles.card,{width:definition.size.width,height:definition.size.height},tall&&{padding:0,borderWidth:0}]}>
+ const glass=definition.surfaceEffects.some(effect=>effect.rawType==='BACKGROUND_BLUR')?'NOT_IMPLEMENTED':'NONE';
+ return <WebDataView testID={`community-source-card-${id}`} dataSet={{sourceGlass:glass}} style={[surface,styles.card,{width:definition.size.width,height:definition.size.height},tall&&{padding:0,borderWidth:0}]}>
   {tall?<>
    <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:surface.borderWidth,borderColor:surface.borderColor,borderRadius:surface.borderRadius}]} />
    <View pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={{position:'absolute',left:slots.avatar.x,top:slots.avatar.y,width:slots.avatar.width,height:slots.avatar.height}}><FigmaTree node={mascot.tree as unknown as FigmaTreeNode} prefix={`community-source-mascot-${id}`} testID={`community-source-mascot-${id}`}/></View>
    {copy.author!==null&&<Text testID="community-card-author" numberOfLines={1} style={[communityCardStyles.creator,{position:'absolute',left:slots.copy.x,top:slots.copy.y+slots.creator.y,width:slots.header.width-slots.copy.x}]}>{copy.author}</Text>}
    {copy.time!==null&&<Text testID="community-card-time" numberOfLines={1} style={[communityCardStyles.creator,{position:'absolute',left:slots.summary.x,top:slots.copy.y+slots.creator.y,width:slots.summary.width,textAlign:'right'}]}>{copy.time}</Text>}
-   {copy.body!==null&&<Text testID="community-card-body" style={[communityCardStyles.summary,{position:'absolute',left:slots.summary.x,top:slots.summary.y,width:slots.summary.width,maxHeight:slots.summary.height}]}>{copy.body}</Text>}
+   {copy.body!==null&&<ScrollView testID="community-card-body" style={{position:'absolute',left:slots.summary.x,top:slots.summary.y,width:slots.summary.width,maxHeight:slots.summary.height}}><Text style={communityCardStyles.summary}>{copy.body}</Text></ScrollView>}
   </>:<>
    {copy.author!==null&&<Text testID="community-card-author" numberOfLines={1} style={styles.creator}>{copy.author}</Text>}
    {copy.time!==null&&<Text testID="community-card-time" numberOfLines={1} style={styles.creator}>{copy.time}</Text>}
-   {copy.body!==null&&<Text testID="community-card-body" style={styles.summary}>{copy.body}</Text>}
+   {copy.body!==null&&<ScrollView testID="community-card-body" style={styles.bodyScroll}><Text style={styles.summary}>{copy.body}</Text></ScrollView>}
   </>}
- </View>;
+ </WebDataView>;
 }
 export function CommunitySourceRail({cards}:{cards:readonly {id:string;copy:CommunityCardCopy;kind?:'tall'|'standard'|'square'}[]}) {
  const motion=useMemo(()=>getSourceMotion('825:5887','DRAG','825:6452'),[]);
  const reverse=useMemo(()=>getSourceMotion('825:6488','DRAG','168:6358'),[]);
- const {animateTo,progress}=useSourceMotion(motion);
+ const {animateTo,cancel,progress}=useSourceMotion(motion);
  const [position,setPosition]=useState(0);
+ const pointer=useRef<{active:boolean;claimed:boolean;x:number;y:number}|null>(null);
  useEffect(()=>{const listener=progress.addListener(({value})=>setPosition(value));return()=>progress.removeListener(listener);},[progress]);
  const delta=source.railTarget.transform.m02-source.rail.transform.m02;
  const offset=progress.interpolate({inputRange:[0,1],outputRange:[0,delta]});
  const setTarget=(target:0|1)=>animateTo(target);
- return <WebWheelView style={{height:source.rail.size.y,overflow:'hidden'}} onWheel={(event)=>{if(Platform.OS==='web'){const deltaX=event.nativeEvent?.deltaX??event.nativeEvent?.deltaY??0;setTarget(deltaX>=0?1:0);}}}>
-  <WebAnimatedView testID="community-source-rail" dataSet={{sourceMotion:`${motion?.nodeId}->${motion?.targetNodeId}`,sourceReverseMotion:`${reverse?.nodeId}->${reverse?.targetNodeId}`,sourceProgress:position>.5?'1':'0'}} style={{position:'absolute',left:0,top:0,width:source.rail.size.x,height:source.rail.size.y,transform:[{translateX:offset}]}}>
+ const responder=useMemo(()=>PanResponder.create({
+  onMoveShouldSetPanResponder:(_,gesture)=>Math.abs(gesture.dx)>12&&Math.abs(gesture.dx)>Math.abs(gesture.dy)*1.2,
+  onMoveShouldSetPanResponderCapture:(_,gesture)=>Math.abs(gesture.dx)>12&&Math.abs(gesture.dx)>Math.abs(gesture.dy)*1.2,
+  onPanResponderRelease:(_,gesture)=>{if(Math.abs(gesture.dx)>30)setTarget(gesture.dx<0?1:0);},
+  onPanResponderTerminate:()=>cancel(),
+  onShouldBlockNativeResponder:()=>false,
+ }),[cancel,animateTo]);
+ const pointerDown=(event:WebPointerEvent)=>{if(Platform.OS==='web')pointer.current={active:true,claimed:false,x:event.nativeEvent?.clientX??0,y:event.nativeEvent?.clientY??0};};
+ const pointerMove=(event:WebPointerEvent)=>{const current=pointer.current;if(Platform.OS!=='web'||!current?.active)return;const dx=(event.nativeEvent?.clientX??current.x)-current.x,dy=(event.nativeEvent?.clientY??current.y)-current.y;if(!current.claimed&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.2)current.claimed=true;};
+ const pointerEnd=(event:WebPointerEvent)=>{const current=pointer.current;if(Platform.OS!=='web'||!current)return;pointer.current=null;const dx=(event.nativeEvent?.clientX??current.x)-current.x;if(current.claimed&&Math.abs(dx)>30)setTarget(dx<0?1:0);};
+ const pointerCancel=()=>{pointer.current=null;cancel();};
+ return <WebWheelView testID="community-source-drag-responder" dataSet={{sourceResponder:'pan'}} style={{height:source.rail.size.y,overflow:'hidden'}} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerEnd} onPointerCancel={pointerCancel} onWheel={(event)=>{if(Platform.OS==='web'){const deltaX=event.nativeEvent?.deltaX??event.nativeEvent?.deltaY??0;setTarget(deltaX>=0?1:0);}}} {...responder.panHandlers}>
+  <WebAnimatedView testID="community-source-rail" dataSet={{sourceMotion:`${motion?.nodeId}->${motion?.targetNodeId}`,sourceReverseMotion:`${reverse?.nodeId}->${reverse?.targetNodeId}`,sourceDurationMs:String(motion?.durationMs),sourceEasing:motion?.easingType??'',sourceProgress:position>.5?'1':'0'}} style={{position:'absolute',left:0,top:0,width:source.rail.size.x,height:source.rail.size.y,transform:[{translateX:offset}]}} {...responder.panHandlers}>
    <View style={{position:'absolute',left:0,top:0}}><CommunitySourceCard id={cards[0]?.id??'primary'} copy={cards[0]?.copy??{author:null,time:null,body:null}} kind={cards[0]?.kind}/></View>
    <View style={{position:'absolute',left:source.standardNode.transform.m02,top:0}}><CommunitySourceCard id={cards[1]?.id??'standard'} copy={cards[1]?.copy??{author:null,time:null,body:null}} kind={cards[1]?.kind??'standard'}/></View>
    <View style={{position:'absolute',left:source.squareNode.transform.m02,top:source.standard.size.height+(source.squareNode.transform.m12-source.standard.size.height)}}><CommunitySourceCard id={cards[2]?.id??'square'} copy={cards[2]?.copy??{author:null,time:null,body:null}} kind={cards[2]?.kind??'square'}/></View>
@@ -99,4 +114,4 @@ export const communityCardStyles=StyleSheet.create({
  featuredSummary:{fontFamily:mobileFontFamilies.pingFang,fontWeight:'500',fontSize:source.featuredSummary.fontSize,lineHeight:source.featuredSummary.lineHeight.value,color:source.featuredSummary.textColor},
  featuredCaption:{fontFamily:mobileFontFamilies.pingFang,fontSize:source.featuredCaption.fontSize,lineHeight:source.featuredCaption.lineHeight.value,color:source.featuredCaption.textColor},
 });
-const styles=StyleSheet.create({...communityCardStyles,card:{padding:17,minWidth:44,minHeight:44},title:{...communityCardStyles.title,marginBottom:3},summary:{...communityCardStyles.summary,marginTop:12},availability:{...communityCardStyles.availability,marginTop:'auto'},preview:{width:64,height:64}});
+const styles=StyleSheet.create({...communityCardStyles,bodyScroll:{maxHeight:98},card:{padding:17,minWidth:44,minHeight:44},title:{...communityCardStyles.title,marginBottom:3},summary:{...communityCardStyles.summary,marginTop:12},availability:{...communityCardStyles.availability,marginTop:'auto'},preview:{width:64,height:64}});

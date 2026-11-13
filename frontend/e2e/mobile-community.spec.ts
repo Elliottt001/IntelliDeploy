@@ -23,17 +23,41 @@ test('community source shell keeps formal 59 geometry without exposing fake post
  await expect(page.getByTestId('community-atmosphere').locator('feGaussianBlur').first()).toHaveAttribute('stdDeviation','50.770931');
 });
 
-test('community 59/60 drag follows the original rail delta and reduced motion snaps',async({page})=>{
+async function dragRail(page:Page,dx:number,dy=0){
+ const rail=page.getByTestId('community-source-rail'),box=(await rail.boundingBox())!;
+ await page.mouse.move(box.x+Math.min(80,box.width/2),box.y+80);
+ await page.mouse.down();
+ await page.mouse.move(box.x+Math.min(80,box.width/2)+dx,box.y+80+dy,{steps:6});
+ await page.mouse.up();
+ return rail;
+}
+
+test('community 59/60 drag follows the original rail delta, reverse motion and reduced motion snaps',async({page})=>{
  await installMobileSourceFixtures(page);await page.goto('/community');
  const rail=page.getByTestId('community-source-rail');
  await expect(rail).toHaveAttribute('data-source-motion','825:5887->825:6452');
+ await expect(rail).toHaveAttribute('data-source-reverse-motion','825:6488->168:6358');
+ await expect(rail).toHaveAttribute('data-source-duration-ms','300.00001192092896');
+ await expect(rail).toHaveAttribute('data-source-easing','INOUT_CUBIC');
  await expect(rail).toHaveAttribute('data-source-progress','0');
- await rail.hover();await page.mouse.wheel(120,0);
+ await dragRail(page,-120);
+ await page.waitForTimeout(150);
+ const mid=await rail.evaluate(element=>new DOMMatrix(getComputedStyle(element).transform).m41);
+ expect(mid).toBeLessThan(-8);expect(mid).toBeGreaterThan(-90);
  await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('1');
- const shifted=await rail.evaluate(element=>new DOMMatrix(getComputedStyle(element).transform).m41);
- expect(shifted).toBeCloseTo(-94,1);
- await page.emulateMedia({reducedMotion:'reduce'});await page.mouse.wheel(-120,0);
+ await expect.poll(()=>rail.evaluate(element=>new DOMMatrix(getComputedStyle(element).transform).m41)).toBeCloseTo(-94,1);
+ await dragRail(page,120);
  await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('0');
+ await page.emulateMedia({reducedMotion:'reduce'});await dragRail(page,-120);
+ await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('1');
+ const reduced=await rail.evaluate(element=>new DOMMatrix(getComputedStyle(element).transform).m41);
+ expect(reduced).toBeCloseTo(-94,1);
+});
+
+test('community vertical drag does not claim the source rail gesture',async({page})=>{
+ await installMobileSourceFixtures(page);await page.goto('/community');
+ const rail=await dragRail(page,8,130);
+ await page.waitForTimeout(350);
  const reset=await rail.evaluate(element=>new DOMMatrix(getComputedStyle(element).transform).m41);
  expect(reset).toBeCloseTo(0,1);
 });
