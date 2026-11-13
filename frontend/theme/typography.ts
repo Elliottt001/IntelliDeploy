@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 export const mobileFontFamilies = {
   display: 'ZiTiQuanWeiJunHei',
   body: 'AlibabaPuHuiTiRegular',
+  bodyL3: 'AlibabaPuHuiTiRegularL3',
   emphasis: 'AlibabaPuHuiTiSemiBold',
   pingFang: Platform.select({
     ios: 'PingFang SC',

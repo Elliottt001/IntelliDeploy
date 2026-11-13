@@ -57,16 +57,13 @@ test('root layout consumes the single tracked mobile font asset map', async () =
   const { default: RootLayout } = await import('../app/_layout');
   const expectedAssets = {
     ZiTiQuanWeiJunHei: '../assets/fonts/ZiTiQuanWeiJunHei-W3.ttf',
-    AlibabaPuHuiTiThin:
-      '../assets/fonts/Alibaba_PuHuiTi_2.0_35_Thin_35_Thin.ttf',
-    AlibabaPuHuiTiLight:
-      '../assets/fonts/Alibaba_PuHuiTi_2.0_45_Light_45_Light.ttf',
-    AlibabaPuHuiTiRegular:
-      '../assets/fonts/Alibaba_PuHuiTi_2.0_55_Regular_55_Regular.ttf',
-    AlibabaPuHuiTiSemiBold:
-      '../assets/fonts/Alibaba_PuHuiTi_2.0_75_SemiBold_75_SemiBold.ttf',
-    AlibabaPuHuiTiBold:
-      '../assets/fonts/Alibaba_PuHuiTi_2.0_55_Regular_85_Bold.ttf',
+    AlibabaPuHuiTiThin: '../assets/fonts/AlibabaPuHuiTi-3-35-Thin.ttf',
+    AlibabaPuHuiTiLight: '../assets/fonts/AlibabaPuHuiTi-3-45-Light.ttf',
+    AlibabaPuHuiTiRegular: '../assets/fonts/AlibabaPuHuiTi-3-55-Regular.ttf',
+    AlibabaPuHuiTiRegularL3:
+      '../assets/fonts/AlibabaPuHuiTi-3-55-RegularL3.ttf',
+    AlibabaPuHuiTiSemiBold: '../assets/fonts/AlibabaPuHuiTi-3-75-SemiBold.ttf',
+    AlibabaPuHuiTiBold: '../assets/fonts/AlibabaPuHuiTi-3-85-Bold.ttf',
   };
 
   expect(mobileFontAssets).toEqual(expectedAssets);

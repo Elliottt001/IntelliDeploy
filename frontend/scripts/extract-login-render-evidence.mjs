@@ -39,6 +39,38 @@ const color = (c) =>
     )
     .join("")
     .toUpperCase();
+const visiblePaint = (paints) => paints.find((p) => p.visible !== false);
+const summarizePaint = (paint) => ({
+  type: paint.type,
+  color: paint.color ? color(paint.color) : "none",
+  opacity: paint.opacity ?? 1,
+});
+const inputSurface = (surfaceId, textId) => {
+  const surface = node(surfaceId);
+  const label = node(textId);
+  const glyph = label.derivedTextData.glyphs[0];
+  return {
+    surface: {
+      sourceNodeId: surfaceId,
+      size: surface.size,
+      transform: surface.transform,
+      cornerRadius: surface.cornerRadius,
+      strokeWeight: surface.strokeWeight,
+      strokeAlign: surface.strokeAlign,
+      fill: summarizePaint(visiblePaint(surface.fillPaints)),
+      stroke: summarizePaint(visiblePaint(surface.strokePaints)),
+    },
+    text: {
+      sourceNodeId: textId,
+      characters: label.textData.characters,
+      size: label.size,
+      transform: label.transform,
+      fontSize: glyph.fontSize,
+      baseline: glyph.position.y,
+      fill: summarizePaint(visiblePaint(label.fillPaints)),
+    },
+  };
+};
 const text = {};
 for (const id of ["119:76680", "119:76681", "119:76683", "119:76684"]) {
   const n = node(id);
@@ -125,7 +157,7 @@ try {
   const social=Object.fromEntries(Object.entries({google:'119:76727',github:'119:76724',apple:'119:76721'}).map(([key,id])=>{const n=node(id),paint=n.fillPaints.find(p=>p.type==='IMAGE');return [key,{sourceNodeId:id,size:n.size,transform:n.transform,paintTransform:paint.transform,rawHash:Buffer.from(paint.image.hash.data,'base64').toString('hex')}];}));
   await fs.writeFile(
     new URL("../design/loginRenderEvidence.ts", import.meta.url),
-    `// Actual login glyphs and native button geometry with recorded optical effects.\nexport const loginRenderEvidence = ${JSON.stringify({ social, hero, text, button: { sourceNodeId: "119:76698", size: node("119:76698").size, geometry } }, null, 2)} as const;\n`,
+    `// Actual login glyphs and native button geometry with recorded optical effects.\nexport const loginRenderEvidence = ${JSON.stringify({ social, hero, text, input: { sourceNodeId: "119:76685", size: node("119:76685").size, transform: node("119:76685").transform, account: inputSurface("119:76686", "119:76687"), password: inputSurface("119:76688", "119:76689") }, button: { sourceNodeId: "119:76698", size: node("119:76698").size, geometry } }, null, 2)} as const;\n`,
   );
 } finally {
   await fs.rm(temporary, { recursive: true, force: true });

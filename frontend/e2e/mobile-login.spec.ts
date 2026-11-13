@@ -1,5 +1,34 @@
 import { expect, test } from '@playwright/test';
 
+import { expectNoHorizontalOverflow, expectTouchTarget } from './sourceAssertions';
+import { sourceBox, sourceNode } from '../tests/figmaSource';
+
+const loginFrameId = '119:76618';
+const inputFrameId = '119:76685';
+const accountSurfaceId = '119:76686';
+const accountTextId = '119:76687';
+const passwordSurfaceId = '119:76688';
+const passwordTextId = '119:76689';
+
+function colorToHex(color: { r: number; g: number; b: number }) {
+  return `#${[color.r, color.g, color.b]
+    .map((channel) =>
+      Math.round(channel * 255)
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')
+    .toUpperCase()}`;
+}
+
+function fitSourceWidth(
+  sourceWidth: number,
+  sourceParentWidth: number,
+  availableWidth: number,
+) {
+  return Math.min(availableWidth, (availableWidth * sourceWidth) / sourceParentWidth);
+}
+
 test('login brand preserves the source header origin beyond the narrower input gutters', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/login');
@@ -72,6 +101,105 @@ test('login glow export preserves the original ellipse geometry instead of stret
   // Kiwi 119:76679: 278x130 at (48.5,375), radius100 blur.
   for (const [key, expected] of Object.entries({ x: 187.5, y: 440, rx: 139, ry: 65 })) {
     expect(geometry[key as keyof typeof geometry], key).toBeCloseTo(expected, 1);
+  }
+});
+
+test('login input surfaces preserve source stroke, text inset, and live font resolution', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/login');
+
+  const raw = sourceNode(accountSurfaceId);
+  const text = sourceNode(accountTextId);
+  const source = sourceBox(loginFrameId, accountSurfaceId);
+  const strokePaint = raw.strokePaints.find(
+    (paint: { visible?: boolean }) => paint.visible !== false,
+  );
+  const fillPaint = raw.fillPaints.find(
+    (paint: { visible?: boolean }) => paint.visible !== false,
+  );
+  const firstGlyph = text.derivedTextData.glyphs[0];
+  const surface = page.getByTestId('login-account-surface');
+  const stroke = surface.locator('[stroke-width]').first();
+
+  await expect(page.getByTestId('login-account')).toBeVisible();
+  await expect(surface).toBeVisible();
+  await expectTouchTarget(page.getByTestId('login-account'));
+
+  expect(Number(await stroke.getAttribute('stroke-width'))).toBeCloseTo(
+    raw.strokeWeight,
+    6,
+  );
+  await expect(stroke).toHaveAttribute('stroke', colorToHex(strokePaint.color));
+  await expect(stroke).toHaveAttribute('fill', colorToHex(fillPaint.color));
+
+  const metrics = await page.getByTestId('login-account').evaluate((node) => {
+    const input = node as HTMLInputElement;
+    const styles = getComputedStyle(input);
+    const box = input.getBoundingClientRect();
+    return {
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height,
+      fontFamily: styles.fontFamily,
+      fontSize: Number.parseFloat(styles.fontSize),
+      paddingLeft: Number.parseFloat(styles.paddingLeft),
+      paddingTop: Number.parseFloat(styles.paddingTop),
+      backgroundColor: styles.backgroundColor,
+      borderTopWidth: Number.parseFloat(styles.borderTopWidth),
+    };
+  });
+
+  expect(metrics.x).toBeCloseTo(source.x, 1);
+  expect(metrics.y).toBeCloseTo(source.y, 1);
+  expect(metrics.width).toBeCloseTo(raw.size.x, 1);
+  expect(metrics.height).toBeCloseTo(raw.size.y, 1);
+  expect(metrics.fontFamily).toContain('AlibabaPuHuiTiLight');
+  expect(metrics.fontSize).toBeCloseTo(firstGlyph.fontSize, 3);
+  expect(metrics.paddingLeft).toBeCloseTo(text.transform.m02, 3);
+  expect(metrics.paddingTop + firstGlyph.position.y).toBeCloseTo(
+    text.transform.m12 + firstGlyph.position.y,
+    3,
+  );
+  expect(metrics.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+  expect(metrics.borderTopWidth).toBe(0);
+});
+
+test('login inputs follow source width across mobile viewports without shrinking text or targets', async ({
+  page,
+}) => {
+  const raw = sourceNode(accountSurfaceId);
+  const text = sourceNode(accountTextId);
+  const frame = sourceNode(loginFrameId);
+
+  for (const width of [320, 360, 375, 390, 430]) {
+    await page.setViewportSize({ width, height: 812 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/login');
+    await expectNoHorizontalOverflow(page);
+    await expectTouchTarget(page.getByTestId('login-account'));
+    await expectTouchTarget(page.getByTestId('login-password'));
+
+    const expectedWidth = fitSourceWidth(raw.size.x, frame.size.x, width);
+    const account = (await page.getByTestId('login-account').boundingBox())!;
+    const password = (await page.getByTestId('login-password').boundingBox())!;
+    const fontSize = await page
+      .getByTestId('login-account')
+      .evaluate((node) => Number.parseFloat(getComputedStyle(node).fontSize));
+
+    expect(account.width, `${width}.account.width`).toBeCloseTo(expectedWidth, 1);
+    expect(password.width, `${width}.password.width`).toBeCloseTo(expectedWidth, 1);
+    expect(password.y - account.y, `${width}.stack-gap`).toBeCloseTo(
+      sourceBox(inputFrameId, passwordSurfaceId).y -
+        sourceBox(inputFrameId, accountSurfaceId).y,
+      1,
+    );
+    expect(fontSize, `${width}.fontSize`).toBeCloseTo(
+      text.derivedTextData.glyphs[0].fontSize,
+      3,
+    );
   }
 });
 

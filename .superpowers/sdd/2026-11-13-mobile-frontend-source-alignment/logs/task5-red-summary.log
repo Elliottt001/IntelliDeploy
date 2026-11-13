@@ -1,0 +1,15 @@
+RED 1: INTELLIDEPLOY_FIGMA_SOURCE=/Users/bytedance/Downloads/IntelliDeploy-design-2026-11-10-2221 npm --workspace frontend test -- mobileFonts.test.ts
+
+Result: failed as expected before implementation.
+Key output:
+- tests/mobileFonts.test.ts expected AlibabaPuHuiTi aliases to resolve to AlibabaPuHuiTi-3-*.ttf.
+- Received aliases still pointed at Alibaba_PuHuiTi_2.0_*.ttf.
+- 1 test failed.
+
+RED 2: INTELLIDEPLOY_FIGMA_SOURCE=/Users/bytedance/Downloads/IntelliDeploy-design-2026-11-10-2221 npm --workspace frontend run test:e2e:mobile -- mobile-login.spec.ts
+
+Result: failed as expected before implementation.
+Key output:
+- login input surfaces preserve source stroke, text inset, and live font resolution failed because getByTestId('login-account-surface') was not found.
+- login inputs follow source width across mobile viewports without shrinking text or targets failed at 320px: expected account width 238.93333333333334, received 280.
+- 2 tests failed, 6 passed.

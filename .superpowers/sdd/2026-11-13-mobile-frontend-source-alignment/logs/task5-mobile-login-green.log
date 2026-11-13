@@ -1,0 +1,27 @@
+
+> frontend@1.0.0 test:e2e:mobile
+> playwright test --config playwright.mobile.config.ts mobile-login.spec.ts
+
+[WebServer] (node:54273) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:54873) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] The following packages should be updated for best compatibility with the installed expo version:
+[WebServer]   react-native@0.83.6 - expected version: 0.83.10
+[WebServer]   react-native-svg@15.16.1 - expected version: 15.15.3
+[WebServer] Your project may not work correctly until you install the expected versions of the packages.
+
+Running 8 tests using 1 worker
+
+(node:55680) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/mobile-login.spec.ts:32:5 › login brand preserves the source header origin beyond the narrower input gutters (1.0s)
+  ✓  2 e2e/mobile-login.spec.ts:43:5 › login settings export keeps the source circle center and radii at one to one scale (633ms)
+  ✓  3 e2e/mobile-login.spec.ts:64:5 › login static controls preserve source coordinates independently of touch targets (657ms)
+  ✓  4 e2e/mobile-login.spec.ts:91:5 › login glow export preserves the original ellipse geometry instead of stretching its padded viewport (621ms)
+  ✓  5 e2e/mobile-login.spec.ts:107:5 › login input surfaces preserve source stroke, text inset, and live font resolution (738ms)
+  ✓  6 e2e/mobile-login.spec.ts:170:5 › login inputs follow source width across mobile viewports without shrinking text or targets (2.5s)
+  ✓  7 e2e/mobile-login.spec.ts:206:5 › login preserves input after a public backend error and keeps providers disabled (866ms)
+  ✓  8 e2e/mobile-login.spec.ts:240:5 › 320px layout keeps the submit action reachable with 44px controls (735ms)
+
+  8 passed (10.1s)

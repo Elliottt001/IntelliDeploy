@@ -8120,6 +8120,127 @@ export const loginRenderEvidence = {
       ]
     }
   },
+  "input": {
+    "sourceNodeId": "119:76685",
+    "size": {
+      "x": 280,
+      "y": 112
+    },
+    "transform": {
+      "m00": 1,
+      "m01": 0,
+      "m02": 47,
+      "m10": 0,
+      "m11": 1,
+      "m12": 356
+    },
+    "account": {
+      "surface": {
+        "sourceNodeId": "119:76686",
+        "size": {
+          "x": 280,
+          "y": 48
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 0,
+          "m10": 0,
+          "m11": 1,
+          "m12": 0
+        },
+        "cornerRadius": 12,
+        "strokeWeight": 0.30000001192092896,
+        "strokeAlign": "INSIDE",
+        "fill": {
+          "type": "SOLID",
+          "color": "#FFFFFF",
+          "opacity": 1
+        },
+        "stroke": {
+          "type": "SOLID",
+          "color": "#A3B2FF",
+          "opacity": 1
+        }
+      },
+      "text": {
+        "sourceNodeId": "119:76687",
+        "characters": "用户名/电话号码/邮箱",
+        "size": {
+          "x": 108,
+          "y": 15
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 16.5,
+          "m10": 0,
+          "m11": 1,
+          "m12": 16.5
+        },
+        "fontSize": 11,
+        "baseline": 11.460000038146973,
+        "fill": {
+          "type": "SOLID",
+          "color": "#B4B4B4",
+          "opacity": 1
+        }
+      }
+    },
+    "password": {
+      "surface": {
+        "sourceNodeId": "119:76688",
+        "size": {
+          "x": 280,
+          "y": 48
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 0,
+          "m10": 0,
+          "m11": 1,
+          "m12": 64
+        },
+        "cornerRadius": 12,
+        "strokeWeight": 0.30000001192092896,
+        "strokeAlign": "INSIDE",
+        "fill": {
+          "type": "SOLID",
+          "color": "#FFFFFF",
+          "opacity": 1
+        },
+        "stroke": {
+          "type": "SOLID",
+          "color": "#A3B2FF",
+          "opacity": 1
+        }
+      },
+      "text": {
+        "sourceNodeId": "119:76689",
+        "characters": "密码",
+        "size": {
+          "x": 22,
+          "y": 15
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 16.5,
+          "m10": 0,
+          "m11": 1,
+          "m12": 16.5
+        },
+        "fontSize": 11,
+        "baseline": 11.460000038146973,
+        "fill": {
+          "type": "SOLID",
+          "color": "#B4B4B4",
+          "opacity": 1
+        }
+      }
+    }
+  },
   "button": {
     "sourceNodeId": "119:76698",
     "size": {

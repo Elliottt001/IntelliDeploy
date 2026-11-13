@@ -3,9 +3,7 @@ import { Stack, useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { cssInterop } from "nativewind";
 import {
-  useEffect,
   useMemo,
-  useRef,
   useState,
   type ComponentProps,
   type ComponentType,
@@ -13,8 +11,6 @@ import {
 } from "react";
 import {
   Alert,
-  Animated,
-  Easing,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -39,9 +35,10 @@ import { FigmaTree } from "../../components/mobile/FigmaTree";
 import { FigmaText } from "../../components/mobile/FigmaText";
 import { mobileAssets } from "../../design/generated/mobileAssetManifest";
 import { loginRenderEvidence } from "../../design/loginRenderEvidence";
+import { fitSourceWidth } from "../../theme/responsive";
 import { BrandHeader } from "../../components/mobile/BrandHeader";
 import { MobileBackdrop } from "../../components/mobile/MobileBackdrop";
-import Svg from "react-native-svg";
+import Svg, { Rect } from "react-native-svg";
 import { loginOptions } from "../../features/auth/loginOptions";
 import {
   atmosphereXml,
@@ -56,8 +53,6 @@ import {
 } from "./generated/loginSvgAssets";
 import { sanitizeNextPath } from "../../features/navigation/routePolicy";
 import { authAPI } from "../../services/api";
-
-declare const require: <T = unknown>(moduleName: string) => T;
 
 type ClassNameProp = {
   className?: string;
@@ -74,9 +69,6 @@ const TText = Text as ComponentType<TextProps & ClassNameProp>;
 const TImage = Image as ComponentType<ImageProps & ClassNameProp>;
 const TPressable = Pressable as ComponentType<PressableProps & ClassNameProp>;
 const TTextInput = TextInput as ComponentType<TextInputProps & ClassNameProp>;
-const TAnimatedView = Animated.View as ComponentType<
-  ComponentProps<typeof Animated.View> & ClassNameProp
->;
 
 cssInterop(LinearGradient, { className: "style" });
 
@@ -93,6 +85,7 @@ interface MotionLayerProps {
   className?: string;
   delay?: number;
   fromY?: number;
+  style?: ViewProps["style"];
 }
 
 interface SocialLoginOption {
@@ -144,75 +137,13 @@ function LocalSvg({ xml, className, opacity = 1 }: LocalSvgProps) {
 function WebMotionLayer({
   children,
   className,
-  delay = 0,
-  fromY = 16,
+  style,
 }: MotionLayerProps) {
-  const { motion, useReducedMotion } = require<
-    typeof import("framer-motion")
-  >("framer-motion");
-  const reducedMotion = useReducedMotion();
-  const MotionDiv = motion.div;
-
-  return (
-    <MotionDiv
-      className={className}
-      initial={reducedMotion ? false : { opacity: 0, y: fromY }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{
-        duration: reducedMotion ? 0 : 0.58,
-        delay: reducedMotion ? 0 : delay,
-        ease: [0.22, 1, 0.36, 1],
-      }}
-    >
-      {children}
-    </MotionDiv>
-  );
-}
-
-function NativeMotionLayer({
-  children,
-  className,
-  delay = 0,
-  fromY = 16,
-}: MotionLayerProps) {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(fromY)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 580,
-        delay: delay * 1000,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(translateY, {
-        toValue: 0,
-        duration: 580,
-        delay: delay * 1000,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [delay, opacity, translateY]);
-
-  return (
-    <TAnimatedView
-      className={className}
-      style={{ opacity, transform: [{ translateY }] }}
-    >
-      {children}
-    </TAnimatedView>
-  );
+  return <TView className={className} style={style}>{children}</TView>;
 }
 
 function MotionLayer(props: MotionLayerProps) {
-  if (Platform.OS === "web") {
-    return <WebMotionLayer {...props} />;
-  }
-
-  return <NativeMotionLayer {...props} />;
+  return <WebMotionLayer {...props} />;
 }
 
 interface CheckboxProps {
@@ -291,6 +222,84 @@ function SocialButton({ option }: SocialButtonProps) {
   );
 }
 
+type LoginInputKind = "account" | "password";
+
+interface SourceInputProps extends Omit<TextInputProps, "style"> {
+  kind: LoginInputKind;
+  inputWidth: number;
+}
+
+function SourceInput({ kind, inputWidth, ...props }: SourceInputProps) {
+  const source = loginRenderEvidence.input[kind];
+  const { surface, text } = source;
+  const strokeWidth = surface.strokeWeight;
+  const rectInset = strokeWidth / 2;
+  const rectRadius = Math.max(0, surface.cornerRadius - rectInset);
+
+  return (
+    <View
+      style={{
+        width: inputWidth,
+        height: surface.size.y,
+        position: "relative",
+      }}
+    >
+      {Platform.OS === "web" ? (
+        <style>
+          {`[data-testid="login-${kind}"]{font-family:AlibabaPuHuiTiLight,"Alibaba PuHuiTi 3.0",sans-serif!important;}[data-testid="login-${kind}"]::placeholder{color:${text.fill.color};}`}
+        </style>
+      ) : null}
+      <Svg
+        pointerEvents="none"
+        testID={`login-${kind}-surface`}
+        width={inputWidth}
+        height={surface.size.y}
+        style={StyleSheet.absoluteFill}
+      >
+        <Rect
+          x={rectInset}
+          y={rectInset}
+          width={inputWidth - strokeWidth}
+          height={surface.size.y - strokeWidth}
+          rx={rectRadius}
+          ry={rectRadius}
+          fill={surface.fill.color}
+          fillOpacity={surface.fill.opacity}
+          stroke={surface.stroke.color}
+          strokeOpacity={surface.stroke.opacity}
+          strokeWidth={strokeWidth}
+        />
+      </Svg>
+      <TTextInput
+        {...props}
+        placeholder={text.characters}
+        placeholderTextColor={text.fill.color}
+        style={[
+          styles.inputText,
+          {
+            ...StyleSheet.absoluteFillObject,
+            width: inputWidth,
+            height: surface.size.y,
+            borderWidth: 0,
+            backgroundColor: "transparent",
+            color: "#545454",
+            fontFamily:
+              Platform.OS === "web"
+                ? "AlibabaPuHuiTiLight, Alibaba PuHuiTi 3.0, sans-serif"
+                : "AlibabaPuHuiTiLight",
+            fontSize: text.fontSize,
+            lineHeight: text.size.y,
+            paddingLeft: text.transform.m02,
+            paddingRight: text.transform.m02,
+            paddingTop: text.transform.m12,
+            paddingBottom: 0,
+          },
+        ]}
+      />
+    </View>
+  );
+}
+
 function showAlert(title: string, message: string, onConfirm?: () => void) {
   if (Platform.OS === "web") {
     globalThis.alert?.(`${title}\n${message}`);
@@ -319,10 +328,14 @@ function getLoginErrorMessage(error: unknown): string {
 function getMobileLayout(screenWidth: number) {
   const gutter = screenWidth < 360 ? 16 : 20;
   const contentWidth = Math.min(375, Math.max(0, screenWidth - gutter * 2));
+  const inputSource = loginRenderEvidence.input.account.surface;
+  const inputRightMargin =
+    375 - loginRenderEvidence.input.transform.m02 - inputSource.size.x;
   return {
     contentWidth,
     formWidth: Math.min(299, contentWidth),
-    inputWidth: Math.min(280, contentWidth),
+    inputWidth: fitSourceWidth(inputSource.size.x, 375, screenWidth, "relative"),
+    inputOffsetX: (loginRenderEvidence.input.transform.m02 - inputRightMargin) / 2,
     heroWidth: Math.min(344, contentWidth),
     gutter,
   };
@@ -340,7 +353,7 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { contentWidth, formWidth, gutter, heroWidth, inputWidth } =
+  const { contentWidth, formWidth, gutter, heroWidth, inputOffsetX, inputWidth } =
     getMobileLayout(screenWidth);
   const heroScale = heroWidth / 344;
   const heroHeight = 189.740463 * heroScale;
@@ -478,30 +491,25 @@ export default function LoginScreen() {
 
           <MotionLayer
             className="mt-[29px] self-center"
-            delay={0.32}
-            fromY={18}
+            style={{ transform: [{ translateX: inputOffsetX }] }}
           >
             <TView className="gap-[16px]" style={{ width: inputWidth }}>
-              <TTextInput
+              <SourceInput
+                kind="account"
                 testID="login-account"
                 value={account}
                 onChangeText={setAccount}
-                placeholder="用户名/电话号码/邮箱"
-                placeholderTextColor="#B4B4B4"
+                inputWidth={inputWidth}
                 autoCapitalize="none"
                 autoCorrect={false}
-                className="h-[48px] rounded-[12px] border-[0.3px] border-[#A3B2FF] bg-white px-[16.5px] text-[11px] text-[#545454]"
-                style={[styles.inputText, { width: inputWidth }]}
               />
-              <TTextInput
+              <SourceInput
+                kind="password"
                 testID="login-password"
                 value={password}
                 onChangeText={setPassword}
-                placeholder="密码"
-                placeholderTextColor="#B4B4B4"
+                inputWidth={inputWidth}
                 secureTextEntry
-                className="h-[48px] rounded-[12px] border-[0.3px] border-[#A3B2FF] bg-white px-[16.5px] text-[11px] text-[#545454]"
-                style={[styles.inputText, { width: inputWidth }]}
               />
             </TView>
           </MotionLayer>
@@ -693,9 +701,9 @@ const styles = StyleSheet.create({
   },
   alibabaLight: {
     fontFamily: Platform.select({
-      ios: "AlibabaPuHuiTiThin",
-      android: "AlibabaPuHuiTiThin",
-      default: "AlibabaPuHuiTiThin, Alibaba PuHuiTi 3.0, sans-serif",
+      ios: "AlibabaPuHuiTiLight",
+      android: "AlibabaPuHuiTiLight",
+      default: "AlibabaPuHuiTiLight, Alibaba PuHuiTi 3.0, sans-serif",
     }),
     fontWeight: "300",
   },
@@ -703,6 +711,7 @@ const styles = StyleSheet.create({
     fontFamily: Platform.select({
       ios: "AlibabaPuHuiTiLight",
       android: "AlibabaPuHuiTiLight",
+      web: "AlibabaPuHuiTiLight, Alibaba PuHuiTi 3.0, sans-serif",
       default: "AlibabaPuHuiTiLight, Alibaba PuHuiTi 3.0, sans-serif",
     }),
     fontWeight: "300",

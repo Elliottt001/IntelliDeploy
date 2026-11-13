@@ -1,0 +1,51 @@
+
+> frontend@1.0.0 test
+> vitest run
+
+
+ RUN  v5.1.0 /Users/bytedance/Projects/my/byte-intelli/.worktrees/intellideploy-mobile-figma/frontend
+
+ ✓ tests/workspaceStorage.test.ts (3 tests) 11ms
+ ✓ tests/authStorage.test.ts (4 tests) 27ms
+ ✓ tests/mobileFonts.test.ts (1 test) 162ms
+ ✓ tests/testDatabase.test.ts (3 tests) 219ms
+ ✓ tests/mobileDesignSystem.test.ts (4 tests) 63ms
+ ✓ tests/mobileDesignExtraction.test.ts (5 tests) 266ms
+ ✓ tests/jobPolling.test.ts (6 tests) 9ms
+ ✓ tests/sourceMotionCurve.test.ts (4 tests) 299ms
+ ✓ tests/mobileVisualGate.test.ts (4 tests) 31ms
+ ✓ tests/sourceMotionEvidence.test.ts (9 tests) 333ms
+ ✓ tests/publicationViewModel.test.ts (4 tests) 381ms
+   ✓ store source audit (NOT_RUN unless INTELLIDEPLOY_FIGMA_SOURCE is set) 378ms
+ ✓ tests/sourceEffects.test.ts (6 tests) 317ms
+   ✓ source paint, mask, and effect preservation (6)
+     ✓ glass remains glass with its original optical values 309ms
+ ✓ tests/responsiveLayout.test.ts (4 tests) 3ms
+ ✓ tests/loginOptions.test.ts (1 test) 2ms
+ ✓ tests/mobileNavigation.test.ts (10 tests) 9ms
+ ✓ tests/replyLayout.test.ts (2 tests) 3ms
+ ✓ tests/sourceMotionPolicy.test.ts (2 tests) 2ms
+ ✓ tests/jobVisualState.test.ts (34 tests) 321ms
+   ✓ external Figma provenance audit (NOT_RUN unless INTELLIDEPLOY_FIGMA_SOURCE is set) 303ms
+ ✓ tests/communityViewModel.test.ts (4 tests) 487ms
+   ✓ provided Kiwi/FIG/mobile/CSV/raw assets independently match runtime sources 485ms
+ ✓ tests/productViewModel.test.ts (7 tests) 517ms
+   ✓ actual Figma source independently confirms paths, paints, effects, text, mobile trees and original FIG 506ms
+ ✓ tests/useSourceMotion.test.tsx (7 tests) 14ms
+ ✓ tests/routePolicy.test.ts (4 tests) 3ms
+ ✓ tests/homeContent.test.ts (3 tests) 590ms
+   ✓ home direct Kiwi and FIG source audit (NOT_RUN unless INTELLIDEPLOY_FIGMA_SOURCE is set) 588ms
+ ✓ tests/mobileVisualFixtures.test.ts (4 tests) 991ms
+   ✓ every formal visual fixture passes the real public Pydantic DTO and success delivery validator 625ms
+   ✓ the validator rejects CREATE kind, null phase and success without a delivery 364ms
+ ✓ tests/figmaComponentEvidence.test.ts (19 tests) 1087ms
+   ✓ Figma component evidence (19)
+     ✓ refuses a dangling Symbol reference before replacing the previous output 314ms
+ ✓ tests/visualPending.test.ts (2 tests) 1678ms
+   ✓ pending pages consume the actual audited Figma brand/card shell without inventing page baselines 1676ms
+
+ Test Files  26 passed (26)
+      Tests  156 passed (156)
+   Start at  15:43:31
+   Duration  1.83s (tests 78%, import 9%, transform 8%, environment 4%, worker 1%)
+
