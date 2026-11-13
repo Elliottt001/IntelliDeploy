@@ -17,7 +17,7 @@ from app.runtime.validation import validate_application
 
 IDENTIFIER = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 HOST = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.-]{0,252}$")
-USER = re.compile(r"^[a-z_][a-z0-9_-]{0,31}$")
+USER = re.compile(r"^[a-z_][a-z0-9_.-]{0,63}$")
 DOMAIN = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$")
 
 

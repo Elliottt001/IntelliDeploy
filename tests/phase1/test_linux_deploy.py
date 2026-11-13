@@ -324,3 +324,13 @@ async def test_target_preflight_checks_digest_images_without_creating_release():
         "registry.test/postgres@sha256:" + "b" * 64,
     ]
     assert "compose" not in payload
+
+
+def test_registered_linux_user_can_contain_a_dot_without_allowing_shell_syntax():
+    from app.runtime.linux import _validated_target
+    value = target()
+    value['capacity']['ssh_user'] = 'zhangruizhe.elliottt'
+    assert _validated_target(value, manifest_fixture())['capacity']['ssh_user'] == 'zhangruizhe.elliottt'
+    value['capacity']['ssh_user'] = 'user;command'
+    with pytest.raises(TargetUnavailable, match='SSH user'):
+        _validated_target(value, manifest_fixture())
