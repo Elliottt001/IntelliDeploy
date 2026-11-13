@@ -28,7 +28,9 @@ validate_database_url(database_url)
 
 engine = create_engine(database_url, **build_engine_kwargs(database_url))
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Pipeline APIs return loaded task/instance snapshots across short session scopes.
+# Lease fencing still reads/locks current rows in a fresh session before effects.
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=engine)
 
 Base = declarative_base()
 

@@ -589,3 +589,13 @@ async def test_replaced_worker_cannot_overwrite_job_state(session_factory, pipel
         assert job.lease_owner == "new-worker"
         assert job.lease_generation == 2
 
+
+
+def test_pipeline_snapshot_survives_default_production_session_commit(pipeline_context):
+    from app.database import SessionLocal
+    from app.jobs.pipeline import check_lease_and_budget
+    job, requirement = check_lease_and_budget(SessionLocal, pipeline_context.job_id)
+    assert job.id == pipeline_context.job_id
+    assert job.kind == 'ADJUST'
+    assert job.checkpoint is not None
+    assert requirement.revision == 1
