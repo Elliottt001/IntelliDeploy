@@ -59,7 +59,7 @@ class AlgorithmOrchestrator:
         return baseline
 
     async def plan_gaps_and_finalize_route(self, requirement, provisional, retrieval, profiles, evaluations):
-        from app.agent.gaps import plan_acceptance_gaps, finalize_route_with_gaps
+        from app.agent.gaps import plan_acceptance_gaps, finalize_route_with_gaps, cost_is_supported
         from app.agent.integration import build_integration_contract
         from app.agent.checkpoint import stage_input_hash
 
@@ -72,7 +72,7 @@ class AlgorithmOrchestrator:
         candidate = provisional
         providers = {g.provider_source.url: g.provider_source for g in gaps.gaps if g.status == "COMPONENT_SOURCE"}
         cost = gaps.composition_cost
-        if provisional.route == "MODIFY_EXISTING" and providers and cost and cost.composition_units < cost.local_units:
+        if provisional.route == "MODIFY_EXISTING" and providers and cost_is_supported(cost, profiles) and cost.composition_units < cost.local_units:
             candidate = provisional.model_copy(update={
                 "route": "COMPOSE_COMPONENTS",
                 "sources": [gaps.principal_source, *[s for s in providers.values() if s.url != gaps.principal_source.url]],

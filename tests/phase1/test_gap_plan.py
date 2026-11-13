@@ -51,7 +51,7 @@ def test_provider_requires_contract_and_known_cheaper_cost():
     assert finalize_route_with_gaps(route(), gaps.model_copy(deep=True), retrieval, profiles,
         evaluations, req, integration_contract=contract).route == "MODIFY_EXISTING"
     gaps.composition_cost = CompositionCost(local_units=1000, composition_units=500,
-                                            evidence_refs=["fixed-price:dev-v1"])
+                                            evidence_refs=["price:dev-v1", "coverage:search"])
     assert finalize_route_with_gaps(route(), gaps, retrieval, profiles, evaluations, req,
         integration_contract=contract).route == "COMPOSE_COMPONENTS"
 
@@ -85,7 +85,7 @@ async def test_invalid_integration_contract_never_persists_route_c():
                 payload["gaps"][1].update(status="COMPONENT_SOURCE", provider_source=provider.model_dump(),
                     evidence_refs=["coverage:search"])
                 payload["composition_cost"] = {"local_units": 1000, "composition_units": 100,
-                                                 "evidence_refs": ["fixed-price"]}
+                                                 "evidence_refs": ["price:dev-v1", "coverage:search"]}
             else:
                 payload = {}
             return ModelTurn(assistant_message={"role": "assistant", "content": json.dumps(payload)})
@@ -126,3 +126,10 @@ async def test_model_cannot_schedule_rewrite_of_already_satisfied_acceptance():
     gaps = await plan_acceptance_gaps(req, route(), [facts], [rank_candidate(facts, req)], Model())
     assert gaps.gaps[0].status == "SATISFIED"
     assert "save" in gaps.gaps[1].preserve
+
+
+def test_composition_cost_rejects_unknown_or_stale_price_evidence():
+    from app.agent.contracts import CompositionCost
+    from app.agent.gaps import cost_is_supported
+    cost = CompositionCost(local_units=1000, composition_units=100, evidence_refs=["invented-price"])
+    assert not cost_is_supported(cost, [profile(source(), ["save"])])
