@@ -1,6 +1,7 @@
 import os
 import re
 from datetime import datetime, timezone
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt
 from sqlalchemy import func, select
@@ -26,6 +27,8 @@ class Capacity(BaseModel):
     deployment_root: str | None = None
     caddy_config_dir: str | None = None
     caddy_main_config: str | None = None
+    caddy_reload_mode: Literal["systemd", "admin"] = "systemd"
+    caddy_binary: str = "caddy"
     namespace: str | None = None
     storage_class: str | None = None
     ingress_class: str | None = None

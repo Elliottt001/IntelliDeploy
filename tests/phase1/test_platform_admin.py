@@ -77,3 +77,11 @@ def test_ssh_remote_program_is_one_shell_argument_instead_of_executable_fragment
     parsed=shlex.split(' '.join(remote))
     assert len(parsed)==3 and parsed[:2]==['python3','-c']
     compile(parsed[2],'<remote-agent>','exec')
+
+
+def test_registered_capacity_accepts_explicit_caddy_admin_reload():
+    from app.admin.service import Capacity
+    parsed = Capacity.model_validate({'cpu_millis':1000,'memory_mb':1024,'storage_mb':1000,
+        'gateway_image':'registry.example/gateway@sha256:'+'a'*64,
+        'caddy_reload_mode':'admin','caddy_binary':'/controlled/caddy'})
+    assert parsed.caddy_reload_mode == 'admin'
