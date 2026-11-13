@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 
 import { PublicationCard } from './PublicationCard';
+import { storeCardRenderEvidence as source } from '../../design/storeCardRenderEvidence';
+import { fitSourceWidth } from '../../theme/responsive';
 import type { StoreCard } from './publicationViewModel';
 
 type PublicationCarouselProps = {
@@ -22,7 +24,8 @@ type PublicationCarouselProps = {
   selectedId: string | null;
 };
 
-const CARD_GAP = 12;
+const rotation = (matrix: { m00: number; m10: number }) =>
+  `${Math.atan2(matrix.m10, matrix.m00)}rad`;
 
 export function PublicationCarousel({
   favoriteBusyId,
@@ -34,19 +37,41 @@ export function PublicationCarousel({
   selectedId,
 }: PublicationCarouselProps) {
   const { width: windowWidth } = useWindowDimensions();
-  const viewportWidth = Math.min(336.16851806640625, windowWidth - 32);
-  const cardWidth = Math.min(271, viewportWidth - 32);
-  const interval = cardWidth + CARD_GAP;
+  const viewportWidth = fitSourceWidth(
+    source.carousel.size.x,
+    source.sourceFrameSize.x,
+    windowWidth,
+    'relative',
+  );
+  const cardWidth = fitSourceWidth(
+    source.size.x,
+    source.carousel.size.x,
+    viewportWidth,
+    'relative',
+  );
+  const horizontalScale = cardWidth / source.size.x;
+  const sourceGap = source.carousel.sourceGap * horizontalScale;
+  const interval = cardWidth + sourceGap;
   const list = useRef<FlatList<StoreCard>>(null);
   const userScrolling=useRef(false);
-  const [layoutVersion,setLayoutVersion]=useState(0);
+  const [laidOutWidth, setLaidOutWidth] = useState(0);
   const selectedIndex = useMemo(
     () => Math.max(0, items.findIndex((item) => item.id === selectedId)),
     [items, selectedId],
   );
-  useEffect(()=>{
-    if(layoutVersion&&items.length){userScrolling.current=false;list.current?.scrollToIndex({index:selectedIndex,animated:false,viewPosition:.5});}
-  },[layoutVersion,selectedIndex,items.length,viewportWidth,cardWidth]);
+  useEffect(() => {
+    if (!items.length || Math.abs(laidOutWidth - viewportWidth) > 0.5) return;
+    userScrolling.current = false;
+    if (selectedIndex === 0) {
+      list.current?.scrollToOffset({ animated: false, offset: 0 });
+    } else {
+      list.current?.scrollToIndex({
+        index: selectedIndex,
+        animated: false,
+        viewPosition: 0.5,
+      });
+    }
+  }, [laidOutWidth, selectedIndex, items.length, viewportWidth]);
 
   const selectAtOffset = (
     event: NativeSyntheticEvent<NativeScrollEvent>,
@@ -66,8 +91,9 @@ export function PublicationCarousel({
         style={[
           styles.backLayer,
           {
-            left: (viewportWidth - cardWidth) / 2 + 18,
-            transform: [{ rotate: '10deg' }],
+            left: source.carousel.layers.backTen.matrix.m02 * horizontalScale,
+            top: source.carousel.layers.backTen.matrix.m12,
+            transform: [{ rotate: rotation(source.carousel.layers.backTen.matrix) }],
             width: cardWidth,
           },
         ]}
@@ -78,8 +104,9 @@ export function PublicationCarousel({
         style={[
           styles.backLayer,
           {
-            left: (viewportWidth - cardWidth) / 2 + 9,
-            transform: [{ rotate: '5deg' }],
+            left: source.carousel.layers.backFive.matrix.m02 * horizontalScale,
+            top: source.carousel.layers.backFive.matrix.m12,
+            transform: [{ rotate: rotation(source.carousel.layers.backFive.matrix) }],
             width: cardWidth,
           },
         ]}
@@ -89,18 +116,18 @@ export function PublicationCarousel({
         contentContainerStyle={{
           paddingHorizontal: (viewportWidth - cardWidth) / 2,
           paddingTop:21,
-          gap:CARD_GAP,
+          gap:sourceGap,
         }}
         data={items}
         decelerationRate="fast"
         getItemLayout={(_, index) => ({
           index,
-          length: cardWidth,
+          length: interval,
           offset: (viewportWidth-cardWidth)/2+interval * index,
         })}
         horizontal
-        onLayout={()=>setLayoutVersion(version=>version+1)}
         keyExtractor={(item) => item.id}
+        onLayout={(event) => setLaidOutWidth(event.nativeEvent.layout.width)}
         onMomentumScrollEnd={selectAtOffset}
         onScroll={Platform.OS === 'web' ? event=>{if(userScrolling.current)selectAtOffset(event);} : undefined}
         ref={list}
@@ -154,5 +181,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 10,
     top: 0,
+    transformOrigin: [0, 0, 0],
   },
 });

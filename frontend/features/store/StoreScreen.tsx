@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,6 +24,7 @@ import {
 import { authAPI, phase1Api } from '../../services/api';
 import { mobileColors, mobileRadii, mobileSpacing } from '../../theme/tokens';
 import { mobileFontFamilies, mobileTypography } from '../../theme/typography';
+import { fitSourceWidth } from '../../theme/responsive';
 import { PublicationCarousel } from './PublicationCarousel';
 import {
   filterLoadedPublications,
@@ -47,6 +49,9 @@ async function readFavoriteIds() {
 export default function StoreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const viewport = useWindowDimensions();
+  const usableWidth = Math.max(0, viewport.width - insets.left - insets.right);
+  const searchWidth = fitSourceWidth(295, 375, usableWidth, 'relative');
   const [items, setItems] = useState<Publication[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -163,7 +168,8 @@ export default function StoreScreen() {
         />
 
         <View style={styles.main}>
-          <View style={styles.searchShell} testID="store-search-surface">
+          <View style={[styles.searchTarget, { width: searchWidth }]}>
+            <View pointerEvents="none" style={styles.searchSurface} testID="store-search-surface" />
             <TextInput
               accessibilityLabel="搜索已加载的应用"
               onChangeText={setQuery}
@@ -173,7 +179,9 @@ export default function StoreScreen() {
               testID="store-search"
               value={query}
             />
-            <MobileIcon color={mobileColors.muted} name="search" size={14} />
+            <View pointerEvents="none" style={styles.searchIcon}>
+              <MobileIcon color={mobileColors.muted} name="search" size={14} />
+            </View>
           </View>
 
           <Pressable
@@ -257,22 +265,29 @@ const styles = StyleSheet.create({
     gap: 6,
     minHeight: 0,
   },
-  searchShell: {
+  searchTarget: {
     alignItems: 'center',
     alignSelf: 'center',
+    flexDirection: 'row',
+    height: mobileSpacing.controlMin,
+    justifyContent: 'center',
+    minHeight: mobileSpacing.controlMin,
+    position: 'relative',
+  },
+  searchSurface: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderColor: '#FFFFFF',
     borderRadius: mobileRadii.pill,
     borderWidth: 1.6521741151809692,
-    flexDirection: 'row',
-    height: mobileSpacing.controlMin,
-    minHeight: mobileSpacing.controlMin,
-    paddingHorizontal: 16,
+    height: 36,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 4,
     shadowColor: '#BABABA',
     shadowOffset: { width: 0, height: 2.2028987407684326 },
     shadowOpacity: 0.25,
     shadowRadius: 3.3043482303619385,
-    width: '88%',
   },
   searchInput: {
     color: mobileColors.text,
@@ -280,6 +295,12 @@ const styles = StyleSheet.create({
     fontFamily: mobileFontFamilies.body,
     fontSize: 14,
     minHeight: mobileSpacing.controlMin,
+    paddingLeft: 16,
+    paddingRight: 38,
+  },
+  searchIcon: {
+    position: 'absolute',
+    right: 16,
   },
   rankingLink: {
     alignItems: 'center',

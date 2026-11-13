@@ -28,7 +28,6 @@ import { mobileFontFamilies, mobileTypography } from '../../theme/typography';
 import {
   mergePublicationPages,
   sortByRecentUpdate,
-  storeFigmaEvidence,
   type Publication,
 } from './publicationViewModel';
 
@@ -37,7 +36,7 @@ type PublicationPage = components['schemas']['PublicationPage'];
 export default function StoreRankingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const viewport=useWindowDimensions(),layout=getMobileLayout(viewport.width,insets),headerSource=formalMobileControls.productHeader,source=storeFigmaEvidence.ranking;
+  const viewport=useWindowDimensions(),layout=getMobileLayout(viewport.width,insets),headerSource=formalMobileControls.productHeader,source=rowSource.layout;
   const headerLeft=source.header.x-3+Math.max(0,(viewport.width-375)/2),headerWidth=Math.min(source.header.width+6,viewport.width-insets.left-insets.right-35);
   const [items, setItems] = useState<Publication[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -224,17 +223,20 @@ const styles = StyleSheet.create({
   },
   hero: {
     alignSelf: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: rowSource.surfaces.heroFace.fill.color,
     borderColor: '#FFFFFF',
-    borderRadius: 15,
+    borderRadius: rowSource.surfaces.heroFace.cornerRadius,
     borderWidth: 0,
     height: 123,
     justifyContent: 'center',
     paddingHorizontal: 22,
-    shadowColor: '#ADA6C4',
-    shadowOffset: { width: 2, height: 2 },
+    shadowColor: rowSource.surfaces.heroGroup.effects[0].color,
+    shadowOffset: {
+      width: rowSource.surfaces.heroGroup.effects[0].offset.x,
+      height: rowSource.surfaces.heroGroup.effects[0].offset.y,
+    },
     shadowOpacity: 1,
-    shadowRadius: 10,
+    shadowRadius: rowSource.surfaces.heroGroup.effects[0].radius,
     width: '91%',
   },
   heroTitle: {
@@ -259,15 +261,18 @@ const styles = StyleSheet.create({
   },
   list: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
+    backgroundColor: rowSource.surfaces.list.fill.color,
+    borderRadius: rowSource.surfaces.list.cornerRadius,
     borderWidth: 0,
     flexGrow: 0,
-    height: 400.42,
-    shadowColor: '#8276A6',
-    shadowOffset: { width: 2, height: 2 },
+    height: rowSource.surfaces.list.size.y,
+    shadowColor: rowSource.surfaces.list.effects[0].color,
+    shadowOffset: {
+      width: rowSource.surfaces.list.effects[0].offset.x,
+      height: rowSource.surfaces.list.effects[0].offset.y,
+    },
     shadowOpacity: 1,
-    shadowRadius: 10,
+    shadowRadius: rowSource.surfaces.list.effects[0].radius,
     width: '91%',
   },
   listContent: {

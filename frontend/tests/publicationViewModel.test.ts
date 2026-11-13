@@ -9,6 +9,7 @@ import {
   storeFigmaEvidence,
   toStoreCard,
 } from '../features/store/publicationViewModel';
+import { rankingRenderEvidence } from '../design/rankingRenderEvidence';
 
 const publication: Publication = {
   id: 'p',
@@ -152,6 +153,21 @@ test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE)('store source audit (NOT_RU
     'original-fig-zip',
     'mobile-nodes',
   ]);
+  expect(nodes.has('270:26244')).toBe(false);
+  expect(nodes.has('376:4769')).toBe(false);
+  expect(storeFigmaEvidence.detail.frame.id).toBe('270:26597');
+  expect(storeFigmaEvidence.ranking.frame.id).toBe('825:6804');
+  expect(rankingRenderEvidence.sourceFrameId).toBe('825:6804');
+  expect(rankingRenderEvidence.layout).toMatchObject({
+    header: sourceBox('825:6983'),
+    hero: sourceBox('845:3359'),
+    list: sourceBox('845:3357'),
+    listSurface: sourceBox('825:7026'),
+  });
+  expect(rankingRenderEvidence.sourceAudit).toMatchObject({
+    instance: { nodeId: '825:6884', overrideCount: 0, symbolId: '228:19794' },
+    navigation: { nodeId: '825:6984', interactionCount: 1 },
+  });
   expect(sourceBox(storeFigmaEvidence.detail.frame.id)).toEqual(
     storeFigmaEvidence.detail.frame,
   );

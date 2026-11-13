@@ -1,5 +1,164 @@
-// Source typography and row paint for native recent-publication ranking.
+// Generated from ranking40; rows bind only existing Publication DTO fields.
 export const rankingRenderEvidence={
+  "sourceFrameId": "825:6804",
+  "sourceFrameSize": {
+    "x": 375,
+    "y": 812
+  },
+  "sourceAudit": {
+    "requestedIdsAbsent": [
+      "270:26244",
+      "376:4769"
+    ],
+    "instance": {
+      "nodeId": "825:6884",
+      "symbolId": "228:19794",
+      "overrideCount": 0,
+      "interactionCount": 1
+    },
+    "navigation": {
+      "nodeId": "825:6984",
+      "interactionCount": 1,
+      "event": "ON_CLICK",
+      "transition": "SLIDE_FROM_LEFT",
+      "durationMs": 1022.0937728881836
+    }
+  },
+  "layout": {
+    "header": {
+      "id": "825:6983",
+      "width": 334,
+      "height": 38,
+      "x": 27,
+      "y": 47
+    },
+    "hero": {
+      "id": "845:3359",
+      "width": 305,
+      "height": 123,
+      "x": 35,
+      "y": 184
+    },
+    "list": {
+      "id": "845:3357",
+      "width": 322,
+      "height": 428,
+      "x": 28,
+      "y": 324
+    },
+    "listSurface": {
+      "id": "825:7026",
+      "width": 305,
+      "height": 400.4200439453125,
+      "x": 9,
+      "y": 27.579952239990234
+    }
+  },
+  "surfaces": {
+    "heroGroup": {
+      "sourceNodeId": "845:3359",
+      "size": {
+        "x": 305,
+        "y": 123
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 35,
+        "m10": 0,
+        "m11": 1,
+        "m12": 184
+      },
+      "cornerRadius": 15,
+      "fill": null,
+      "strokes": [],
+      "effects": [
+        {
+          "color": "#ADA6C4",
+          "offset": {
+            "x": 2,
+            "y": 2
+          },
+          "radius": 10,
+          "rawType": "DROP_SHADOW",
+          "spread": 0
+        }
+      ]
+    },
+    "heroFace": {
+      "sourceNodeId": "825:7008",
+      "size": {
+        "x": 305,
+        "y": 123
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 2,
+        "m10": 0,
+        "m11": 1,
+        "m12": 1
+      },
+      "cornerRadius": 15,
+      "fill": {
+        "color": "#FFFFFF",
+        "opacity": 1,
+        "type": "SOLID",
+        "visible": true
+      },
+      "strokes": [
+        {
+          "color": "#A78BFA",
+          "opacity": 1,
+          "type": "SOLID",
+          "visible": false
+        }
+      ],
+      "effects": []
+    },
+    "list": {
+      "sourceNodeId": "825:7026",
+      "size": {
+        "x": 305,
+        "y": 400.4200439453125
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 9,
+        "m10": 0,
+        "m11": 1,
+        "m12": 27.579952239990234
+      },
+      "cornerRadius": 15,
+      "fill": {
+        "color": "#FFFFFF",
+        "opacity": 1,
+        "type": "SOLID",
+        "visible": true
+      },
+      "strokes": [
+        {
+          "color": "#A78BFA",
+          "opacity": 1,
+          "type": "SOLID",
+          "visible": false
+        }
+      ],
+      "effects": [
+        {
+          "color": "#8276A6",
+          "offset": {
+            "x": 2,
+            "y": 2
+          },
+          "radius": 10,
+          "rawType": "DROP_SHADOW",
+          "spread": 0
+        }
+      ]
+    }
+  },
   "header": {
     "sourceNodeId": "825:6990",
     "characters": "应用商店",
@@ -89,7 +248,7 @@ export const rankingRenderEvidence={
     "copy": {
       "sourceNodeId": "825:7034",
       "x": 92.7359390258789,
-      "y": 12.021501,
+      "y": 12.021501541137695,
       "size": {
         "x": 105.96482849121094,
         "y": 17.17333221435547
@@ -127,7 +286,9 @@ export const rankingRenderEvidence={
       },
       "fill": {
         "color": "#DF8CFF",
-        "opacity": 0.10000000149011612
+        "opacity": 0.10000000149011612,
+        "type": "SOLID",
+        "visible": true
       },
       "borderColor": "#A78BFA"
     },

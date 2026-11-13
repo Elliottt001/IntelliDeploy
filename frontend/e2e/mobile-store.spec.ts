@@ -222,6 +222,22 @@ test('store surfaces preserve audited paints, hidden strokes, and separate back 
     });
     expect(rotation).toBeCloseTo(degrees, 3);
   }
+  const sourceLayerOffsets = await Promise.all(
+    [
+      ['store-carousel-back-10', 69.28564453125, 0],
+      ['store-carousel-back-5', 50.487488746643066, 9.44775390625],
+    ].map(async ([testId, left, top]) => {
+      const actual = await page.getByTestId(String(testId)).evaluate((element) => {
+        const style = getComputedStyle(element);
+        return { left: Number.parseFloat(style.left), top: Number.parseFloat(style.top) };
+      });
+      return { actual, left: Number(left), top: Number(top) };
+    }),
+  );
+  for (const { actual, left, top } of sourceLayerOffsets) {
+    expect(actual.left).toBeCloseTo(left, 3);
+    expect(actual.top).toBeCloseTo(top, 3);
+  }
 
   await page.goto('/store/ranking');
   const rankingSurface = page.getByTestId('store-ranking-list-surface');
@@ -230,6 +246,97 @@ test('store surfaces preserve audited paints, hidden strokes, and separate back 
     'box-shadow',
     /rgb\(130, 118, 166\)/,
   );
+});
+
+test('store keeps the 295 by 36 source search surface separate from its 44pt input target', async ({ page }) => {
+  await mockPublications(page);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/store');
+
+  const surface = await page.getByTestId('store-search-surface').boundingBox();
+  const target = await page.getByTestId('store-search').boundingBox();
+  expect(surface).not.toBeNull();
+  expect(target).not.toBeNull();
+  expect(surface!.width).toBeCloseTo(295, 1);
+  expect(surface!.height).toBeCloseTo(36, 1);
+  expect(target!.height).toBeGreaterThanOrEqual(44);
+});
+
+test('carousel grows at all five widths and resize preserves the selected publication id', async ({ page }) => {
+  await mockPublications(page);
+  const viewportWidths: number[] = [];
+
+  for (const width of [320, 360, 375, 390, 430]) {
+    await page.setViewportSize({ width, height: width === 320 ? 568 : 932 });
+    await page.goto('/store');
+    viewportWidths.push((await page.getByTestId('store-carousel').boundingBox())!.width);
+  }
+  expect(viewportWidths).toEqual([...viewportWidths].sort((left, right) => left - right));
+  expect(new Set(viewportWidths.map(Math.round)).size).toBe(5);
+
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/store');
+  await page.getByTestId('store-carousel-card-second').click();
+  await expect(page.getByTestId('store-carousel-card-second')).toHaveAttribute('aria-selected', 'true');
+  await page.setViewportSize({ width: 430, height: 932 });
+  await expect(page.getByTestId('store-carousel-card-second')).toHaveAttribute('aria-selected', 'true');
+  await expect.poll(async () => Math.round((await page.getByTestId('store-carousel-card-second').boundingBox())!.x))
+    .toBeGreaterThan(0);
+});
+
+test('four unavailable publications remain unavailable without a preview or success claim', async ({ page }) => {
+  const unavailable = Array.from({ length: 4 }, (_, index) => ({
+    ...publication(
+      `unavailable-${index}`,
+      index === 0 ? '这是一个很长但仍必须保留真实内容的不可用应用名称' : `不可用应用${index}`,
+      stamp,
+    ),
+    available: false,
+    preview_url: null,
+    url: null,
+  }));
+  await page.route('**/api/community/apps**', (route) =>
+    route.fulfill({ json: { items: unavailable, next_cursor: null } }),
+  );
+  await page.goto('/store');
+
+  for (const item of unavailable) {
+    const card = page.getByTestId(`store-carousel-card-${item.id}`);
+    await expect(card).toContainText('暂不可用');
+    await expect(card.getByLabel(`${item.name}预览`, { exact: true })).toHaveCount(0);
+    await expect(card).not.toContainText(/获取成功|评分|热度|奖项/);
+  }
+
+  await page.goto('/store/ranking');
+  await expect(page.getByTestId(/^store-ranking-row-/)).toHaveCount(4);
+  await expect(page.getByTestId('store-ranking-row-unavailable-0')).toContainText(
+    '这是一个很长但仍必须保留真实内容的不可用应用名称',
+  );
+  await expect(page.getByTestId('store-ranking-row-unavailable-0')).toContainText('暂不可用');
+  await expect(page.getByTestId('store-carousel')).toHaveCount(0);
+  await expect(page.getByTestId(/^store-carousel-back-/)).toHaveCount(0);
+  await expect(page.getByTestId('mobile-store-ranking')).not.toContainText(/获取成功|评分|热度|奖项/);
+  expect(
+    await page.evaluate(() => ({
+      client: document.documentElement.clientWidth,
+      scroll: document.documentElement.scrollWidth,
+    })),
+  ).toEqual({ client: 375, scroll: 375 });
+});
+
+test('store initial errors retry against the existing publication endpoint', async ({ page }) => {
+  let attempts = 0;
+  await page.route('**/api/community/apps**', (route) => {
+    attempts += 1;
+    return attempts === 1
+      ? route.fulfill({ status: 503, json: { error: { message: '暂不可用' } } })
+      : route.fulfill({ json: { items: [first], next_cursor: null } });
+  });
+  await page.goto('/store');
+  await expect(page.getByText('公开应用暂时无法加载')).toBeVisible();
+  await page.getByRole('button', { name: '重试' }).click();
+  await expect(page.getByTestId('store-carousel-card-first')).toBeVisible();
+  expect(attempts).toBe(2);
 });
 
 test('horizontal carousel scrolling selects the snapped card', async ({ page }) => {
@@ -266,7 +373,7 @@ test('ranking is public and explains its honest recent-update order', async ({ p
 test('store controls stay reachable and at least 44px at supported widths', async ({ page }) => {
   await mockPublications(page);
 
-  for (const width of [320, 375, 430]) {
+  for (const width of [320, 360, 375, 390, 430]) {
     await page.setViewportSize({ width, height: 812 });
     await page.goto('/store');
     for (const target of [
@@ -290,7 +397,7 @@ test('store controls stay reachable and at least 44px at supported widths', asyn
 test('ranking controls stay reachable and at least 44px at supported widths', async ({ page }) => {
   await mockPublications(page);
 
-  for (const width of [320, 375, 430]) {
+  for (const width of [320, 360, 375, 390, 430]) {
     await page.setViewportSize({ width, height: 812 });
     await page.goto('/store/ranking');
     for (const target of [
