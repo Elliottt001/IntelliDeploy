@@ -135,6 +135,8 @@ async def test_compile_reviews_coverage_and_corrects_missing_features():
 
         async def complete(self, messages, tools, model):
             self.calls += 1
+            if self.calls == 3:
+                assert "缺少搜索" in messages[1]["content"]
             content = (
                 valid.model_dump(mode="json")
                 if self.calls % 2

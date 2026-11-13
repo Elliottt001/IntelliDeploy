@@ -167,7 +167,10 @@ async def compile_requirement(messages, previous, model_client):
             )
             missing = json.loads(review.assistant_message["content"]).get("missing")
             if not isinstance(missing, list) or missing:
-                raise RequirementCoverageError("review identified missing requirements")
+                raise RequirementCoverageError(
+                    "review identified missing requirements: "
+                    + json.dumps(missing, ensure_ascii=False)
+                )
             if draft.questions or draft.unsupported:
                 return draft
             validate_revision(previous, draft, messages)
