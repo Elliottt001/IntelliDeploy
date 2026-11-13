@@ -126,3 +126,12 @@ async def test_real_ledger_charges_each_model_component_once(session_factory):
     with session_factory() as session:
         rows = list(session.scalars(select(UsageEntry).where(UsageEntry.payer_id == payer_id)))
         assert len(rows) == 3 and sum(row.cost_units for row in rows) == 12
+
+
+def test_generation_advertises_only_tools_supported_by_default_worker():
+    from app.agent.loop import TOOLS
+
+    assert {tool['function']['name'] for tool in TOOLS} == {
+        'list_files', 'read_file', 'write_file', 'apply_patch', 'run_command',
+        'search_repositories', 'fetch_repository', 'ask_user', 'finish_implementation',
+    }

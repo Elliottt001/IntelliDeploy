@@ -1094,3 +1094,17 @@ async def test_failed_baseline_retrieval_is_saved_before_stopping(new_job, sessi
     with pytest.raises(SearchUnavailable):
         await execution.select_sources_baseline(Requirement(prompt='notes',acceptance=[]))
     assert execution.algorithm_checkpoint().retrieval.errors == ['GitHub temporary error']
+
+
+@pytest.mark.asyncio
+async def test_unavailable_generation_capability_returns_feedback_without_runner(new_job, session_factory):
+    from app.jobs.execution import JobExecution
+    from app.core.types import ToolCall
+
+    job_id, _, _, generation = new_job
+    runner = AsyncMock()
+    execution = JobExecution(job_id, 'worker', generation, session_factory=session_factory, runner=runner)
+    result = await execution.execute_tool(ToolCall(id='legacy-search', name='web_search', arguments={'query':'platform identity'}))
+    assert result.ok is False
+    assert 'web_search' in result.content
+    runner.tool.assert_not_awaited()

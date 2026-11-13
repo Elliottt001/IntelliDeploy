@@ -969,6 +969,13 @@ class JobExecution:
         from app.agent_core.brains.github_retriever import GitHubRepositorySearchClient
         from app.agent.workspace import safe_path
         import asyncio
+        if call.name in {"web_search", "fetch_page"}:
+            self.job_check()
+            return ToolResult(
+                call_id=call.id,
+                ok=False,
+                content=f"生成阶段尚未接通 {call.name}；请读取工作区内的平台适配代码和已提供的接口契约。",
+            )
         if call.name=='run_command':
             from app.runtime.cleanup import register_resource
             operation=self.job_id+'-'+hashlib.sha256(call.id.encode()).hexdigest()

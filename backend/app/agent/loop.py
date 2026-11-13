@@ -21,8 +21,6 @@ TOOLS = [
     {"type": "function", "function": {"name": "run_command", "description": "在隔离执行器运行命令", "parameters": {"type": "object", "required": ["argv"], "properties": {"argv": {"type": "array", "items": {"type": "string"}}, "timeout": {"type": "integer"}}}}},
     {"type": "function", "function": {"name": "search_repositories", "description": "通过受控代理检索公开GitHub仓库", "parameters": {"type": "object", "required": ["query"], "properties": {"query": {"type": "string"}, "limit": {"type": "integer"}}}}},
     {"type": "function", "function": {"name": "fetch_repository", "description": "获取已检索仓库的固定commit", "parameters": {"type": "object", "required": ["url", "commit", "destination"], "properties": {"url": {"type": "string"}, "commit": {"type": "string"}, "destination": {"type": "string"}}}}},
-    {"type": "function", "function": {"name": "web_search", "description": "通过受控能力检索实时公开网页并保留来源", "parameters": {"type": "object", "required": ["query"], "properties": {"query": {"type": "string", "minLength": 1, "maxLength": 128}, "count": {"type": "integer", "minimum": 1, "maximum": 50}}}}},
-    {"type": "function", "function": {"name": "fetch_page", "description": "通过受控能力获取HTTP(S)网页正文", "parameters": {"type": "object", "required": ["url"], "properties": {"url": {"type": "string", "minLength": 1, "maxLength": 2048}}}}},
     {"type": "function", "function": {"name": "ask_user", "description": "追问必要的业务信息", "parameters": {"type": "object", "required": ["question"], "properties": {"question": {"type": "string"}}}}},
     {"type": "function", "function": {"name": "finish_implementation", "description": "提交候选运行清单，不表示交付成功", "parameters": {"type": "object", "required": ["manifest"], "properties": {"manifest": {"type": "object"}}}}},
 ]
