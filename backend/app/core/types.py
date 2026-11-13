@@ -150,6 +150,8 @@ class ValidationReport(BaseModel):
                 and all(c.status == 'PASS' for c in self.checks))
 
 class ServiceSpec(BaseModel):
+    command: list[str] | None = None
+    env_values: dict[str, str] = Field(default_factory=dict)
     name: str
     image: str = Field(min_length=1)
     port: int | None = Field(default=None, ge=1, le=65535)

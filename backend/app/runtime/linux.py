@@ -341,6 +341,8 @@ def render_compose(
         }
         if service.depends_on:
             rendered["depends_on"] = service.depends_on
+        if service.command:
+            rendered['command'] = service.command
         if service.name == manifest.web_service:
             if service.port is None:
                 raise ValueError("web service requires a port")
@@ -365,7 +367,7 @@ def render_compose(
             service_volumes.append(f"{volume_name}:{container_path}")
         if service_volumes:
             rendered["volumes"] = service_volumes
-        environment: dict[str, str] = {}
+        environment: dict[str, str] = dict(service.env_values)
         service_secrets: list[str] = []
         for environment_name, reference in service.env_refs.items():
             if not re.fullmatch(r"[A-Z][A-Z0-9_]{0,127}", environment_name):

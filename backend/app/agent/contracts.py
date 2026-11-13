@@ -133,6 +133,14 @@ class ReuseDecision(BaseModel):
     differences: list[str] = Field(default_factory=list)
     adaptations: list[str] = Field(default_factory=list)
 
+class DeploymentPlan(BaseModel):
+    kind: Literal['IMAGE', 'COMPOSE', 'SCRIPT', 'SOURCE_BUILD']
+    source_ref: str
+    digest: str
+    location: str
+    required_configuration: list[str] = Field(default_factory=list)
+    adaptations: list[str] = Field(default_factory=list)
+
 class RepositoryProfile(BaseModel):
     repo_url: str
     commit: str
