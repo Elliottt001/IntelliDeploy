@@ -532,6 +532,24 @@ test("background pause retains current completion for the resumed handle only", 
   expect(complete).toHaveBeenCalledTimes(1);
 });
 
+test("settle resumes an interrupted animation toward the latest requested target", () => {
+  const harness = renderHookHarness(motion({ durationMs: 1000 }));
+  const progress = harness.api.progress as unknown as {
+    setValue: (next: number) => void;
+  };
+
+  act(() => harness.api.animateTo(1));
+  progress.setValue(0.3);
+  act(() => harness.api.settle());
+
+  expect(native.store.animations[0].stop).toHaveBeenCalledTimes(1);
+  expect(native.store.animations[1].config).toMatchObject({
+    duration: 700,
+    toValue: 1,
+    useNativeDriver: false,
+  });
+});
+
 test("unmount removes native listeners, stops animation, and ignores late accessibility promises", async () => {
   const reduceMotion = deferred<boolean>();
   native.store.reduceMotionPromise = reduceMotion.promise;

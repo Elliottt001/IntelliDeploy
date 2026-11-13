@@ -42,6 +42,7 @@ export function useSourceMotion(motion: SourceMotion | null): {
   progress: Animated.Value;
   start: (onComplete?: () => void) => void;
   cancel: () => void;
+  settle: () => void;
   getCurrentValue: () => number;
 } {
   const progress = useRef(new Animated.Value(0)).current;
@@ -148,6 +149,7 @@ export function useSourceMotion(motion: SourceMotion | null): {
     (onComplete?: () => void) => animateTo(1, onComplete),
     [animateTo],
   );
+  const settle = useCallback(() => runTo(targetValueRef.current), [runTo]);
 
   useEffect(() => {
     cancel();
@@ -238,5 +240,5 @@ export function useSourceMotion(motion: SourceMotion | null): {
     stop(true);
     return current;
   }, [progress, stop]);
-  return { animateTo, progress, start, cancel, getCurrentValue };
+  return { animateTo, progress, start, cancel, settle, getCurrentValue };
 }

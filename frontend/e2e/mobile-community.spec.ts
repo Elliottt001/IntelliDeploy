@@ -1,4 +1,7 @@
 import {expect,test,type Page} from '@playwright/test';
+import {getSourceMotion} from '../design/sourceMotionEvidence';
+import {sampleSourceEasing} from '../features/navigation/sourceMotionPolicy';
+import {communityEvidence as source} from '../features/community/communityEvidence';
 import {installMobileSourceFixtures} from './sourceAssertions';
 
 test('community states the unavailable post content instead of inventing a feed',async({page})=>{
@@ -35,6 +38,7 @@ async function dragRail(page:Page,dx:number,dy=0){
 test('community 59/60 drag follows the original rail delta, reverse motion and reduced motion snaps',async({page})=>{
  await installMobileSourceFixtures(page);await page.goto('/community');
  const rail=page.getByTestId('community-source-rail');
+ const motion=getSourceMotion('825:5887','DRAG','825:6452')!,railDelta=source.railTarget.transform.m02-source.rail.transform.m02;
  await expect(rail).toHaveAttribute('data-source-motion','825:5887->825:6452');
  await expect(rail).toHaveAttribute('data-source-reverse-motion','825:6488->168:6358');
  await expect(rail).toHaveAttribute('data-source-duration-ms','300.00001192092896');
@@ -43,7 +47,8 @@ test('community 59/60 drag follows the original rail delta, reverse motion and r
  await dragRail(page,-120);
  await page.waitForTimeout(150);
  const mid=await rail.evaluate(element=>new DOMMatrix(getComputedStyle(element).transform).m41);
- expect(mid).toBeLessThan(-8);expect(mid).toBeGreaterThan(-90);
+ const expectedMid=railDelta*sampleSourceEasing(motion,150/motion.durationMs);
+ expect(Math.abs(mid-expectedMid)).toBeLessThanOrEqual(16);
  await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('1');
  await expect.poll(()=>rail.evaluate(element=>new DOMMatrix(getComputedStyle(element).transform).m41)).toBeCloseTo(-94,1);
  await dragRail(page,120);

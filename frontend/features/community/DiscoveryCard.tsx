@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { Animated, Image, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
 import Svg, { Defs, FeDropShadow, Filter, G, Path } from 'react-native-svg';
 import type { FigmaPrimitiveEvidence } from '../../design/figmaComponentEvidence';
@@ -55,25 +55,26 @@ export function CommunitySourceCard({copy,id,kind='tall'}:{copy:CommunityCardCop
 export function CommunitySourceRail({cards}:{cards:readonly {id:string;copy:CommunityCardCopy;kind?:'tall'|'standard'|'square'}[]}) {
  const motion=useMemo(()=>getSourceMotion('825:5887','DRAG','825:6452'),[]);
  const reverse=useMemo(()=>getSourceMotion('825:6488','DRAG','168:6358'),[]);
- const {animateTo,cancel,progress}=useSourceMotion(motion);
+ const {animateTo,progress,settle}=useSourceMotion(motion);
  const [position,setPosition]=useState(0);
  const pointer=useRef<{active:boolean;claimed:boolean;x:number;y:number}|null>(null);
  useEffect(()=>{const listener=progress.addListener(({value})=>setPosition(value));return()=>progress.removeListener(listener);},[progress]);
  const delta=source.railTarget.transform.m02-source.rail.transform.m02;
  const offset=progress.interpolate({inputRange:[0,1],outputRange:[0,delta]});
- const setTarget=(target:0|1)=>animateTo(target);
+ const setTarget=useCallback((target:0|1)=>animateTo(target),[animateTo]);
+ const settleTarget=useCallback(()=>{pointer.current=null;settle();},[settle]);
+ const handleWheel=useCallback((event:WebPointerEvent)=>{if(Platform.OS!=='web')return;const deltaX=event.nativeEvent?.deltaX??0,deltaY=event.nativeEvent?.deltaY??0;if(Math.abs(deltaX)>Math.abs(deltaY)&&deltaX!==0)setTarget(deltaX>0?1:0);},[setTarget]);
  const responder=useMemo(()=>PanResponder.create({
   onMoveShouldSetPanResponder:(_,gesture)=>Math.abs(gesture.dx)>12&&Math.abs(gesture.dx)>Math.abs(gesture.dy)*1.2,
   onMoveShouldSetPanResponderCapture:(_,gesture)=>Math.abs(gesture.dx)>12&&Math.abs(gesture.dx)>Math.abs(gesture.dy)*1.2,
   onPanResponderRelease:(_,gesture)=>{if(Math.abs(gesture.dx)>30)setTarget(gesture.dx<0?1:0);},
-  onPanResponderTerminate:()=>cancel(),
+  onPanResponderTerminate:()=>{if(Platform.OS!=='web')settleTarget();},
   onShouldBlockNativeResponder:()=>false,
- }),[cancel,animateTo]);
+ }),[setTarget,settleTarget]);
  const pointerDown=(event:WebPointerEvent)=>{if(Platform.OS==='web')pointer.current={active:true,claimed:false,x:event.nativeEvent?.clientX??0,y:event.nativeEvent?.clientY??0};};
  const pointerMove=(event:WebPointerEvent)=>{const current=pointer.current;if(Platform.OS!=='web'||!current?.active)return;const dx=(event.nativeEvent?.clientX??current.x)-current.x,dy=(event.nativeEvent?.clientY??current.y)-current.y;if(!current.claimed&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.2)current.claimed=true;};
  const pointerEnd=(event:WebPointerEvent)=>{const current=pointer.current;if(Platform.OS!=='web'||!current)return;pointer.current=null;const dx=(event.nativeEvent?.clientX??current.x)-current.x;if(current.claimed&&Math.abs(dx)>30)setTarget(dx<0?1:0);};
- const pointerCancel=()=>{pointer.current=null;cancel();};
- return <WebWheelView testID="community-source-drag-responder" dataSet={{sourceResponder:'pan'}} style={{height:source.rail.size.y,overflow:'hidden'}} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerEnd} onPointerCancel={pointerCancel} onWheel={(event)=>{if(Platform.OS==='web'){const deltaX=event.nativeEvent?.deltaX??event.nativeEvent?.deltaY??0;setTarget(deltaX>=0?1:0);}}} {...responder.panHandlers}>
+ return <WebWheelView testID="community-source-drag-responder" dataSet={{sourceResponder:'pan'}} style={{height:source.rail.size.y,overflow:'hidden'}} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerEnd} onPointerCancel={settleTarget} onWheel={handleWheel} {...responder.panHandlers}>
   <WebAnimatedView testID="community-source-rail" dataSet={{sourceMotion:`${motion?.nodeId}->${motion?.targetNodeId}`,sourceReverseMotion:`${reverse?.nodeId}->${reverse?.targetNodeId}`,sourceDurationMs:String(motion?.durationMs),sourceEasing:motion?.easingType??'',sourceProgress:position>.5?'1':'0'}} style={{position:'absolute',left:0,top:0,width:source.rail.size.x,height:source.rail.size.y,transform:[{translateX:offset}]}} {...responder.panHandlers}>
    <View style={{position:'absolute',left:0,top:0}}><CommunitySourceCard id={cards[0]?.id??'primary'} copy={cards[0]?.copy??{author:null,time:null,body:null}} kind={cards[0]?.kind}/></View>
    <View style={{position:'absolute',left:source.standardNode.transform.m02,top:0}}><CommunitySourceCard id={cards[1]?.id??'standard'} copy={cards[1]?.copy??{author:null,time:null,body:null}} kind={cards[1]?.kind??'standard'}/></View>

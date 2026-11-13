@@ -1,4 +1,8 @@
-import {expect,test} from '@playwright/test';
+import {expect,test,type Locator} from '@playwright/test';
+
+async function railX(rail:Locator){
+ return rail.evaluate(element=>new DOMMatrix(getComputedStyle(element).transform).m41);
+}
 
 test('fixture app is isolated and does not request API data',async({page})=>{
  const requests:string[]=[];page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/api/'))requests.push(request.url());});
@@ -39,8 +43,49 @@ test('source rail cancels reverse motion and reduced motion snaps to target',asy
  await page.mouse.move(box.x+120,box.y+30);await page.mouse.down();await page.mouse.move(box.x+20,box.y+30);await page.mouse.up();
  await page.mouse.move(box.x+120,box.y+30);await page.mouse.down();await page.mouse.move(box.x+220,box.y+30);await page.mouse.up();
  await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('0');
- await page.emulateMedia({reducedMotion:'reduce'});await page.mouse.move(box.x+120,box.y+30);await page.mouse.down();await page.mouse.move(box.x+20,box.y+30);await page.mouse.up();
+ await page.emulateMedia({reducedMotion:'reduce'});await expect.poll(()=>railX(rail)).toBeCloseTo(0,1);
+ await page.mouse.move(box.x+120,box.y+30);await page.mouse.down();await page.mouse.move(box.x+20,box.y+30);await page.mouse.up();
  await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('1');
+});
+
+test('vertical wheel over a scrollable body scrolls the body without moving the rail',async({page})=>{
+ await page.goto('/');
+ const rail=page.getByTestId('community-source-rail'),body=page.getByTestId('community-source-card-fixture-long').getByTestId('community-card-body');
+ await expect(rail).toHaveAttribute('data-source-progress','0');
+ const box=(await body.boundingBox())!,before=await body.evaluate(element=>element.scrollTop);
+ await page.mouse.move(box.x+box.width/2,box.y+Math.min(20,box.height/2));
+ await page.mouse.wheel(0,120);
+ await expect.poll(()=>body.evaluate(element=>element.scrollTop)).toBeGreaterThan(before);
+ await page.waitForTimeout(350);
+ await expect(rail).toHaveAttribute('data-source-progress','0');
+ expect(await railX(rail)).toBeCloseTo(0,1);
+});
+
+test('wheel navigation only responds to dominant horizontal delta',async({page})=>{
+ await page.goto('/');
+ const rail=page.getByTestId('community-source-rail'),responder=page.getByTestId('community-source-drag-responder'),box=(await responder.boundingBox())!;
+ await page.mouse.move(box.x+120,box.y+30);
+ await page.mouse.wheel(24,120);
+ await page.waitForTimeout(350);
+ await expect(rail).toHaveAttribute('data-source-progress','0');
+ expect(await railX(rail)).toBeCloseTo(0,1);
+ await page.mouse.wheel(120,24);
+ await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('1');
+});
+
+test('pointer cancel and native termination settle in-flight motion to the latest stable target',async({page})=>{
+ await page.goto('/');
+ const rail=page.getByTestId('community-source-rail'),responder=page.getByTestId('community-source-drag-responder'),box=(await responder.boundingBox())!;
+ await page.mouse.move(box.x+120,box.y+30);await page.mouse.down();await page.mouse.move(box.x+20,box.y+30);await page.mouse.up();
+ await page.waitForTimeout(90);
+ await responder.dispatchEvent('pointercancel');
+ await expect.poll(()=>railX(rail)).toBeCloseTo(-94,1);
+ await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('1');
+ await page.mouse.move(box.x+120,box.y+30);await page.mouse.down();await page.mouse.move(box.x+220,box.y+30);await page.mouse.up();
+ await page.waitForTimeout(90);
+ await responder.evaluate(element=>element.dispatchEvent(new Event('responderTerminate',{bubbles:true})));
+ await expect.poll(()=>railX(rail)).toBeCloseTo(0,1);
+ await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('0');
 });
 
 test('source cards expose supported paints and effects without treating GLASS as implemented',async({page})=>{
