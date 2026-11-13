@@ -1,4 +1,8 @@
 import fs from 'node:fs/promises';
+import {
+  resolveEvidenceOutputs,
+  writeEvidencePairAtomically,
+} from './write-evidence-pair.mjs';
 
 const source = process.env.INTELLIDEPLOY_FIGMA_SOURCE;
 if (!source) throw Error('Set INTELLIDEPLOY_FIGMA_SOURCE');
@@ -273,14 +277,14 @@ const result = {
   },
 };
 
-await fs.writeFile(
-  process.env.INTELLIDEPLOY_RUNTIME_EVIDENCE_OUTPUT ??
-    process.env.INTELLIDEPLOY_EVIDENCE_OUTPUT ??
-    new URL('../design/storeCardRenderEvidence.ts', import.meta.url),
-  `// Generated from the validated store03 frame; business copy remains Publication API-only.\nexport const storeCardRenderEvidence=${JSON.stringify(result, null, 2)} as const;\n`,
-);
-await fs.writeFile(
-  process.env.INTELLIDEPLOY_AUDIT_EVIDENCE_OUTPUT ??
-    new URL('../design/storeCardSourceAudit.ts', import.meta.url),
-  `// Audit-only raw store03 source; runtime modules must not import this artifact.\nexport const storeCardSourceAudit=${JSON.stringify(sourceAudit, null, 2)} as const;\n`,
-);
+const runtimeContent = `// Generated from the validated store03 frame; business copy remains Publication API-only.\nexport const storeCardRenderEvidence=${JSON.stringify(result, null, 2)} as const;\n`;
+const auditContent = `// Audit-only raw store03 source; runtime modules must not import this artifact.\nexport const storeCardSourceAudit=${JSON.stringify(sourceAudit, null, 2)} as const;\n`;
+const outputs = resolveEvidenceOutputs({
+  runtimeDefault: new URL('../design/storeCardRenderEvidence.ts', import.meta.url),
+  auditDefault: new URL('../design/storeCardSourceAudit.ts', import.meta.url),
+});
+await writeEvidencePairAtomically({
+  ...outputs,
+  runtimeContent,
+  auditContent,
+});

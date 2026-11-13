@@ -1,5 +1,6 @@
-import { mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { expect, test } from 'vitest';
@@ -127,6 +128,153 @@ test('store evidence generation rejects a requested ID that is no longer absent'
   expect(result.status).not.toBe(0);
   expect(result.stderr).toContain('Previously absent source node now exists: 270:26244');
 });
+
+const evidenceGenerators = [
+  {
+    audit: path.join('design', 'storeCardSourceAudit.ts'),
+    auditName: 'storeCardSourceAudit.ts',
+    runtime: path.join('design', 'storeCardRenderEvidence.ts'),
+    runtimeName: 'storeCardRenderEvidence.ts',
+    script: 'extract-store-card-render-evidence.mjs',
+  },
+  {
+    audit: path.join('design', 'rankingSourceAudit.ts'),
+    auditName: 'rankingSourceAudit.ts',
+    runtime: path.join('design', 'rankingRenderEvidence.ts'),
+    runtimeName: 'rankingRenderEvidence.ts',
+    script: 'extract-ranking-render-evidence.mjs',
+  },
+] as const;
+const sha256 = (file: string) =>
+  createHash('sha256').update(readFileSync(file)).digest('hex');
+const generatorEnv = (extra: Record<string, string>) => {
+  const env = { ...process.env, ...extra };
+  delete env.INTELLIDEPLOY_EVIDENCE_OUTPUT;
+  delete env.INTELLIDEPLOY_RUNTIME_EVIDENCE_OUTPUT;
+  delete env.INTELLIDEPLOY_AUDIT_EVIDENCE_OUTPUT;
+  return { ...env, ...extra };
+};
+
+test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE).each(evidenceGenerators)(
+  '$script keeps default runtime/audit outputs paired relative to the generator',
+  ({ audit, auditName, runtime, runtimeName, script }) => {
+    const root = mkdtempSync(path.join(tmpdir(), 'task7-default-output-'));
+    const scripts = path.join(root, 'scripts');
+    const design = path.join(root, 'design');
+    mkdirSync(scripts);
+    mkdirSync(design);
+    writeFileSync(
+      path.join(scripts, script),
+      readFileSync(path.join('scripts', script)),
+    );
+    writeFileSync(
+      path.join(scripts, 'write-evidence-pair.mjs'),
+      readFileSync(path.join('scripts', 'write-evidence-pair.mjs')),
+    );
+    const result = spawnSync(process.execPath, [path.join(scripts, script)], {
+      cwd: path.resolve('.'),
+      encoding: 'utf8',
+      env: generatorEnv({
+        INTELLIDEPLOY_FIGMA_SOURCE: process.env.INTELLIDEPLOY_FIGMA_SOURCE!,
+      }),
+    });
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe(0);
+    expect(readFileSync(path.join(design, runtimeName))).toEqual(readFileSync(runtime));
+    expect(readFileSync(path.join(design, auditName))).toEqual(readFileSync(audit));
+    expect(readdirSync(design).sort()).toEqual([auditName, runtimeName].sort());
+  },
+);
+
+test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE).each(evidenceGenerators)(
+  '$script keeps legacy temporary runtime and paired audit outputs outside the repo',
+  ({ audit, runtime, script }) => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'task7-legacy-output-'));
+    const runtimeOutput = path.join(directory, 'runtime.ts');
+    const auditOutput = path.join(directory, 'runtime.audit.ts');
+    const before = { audit: sha256(audit), runtime: sha256(runtime) };
+    const result = spawnSync(process.execPath, [path.join('scripts', script)], {
+      cwd: path.resolve('.'),
+      encoding: 'utf8',
+      env: generatorEnv({
+        INTELLIDEPLOY_EVIDENCE_OUTPUT: runtimeOutput,
+        INTELLIDEPLOY_FIGMA_SOURCE: process.env.INTELLIDEPLOY_FIGMA_SOURCE!,
+      }),
+    });
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe(0);
+    expect(existsSync(runtimeOutput)).toBe(true);
+    expect(existsSync(auditOutput)).toBe(true);
+    expect(readFileSync(runtimeOutput)).toEqual(readFileSync(runtime));
+    expect(readFileSync(auditOutput)).toEqual(readFileSync(audit));
+    expect(readdirSync(directory).sort()).toEqual(['runtime.audit.ts', 'runtime.ts']);
+    expect({ audit: sha256(audit), runtime: sha256(runtime) }).toEqual(before);
+  },
+);
+
+test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE).each(evidenceGenerators)(
+  '$script leaves an existing runtime target untouched when the audit target cannot stage',
+  ({ script }) => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'task7-atomic-output-'));
+    const runtimeOutput = path.join(directory, 'runtime.ts');
+    const blockedParent = path.join(directory, 'not-a-directory');
+    const auditOutput = path.join(blockedParent, 'audit.ts');
+    writeFileSync(runtimeOutput, 'existing-runtime');
+    writeFileSync(blockedParent, 'blocks audit staging');
+    const result = spawnSync(process.execPath, [path.join('scripts', script)], {
+      cwd: path.resolve('.'),
+      encoding: 'utf8',
+      env: generatorEnv({
+        INTELLIDEPLOY_AUDIT_EVIDENCE_OUTPUT: auditOutput,
+        INTELLIDEPLOY_FIGMA_SOURCE: process.env.INTELLIDEPLOY_FIGMA_SOURCE!,
+        INTELLIDEPLOY_RUNTIME_EVIDENCE_OUTPUT: runtimeOutput,
+      }),
+    });
+    expect(result.status).not.toBe(0);
+    expect(readFileSync(runtimeOutput, 'utf8')).toBe('existing-runtime');
+    expect(existsSync(auditOutput)).toBe(false);
+    expect(readdirSync(directory).sort()).toEqual(['not-a-directory', 'runtime.ts']);
+  },
+);
+
+test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE).each(evidenceGenerators)(
+  '$script writes explicit runtime/audit pairs and rejects a runtime-only override',
+  ({ audit, runtime, script }) => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'task7-explicit-output-'));
+    const runtimeOutput = path.join(directory, 'explicit-runtime.ts');
+    const auditOutput = path.join(directory, 'explicit-audit.ts');
+    const before = { audit: sha256(audit), runtime: sha256(runtime) };
+    const paired = spawnSync(process.execPath, [path.join('scripts', script)], {
+      cwd: path.resolve('.'),
+      encoding: 'utf8',
+      env: generatorEnv({
+        INTELLIDEPLOY_AUDIT_EVIDENCE_OUTPUT: auditOutput,
+        INTELLIDEPLOY_FIGMA_SOURCE: process.env.INTELLIDEPLOY_FIGMA_SOURCE!,
+        INTELLIDEPLOY_RUNTIME_EVIDENCE_OUTPUT: runtimeOutput,
+      }),
+    });
+    expect(paired.stderr).toBe('');
+    expect(paired.status).toBe(0);
+    expect(readFileSync(runtimeOutput)).toEqual(readFileSync(runtime));
+    expect(readFileSync(auditOutput)).toEqual(readFileSync(audit));
+
+    const isolatedRuntime = path.join(directory, 'isolated-runtime.ts');
+    const rejected = spawnSync(process.execPath, [path.join('scripts', script)], {
+      cwd: path.resolve('.'),
+      encoding: 'utf8',
+      env: generatorEnv({
+        INTELLIDEPLOY_FIGMA_SOURCE: process.env.INTELLIDEPLOY_FIGMA_SOURCE!,
+        INTELLIDEPLOY_RUNTIME_EVIDENCE_OUTPUT: isolatedRuntime,
+      }),
+    });
+    expect(rejected.status).not.toBe(0);
+    expect(rejected.stderr).toContain(
+      'INTELLIDEPLOY_RUNTIME_EVIDENCE_OUTPUT and INTELLIDEPLOY_AUDIT_EVIDENCE_OUTPUT must be set together',
+    );
+    expect(existsSync(isolatedRuntime)).toBe(false);
+    expect({ audit: sha256(audit), runtime: sha256(runtime) }).toEqual(before);
+  },
+);
 
 test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE)('store source audit (NOT_RUN unless INTELLIDEPLOY_FIGMA_SOURCE is set)', () => {
   const source = process.env.INTELLIDEPLOY_FIGMA_SOURCE!;

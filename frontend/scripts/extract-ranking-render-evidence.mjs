@@ -1,4 +1,8 @@
 import fs from 'node:fs/promises';
+import {
+  resolveEvidenceOutputs,
+  writeEvidencePairAtomically,
+} from './write-evidence-pair.mjs';
 
 const source = process.env.INTELLIDEPLOY_FIGMA_SOURCE;
 if (!source) throw Error('Set INTELLIDEPLOY_FIGMA_SOURCE');
@@ -209,14 +213,14 @@ const ranking = {
   },
 };
 
-await fs.writeFile(
-  process.env.INTELLIDEPLOY_RUNTIME_EVIDENCE_OUTPUT ??
-    process.env.INTELLIDEPLOY_EVIDENCE_OUTPUT ??
-    new URL('../design/rankingRenderEvidence.ts', import.meta.url),
-  `// Generated from the validated ranking40 frame; rows bind only existing Publication DTO fields.\nexport const rankingRenderEvidence=${JSON.stringify(ranking, null, 2)} as const;\n`,
-);
-await fs.writeFile(
-  process.env.INTELLIDEPLOY_AUDIT_EVIDENCE_OUTPUT ??
-    new URL('../design/rankingSourceAudit.ts', import.meta.url),
-  `// Audit-only raw ranking40 source; runtime modules must not import this artifact.\nexport const rankingSourceAudit=${JSON.stringify(sourceAudit, null, 2)} as const;\n`,
-);
+const runtimeContent = `// Generated from the validated ranking40 frame; rows bind only existing Publication DTO fields.\nexport const rankingRenderEvidence=${JSON.stringify(ranking, null, 2)} as const;\n`;
+const auditContent = `// Audit-only raw ranking40 source; runtime modules must not import this artifact.\nexport const rankingSourceAudit=${JSON.stringify(sourceAudit, null, 2)} as const;\n`;
+const outputs = resolveEvidenceOutputs({
+  runtimeDefault: new URL('../design/rankingRenderEvidence.ts', import.meta.url),
+  auditDefault: new URL('../design/rankingSourceAudit.ts', import.meta.url),
+});
+await writeEvidencePairAtomically({
+  ...outputs,
+  runtimeContent,
+  auditContent,
+});
