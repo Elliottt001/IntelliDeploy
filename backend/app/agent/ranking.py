@@ -18,29 +18,12 @@ _WEB_TYPES = {
 
 def _coverage(profile: RepositoryProfile, requirement: Requirement) -> set[str]:
     evidence = " ".join(item.reference for item in profile.evidence_refs).lower()
-    facts = " ".join(
-        [
-            profile.repo_url,
-            profile.project_type,
-            *profile.frameworks,
-            *profile.identity_features,
-            *profile.file_features,
-            *profile.ai_features,
-            *profile.search_features,
-        ]
-    ).lower()
     covered = set()
     for item in requirement.acceptance:
         if f"coverage:{item.id.lower()}" in evidence:
             covered.add(item.id)
             continue
-        tokens = [
-            token
-            for token in re.findall(r"[a-z0-9_-]+|[\u4e00-\u9fff]{2,}", f"{item.action} {item.expected}".lower())
-            if len(token) > 1
-        ]
-        if tokens and any(token in facts for token in tokens):
-            covered.add(item.id)
+        # Category/feature labels rank search relevance, not acceptance coverage.
     return covered
 
 
@@ -49,7 +32,9 @@ def rank_candidate(
 ) -> CandidateEvaluation:
     acceptance_ids = [item.id for item in requirement.acceptance]
     covered = _coverage(profile, requirement)
-    missing = [item_id for item_id in acceptance_ids if item_id not in covered]
+    references = {e.reference for e in profile.evidence_refs}
+    missing = [item_id for item_id in acceptance_ids if f'missing:{item_id}' in references]
+    unknown_core = [item_id for item_id in acceptance_ids if item_id not in covered and item_id not in missing]
     coverage_ratio = len(covered) / max(1, len(acceptance_ids))
     match_score = round(100 * coverage_ratio, 2)
     if not acceptance_ids:
@@ -82,6 +67,7 @@ def rank_candidate(
     quality_score = round(max(0, min(100, quality_score)), 2)
 
     unknown = list(profile.unknowns)
+    unknown.extend('core:' + item_id for item_id in unknown_core)
     rejections = []
     if profile.license_status == "UNKNOWN":
         unknown.append("license")

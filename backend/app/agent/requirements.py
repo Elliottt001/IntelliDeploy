@@ -1,13 +1,14 @@
 import json
 import hashlib
 import inspect
+import re
 from pathlib import Path
 
 from sqlalchemy import func, select
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.apps.models import App, Message, RequirementRecord
-from app.core.types import Requirement, RequirementDraft
+from app.core.types import Requirement, RequirementDraft, DeliveryPolicy
 from app.jobs.store import leased_job
 
 
@@ -40,12 +41,33 @@ class RequirementNeedsAnswer(ValueError):
         super().__init__("business clarification required")
 
 
+def delivery_policy_from_messages(messages, previous=None):
+    policy = previous.delivery_policy.model_copy() if previous else DeliveryPolicy()
+    for message in sorted(messages, key=lambda m: m['sequence']):
+        if message.get('role') != 'user' or (previous and message['id'] in previous.source_message_ids):
+            continue
+        text = message['content'].lower()
+        if any(x in text for x in ('自托管', '独立部署', '平台管理', 'self-host', 'self host')):
+            policy.preference = 'SELF_HOSTED'
+        if any(x in text for x in ('直接给链接', '官方服务链接', 'use official service')):
+            policy.preference = 'EXISTING_SERVICE_FIRST'
+        if re.search(r'(不要|不能|不允许).{0,4}(生成|从零)|do not.{0,15}(generat|scratch)', text):
+            policy.allow_generation = False
+        elif any(x in text for x in ('从零生成', '直接生成', '不要复用', 'from scratch', '允许从头生成', '接受从头生成')):
+            policy.allow_generation = True
+    return policy
+
+
 def validate_revision(previous, draft, messages):
     if draft.questions or draft.unsupported:
         raise RequirementNeedsAnswer(
             draft.questions or ["首期支持Web应用，是否接受以Web交付？"]
         )
     originals = {m["id"]: m for m in messages if m.get("role") == "user"}
+    for item in draft.acceptance:
+        if item.importance == 'PREFERENCE' and (item.private_data or re.search(
+            r'隔离|持久|重启|权限|越权|必须|isolation|persist|permission', item.action + item.expected, re.I)):
+            raise RequirementCoverageError('core data/access requirement cannot be a preference')
     ids = [i.id for i in draft.acceptance]
     facts = [f.id for f in draft.facts]
     if (
@@ -135,6 +157,7 @@ def validate_revision(previous, draft, messages):
         revision=previous.revision + 1 if previous else 1,
         facts=list(merged_facts.values()),
         source_message_ids=list(originals),
+        delivery_policy=delivery_policy_from_messages(messages, previous),
     )
 
 
@@ -161,7 +184,8 @@ async def compile_requirement(messages, previous, model_client, *, persist=None)
         "messages": messages,
         "previous": previous.model_dump(mode="json") if previous else None,
         "schema": RequirementDraft.model_json_schema(),
-        "platform_defaults": {"identity": "platform unified login", "visibility": "private"},
+        "platform_defaults": {"identity": "existing application identity; platform SSO only for platform-managed instances", "visibility": "private"},
+        "delivery_policy": delivery_policy_from_messages(messages, previous).model_dump(mode='json'),
     }
     source_digest = hashlib.sha256(json.dumps(source, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     correction = ""

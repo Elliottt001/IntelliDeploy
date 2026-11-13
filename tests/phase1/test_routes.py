@@ -89,7 +89,9 @@ async def test_generation_requires_completed_reuse_rejections():
     with pytest.raises(ValueError):
         await choose_route(REQ, search, [], FixedModel({"route": "GENERATE_APP", "sources": [], "steps": ["实现"], "reason": "无候选"}))
     search.reuse_rejections = [{"route": "A/B/C", "reason": "查询完成且无可运行来源"}]
-    route = await choose_route(REQ, search, [], FixedModel({"route": "GENERATE_APP", "sources": [], "steps": ["实现"], "reason": "无合理复用"}))
+    from app.core.types import DeliveryPolicy
+    explicit = REQ.model_copy(update={'delivery_policy':DeliveryPolicy(allow_generation=True)})
+    route = await choose_route(explicit, search, [], FixedModel({"route": "GENERATE_APP", "sources": [], "steps": ["实现"], "reason": "无合理复用"}))
     assert route.route == "GENERATE_APP"
 
 

@@ -92,6 +92,55 @@ class QueryPlan(BaseModel):
     constraints: dict[str, str]
 
 
+class DeploymentAsset(BaseModel):
+    kind: Literal['OFFICIAL_SERVICE', 'DEMO', 'IMAGE', 'COMPOSE', 'SCRIPT', 'INSTALL_DOC']
+    location: str
+    source_ref: str
+    source_digest: str = Field(pattern=r'^[0-9a-f]{64}$')
+    verification_status: Literal['NOT_RUN', 'PASS', 'FAIL'] = 'NOT_RUN'
+
+class CapabilityEvidence(BaseModel):
+    acceptance_id: str
+    status: Literal['SUPPORTED', 'MISSING', 'UNKNOWN']
+    evidence_refs: list[str] = Field(default_factory=list)
+    quote: str = ''
+    reason: str
+
+class RouteVerdict(BaseModel):
+    status: Literal['ELIGIBLE', 'INELIGIBLE', 'UNKNOWN']
+    reason: str
+    evidence_refs: list[str] = Field(default_factory=list)
+
+class CandidateAssessment(BaseModel):
+    repo_url: str
+    commit: str = Field(pattern=r'^[0-9a-f]{40}$')
+    requirement_revision: int
+    capabilities: list[CapabilityEvidence]
+    differences: list[str] = Field(default_factory=list)
+    adaptations: list[str] = Field(default_factory=list)
+    route_verdicts: dict[str, RouteVerdict] = Field(default_factory=dict)
+
+    def rejects_all_reuse(self):
+        return all(route in self.route_verdicts and self.route_verdicts[route].status == 'INELIGIBLE'
+                   and self.route_verdicts[route].evidence_refs for route in ('A', 'B', 'C'))
+
+class ReuseDecision(BaseModel):
+    delivery_kind: Literal['EXTERNAL_LINK', 'HOSTED_INSTANCE']
+    route: Literal['DEPLOY_EXISTING', 'MODIFY_EXISTING', 'COMPOSE_COMPONENTS', 'GENERATE_APP'] | None = None
+    selected_sources: list[RepoSource] = Field(default_factory=list)
+    assessment_refs: list[str] = Field(default_factory=list)
+    deployment_asset: DeploymentAsset | None = None
+    differences: list[str] = Field(default_factory=list)
+    adaptations: list[str] = Field(default_factory=list)
+
+class DeploymentPlan(BaseModel):
+    kind: Literal['IMAGE', 'COMPOSE', 'SCRIPT', 'SOURCE_BUILD']
+    source_ref: str
+    digest: str
+    location: str
+    required_configuration: list[str] = Field(default_factory=list)
+    adaptations: list[str] = Field(default_factory=list)
+
 class RepositoryProfile(BaseModel):
     repo_url: str
     commit: str
@@ -121,6 +170,7 @@ class RepositoryProfile(BaseModel):
     risks: list[Finding] = Field(default_factory=list)
     unknowns: list[str] = Field(default_factory=list)
     evidence_refs: list[EvidenceRef] = Field(default_factory=list)
+    deployment_assets: list[DeploymentAsset] = Field(default_factory=list)
 
 
 class OrchestrationDecision(BaseModel):
@@ -284,6 +334,8 @@ class ComponentWorkspace(PlanValue):
 
 
 class AlgorithmCheckpoint(BaseModel):
+    assessments: list[CandidateAssessment] = Field(default_factory=list)
+    reuse_decision: ReuseDecision | None = None
     gap_plan: GapPlan | None = None
     packaging_plans: list[PackagingPlan] = Field(default_factory=list)
     component_workspaces: list[ComponentWorkspace] = Field(default_factory=list)

@@ -106,6 +106,7 @@ def _feature_list(blob: str, markers: dict[str, tuple[str, ...]]) -> list[str]:
 def profile_repository(
     candidate: RetrievalCandidate, requirement: Requirement
 ) -> RepositoryProfile:
+    from app.agent.deployment_assets import discover_deployment_assets
     if not candidate.commit:
         raise ValueError("repository profile requires an immutable commit")
     file_tree = list(candidate.file_tree)
@@ -197,6 +198,7 @@ def profile_repository(
         access="PRIVATE",
     )
     return RepositoryProfile(
+        deployment_assets=discover_deployment_assets(candidate),
         repo_url=_canonical_url(candidate.repo_url),
         commit=candidate.commit,
         languages=(
