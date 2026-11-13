@@ -722,7 +722,18 @@ class JobExecution:
         checkpoint = self.algorithm_checkpoint()
         payload = {"requirement": requirement.model_dump(mode="json"),
                    "plan": plan.model_dump(mode="json"),
-                   "manifest_schema": AppManifest.model_json_schema()}
+                   "manifest_schema": AppManifest.model_json_schema(),
+                   "platform_contract": {
+                       "final_submission": "finish_implementation",
+                       "source_builds_require_buildspec": True,
+                       "env_refs": {**{name: name.lower() for name in [
+                           "PLATFORM_INSTANCE_ID", "PLATFORM_INSTANCE_TOKEN",
+                           "PLATFORM_CAPABILITY_URL", "PLATFORM_LOGIN_CALLBACK",
+                       ]}, "DATABASE_URL": "database-url"},
+                       "database": "平台提供独立PostgreSQL和DATABASE_URL，不需要自行添加未登记数据库镜像或索取数据库密钥。",
+                       "identity_cookie": "intellideploy_app_identity",
+                       "executor": {"working_directory": "/workspace", "npm_cache": "/tmp/npm-cache"},
+                   }}
         if checkpoint.mode == "hybrid":
             payload.update(
                 gap_plan=checkpoint.gap_plan.model_dump(mode="json") if checkpoint.gap_plan else None,
@@ -731,6 +742,14 @@ class JobExecution:
                 component_workspaces=[p.model_dump(mode="json") for p in checkpoint.component_workspaces],
             )
         return payload
+
+    def generation_round_budget(self):
+        with self.sessions() as session:
+            job = self.job(session)
+            used = session.scalar(select(func.count()).select_from(ResourceRecord).where(
+                ResourceRecord.job_id == job.id, ResourceRecord.type == "MODEL_CALL"))
+        # Reserve six calls for independent checks/review; the global cap still fences every request.
+        return max(0, min(32, settings.MAX_JOB_MODEL_CALLS - used - 6))
 
     def prepare_algorithm_inputs(self, requirement, plan, workspace):
         from app.agent.gaps import deterministic_gap_plan
@@ -902,7 +921,10 @@ class JobExecution:
                 {
                     "role": "system",
                     "content": instruction
-                    + "\n只提交实际源码对应的AppManifest。应用身份/数据/文件/AI/搜索使用平台服务端适配；不得生成演示数据代替业务。",
+                    + "\n只提交实际源码对应的AppManifest。应用身份/数据/文件/AI/搜索使用平台服务端适配；不得生成演示数据代替业务。"
+                    + "\n完成源码后必须调用finish_implementation提交候选；平台负责后续构建和业务验证。"
+                    + "源代码服务必须在builds里声明真实BuildSpec，image可用待构建标签，不得编造digest。"
+                    + "平台内置环境引用和数据库按platform_contract处理；使用批量工具调用减少重复读取。",
                 },
                 {
                     "role": "user",
@@ -980,6 +1002,7 @@ class JobExecution:
                 lambda cp: self.save(loop=cp.model_dump(mode="json")),
                 lambda _: None,
                 tools=DEFAULT_WORKER_TOOLS,
+                max_rounds=self.generation_round_budget(),
             )
             if output.question:
                 self.wait_for_user(output.question)

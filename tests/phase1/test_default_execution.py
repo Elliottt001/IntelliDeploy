@@ -1276,3 +1276,30 @@ async def test_requested_cancellation_prevents_new_paid_model_calls(new_job, ses
     with session_factory() as session:
         assert session.scalar(select(ResourceRecord).where(ResourceRecord.job_id==job_id,ResourceRecord.type=='MODEL_CALL')) is None
         assert session.get(Job,job_id).used_units == 0
+
+
+@pytest.mark.parametrize('used,expected', [(3,31),(23,11),(39,0)])
+def test_generation_round_budget_uses_remaining_job_calls_and_reserves_review(new_job,session_factory,used,expected):
+    from app.jobs.execution import JobExecution
+    from app.runtime.models import ResourceRecord
+    job_id,app_id,_,generation=new_job
+    with session_factory() as session:
+        for i in range(used):
+            operation=f'count:{job_id}:{i}'
+            session.add(ResourceRecord(type='MODEL_CALL',job_id=job_id,app_id=app_id,operation_id=operation,state='METERED',reference=operation,metadata_json={}))
+        session.commit()
+    execution=JobExecution(job_id,'worker',generation,session_factory=session_factory)
+    assert execution.generation_round_budget()==expected
+
+
+def test_builder_receives_runtime_alias_and_final_submission_contract(new_job,session_factory):
+    from app.jobs.execution import JobExecution
+    from app.core.types import Requirement,RoutePlan
+    job_id,_,_,generation=new_job
+    execution=JobExecution(job_id,'worker',generation,session_factory=session_factory)
+    payload=execution.builder_payload(Requirement(prompt='私人笔记',acceptance=[]),RoutePlan(route='GENERATE_APP',steps=['实现'],reason='test'))
+    contract=payload['platform_contract']
+    assert contract['env_refs']['DATABASE_URL']=='database-url'
+    assert contract['env_refs']['PLATFORM_INSTANCE_TOKEN']=='platform_instance_token'
+    assert contract['final_submission']=='finish_implementation'
+    assert contract['source_builds_require_buildspec'] is True

@@ -266,3 +266,36 @@ async def test_duplicate_enrichment_error_remains_one_incomplete_failure():
     assert github.enrich_calls == 1
     assert len(result.errors) == 1
     assert not result.reuse_rejections
+
+
+@pytest.mark.asyncio
+async def test_unique_repository_enrichment_is_parallel_and_bounded():
+    import asyncio
+    class ConcurrentGithub(FakeGitHub):
+        active=0
+        peak=0
+        async def enrich_repository(self,row):
+            self.active+=1
+            self.peak=max(self.peak,self.active)
+            await asyncio.sleep(0)
+            self.active-=1
+            return {**row,'commit':'a'*40}
+    github=ConcurrentGithub({'one':[candidate(f'https://github.com/example/notes-{i}',None) for i in range(10)]})
+    result=await retrieve_sources(requirement('私人笔记'),query_plan('one'),github)
+    assert result.completed is True
+    assert 1 < github.peak <= 4
+    assert len(result.candidates)==10
+
+
+@pytest.mark.asyncio
+async def test_parallel_enrichment_partial_mutation_cannot_hide_fetch_failure():
+    from app.agent_core.brains.context_rag_agent import RepositoryCandidate
+    item=RepositoryCandidate(full_name='example/notes',repo_url='https://github.com/example/notes')
+    class MutatingGithub(FakeGitHub):
+        async def enrich_repository(self,row):
+            row.commit='a'*40
+            raise ConnectionError('readme fetch failed after tree lookup')
+    result=await retrieve_sources(requirement('私人笔记'),query_plan('one'),MutatingGithub({'one':[item]}))
+    assert result.completed is False
+    assert len(result.errors)==1
+    assert not result.reuse_rejections
