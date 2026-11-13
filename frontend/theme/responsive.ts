@@ -67,6 +67,25 @@ export function composerViewportLayout(
   };
 }
 
+export function resolveKeyboardViewport(
+  previousUnobscuredHeight: number,
+  observedWindowHeight: number,
+  reportedKeyboardHeight: number,
+) {
+  const windowHeight = Math.max(0, finiteOrZero(observedWindowHeight));
+  const unobscuredHeight = Math.max(
+    windowHeight,
+    Math.max(0, finiteOrZero(previousUnobscuredHeight)),
+  );
+  return {
+    unobscuredHeight,
+    effectiveKeyboardHeight: Math.max(
+      Math.max(0, finiteOrZero(reportedKeyboardHeight)),
+      unobscuredHeight - windowHeight,
+    ),
+  };
+}
+
 export function getMobileLayout(
   width: number,
   insets: { left: number; right: number },

@@ -223,15 +223,15 @@ function SourceArt({
   const node = miboRenderEvidence.images[nodeId],
     uv = node.paintTransform;
   return (
-    <View
+    <Animated.View
       style={[
-        style,
         {
           display: node.visible ? "flex" : "none",
           overflow: "hidden",
           opacity: node.opacity,
           mixBlendMode: node.blendMode === "DARKEN" ? "darken" : "normal",
         },
+        style,
       ]}
       testID={testID}
     >
@@ -247,7 +247,7 @@ function SourceArt({
           top: (-node.size.y * uv.m12) / uv.m11,
         }}
       />
-    </View>
+    </Animated.View>
   );
 }
 
@@ -257,18 +257,20 @@ function MiboComposition({
   viewport,
   testID,
   style,
-  artStyle,
-  contentStyle,
+  characterStyle,
+  statusStyle,
   titleTestID,
+  visualOnly = false,
 }: {
   snapshot: MiboCompositionSnapshot;
   sources: MiboStageArt;
   viewport: { width: number; height: number };
   testID: string;
   style?: object;
-  artStyle?: object;
-  contentStyle?: object;
+  characterStyle?: object;
+  statusStyle?: object;
   titleTestID?: string;
+  visualOnly?: boolean;
 }) {
   const {
     sourceFrame,
@@ -293,7 +295,20 @@ function MiboComposition({
       : sources.workingCat;
 
   return (
-    <Animated.View style={[styles.composition, style]} testID={testID}>
+    <Animated.View
+      {...(visualOnly
+        ? Platform.OS === "web"
+          ? { "aria-hidden": true }
+          : {
+              accessibilityElementsHidden: true,
+              importantForAccessibility: "no-hide-descendants" as const,
+              accessible: false,
+            }
+        : {})}
+      pointerEvents={visualOnly ? "none" : "auto"}
+      style={[styles.composition, style]}
+      testID={testID}
+    >
       <View
         {...(Platform.OS === "web"
           ? { "aria-hidden": true }
@@ -316,7 +331,7 @@ function MiboComposition({
               : undefined
           }
         >
-          <Animated.View style={[StyleSheet.absoluteFill, artStyle]}>
+          <View style={StyleSheet.absoluteFill}>
             <Svg
               pointerEvents="none"
               style={StyleSheet.absoluteFill}
@@ -375,6 +390,9 @@ function MiboComposition({
                   position: "absolute",
                   top: value.transform.m12 - 137,
                   width: value.size.x,
+                  ...(value.sourceNodeId === primaryCharacter.sourceNodeId
+                    ? characterStyle
+                    : {}),
                 }}
                 testID={
                   testID === "mibo-composition-current"
@@ -385,10 +403,10 @@ function MiboComposition({
                 }
               />
             ))}
-          </Animated.View>
+          </View>
         </View>
       </View>
-      <Animated.View style={[styles.stateContent, contentStyle]}>
+      <View style={styles.stateContent}>
         {snapshot.state.kind === "greeting" && !titleTestID ? (
           <View style={{ marginTop: -85, left: 4 }}>
             <FigmaText
@@ -401,13 +419,13 @@ function MiboComposition({
             />
           </View>
         ) : (
-          <Text
-            testID={titleTestID}
-            accessibilityRole="header"
-            style={[styles.title, { marginTop: -85 * artScale }]}
+          <Animated.Text
+            testID={visualOnly ? undefined : titleTestID}
+            accessibilityRole={visualOnly ? undefined : "header"}
+            style={[styles.title, { marginTop: -85 * artScale }, statusStyle]}
           >
             {snapshot.state.title}
-          </Text>
+          </Animated.Text>
         )}
         {snapshot.state.kind === "waiting_user" &&
           Boolean(snapshot.question) && (
@@ -424,7 +442,7 @@ function MiboComposition({
           )}
         {snapshot.state.kind === "failed" && Boolean(snapshot.errorMessage) && (
           <Text
-            accessibilityRole="alert"
+            accessibilityRole={visualOnly ? undefined : "alert"}
             style={styles.error}
             testID={
               testID === "mibo-composition-current" ? "mibo-error" : undefined
@@ -433,8 +451,10 @@ function MiboComposition({
             {snapshot.errorMessage}
           </Text>
         )}
-        {snapshot.reply ? <View style={styles.replySlot}>{snapshot.reply}</View> : null}
-      </Animated.View>
+        {snapshot.reply ? (
+          <View style={styles.replySlot}>{snapshot.reply}</View>
+        ) : null}
+      </View>
     </Animated.View>
   );
 }
@@ -522,21 +542,14 @@ export function MiboStage({
       transition.from.sourceFrameHint,
     );
     const isSlide = transition.motion.transition === "SLIDE_FROM_BOTTOM";
-    const previousStyle = {
-      opacity: progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [1, 0],
-      }),
-    };
     if (isSlide) {
       return {
-        previousStyle,
         currentStyle: {
           transform: [
             {
               translateY: progress.interpolate({
                 inputRange: [0, 1],
-                outputRange: [812, 0],
+                outputRange: [viewport.height, 0],
               }),
             },
           ],
@@ -545,60 +558,78 @@ export function MiboStage({
     }
     const fromStatus = fromLayout.frame.statusNode;
     const toStatus = currentLayout.frame.statusNode;
+    const matchingCharacter =
+      fromLayout.primaryCharacter.name === currentLayout.primaryCharacter.name;
+    const matchingStatus =
+      fromStatus && toStatus && fromStatus.name === toStatus.name;
     return {
-      previousStyle,
-      currentStyle: {
-        opacity: progress,
-      },
-      artStyle: {
-        transform: [
-          {
-            translateX: progress.interpolate({
+      characterStyle: matchingCharacter
+        ? {
+            left: progress.interpolate({
               inputRange: [0, 1],
               outputRange: [
-                fromLayout.primaryCharacter.transform.m02 -
-                  currentLayout.primaryCharacter.transform.m02,
-                0,
+                fromLayout.primaryCharacter.transform.m02,
+                currentLayout.primaryCharacter.transform.m02,
               ],
             }),
-          },
-          {
-            translateY: progress.interpolate({
+            top: progress.interpolate({
               inputRange: [0, 1],
               outputRange: [
-                fromLayout.primaryCharacter.transform.m12 -
-                  currentLayout.primaryCharacter.transform.m12,
-                0,
+                fromLayout.primaryCharacter.transform.m12 - 137,
+                currentLayout.primaryCharacter.transform.m12 - 137,
               ],
             }),
-          },
-        ],
-      },
-      contentStyle:
-        fromStatus && toStatus
-          ? {
-              transform: [
-                {
-                  translateX: progress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [
-                      fromStatus.transform.m02 - toStatus.transform.m02,
-                      0,
-                    ],
-                  }),
-                },
-                {
-                  translateY: progress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [
-                      fromStatus.transform.m12 - toStatus.transform.m12,
-                      0,
-                    ],
-                  }),
-                },
+            width: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [
+                fromLayout.primaryCharacter.size.x,
+                currentLayout.primaryCharacter.size.x,
               ],
-            }
-          : undefined,
+            }),
+            height: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [
+                fromLayout.primaryCharacter.size.y,
+                currentLayout.primaryCharacter.size.y,
+              ],
+            }),
+            opacity: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [
+                fromLayout.primaryCharacter.opacity,
+                currentLayout.primaryCharacter.opacity,
+              ],
+            }),
+          }
+        : undefined,
+      statusStyle: matchingStatus
+        ? {
+            transform: [
+              {
+                translateX: progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [
+                    fromStatus.transform.m02 - toStatus.transform.m02,
+                    0,
+                  ],
+                }),
+              },
+              {
+                translateY: progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [
+                    fromStatus.transform.m12 - toStatus.transform.m12,
+                    0,
+                  ],
+                }),
+              },
+            ],
+            opacity: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [fromStatus.opacity, toStatus.opacity],
+            }),
+          }
+        : undefined,
     };
   }, [currentLayout, progress, transition, viewport.width]);
   const sourceData =
@@ -613,13 +644,14 @@ export function MiboStage({
 
   return (
     <View {...sourceData} style={styles.stage} testID="mibo-stage">
-      {transition && (
+      {transition?.motion.transition === "SLIDE_FROM_BOTTOM" && (
         <MiboComposition
-          snapshot={transition.from}
+          snapshot={{ ...transition.from, reply: undefined }}
           sources={sources}
           viewport={viewport}
           testID="mibo-composition-previous"
-          style={[styles.previousComposition, motionStyles.previousStyle]}
+          style={styles.previousComposition}
+          visualOnly
         />
       )}
       <MiboComposition
@@ -629,8 +661,8 @@ export function MiboStage({
         testID="mibo-composition-current"
         titleTestID={titleTestID}
         style={motionStyles.currentStyle}
-        artStyle={motionStyles.artStyle}
-        contentStyle={motionStyles.contentStyle}
+        characterStyle={motionStyles.characterStyle}
+        statusStyle={motionStyles.statusStyle}
       />
     </View>
   );

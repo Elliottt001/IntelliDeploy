@@ -44,7 +44,6 @@ import {
 } from "../components/mobile/MiboStage";
 import { getJobVisualState } from "../features/chatbot/jobVisualState";
 import { miboRenderEvidence } from "../design/miboRenderEvidence";
-import { miboSourceAudit } from "../design/miboSourceAudit";
 
 type Job = components["schemas"]["JobSnapshot"];
 type ElementProps = Record<string, unknown> & {
@@ -418,6 +417,12 @@ test.skipIf(!figmaSource)(
   "external Figma provenance audit (NOT_RUN unless INTELLIDEPLOY_FIGMA_SOURCE is set)",
   () => {
     const sourceRoot = figmaSource!;
+    const miboSourceAudit = JSON.parse(
+      fs.readFileSync(
+        path.join(process.cwd(), "design/miboSourceAudit.json"),
+        "utf8",
+      ),
+    ) as { frames: Record<string, Array<Record<string, any>>> };
     const document = JSON.parse(
       fs.readFileSync(
         path.join(sourceRoot, "design-data/document.kiwi.json"),
@@ -512,6 +517,7 @@ test.skipIf(!figmaSource)(
             ];
         expect(runtime).toEqual({
           sourceNodeId: id(imageNode),
+          name: imageNode.name,
           visible: imageNode.visible !== false,
           size: imageNode.size,
           transform: imageNode.transform,

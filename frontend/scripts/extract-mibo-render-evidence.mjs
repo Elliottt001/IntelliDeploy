@@ -59,6 +59,7 @@ for (const frameId of frameIds) {
       );
     images[id] = {
       sourceNodeId: id,
+      name: n.name,
       visible: n.visible !== false,
       size: n.size,
       transform: n.transform,
@@ -125,6 +126,7 @@ for (const frameId of frameIds) {
     statusNode: statusNode
       ? {
           sourceNodeId: nodeId(statusNode),
+          name: statusNode.name,
           size: statusNode.size,
           transform: statusNode.transform,
           opacity: statusNode.opacity ?? 1,
@@ -326,7 +328,7 @@ const runtimeOutput =
   new URL("../design/miboRenderEvidence.ts", import.meta.url);
 const auditOutput =
   process.env.INTELLIDEPLOY_MIBO_AUDIT_OUTPUT ??
-  new URL("../design/miboSourceAudit.ts", import.meta.url);
+  new URL("../design/miboSourceAudit.json", import.meta.url);
 if (
   Boolean(process.env.INTELLIDEPLOY_MIBO_RUNTIME_OUTPUT) !==
   Boolean(process.env.INTELLIDEPLOY_MIBO_AUDIT_OUTPUT)
@@ -337,8 +339,5 @@ await Promise.all([
     runtimeOutput,
     `// Compact runtime evidence generated from the formal Kiwi Mibo frames.\nexport const miboRenderEvidence = ${JSON.stringify({ frames, images, text, replyStyles, shortReplyLayout, lateShortReplyLayout, replyPanel, successReplyPanel, replyListBullet }, null, 2)} as const;\n`,
   ),
-  fs.writeFile(
-    auditOutput,
-    `// Audit-only raw Kiwi payloads. Production modules must not import this file.\nexport const miboSourceAudit = JSON.parse(${JSON.stringify(JSON.stringify({ frames: rawFrames }))}) as {frames:Record<string,Array<Record<string,unknown>>>};\n`,
-  ),
+  fs.writeFile(auditOutput, JSON.stringify({ frames: rawFrames })),
 ]);

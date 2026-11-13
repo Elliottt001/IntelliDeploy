@@ -41,6 +41,7 @@ import {
   bottomAnchor,
   composerViewportLayout,
   fitSourceWidth,
+  resolveKeyboardViewport,
 } from "../theme/responsive";
 
 type ElementProps = Record<string, unknown> & {
@@ -99,6 +100,31 @@ test("chatbot composer consumes four safe insets and restores after keyboard hid
     footerRight: 17,
     footerTop: 709,
   });
+});
+
+test("Android keyboard ordering never double subtracts adjustResize", () => {
+  let baseline = 812;
+  let layout = resolveKeyboardViewport(baseline, 812, 300);
+  expect(layout).toEqual({
+    unobscuredHeight: 812,
+    effectiveKeyboardHeight: 300,
+  });
+  layout = resolveKeyboardViewport(layout.unobscuredHeight, 512, 300);
+  expect(layout).toEqual({
+    unobscuredHeight: 812,
+    effectiveKeyboardHeight: 300,
+  });
+  layout = resolveKeyboardViewport(812, 512, 0);
+  expect(layout).toEqual({
+    unobscuredHeight: 812,
+    effectiveKeyboardHeight: 300,
+  });
+  layout = resolveKeyboardViewport(layout.unobscuredHeight, 512, 300);
+  expect(layout.effectiveKeyboardHeight).toBe(300);
+  layout = resolveKeyboardViewport(layout.unobscuredHeight, 512, 0);
+  expect(layout.effectiveKeyboardHeight).toBe(300);
+  layout = resolveKeyboardViewport(layout.unobscuredHeight, 812, 0);
+  expect(layout).toEqual({ unobscuredHeight: 812, effectiveKeyboardHeight: 0 });
 });
 
 test("app background ignores invalid explicit width before assigning safe space", () => {

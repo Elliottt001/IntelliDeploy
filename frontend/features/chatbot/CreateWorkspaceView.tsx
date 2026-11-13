@@ -25,7 +25,10 @@ import {
 import { mobileColors } from "../../theme/tokens";
 import { mobileFontFamilies } from "../../theme/typography";
 import { getJobVisualState, type JobVisualState } from "./jobVisualState";
-import { composerViewportLayout } from "../../theme/responsive";
+import {
+  composerViewportLayout,
+  resolveKeyboardViewport,
+} from "../../theme/responsive";
 
 // Direct Kiwi composition: the approved 845:3479 subtree has no Instance/Symbol.
 export const chatbotLayoutEvidence = {
@@ -108,14 +111,15 @@ export function ChatbotPage({
       visualViewport.removeEventListener("resize", updateWebKeyboard);
     };
   }, []);
-  const keyboardHeight = keyboardHeightOverride ?? observedKeyboardHeight;
+  const reportedKeyboardHeight =
+    keyboardHeightOverride ?? observedKeyboardHeight;
   const unobscuredViewportHeight = useRef(viewport.height);
-  if (keyboardHeight === 0) unobscuredViewportHeight.current = viewport.height;
-  else
-    unobscuredViewportHeight.current = Math.max(
-      unobscuredViewportHeight.current,
-      viewport.height,
-    );
+  const keyboardViewport = resolveKeyboardViewport(
+    unobscuredViewportHeight.current,
+    viewport.height,
+    reportedKeyboardHeight,
+  );
+  unobscuredViewportHeight.current = keyboardViewport.unobscuredHeight;
   const headerSource = formalMobileControls.productHeader;
   const headerLeft =
       headerSource.transform.m02 - 3 + Math.max(0, (viewport.width - 375) / 2),
@@ -134,8 +138,8 @@ export function ChatbotPage({
     ),
   );
   const composerLayout = composerViewportLayout(
-    keyboardHeight > 0 ? unobscuredViewportHeight.current : viewport.height,
-    keyboardHeight,
+    keyboardViewport.unobscuredHeight,
+    keyboardViewport.effectiveKeyboardHeight,
     insets,
     chatComposerFigmaEvidence.height,
     29,
@@ -239,9 +243,8 @@ export function ChatbotPage({
               ? {
                   marginBottom: Math.max(
                     0,
-                    (keyboardHeight > 0
-                      ? unobscuredViewportHeight.current
-                      : viewport.height) - composerLayout.contentBottom,
+                    keyboardViewport.unobscuredHeight -
+                      composerLayout.contentBottom,
                   ),
                 }
               : undefined

@@ -25,6 +25,7 @@ export const miboRenderEvidence = {
       ],
       "statusNode": {
         "sourceNodeId": "845:3521",
+        "name": "你好！我是 Mibo^^ 有什么可以帮助您的吗？",
         "size": {
           "x": 199,
           "y": 71
@@ -100,6 +101,7 @@ export const miboRenderEvidence = {
       ],
       "statusNode": {
         "sourceNodeId": "846:3586",
+        "name": "Mibo=_=正在思考中 稍等片刻……",
         "size": {
           "x": 220,
           "y": 71
@@ -176,6 +178,7 @@ export const miboRenderEvidence = {
       ],
       "statusNode": {
         "sourceNodeId": "849:3650",
+        "name": "正在分析论文环境需求…",
         "size": {
           "x": 264,
           "y": 34
@@ -252,6 +255,7 @@ export const miboRenderEvidence = {
       ],
       "statusNode": {
         "sourceNodeId": "849:3747",
+        "name": "正在分析论文环境需求…",
         "size": {
           "x": 264,
           "y": 34
@@ -328,6 +332,7 @@ export const miboRenderEvidence = {
       ],
       "statusNode": {
         "sourceNodeId": "849:3836",
+        "name": "正在分析论文环境需求…",
         "size": {
           "x": 264,
           "y": 34
@@ -404,6 +409,7 @@ export const miboRenderEvidence = {
       ],
       "statusNode": {
         "sourceNodeId": "849:3925",
+        "name": "正在分析论文环境需求…",
         "size": {
           "x": 264,
           "y": 34
@@ -480,6 +486,7 @@ export const miboRenderEvidence = {
       ],
       "statusNode": {
         "sourceNodeId": "849:4014",
+        "name": "正在分析论文环境需求…",
         "size": {
           "x": 264,
           "y": 34
@@ -556,6 +563,7 @@ export const miboRenderEvidence = {
       ],
       "statusNode": {
         "sourceNodeId": "852:4103",
+        "name": "正在分析论文环境需求…",
         "size": {
           "x": 264,
           "y": 34
@@ -633,6 +641,7 @@ export const miboRenderEvidence = {
       ],
       "statusNode": {
         "sourceNodeId": "852:4192",
+        "name": "正在安装依赖包…",
         "size": {
           "x": 264,
           "y": 34
@@ -710,6 +719,7 @@ export const miboRenderEvidence = {
       ],
       "statusNode": {
         "sourceNodeId": "852:4284",
+        "name": "环境部署完成！🎉",
         "size": {
           "x": 264,
           "y": 34
@@ -751,6 +761,7 @@ export const miboRenderEvidence = {
       ],
       "statusNode": {
         "sourceNodeId": "852:4516",
+        "name": "环境部署完成！🎉",
         "size": {
           "x": 264,
           "y": 34
@@ -789,6 +800,7 @@ export const miboRenderEvidence = {
   "images": {
     "845:3518": {
       "sourceNodeId": "845:3518",
+      "name": "波纹（大）",
       "visible": true,
       "size": {
         "x": 504,
@@ -816,6 +828,7 @@ export const miboRenderEvidence = {
     },
     "845:3519": {
       "sourceNodeId": "845:3519",
+      "name": "波纹",
       "visible": true,
       "size": {
         "x": 359,
@@ -843,6 +856,7 @@ export const miboRenderEvidence = {
     },
     "845:3520": {
       "sourceNodeId": "845:3520",
+      "name": "机器人",
       "visible": false,
       "size": {
         "x": 231,
@@ -870,6 +884,7 @@ export const miboRenderEvidence = {
     },
     "845:3522": {
       "sourceNodeId": "845:3522",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 157,
@@ -897,6 +912,7 @@ export const miboRenderEvidence = {
     },
     "846:3583": {
       "sourceNodeId": "846:3583",
+      "name": "波纹（大）",
       "visible": true,
       "size": {
         "x": 504,
@@ -924,6 +940,7 @@ export const miboRenderEvidence = {
     },
     "846:3584": {
       "sourceNodeId": "846:3584",
+      "name": "波纹",
       "visible": true,
       "size": {
         "x": 359,
@@ -951,6 +968,7 @@ export const miboRenderEvidence = {
     },
     "846:3585": {
       "sourceNodeId": "846:3585",
+      "name": "机器人",
       "visible": false,
       "size": {
         "x": 231,
@@ -978,6 +996,7 @@ export const miboRenderEvidence = {
     },
     "846:3587": {
       "sourceNodeId": "846:3587",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 194,
@@ -1005,6 +1024,7 @@ export const miboRenderEvidence = {
     },
     "849:3647": {
       "sourceNodeId": "849:3647",
+      "name": "波纹（大）",
       "visible": true,
       "size": {
         "x": 504,
@@ -1032,6 +1052,7 @@ export const miboRenderEvidence = {
     },
     "849:3648": {
       "sourceNodeId": "849:3648",
+      "name": "波纹",
       "visible": true,
       "size": {
         "x": 359,
@@ -1059,6 +1080,7 @@ export const miboRenderEvidence = {
     },
     "849:3649": {
       "sourceNodeId": "849:3649",
+      "name": "机器人",
       "visible": false,
       "size": {
         "x": 231,
@@ -1086,6 +1108,7 @@ export const miboRenderEvidence = {
     },
     "849:3651": {
       "sourceNodeId": "849:3651",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 194,
@@ -1113,6 +1136,7 @@ export const miboRenderEvidence = {
     },
     "849:3744": {
       "sourceNodeId": "849:3744",
+      "name": "波纹（大）",
       "visible": true,
       "size": {
         "x": 504,
@@ -1140,6 +1164,7 @@ export const miboRenderEvidence = {
     },
     "849:3745": {
       "sourceNodeId": "849:3745",
+      "name": "波纹",
       "visible": true,
       "size": {
         "x": 359,
@@ -1167,6 +1192,7 @@ export const miboRenderEvidence = {
     },
     "849:3746": {
       "sourceNodeId": "849:3746",
+      "name": "机器人",
       "visible": false,
       "size": {
         "x": 231,
@@ -1194,6 +1220,7 @@ export const miboRenderEvidence = {
     },
     "849:3748": {
       "sourceNodeId": "849:3748",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 194,
@@ -1221,6 +1248,7 @@ export const miboRenderEvidence = {
     },
     "849:3833": {
       "sourceNodeId": "849:3833",
+      "name": "波纹（大）",
       "visible": true,
       "size": {
         "x": 504,
@@ -1248,6 +1276,7 @@ export const miboRenderEvidence = {
     },
     "849:3834": {
       "sourceNodeId": "849:3834",
+      "name": "波纹",
       "visible": true,
       "size": {
         "x": 359,
@@ -1275,6 +1304,7 @@ export const miboRenderEvidence = {
     },
     "849:3835": {
       "sourceNodeId": "849:3835",
+      "name": "机器人",
       "visible": false,
       "size": {
         "x": 231,
@@ -1302,6 +1332,7 @@ export const miboRenderEvidence = {
     },
     "849:3837": {
       "sourceNodeId": "849:3837",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 194,
@@ -1329,6 +1360,7 @@ export const miboRenderEvidence = {
     },
     "849:3922": {
       "sourceNodeId": "849:3922",
+      "name": "波纹（大）",
       "visible": true,
       "size": {
         "x": 504,
@@ -1356,6 +1388,7 @@ export const miboRenderEvidence = {
     },
     "849:3923": {
       "sourceNodeId": "849:3923",
+      "name": "波纹",
       "visible": true,
       "size": {
         "x": 359,
@@ -1383,6 +1416,7 @@ export const miboRenderEvidence = {
     },
     "849:3924": {
       "sourceNodeId": "849:3924",
+      "name": "机器人",
       "visible": false,
       "size": {
         "x": 231,
@@ -1410,6 +1444,7 @@ export const miboRenderEvidence = {
     },
     "849:3926": {
       "sourceNodeId": "849:3926",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 194,
@@ -1437,6 +1472,7 @@ export const miboRenderEvidence = {
     },
     "849:4011": {
       "sourceNodeId": "849:4011",
+      "name": "波纹（大）",
       "visible": true,
       "size": {
         "x": 504,
@@ -1464,6 +1500,7 @@ export const miboRenderEvidence = {
     },
     "849:4012": {
       "sourceNodeId": "849:4012",
+      "name": "波纹",
       "visible": true,
       "size": {
         "x": 359,
@@ -1491,6 +1528,7 @@ export const miboRenderEvidence = {
     },
     "849:4013": {
       "sourceNodeId": "849:4013",
+      "name": "机器人",
       "visible": false,
       "size": {
         "x": 231,
@@ -1518,6 +1556,7 @@ export const miboRenderEvidence = {
     },
     "849:4015": {
       "sourceNodeId": "849:4015",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 194,
@@ -1545,6 +1584,7 @@ export const miboRenderEvidence = {
     },
     "852:4100": {
       "sourceNodeId": "852:4100",
+      "name": "波纹（大）",
       "visible": true,
       "size": {
         "x": 504,
@@ -1572,6 +1612,7 @@ export const miboRenderEvidence = {
     },
     "852:4101": {
       "sourceNodeId": "852:4101",
+      "name": "波纹",
       "visible": true,
       "size": {
         "x": 359,
@@ -1599,6 +1640,7 @@ export const miboRenderEvidence = {
     },
     "852:4102": {
       "sourceNodeId": "852:4102",
+      "name": "机器人",
       "visible": false,
       "size": {
         "x": 231,
@@ -1626,6 +1668,7 @@ export const miboRenderEvidence = {
     },
     "852:4104": {
       "sourceNodeId": "852:4104",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 194,
@@ -1653,6 +1696,7 @@ export const miboRenderEvidence = {
     },
     "852:4189": {
       "sourceNodeId": "852:4189",
+      "name": "波纹（大）",
       "visible": true,
       "size": {
         "x": 504,
@@ -1680,6 +1724,7 @@ export const miboRenderEvidence = {
     },
     "852:4190": {
       "sourceNodeId": "852:4190",
+      "name": "波纹",
       "visible": true,
       "size": {
         "x": 359,
@@ -1707,6 +1752,7 @@ export const miboRenderEvidence = {
     },
     "852:4191": {
       "sourceNodeId": "852:4191",
+      "name": "机器人",
       "visible": false,
       "size": {
         "x": 231,
@@ -1734,6 +1780,7 @@ export const miboRenderEvidence = {
     },
     "852:4193": {
       "sourceNodeId": "852:4193",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 194,
@@ -1761,6 +1808,7 @@ export const miboRenderEvidence = {
     },
     "852:4383": {
       "sourceNodeId": "852:4383",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 178,
@@ -1788,6 +1836,7 @@ export const miboRenderEvidence = {
     },
     "852:4281": {
       "sourceNodeId": "852:4281",
+      "name": "波纹（大）",
       "visible": true,
       "size": {
         "x": 504,
@@ -1815,6 +1864,7 @@ export const miboRenderEvidence = {
     },
     "852:4282": {
       "sourceNodeId": "852:4282",
+      "name": "波纹",
       "visible": true,
       "size": {
         "x": 359,
@@ -1842,6 +1892,7 @@ export const miboRenderEvidence = {
     },
     "852:4283": {
       "sourceNodeId": "852:4283",
+      "name": "机器人",
       "visible": false,
       "size": {
         "x": 231,
@@ -1869,6 +1920,7 @@ export const miboRenderEvidence = {
     },
     "852:4381": {
       "sourceNodeId": "852:4381",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 194,
@@ -1896,6 +1948,7 @@ export const miboRenderEvidence = {
     },
     "852:4285": {
       "sourceNodeId": "852:4285",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 178,
@@ -1923,6 +1976,7 @@ export const miboRenderEvidence = {
     },
     "852:4430": {
       "sourceNodeId": "852:4430",
+      "name": "波纹（大）",
       "visible": true,
       "size": {
         "x": 504,
@@ -1950,6 +2004,7 @@ export const miboRenderEvidence = {
     },
     "852:4431": {
       "sourceNodeId": "852:4431",
+      "name": "波纹",
       "visible": true,
       "size": {
         "x": 359,
@@ -1977,6 +2032,7 @@ export const miboRenderEvidence = {
     },
     "852:4432": {
       "sourceNodeId": "852:4432",
+      "name": "机器人",
       "visible": false,
       "size": {
         "x": 231,
@@ -2004,6 +2060,7 @@ export const miboRenderEvidence = {
     },
     "852:4434": {
       "sourceNodeId": "852:4434",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 194,
@@ -2031,6 +2088,7 @@ export const miboRenderEvidence = {
     },
     "852:4435": {
       "sourceNodeId": "852:4435",
+      "name": "喵",
       "visible": true,
       "size": {
         "x": 178,

@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 import type { components } from "@intellideploy/api-client";
+import { getSourceMotion } from "../design/sourceMotionEvidence";
+import { sampleSourceEasing } from "../features/navigation/sourceMotionPolicy";
 
 type App = components["schemas"]["AppDetail"];
 type Status = components["schemas"]["JobStatus"];
@@ -453,32 +455,102 @@ test("a 500 app detail remains an honest retryable error with working return nav
   expect(attempts).toBeGreaterThanOrEqual(2);
 });
 
-test("Mibo slide transition moves title and reply composition through source start midpoint and end", async ({
+for (const viewportHeight of [640, 812, 932]) {
+  test(`Mibo slide uses the responsive ${viewportHeight}pt boundary and source midpoint`, async ({
+    page,
+  }) => {
+    let app = detail("RUNNING"),
+      advance = false;
+    app.latest_job!.phase = "validating";
+    app.active_job!.phase = "validating";
+    app.conversation.push({
+      id: "assistant",
+      sequence: 2,
+      role: "assistant",
+      content: "真实验证回复",
+      created_at: timestamp,
+    });
+    await page.route("**/api/apps/app", (r) => r.fulfill({ json: app }));
+    await page.route("**/api/jobs/job", (r) => {
+      if (advance) {
+        app = detail("RUNNING");
+        app.latest_job!.phase = "deploying";
+        app.active_job!.phase = "deploying";
+        app.conversation.push({
+          id: "assistant",
+          sequence: 2,
+          role: "assistant",
+          content: "真实部署回复",
+          created_at: timestamp,
+        });
+      }
+      return r.fulfill({ json: app.latest_job });
+    });
+    await page.setViewportSize({ width: 375, height: viewportHeight });
+    await page.clock.install();
+    await page.goto("/app-detail/app");
+    await page.getByTestId("chatbot-settings").click();
+    await page.getByTestId("delivery-management-toggle").click();
+    advance = true;
+    await page.getByTestId("refresh-job").click();
+    const current = page.getByTestId("mibo-composition-current"),
+      previous = page.getByTestId("mibo-composition-previous"),
+      offset = async () =>
+        current.evaluate((element) => {
+          const value = getComputedStyle(element).transform;
+          return value === "none" ? 0 : new DOMMatrix(value).m42;
+        });
+    await expect(page.getByTestId("mibo-stage")).toHaveAttribute(
+      "data-source-motion",
+      "852:4343",
+    );
+    expect(Math.abs((await offset()) - viewportHeight)).toBeLessThan(2);
+    await expect(previous).toHaveCSS("pointer-events", "none");
+    await expect(previous).toHaveAttribute("aria-hidden", "true");
+    await expect(previous).toHaveCSS("opacity", "1");
+    await expect(
+      page.getByRole("heading", { name: "正在发布应用" }),
+    ).toHaveCount(1);
+    await expect(page.getByTestId("latest-assistant-reply")).toHaveCount(1);
+    await expect(page.getByLabel("Mibo 最新回复")).toHaveCount(1);
+    const motion = getSourceMotion("852:4061", "AFTER_TIMEOUT", "852:4150")!;
+    await page.clock.runFor(motion.durationMs / 2);
+    expect(
+      Math.abs(
+        (await offset()) -
+          viewportHeight * (1 - sampleSourceEasing(motion, 0.5)),
+      ) / viewportHeight,
+    ).toBeLessThan(0.08);
+    await page.clock.runFor(motion.durationMs / 2);
+    expect(await offset()).toBeCloseTo(0, 1);
+  });
+}
+
+test("Mibo SMART animates only matching raw character and status properties", async ({
   page,
 }) => {
   let app = detail("RUNNING"),
-    reads = 0;
-  app.latest_job!.phase = "validating";
-  app.active_job!.phase = "validating";
+    advance = false;
+  app.latest_job!.phase = "clarifying";
+  app.active_job!.phase = "clarifying";
   app.conversation.push({
     id: "assistant",
     sequence: 2,
     role: "assistant",
-    content: "真实验证回复",
+    content: "真实理解回复",
     created_at: timestamp,
   });
   await page.route("**/api/apps/app", (r) => r.fulfill({ json: app }));
   await page.route("**/api/jobs/job", (r) => {
-    reads++;
-    if (reads > 1) {
+    if (advance) {
       app = detail("RUNNING");
-      app.latest_job!.phase = "deploying";
-      app.active_job!.phase = "deploying";
+      app.latest_job!.phase = "retrieving";
+      app.active_job!.phase = "retrieving";
       app.conversation.push({
         id: "assistant",
         sequence: 2,
         role: "assistant",
-        content: "真实部署回复",
+        content: "真实检索回复",
         created_at: timestamp,
       });
     }
@@ -486,29 +558,59 @@ test("Mibo slide transition moves title and reply composition through source sta
   });
   await page.clock.install();
   await page.goto("/app-detail/app");
-  await page.clock.runFor(2999);
-  await page.clock.runFor(1);
-  const current = page.getByTestId("mibo-composition-current"),
-    previous = page.getByTestId("mibo-composition-previous");
-  await expect(current).toBeVisible();
-  await expect(previous).toBeVisible();
-  const offset = async () =>
-    current.evaluate(
-      (element) => new DOMMatrix(getComputedStyle(element).transform).m42,
-    );
-  const start = await offset();
-  expect(start).toBeGreaterThan(0);
-  await page.clock.runFor(200);
-  const midpoint = await offset();
-  expect(midpoint).toBeGreaterThan(0);
-  expect(midpoint).toBeLessThan(start);
-  await expect(current.getByTestId("job-status")).toHaveText("正在发布应用");
-  await expect(current.getByTestId("latest-assistant-reply")).toHaveText(
-    "真实部署回复",
+  await page.getByTestId("chatbot-settings").click();
+  await page.getByTestId("delivery-management-toggle").click();
+  advance = true;
+  await page.getByTestId("refresh-job").click();
+  const cat = page.getByTestId("mibo-cat"),
+    canvas = page.getByTestId("mibo-art-canvas"),
+    origin = async () => {
+      const [catBox, canvasBox] = await Promise.all([
+        cat.boundingBox(),
+        canvas.boundingBox(),
+      ]);
+      return { x: catBox!.x - canvasBox!.x, y: catBox!.y - canvasBox!.y + 137 };
+    };
+  await expect(page.getByTestId("mibo-stage")).toHaveAttribute(
+    "data-source-motion",
+    "852:4339",
   );
-  await page.clock.runFor(600);
-  expect(await offset()).toBeCloseTo(0, 1);
-  await expect(previous).toHaveCSS("opacity", "0");
+  await expect(page.getByTestId("mibo-composition-previous")).toHaveCount(0);
+  await expect(page.getByTestId("mibo-composition-current")).toHaveCSS(
+    "opacity",
+    "1",
+  );
+  const start = await origin();
+  expect(start.x).toBeCloseTo(94, 1);
+  expect(start.y).toBeCloseTo(154, 0);
+  const status = page.getByTestId("job-status");
+  await expect(status).toHaveCSS("opacity", "1");
+  expect(
+    await status.evaluate((element) => {
+      const value = getComputedStyle(element).transform;
+      if (value === "none") return { x: 0, y: 0 };
+      const matrix = new DOMMatrix(value);
+      return { x: matrix.m41, y: matrix.m42 };
+    }),
+  ).toEqual({ x: 0, y: 0 });
+  await expect(
+    page.getByRole("heading", { name: "正在查找可复用项目" }),
+  ).toHaveCount(1);
+  await expect(page.getByTestId("latest-assistant-reply")).toHaveText(
+    "真实检索回复",
+  );
+  const motion = getSourceMotion("849:3705", "AFTER_TIMEOUT", "849:3794")!;
+  await page.clock.runFor(motion.durationMs / 2);
+  const eased = sampleSourceEasing(motion, 0.5);
+  expect(
+    Math.abs((await origin()).y - (154 + (184 - 154) * eased)),
+  ).toBeLessThan(1);
+  await expect(page.getByTestId("mibo-composition-current")).toHaveCSS(
+    "opacity",
+    "1",
+  );
+  await page.clock.runFor(motion.durationMs / 2);
+  expect((await origin()).y).toBeCloseTo(184, 1);
 });
 
 test("Mibo replaces an in-flight transition, pauses in background, and resumes without stale rollback", async ({
@@ -540,6 +642,13 @@ test("Mibo replaces an in-flight transition, pauses in background, and resumes w
     if (forceSuccess) {
       app = detail("SUCCEEDED");
       app.latest_job!.phase = "verifying_live";
+      app.conversation.push({
+        id: "assistant-success",
+        sequence: 2,
+        role: "assistant",
+        content: "真实交付回复",
+        created_at: timestamp,
+      });
     } else if (reads > 1) {
       app = detail("RUNNING");
       app.latest_job!.phase = "deploying";
@@ -591,10 +700,11 @@ test("Mibo replaces an in-flight transition, pauses in background, and resumes w
   );
   await page.clock.runFor(800);
   await expect(current.getByTestId("job-status")).toHaveText("应用已交付");
-  await expect(page.getByTestId("mibo-composition-previous")).toHaveCSS(
-    "opacity",
-    "0",
+  await expect(page.getByTestId("mibo-composition-previous")).toHaveAttribute(
+    "aria-hidden",
+    "true",
   );
+  await expect(page.getByTestId("latest-assistant-reply")).toHaveCount(1);
   await page.clock.runFor(1000);
   await expect(page.getByTestId("mibo-stage")).toHaveAttribute(
     "data-source-frame",
@@ -647,9 +757,9 @@ test("Mibo reduced motion completes the whole target composition without timing 
       return value === "none" ? 0 : new DOMMatrix(value).m42;
     }),
   ).toBe(0);
-  await expect(page.getByTestId("mibo-composition-previous")).toHaveCSS(
-    "opacity",
-    "0",
+  await expect(page.getByTestId("mibo-composition-previous")).toHaveAttribute(
+    "aria-hidden",
+    "true",
   );
   await expect(current.getByTestId("job-status")).toHaveText("正在发布应用");
 });
