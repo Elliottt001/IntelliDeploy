@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 
 from app.agent.contracts import ReviewFinding, ReviewReport
-from app.agent.review import parse_model_findings
+from app.agent.review import parse_model_findings, _StrictReviewPayload
 from app.runtime.manifest import manifest_hash
 
 
@@ -134,6 +134,7 @@ async def security_review_with_model(
                 "content": __import__("json").dumps(
                     {
                         "attempt_id": attempt_id,
+                        "schema": _StrictReviewPayload.model_json_schema(),
                         "manifest": draft.manifest.model_dump(mode="json"),
                         "source_files": list(draft.source_tree),
                         "profile": (

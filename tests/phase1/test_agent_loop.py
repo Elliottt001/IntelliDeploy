@@ -143,3 +143,125 @@ def test_command_schema_declares_seconds_and_matches_validated_arguments():
     schema = next(t['function']['parameters'] for t in TOOLS if t['function']['name'] == 'run_command')
     assert schema == CommandArgs.model_json_schema()
     assert 'seconds' in schema['properties']['timeout']['description']
+
+
+@pytest.mark.asyncio
+async def test_generation_final_round_is_reserved_for_manifest_submission(tmp_path):
+    from app.agent.loop import TOOLS
+    class Model:
+        calls=0
+        async def complete(self,messages,tools,model):
+            self.calls+=1
+            if self.calls<3:
+                assert any(t['function']['name']=='write_file' for t in tools)
+                return turn([ToolCall(id=f'w{self.calls}',name='write_file',arguments={'path':'app.py','content':'source'})])
+            assert [t['function']['name'] for t in tools]==['finish_implementation']
+            assert 'finish_implementation' in messages[-1]['content']
+            return turn([ToolCall(id='finish',name='finish_implementation',arguments={'manifest':MANIFEST})])
+    model=Model()
+    result=await run_generation('job',Checkpoint(),model,CounterTool(),lambda _:None,lambda _:None,
+                                max_rounds=3,tools=TOOLS,finalize_last_round=True)
+    assert result.manifest.web_service=='web'
+    assert model.calls==3
+
+
+@pytest.mark.asyncio
+async def test_finalization_checkpoint_resumes_with_only_submission_tool():
+    checkpoint=Checkpoint(generation_phase='FINALIZE',messages=[{'role':'user','content':'finish_implementation now'}])
+    class Model:
+        async def complete(self,messages,tools,model):
+            assert [t['function']['name'] for t in tools]==['finish_implementation']
+            assert len(messages)==1
+            return turn([ToolCall(id='finish',name='finish_implementation',arguments={'manifest':MANIFEST})])
+    result=await run_generation('job',checkpoint,Model(),CounterTool(),lambda _:None,lambda _:None,max_rounds=2,finalize_last_round=True)
+    assert result.manifest.web_service=='web'
+
+
+@pytest.mark.asyncio
+async def test_received_truncation_retries_in_smaller_batches_without_tool_effects():
+    from app.agent.deepseek import ModelProtocolError
+    class Model:
+        calls=0
+        async def complete(self,messages,tools,model):
+            self.calls+=1
+            if self.calls==1:
+                raw={'role':'assistant','content':None,'reasoning_content':'preserved reasoning',
+                     'tool_calls':[{'id':'partial','type':'function','function':{'name':'write_file','arguments':'{"path":"app.py","content":"unfinished'}}]}
+                raise ModelProtocolError('MODEL_OUTPUT_TRUNCATED',ModelTurn(assistant_message=raw,input_tokens=5,output_tokens=10))
+            assert any(m.get('tool_call_id')=='partial' and '未执行' in m['content'] for m in messages)
+            assert '分批' in messages[-1]['content']
+            assert messages[0]['reasoning_content']=='preserved reasoning'
+            return turn([ToolCall(id='finish',name='finish_implementation',arguments={'manifest':MANIFEST})])
+    tool=CounterTool();model=Model()
+    result=await run_generation('job',Checkpoint(),model,tool,lambda _:None,lambda _:None,max_rounds=3)
+    assert result.manifest.web_service=='web'
+    assert model.calls==2 and tool.calls==0
+
+
+@pytest.mark.asyncio
+async def test_received_protocol_corrections_stop_after_three_failures():
+    from app.agent.deepseek import ModelProtocolError
+    class Model:
+        calls=0
+        async def complete(self,*args):
+            self.calls+=1
+            raise ModelProtocolError('MODEL_OUTPUT_EMPTY',ModelTurn(assistant_message={'role':'assistant','content':''},input_tokens=1,output_tokens=1))
+    model=Model()
+    result=await run_generation('job',Checkpoint(),model,CounterTool(),lambda _:None,lambda _:None,max_rounds=10)
+    assert result.exhausted is True
+    assert model.calls==3
+
+
+@pytest.mark.asyncio
+async def test_finalization_rejects_extra_tool_and_allows_one_correction():
+    class Model:
+        calls=0
+        async def complete(self,messages,tools,model):
+            self.calls+=1
+            if self.calls==1:
+                return turn([ToolCall(id='write',name='write_file',arguments={'path':'app.py','content':'source'})])
+            if self.calls==2:
+                assert [t['function']['name'] for t in tools]==['finish_implementation']
+                return turn([ToolCall(id='cleanup',name='run_command',arguments={'argv':['rm','-f','test.js']})])
+            assert any(m.get('tool_call_id')=='cleanup' and '未执行' in m['content'] for m in messages)
+            return turn([ToolCall(id='finish',name='finish_implementation',arguments={'manifest':MANIFEST})])
+    model=Model();tool=CounterTool()
+    result=await run_generation('job',Checkpoint(),model,tool,lambda _:None,lambda _:None,max_rounds=2,finalize_last_round=True)
+    assert result.manifest.web_service=='web'
+    assert model.calls==3
+    assert tool.calls==1
+
+
+@pytest.mark.asyncio
+async def test_finalization_stops_after_one_rejected_tool_correction():
+    class Model:
+        calls=0
+        async def complete(self,messages,tools,model):
+            self.calls+=1
+            if self.calls==1:
+                return turn([ToolCall(id='write',name='write_file',arguments={'path':'app.py','content':'source'})])
+            return turn([ToolCall(id=f'cleanup-{self.calls}',name='run_command',arguments={'argv':['rm','-f','test.js']})])
+    model=Model();tool=CounterTool()
+    result=await run_generation('job',Checkpoint(),model,tool,lambda _:None,lambda _:None,max_rounds=2,finalize_last_round=True)
+    assert result.exhausted is True
+    assert model.calls==3
+    assert tool.calls==1
+    assert result.checkpoint.finalization_corrections==1
+
+
+@pytest.mark.asyncio
+async def test_successful_production_build_enters_finalization_early():
+    class Model:
+        calls=0
+        async def complete(self,messages,tools,model):
+            self.calls+=1
+            if self.calls==1:
+                return turn([ToolCall(id='build',name='run_command',arguments={'argv':['npm','run','build']})])
+            assert [item['function']['name'] for item in tools]==['finish_implementation']
+            assert '构建已成功' in messages[-1]['content']
+            return turn([ToolCall(id='finish',name='finish_implementation',arguments={'manifest':MANIFEST})])
+    model=Model();tool=CounterTool()
+    result=await run_generation('job',Checkpoint(),model,tool,lambda _:None,lambda _:None,max_rounds=10,finalize_last_round=True)
+    assert result.manifest.web_service=='web'
+    assert model.calls==2
+    assert tool.calls==1

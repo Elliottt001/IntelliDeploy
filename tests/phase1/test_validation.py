@@ -255,3 +255,32 @@ def test_browser_tool_delegates_structured_check_without_browser_access(tmp_path
 
     assert result.ok
     assert '"status": "PASS"' in result.content
+
+
+@pytest.mark.asyncio
+async def test_check_planner_receives_actual_schema_and_action_arguments():
+    import json
+    from pydantic import TypeAdapter
+    from app.core.types import BrowserCheck, ModelTurn
+    from app.runtime.check_plan import compile_browser_checks
+    req=Requirement(prompt='保存笔记',acceptance=[AcceptanceItem(id='save',action='保存',expected='可见')])
+    class Model:
+        async def complete(self,messages,tools,model):
+            payload=json.loads(messages[1]['content'])
+            assert payload['schema']==TypeAdapter(list[BrowserCheck]).json_schema()
+            assert payload['action_arguments']['fill']==['selector','value']
+            assert payload['action_arguments']['restart_service']==['service']
+            value=[{'item_id':'save','actor':'owner','actions':[{'type':'request','path':'/api/notes','expected_status':200}],'expected':'可见'}]
+            return ModelTurn(assistant_message={'content':json.dumps(value)})
+    result=await compile_browser_checks(req,['app/api/notes/route.ts'],Model())
+    assert result[0].item_id=='save'
+
+
+def test_browser_check_schema_requires_explicit_action_type():
+    from pydantic import TypeAdapter
+    from app.core.types import BrowserCheck
+    schema=TypeAdapter(list[BrowserCheck]).json_schema()
+    action_items=schema['$defs']['BrowserCheck']['properties']['actions']['items']
+    variants=[schema['$defs'][item['$ref'].rsplit('/',1)[-1]] for item in action_items['anyOf']]
+    assert len(variants)==8
+    assert all('type' in variant['required'] for variant in variants)

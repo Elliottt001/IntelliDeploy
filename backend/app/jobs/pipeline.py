@@ -22,6 +22,7 @@ from app.config import settings
 from app.jobs.models import Job, JobEvent
 from app.jobs.store import LeaseLost, leased_job
 from app.jobs.execution import WaitingForUser, UncertainModelCall
+from app.agent.requirements import RequirementInvalid
 from app.billing.ledger import InsufficientQuota
 from app.runtime.build import build_release, snapshot_release
 from app.runtime.candidate import candidate_controller, start_candidate, stop_candidate
@@ -251,9 +252,14 @@ async def implement_and_build(
             or report.manifest_hash != expected_hash
         ):
             raise RepairableCandidateError("candidate review binding is invalid")
-        if any(item.severity == "BLOCKING" for item in report.findings):
+        blocking = [item for item in report.findings if item.severity == "BLOCKING"]
+        if blocking:
+            details = "; ".join(
+                f"{item.id}[{','.join(item.acceptance_ids)}]: {item.message}"
+                for item in blocking
+            )[:2000]
             raise RepairableCandidateError(
-                "candidate review found blocking issues"
+                f"candidate review found blocking issues: {details}"
             )
     try:
         built = await _await(
@@ -265,8 +271,9 @@ async def implement_and_build(
 
         if not isinstance(exc, (BuildFailed, RunnerBuildFailed, ValueError)):
             raise
+        detail = str(exc).strip()[-2000:]
         raise RepairableCandidateError(
-            "candidate build failed",
+            "candidate build failed" + (f": {detail}" if detail else ""),
             stage="build",
             code="BUILD_FAILED",
         ) from exc
@@ -828,7 +835,7 @@ async def run_pipeline(
                     break
                 next_healing = decision
                 repair_evidence = append_repair_evidence(
-                    session_factory, job_id, exc.report, "candidate repair required"
+                    session_factory, job_id, exc.report, str(exc)
                 )
             finally:
                 if runtime is not None:
@@ -851,6 +858,12 @@ async def run_pipeline(
     except LeaseLost:
         raise
     except WaitingForUser:
+        return
+    except RequirementInvalid as exc:
+        count = len(exc.details.get("unresolved_issues") or [])
+        message = (f"系统未能完成需求核对，仍有{count}项验收问题；已保留本次需求。"
+                   if count else "系统未能完成完整需求核对，已保存问题记录供排查。")
+        _finish_failure(session_factory, job_id, "REQUIREMENT_INVALID", message)
         return
     except UncertainModelCall:
         from app.agent.healing import FailureEvidence

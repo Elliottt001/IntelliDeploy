@@ -309,6 +309,7 @@ async def test_build_failure_recomputes_policy_and_reaches_parallel_repair(
     session_factory, race_pipeline_context, build_error
 ):
     import asyncio
+    import json
 
     from sqlalchemy import select
 
@@ -328,8 +329,10 @@ async def test_build_failure_recomputes_policy_and_reaches_parallel_repair(
         session.commit()
 
     build_calls = 0
+    generated_repairs = []
 
     async def generate(**kwargs):
+        generated_repairs.append(kwargs["repair_evidence"])
         return CandidateDraft(
             workspace_id=str(context.workspaces[0]),
             manifest=context.manifest_one,
@@ -448,3 +451,4 @@ async def test_build_failure_recomputes_policy_and_reaches_parallel_repair(
         assert job.checkpoint["algorithm"]["healing"][0]["failure_class"] == "BUILD"
         assert job.checkpoint["algorithm"]["healing"][0]["strategy"] == "REPAIR_PARALLEL"
         assert len(resources) == 2
+        assert str(build_error) in json.dumps(generated_repairs[-1])

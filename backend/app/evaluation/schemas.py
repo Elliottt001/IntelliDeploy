@@ -77,6 +77,15 @@ class EvaluationEvidenceGate(BaseModel):
     reasons: list[str] = Field(default_factory=list)
 
 
+class EvaluationRequirementCompilation(BaseModel):
+    status: str
+    stage: str
+    attempt_count: int = Field(ge=0)
+    source_digest: str
+    last_error_code: str | None = None
+    unresolved_issues: list[str] = Field(default_factory=list)
+
+
 class EvaluationRecord(BaseModel):
     job_id: str
     app_id: str
@@ -98,6 +107,7 @@ class EvaluationRecord(BaseModel):
     phase_durations: list[PhaseDuration] = Field(default_factory=list)
     sources: list[EvaluationSource] = Field(default_factory=list)
     retrieval: EvaluationRetrieval
+    requirement_compilation: EvaluationRequirementCompilation | None = None
     result: DeliveryResult | None = None
     report: JobReport
     created_at: datetime

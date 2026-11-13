@@ -159,6 +159,36 @@ async def retrieve_sources(
     errors: list[str] = []
     reuse_rejections: list[dict] = []
     collected: list[tuple[str, dict]] = []
+    enrichment_cache = {}
+    prepared_keys = {}
+    semaphore = asyncio.Semaphore(4)
+
+    def enrichment_key(row):
+        return (_canonical_url(str(row.get("repo_url") or "")).casefold(),
+                row.get("default_branch"), row.get("commit"))
+
+    async def enrich(value):
+        async with semaphore:
+            try:
+                return normalize_candidate(await client.enrich_repository(value)), None
+            except Exception as exc:
+                return None, exc
+
+    for result in results[:len(github_queries)]:
+        if isinstance(result, BaseException):
+            continue
+        for value in result:
+            row = normalize_candidate(value)
+            if not _valid_commit(row.get("commit")) and hasattr(client, "enrich_repository"):
+                key = enrichment_key(row)
+                prepared_keys[id(value)] = key
+                if key not in enrichment_cache:
+                    enrichment_cache[key] = asyncio.create_task(enrich(value))
+    if enrichment_cache:
+        keys = list(enrichment_cache)
+        values = await asyncio.gather(*enrichment_cache.values())
+        enrichment_cache = dict(zip(keys, values, strict=True))
+    reported_errors = set()
     github_results = results[: len(github_queries)]
     for query, result in zip(github_queries, github_results, strict=True):
         if isinstance(result, BaseException):
@@ -166,21 +196,23 @@ async def retrieve_sources(
             continue
         for value in result:
             row = normalize_candidate(value)
-            if not _valid_commit(row.get("commit")) and hasattr(
-                client, "enrich_repository"
-            ):
-                try:
-                    row = normalize_candidate(
-                        await client.enrich_repository(value)
-                    )
-                except EmptyRepository:
-                    reuse_rejections.append({"repo_url": row.get("repo_url"), "reason": "empty_repository", "evidence": "github_git_tree_409"})
+            if id(value) in prepared_keys:
+                cache_key = prepared_keys[id(value)]
+                enriched, error = enrichment_cache[cache_key]
+                if error is not None and cache_key not in reported_errors:
+                    reported_errors.add(cache_key)
+                    if isinstance(error, EmptyRepository):
+                        reuse_rejections.append({"repo_url": row.get("repo_url"), "reason": "empty_repository", "evidence": "github_git_tree_409"})
+                    else:
+                        errors.append(f"{row.get('repo_url')}: {type(error).__name__}: {error}")
+                if isinstance(error, EmptyRepository):
                     continue
-                except Exception as exc:
+                if error is not None:
                     row["enrichment_status"] = "FAILED"
-                    errors.append(
-                        f"{row.get('repo_url')}: {type(exc).__name__}: {exc}"
-                    )
+                else:
+                    row = {**enriched,
+                           "stars": max(int(enriched.get("stars") or 0), int(row.get("stars") or 0)),
+                           "source_scores": {**(enriched.get("source_scores") or {}), **(row.get("source_scores") or {})}}
             collected.append(("github", row))
 
     cursor = len(github_queries)

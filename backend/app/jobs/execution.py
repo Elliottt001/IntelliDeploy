@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import asyncio
 import inspect
 import json
 import time
@@ -10,7 +11,7 @@ from pathlib import Path
 
 from sqlalchemy import func, select
 
-from app.agent.deepseek import DeepSeekClient, UpstreamUnavailable
+from app.agent.deepseek import DeepSeekClient, UpstreamUnavailable, ModelProtocolError, completion_options
 from app.agent.requirements import (
     compile_requirement,
     persist_requirement,
@@ -23,7 +24,7 @@ from app.billing.pricing import resolve_price
 from app.config import settings
 from app.core.types import ModelTurn, Requirement, UsageInput
 from app.database import SessionLocal
-from app.jobs.models import JobEvent
+from app.jobs.models import Job, JobEvent
 from app.jobs.store import leased_job
 from app.runtime.models import ResourceRecord
 from app.runtime.artifacts import source_archive
@@ -45,11 +46,42 @@ def request_hash(value):
     ).hexdigest()
 
 
+def record_model_uncertainty(session, record, reason):
+    """Retain an unconfirmed provider effect; never turn it into a free request."""
+    if record.state not in {"REQUESTED", "UNKNOWN"} or record.metadata_json.get("response"):
+        return False
+    job = session.get(Job, record.job_id)
+    record.state = "UNKNOWN"
+    record.metadata_json = {**record.metadata_json, "failure_type": reason}
+    unknown = session.scalar(select(UnknownUsage).where(UnknownUsage.operation_id == record.operation_id))
+    if unknown is None:
+        session.add(UnknownUsage(
+            operation_id=record.operation_id,
+            payer_id=job_owner(session, job),
+            kind="model.chat",
+            metadata_json={
+                "reservation_operation_id": record.metadata_json["reservation_operation_id"],
+                "request_hash": record.metadata_json["request_hash"],
+                "reason": reason,
+            },
+        ))
+    return True
+
+
 class DurableModel:
     def __init__(self, execution, phase, start=0):
         self.execution = execution
         self.phase = phase
         self.position = start
+
+    def has_recorded_turn(self):
+        operation = f"model:{self.execution.job_id}:{self.phase}:{self.position}"
+        with self.execution.sessions() as session:
+            return session.scalar(select(ResourceRecord.id).where(
+                ResourceRecord.job_id == self.execution.job_id,
+                ResourceRecord.type == "MODEL_CALL",
+                ResourceRecord.operation_id == operation,
+            )) is not None
 
     async def complete(self, messages, tools, model):
         execution = self.execution
@@ -60,10 +92,14 @@ class DurableModel:
             "messages": messages,
             "tools": tools,
             "model": settings.DEEPSEEK_MODEL,
+            "completion_options": completion_options(tools),
         }
         digest = request_hash(payload)
         with execution.sessions() as session:
             job = execution.job(session)
+            if job.cancel_requested:
+                from app.jobs.pipeline import PipelineCancelled
+                raise PipelineCancelled("job cancellation requested before model call")
             parent = execution.reservation(session, job)
             for kind in (
                 f"{prefix}.input",
@@ -86,6 +122,8 @@ class DurableModel:
                     raise UncertainModelCall("模型请求或用量待核对，不能自动重复执行")
                 turn = ModelTurn.model_validate(record.metadata_json["response"])
                 if record.state == "METERED":
+                    if turn.protocol_error:
+                        raise ModelProtocolError(turn.protocol_error, turn)
                     return turn
             else:
                 count = session.scalar(
@@ -107,7 +145,7 @@ class DurableModel:
                     f"{prefix}.output", settings.PRICE_VERSION, session
                 )
                 bound = (input_bound * n + d - 1) // d + (
-                    settings.DEEPSEEK_MAX_OUTPUT_TOKENS * output_n + output_d - 1
+                    payload["completion_options"]["max_tokens"] * output_n + output_d - 1
                 ) // output_d
                 if parent.used_units + bound > parent.max_units:
                     raise InsufficientQuota()
@@ -124,6 +162,7 @@ class DurableModel:
                         "price_version": settings.PRICE_VERSION,
                         "price_prefix": prefix,
                         "reservation_operation_id": parent.operation_id,
+                        "completion_options": payload["completion_options"],
                     },
                 )
                 session.add(record)
@@ -134,24 +173,16 @@ class DurableModel:
                 turn = await execution.raw_model.complete(
                     messages, tools, settings.DEEPSEEK_MODEL
                 )
+            except ModelProtocolError as exc:
+                if exc.turn is None:
+                    self.mark_unknown(operation, type(exc).__name__)
+                    raise UncertainModelCall("模型响应用量无法核对") from exc
+                turn = exc.turn.model_copy(update={"protocol_error": str(exc)})
+            except asyncio.CancelledError:
+                self.mark_unknown(operation, "CancelledError")
+                raise
             except Exception as exc:
-                with execution.sessions() as session:
-                    execution.job(session)
-                    record = session.scalar(
-                        select(ResourceRecord)
-                        .where(
-                            ResourceRecord.operation_id == operation,
-                            ResourceRecord.type == "MODEL_CALL",
-                        )
-                        .with_for_update()
-                    )
-                    # A response cannot be inferred from a lost connection or worker.
-                    record.state = "UNKNOWN"
-                    record.metadata_json = {
-                        **record.metadata_json,
-                        "failure_type": type(exc).__name__,
-                    }
-                    session.commit()
+                self.mark_unknown(operation, type(exc).__name__)
                 raise UncertainModelCall("模型请求结果未确认，已保存核对记录") from exc
             with execution.sessions() as session:
                 execution.job(session)
@@ -236,7 +267,21 @@ class DurableModel:
             execution.sync_usage(session, job)
             record.state = "METERED"
             session.commit()
+        if turn.protocol_error:
+            raise ModelProtocolError(turn.protocol_error, turn)
         return turn
+
+    def mark_unknown(self, operation, reason):
+        execution = self.execution
+        with execution.sessions() as session:
+            record = session.scalar(select(ResourceRecord).where(
+                ResourceRecord.operation_id == operation,
+                ResourceRecord.job_id == execution.job_id,
+                ResourceRecord.type == "MODEL_CALL",
+            ).with_for_update())
+            if record is not None:
+                record_model_uncertainty(session, record, reason)
+                session.commit()
 
 
 def job_owner(session, job):
@@ -351,7 +396,8 @@ class JobExecution:
             job.phase = "clarifying"
             session.commit()
         draft = await compile_requirement(
-            messages, previous, self.model(f"requirements:{stamp}")
+            messages, previous, self.model(f"requirements:{stamp}"),
+            persist=lambda state: self.save(requirement_compilation=state),
         )
         if draft.questions or draft.unsupported:
             self.wait_for_user(
@@ -685,7 +731,19 @@ class JobExecution:
         checkpoint = self.algorithm_checkpoint()
         payload = {"requirement": requirement.model_dump(mode="json"),
                    "plan": plan.model_dump(mode="json"),
-                   "manifest_schema": AppManifest.model_json_schema()}
+                   "manifest_schema": AppManifest.model_json_schema(),
+                   "platform_contract": {
+                       "final_submission": "finish_implementation",
+                       "source_builds_require_buildspec": True,
+                       "env_refs": {**{name: name.lower() for name in [
+                           "PLATFORM_INSTANCE_ID", "PLATFORM_INSTANCE_TOKEN",
+                           "PLATFORM_CAPABILITY_URL", "PLATFORM_LOGIN_CALLBACK",
+                       ]}, "DATABASE_URL": "database-url"},
+                       "database": "平台提供独立PostgreSQL和DATABASE_URL，不需要自行添加未登记数据库镜像或索取数据库密钥。",
+                       "identity_cookie": "intellideploy_app_identity",
+                       "executor": {"working_directory": "/workspace", "npm_cache": "/tmp/npm-cache",
+                                    "file_tool_paths": "relative paths only: use . or app/..., never /workspace or parent traversal"},
+                   }}
         if checkpoint.mode == "hybrid":
             payload.update(
                 gap_plan=checkpoint.gap_plan.model_dump(mode="json") if checkpoint.gap_plan else None,
@@ -694,6 +752,14 @@ class JobExecution:
                 component_workspaces=[p.model_dump(mode="json") for p in checkpoint.component_workspaces],
             )
         return payload
+
+    def generation_round_budget(self, model=None):
+        with self.sessions() as session:
+            job = self.job(session)
+            used = session.scalar(select(func.count()).select_from(ResourceRecord).where(
+                ResourceRecord.job_id == job.id, ResourceRecord.type == "MODEL_CALL"))
+        # Reserve six calls for independent checks/review; the global cap still fences every request.
+        return max(0, min(32, settings.MAX_JOB_MODEL_CALLS - used - 6)) + int(model is not None and model.has_recorded_turn())
 
     def prepare_algorithm_inputs(self, requirement, plan, workspace):
         from app.agent.gaps import deterministic_gap_plan
@@ -865,7 +931,10 @@ class JobExecution:
                 {
                     "role": "system",
                     "content": instruction
-                    + "\n只提交实际源码对应的AppManifest。应用身份/数据/文件/AI/搜索使用平台服务端适配；不得生成演示数据代替业务。",
+                    + "\n只提交实际源码对应的AppManifest。应用身份/数据/文件/AI/搜索使用平台服务端适配；不得生成演示数据代替业务。"
+                    + "\n完成源码后必须调用finish_implementation提交候选；平台负责后续构建和业务验证。"
+                    + "源代码服务必须在builds里声明真实BuildSpec，image可用待构建标签，不得编造digest。"
+                    + "平台内置环境引用和数据库按platform_contract处理；使用批量工具调用减少重复读取。",
                 },
                 {
                     "role": "user",
@@ -943,6 +1012,8 @@ class JobExecution:
                 lambda cp: self.save(loop=cp.model_dump(mode="json")),
                 lambda _: None,
                 tools=DEFAULT_WORKER_TOOLS,
+                max_rounds=self.generation_round_budget(model),
+                finalize_last_round=True,
             )
             if output.question:
                 self.wait_for_user(output.question)
@@ -1064,7 +1135,18 @@ class JobExecution:
         self.admit_resource(
             "execution.millis", int(call.arguments.get("timeout", 60)) * 1000
         )
-        response = await self.runner.tool(self.job_id, call, self.generation)
+        from app.runner.client import RunnerToolRejected, RunnerUnavailable
+        for attempt in range(2):
+            try:
+                response = await self.runner.tool(self.job_id, call, self.generation)
+                break
+            except RunnerToolRejected as exc:
+                self.job_check()
+                return ToolResult(call_id=call.id, ok=False, content=str(exc))
+            except RunnerUnavailable:
+                observed = await self.runner.tool_result(self.job_id, call.id, self.generation)
+                if observed.get("state") != "NOT_STARTED" or attempt:
+                    raise
         self.job_check()
         self.record_resource(
             "tool:" + call.id, "execution.millis", response.get("duration_ms")

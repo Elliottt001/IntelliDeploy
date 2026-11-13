@@ -100,9 +100,11 @@ async def test_blocking_review_prevents_build(tmp_path):
     )
     job = Job(id="job-review", app_id="app-review", budget_units=100)
 
-    with pytest.raises(RepairableCandidateError, match="candidate review"):
+    with pytest.raises(RepairableCandidateError, match="candidate review") as raised:
         await implement_and_build(job, requirement, 0, [], dependencies)
 
+    assert "验收未映射" in str(raised.value)
+    assert "save" in str(raised.value)
     review.assert_awaited_once()
     build.assert_not_awaited()
 

@@ -6,6 +6,7 @@ import json
 
 from app.billing.ledger import InsufficientQuota
 from app.agent.tools import CommandArgs
+from app.agent.deepseek import ModelProtocolError
 from app.config import settings
 from app.core.types import AppManifest, Checkpoint, GenerationOutput, ToolCall, ToolResult, UsageInput
 
@@ -64,7 +65,7 @@ async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_too
                          persist, record_usage, *, payer_id: int | None = None,
                          reservation_operation_id: str | None = None,
                          price_version: str | None = None, max_rounds: int = 20,
-                         tools=None) -> GenerationOutput:
+                         tools=None, finalize_last_round=False) -> GenerationOutput:
     price_version = price_version or settings.PRICE_VERSION
     tools = TOOLS if tools is None else tools
     if any(call.id not in checkpoint.completed_calls for call in checkpoint.pending_calls):
@@ -73,8 +74,43 @@ async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_too
         return GenerationOutput(checkpoint=checkpoint, exhausted=True,
                                 requirement_revision=checkpoint.requirement_revision)
     last_failure = None
-    for round_number in range(max_rounds):
-        turn = await model.complete(checkpoint.messages, tools, settings.DEEPSEEK_MODEL)
+    extra_finalization_turn = False
+    for round_number in range(max_rounds + 1):
+        if round_number == max_rounds and not extra_finalization_turn:
+            break
+        recorded = getattr(model, "has_recorded_turn", lambda: False)()
+        if finalize_last_round and round_number == max_rounds - 1 and not recorded and checkpoint.generation_phase != "FINALIZE":
+            checkpoint.generation_phase = "FINALIZE"
+            checkpoint.messages.append({"role": "user", "content": "源码阶段结束。不要再搭建临时数据库或浏览器自测；平台负责真实验证。现在必须调用finish_implementation提交当前源码对应的AppManifest、真实BuildSpec及平台环境引用，候选提交不代表交付成功。"})
+            await _call(persist, checkpoint)
+        offered_tools = ([tool for tool in tools if tool["function"]["name"] == "finish_implementation"]
+                         if checkpoint.generation_phase == "FINALIZE" else tools)
+        try:
+            turn = await model.complete(checkpoint.messages, offered_tools, settings.DEEPSEEK_MODEL)
+        except ModelProtocolError as exc:
+            if (exc.turn is None or not exc.turn.usage_known or str(exc) not in {
+                "MODEL_OUTPUT_TRUNCATED", "MODEL_OUTPUT_EMPTY", "invalid model tool arguments",
+            }):
+                raise
+            checkpoint.model_protocol_failures += 1
+            raw = dict(exc.turn.assistant_message)
+            calls = raw.get("tool_calls") or []
+            if any(not call.get("id") for call in calls):
+                raise
+            if not raw.get("content") and not calls:
+                raw["content"] = "上轮未收到可执行的工具参数，未执行任何工具。"
+            checkpoint.messages.append(raw)
+            for call in calls:
+                checkpoint.messages.append({"role": "tool", "tool_call_id": call["id"],
+                    "content": "输出截断或参数不完整，未执行该工具。"})
+            checkpoint.messages.append({"role": "user", "content": "上轮输出未执行；请分批写入，每次只提交少量文件和完整参数，避免超过输出上限。源码完成后调用finish_implementation。"})
+            await _record_model_usage(job_id, round_number, exc.turn, record_usage, payer_id,
+                                      reservation_operation_id, price_version)
+            await _call(persist, checkpoint)
+            if checkpoint.model_protocol_failures >= 3:
+                return GenerationOutput(checkpoint=checkpoint, exhausted=True,
+                                        requirement_revision=checkpoint.requirement_revision)
+            continue
         checkpoint.messages.append(turn.assistant_message)
         checkpoint.pending_calls = turn.calls
         await _call(persist, checkpoint)
@@ -87,6 +123,23 @@ async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_too
         if not turn.calls:
             return GenerationOutput(checkpoint=checkpoint, exhausted=True,
                                     requirement_revision=checkpoint.requirement_revision)
+        rejected_finalization = (checkpoint.generation_phase == "FINALIZE"
+                                 and any(call.name != "finish_implementation" for call in turn.calls))
+        if rejected_finalization:
+            checkpoint.pending_calls = []
+            for call in turn.calls:
+                checkpoint.messages.append({"role": "tool", "tool_call_id": call.id,
+                    "content": "收尾阶段未执行本轮工具；请仅调用finish_implementation提交候选。"})
+            if checkpoint.finalization_corrections >= 1:
+                await _call(persist, checkpoint)
+                return GenerationOutput(checkpoint=checkpoint, exhausted=True,
+                                        requirement_revision=checkpoint.requirement_revision)
+            checkpoint.finalization_corrections += 1
+            extra_finalization_turn = True
+            checkpoint.messages.append({"role": "user", "content":
+                "收尾阶段不会执行额外命令，也不会返回实现阶段。请直接调用finish_implementation提交当前源码清单。"})
+            await _call(persist, checkpoint)
+            continue
         for call in turn.calls:
             previous_arguments = checkpoint.call_arguments.get(call.id)
             if previous_arguments is not None and previous_arguments != call.arguments:
@@ -130,6 +183,24 @@ async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_too
             else:
                 checkpoint.stalled_rounds = 1
                 last_failure = signature
+            argv = call.arguments.get("argv") if call.name == "run_command" else None
+            production_build = (
+                isinstance(argv, list)
+                and (
+                    tuple(argv[:3]) in {
+                        ("npm", "run", "build"),
+                        ("pnpm", "run", "build"),
+                        ("yarn", "run", "build"),
+                    }
+                    or tuple(argv[:2]) in {("pnpm", "build"), ("yarn", "build")}
+                )
+            )
+            if (finalize_last_round and result.ok and production_build
+                    and call.id == turn.calls[-1].id
+                    and checkpoint.generation_phase != "FINALIZE"):
+                checkpoint.generation_phase = "FINALIZE"
+                checkpoint.messages.append({"role": "user", "content":
+                    "生产构建已成功。停止继续修改或添加自测；现在直接调用finish_implementation提交当前源码清单。"})
             await _call(persist, checkpoint)
             if checkpoint.stalled_rounds >= 3:
                 return GenerationOutput(checkpoint=checkpoint, exhausted=True,

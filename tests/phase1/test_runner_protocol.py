@@ -148,15 +148,47 @@ async def test_runner_client_preserves_repairable_build_failure_code():
 
 
 @pytest.mark.asyncio
+async def test_runner_client_retries_readonly_snapshot_once(tmp_path):
+    from app.runner.client import RunnerClient
+
+    archive=BytesIO()
+    with zipfile.ZipFile(archive,'w') as output:
+        output.writestr('app.py','print("ready")')
+    calls=0
+    def handler(request):
+        nonlocal calls
+        calls+=1
+        if calls==1:
+            raise httpx.ConnectError('connection reset',request=request)
+        return httpx.Response(200,content=archive.getvalue())
+    client=httpx.AsyncClient(transport=httpx.MockTransport(handler),base_url='https://runner.test')
+    root=tmp_path/'snapshot';root.mkdir()
+    runner=RunnerClient(client)
+    files=await runner.snapshot('job',root,1)
+    assert calls==2
+    assert files==['app.py']
+    assert (root/'app.py').read_text()=='print("ready")'
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ('build_output','expected_message'),
+    [
+        ('private build output','candidate build failed'),
+        ("private prefix\nModule not found: Can't resolve '@/components/note-editor'\nprivate suffix",
+         "candidate build failed: Module not found: Can't resolve '@/components/note-editor'"),
+    ],
+)
 async def test_runner_service_returns_sanitized_build_failure_code(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, build_output, expected_message
 ):
     from app.runner.service import RunnerService, create_app
 
     class FailingBuilder:
         async def build(self, argv):
             del argv
-            raise RuntimeError("private build output")
+            raise RuntimeError(build_output)
 
         async def resolve(self, image):
             del image
@@ -205,9 +237,10 @@ async def test_runner_service_returns_sanitized_build_failure_code(
     assert response.status_code == 422
     assert response.json()["detail"] == {
         "code": "BUILD_FAILED",
-        "message": "candidate build failed",
+        "message": expected_message,
     }
-    assert "private build output" not in response.text
+    assert "private prefix" not in response.text
+    assert "private suffix" not in response.text
 
 
 @pytest.mark.asyncio
@@ -242,3 +275,60 @@ async def test_composition_policy_blocks_writes_and_survives_runner_restart(tmp_
             json={"call": {"id": "patch", "name": "apply_patch", "arguments": {
                 "path": "components/search/source.txt", "old_text": "search", "new_text": "bad"}}})
         assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('arguments', [
+    {'argv':['npm','ci'],'timeout':300000}, {'argv':[]}, {'argv':['npm'],'timeout':0},
+])
+async def test_runner_validates_command_before_start_record(tmp_path, arguments):
+    from app.runner.service import RunnerService, create_app
+    class ForbiddenCommands:
+        def run(self,*args):
+            raise AssertionError('invalid command was executed')
+    service = RunnerService(tmp_path, command_executor=ForbiddenCommands())
+    job = '12345678-1234-1234-1234-123456789abc'
+    headers = {'Authorization':'Bearer test-rpc-token','X-Lease-Generation':'1'}
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(service,'test-rpc-token'), raise_app_exceptions=False),base_url='https://runner.test') as client:
+        path = '/v1/jobs/'+job
+        await client.post(path+'/workspace',content=bundle(),headers=headers)
+        response = await client.post(path+'/tools',json={'call':{'id':'invalid','name':'run_command','arguments':arguments}},headers=headers)
+    assert response.status_code == 422
+    assert response.json()['detail']['code'] == 'TOOL_ARGUMENTS_INVALID'
+    assert not list((tmp_path/job/'operations').glob('*.json'))
+
+
+@pytest.mark.asyncio
+async def test_runner_missing_executor_has_no_started_effect(tmp_path):
+    from app.runner.service import RunnerService, create_app
+    job = '12345678-1234-1234-1234-123456789abc'
+    headers = {'Authorization':'Bearer test-rpc-token','X-Lease-Generation':'1'}
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(RunnerService(tmp_path),'test-rpc-token')),base_url='https://runner.test') as client:
+        path = '/v1/jobs/'+job
+        await client.post(path+'/workspace',content=bundle(),headers=headers)
+        response = await client.post(path+'/tools',json={'call':{'id':'no-executor','name':'run_command','arguments':{'argv':['true']}}},headers=headers)
+    assert response.status_code == 503
+    assert not list((tmp_path/job/'operations').glob('*.json'))
+
+
+@pytest.mark.asyncio
+async def test_runner_rejects_escape_path_before_started_effect(tmp_path):
+    from app.runner.service import RunnerService, create_app
+    job = '12345678-1234-1234-1234-123456789abc'
+    headers = {'Authorization':'Bearer test-rpc-token','X-Lease-Generation':'1'}
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(RunnerService(tmp_path),'test-rpc-token'), raise_app_exceptions=False),base_url='https://runner.test') as client:
+        path = '/v1/jobs/'+job
+        await client.post(path+'/workspace',content=bundle(),headers=headers)
+        response = await client.post(path+'/tools',json={'call':{'id':'escape','name':'write_file','arguments':{'path':'../escape','content':'unsafe'}}},headers=headers)
+    assert response.status_code == 422
+    assert not list((tmp_path/job/'operations').glob('*.json'))
+    assert not (tmp_path/job/'escape').exists()
+
+
+@pytest.mark.asyncio
+async def test_runner_client_distinguishes_rejected_arguments_from_unavailable_node():
+    from app.runner.client import RunnerClient, RunnerToolRejected
+    from app.core.types import ToolCall
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r:httpx.Response(422,json={'detail':{'code':'TOOL_ARGUMENTS_INVALID','message':'relative path required'}})),base_url='https://runner.test') as client:
+        with pytest.raises(RunnerToolRejected,match='relative path required'):
+            await RunnerClient(client).tool('job',ToolCall(id='call',name='list_files',arguments={'path':'/workspace'}),1)

@@ -234,3 +234,106 @@ def test_frozen_revision_is_immutable_and_old_worker_cannot_write(
                 worker_id="new",
                 generation=replacement.lease_generation,
             )
+
+
+def private_notes_messages():
+    return [{'id': 'notes-message', 'sequence': 1, 'role': 'user',
+             'content': '保存私人笔记，删除后刷新和重启不复活，其他账号不能修改笔记'}]
+
+
+def private_notes_draft(*ids, review_missing=None, questions=None):
+    return RequirementDraft(
+        prompt=private_notes_messages()[0]['content'],
+        acceptance=[AcceptanceItem(id=id, action=id, expected=id+' verified', private_data=True) for id in ids],
+        facts=[DemandFact(id='notes-fact', source_message_id='notes-message',
+                          quote='保存私人笔记', kind='FUNCTION', acceptance_ids=list(ids))],
+        review_missing=review_missing or [], questions=questions or [],
+    )
+
+
+class RecordedRequirementModel:
+    def __init__(self, values):
+        self.values = iter(values)
+        self.requests = []
+
+    async def complete(self, messages, tools, model):
+        import json
+        from app.core.types import ModelTurn
+        self.requests.append(messages)
+        try:
+            value = next(self.values)
+        except StopIteration:
+            raise AssertionError('unexpected model call after sufficient review or a necessary question') from None
+        if isinstance(value, RequirementDraft):
+            value = value.model_dump(mode='json')
+        return ModelTurn(assistant_message={'role': 'assistant', 'content': json.dumps(value, ensure_ascii=False)})
+
+
+@pytest.mark.asyncio
+async def test_correction_preserves_prior_draft_and_rejects_lost_fixed_acceptance():
+    import json
+    from app.agent.requirements import compile_requirement
+    original_draft = private_notes_draft('save', 'delete-persist')
+    lost = private_notes_draft('save', 'isolation')
+    complete = private_notes_draft('save', 'delete-persist', 'isolation')
+    model = RecordedRequirementModel([
+        original_draft, {'missing': ['cross account modification not checked']},
+        lost, complete, {'missing': []},
+    ])
+    result = await compile_requirement(private_notes_messages(), None, model)
+    assert {item.id for item in result.acceptance} == {'save', 'delete-persist', 'isolation'}
+    retry = json.loads(model.requests[2][1]['content'])
+    assert retry['current_draft'] == original_draft.model_dump(mode='json')
+    assert retry['review_history'][0]['missing'] == ['cross account modification not checked']
+    assert 'delete-persist' in json.loads(model.requests[3][1]['content'])['correction']
+
+
+@pytest.mark.asyncio
+async def test_current_review_closes_stale_issue_only_with_current_acceptance_evidence():
+    from app.agent.requirements import compile_requirement
+    issue = 'cross-account writes must be rejected'
+    candidate = private_notes_draft('save', 'isolation', review_missing=[issue])
+    model = RecordedRequirementModel([candidate, {
+        'missing': [], 'resolved': [{'issue': issue, 'acceptance_ids': ['isolation'],
+                                   'evidence': 'isolation checks cross-account writes'}],
+    }])
+    result = await compile_requirement(private_notes_messages(), None, model)
+    assert result.review_missing == []
+    assert {item.id for item in result.acceptance} == {'save', 'isolation'}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('resolution', [[], [{'issue': 'unresolved', 'acceptance_ids': ['invented'], 'evidence': 'claim'}],
+                                       [{'issue': 'unresolved', 'acceptance_ids': ['save'], 'evidence': ''}]])
+async def test_stale_issue_cannot_close_without_valid_current_evidence(resolution):
+    from app.agent.requirements import compile_requirement, RequirementInvalid
+    candidate = private_notes_draft('save', review_missing=['unresolved'])
+    model = RecordedRequirementModel([candidate, {'missing': [], 'resolved': resolution}] * 3)
+    with pytest.raises(RequirementInvalid):
+        await compile_requirement(private_notes_messages(), None, model)
+    assert len(model.requests) == 6
+
+
+@pytest.mark.asyncio
+async def test_business_question_returns_before_review_can_discard_it():
+    from app.agent.requirements import compile_requirement
+    candidate = private_notes_draft('save', questions=['是否允许公开分享笔记？'])
+    model = RecordedRequirementModel([candidate])
+    result = await compile_requirement(private_notes_messages(), None, model)
+    assert result.questions == ['是否允许公开分享笔记？']
+    assert len(model.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_requirement_failure_persists_last_draft_and_specific_issue():
+    from app.agent.requirements import compile_requirement, RequirementInvalid
+    candidate = private_notes_draft('save')
+    model = RecordedRequirementModel([candidate, {'missing': ['delete persistence is missing']}] * 3)
+    snapshots = []
+    with pytest.raises(RequirementInvalid):
+        await compile_requirement(private_notes_messages(), None, model, persist=snapshots.append)
+    final = snapshots[-1]
+    assert final['status'] == 'FAILED'
+    assert final['attempt_count'] == 3
+    assert final['draft']['acceptance'][0]['id'] == 'save'
+    assert final['unresolved_issues'] == ['delete persistence is missing']

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 import subprocess
 import tarfile
@@ -12,6 +13,36 @@ from app.core.types import CandidateEvaluation, RepoSource, Requirement, Retriev
 
 
 _UNSET = object()
+
+
+def _route_candidate_evidence(candidate):
+    """Bound route context while the retrieval checkpoint retains full material."""
+    row = candidate.model_dump(mode="json")
+    files = row["key_files"]
+    budget = 16384
+    excerpts = {}
+    evidence = {}
+
+    def priority(path):
+        name = Path(path).name.lower()
+        return (0 if name.startswith("license") else 1 if name.startswith("readme")
+                else 2 if name in {"package.json", "requirements.txt", "pyproject.toml", "dockerfile", "compose.yml", "docker-compose.yml"}
+                else 3, path)
+
+    for path in sorted(files, key=priority):
+        content = files[path]
+        excerpt = content[:min(4096, budget)]
+        budget -= len(excerpt)
+        excerpts[path] = excerpt
+        evidence[path] = {"sha256": hashlib.sha256(content.encode()).hexdigest(),
+                          "characters": len(content), "truncated": len(excerpt) < len(content)}
+    paths = row["file_tree"]
+    row.update(
+        description=row["description"][:1000], key_files=excerpts, key_file_evidence=evidence,
+        file_tree=paths[:200], file_tree_count=len(paths),
+        file_tree_sha256=hashlib.sha256(json.dumps(paths, ensure_ascii=False).encode()).hexdigest(),
+    )
+    return row
 
 
 def score_candidate(profile: dict, requirement: Requirement) -> CandidateEvaluation:
@@ -190,7 +221,7 @@ async def choose_route(
     payload = {
         "schema": RoutePlan.model_json_schema(),
         "requirement": requirement.model_dump(mode="json"),
-        "candidates": [row.model_dump(mode="json") for row in search_result.candidates],
+        "candidates": [_route_candidate_evidence(row) for row in search_result.candidates],
         "profiles": [row.model_dump(mode="json") for row in profiles],
         "evaluations": [row.model_dump(mode="json") for row in evaluations],
         "reuse_rejections": search_result.reuse_rejections,

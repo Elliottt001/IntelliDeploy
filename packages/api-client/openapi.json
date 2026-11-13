@@ -3689,6 +3689,16 @@
           "retrieval": {
             "$ref": "#/components/schemas/EvaluationRetrieval"
           },
+          "requirement_compilation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvaluationRequirementCompilation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "result": {
             "anyOf": [
               {
@@ -3732,6 +3742,53 @@
           "updated_at"
         ],
         "title": "EvaluationRecord"
+      },
+      "EvaluationRequirementCompilation": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "attempt_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Attempt Count"
+          },
+          "source_digest": {
+            "type": "string",
+            "title": "Source Digest"
+          },
+          "last_error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error Code"
+          },
+          "unresolved_issues": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unresolved Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "stage",
+          "attempt_count",
+          "source_digest"
+        ],
+        "title": "EvaluationRequirementCompilation"
       },
       "EvaluationRetrieval": {
         "properties": {

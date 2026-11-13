@@ -293,3 +293,24 @@ def test_prebuild_review_allows_declared_build_without_fabricated_image_digest(t
     candidate = replace(candidate,manifest=pending)
     report = review_deterministic('prebuild',candidate,notes_requirement(),route())
     assert not any(f.id == 'manifest:unpinned-image' for f in report.findings)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('kind',['review','security'])
+async def test_independent_review_receives_strict_output_schema(tmp_path,kind):
+    import json
+    from app.core.types import ModelTurn
+    from app.agent.review import review_with_model, _StrictReviewPayload
+    from app.agent.security import security_review_with_model, scan_security
+    candidate=draft(tmp_path)
+    class Model:
+        async def complete(self,messages,tools,model):
+            payload=json.loads(messages[1]['content'])
+            assert payload['schema']==_StrictReviewPayload.model_json_schema()
+            return ModelTurn(assistant_message={'content':'{"findings":[]}'})
+    if kind=='review':
+        report=await review_with_model('attempt',candidate,notes_requirement(),route(),Model())
+    else:
+        deterministic=scan_security('attempt',candidate,None,None)
+        report=await security_review_with_model('attempt',candidate,None,deterministic,Model())
+    assert report.findings==[]

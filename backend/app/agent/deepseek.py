@@ -11,7 +11,17 @@ from app.core.types import ModelTurn, ToolCall
 
 
 class ModelProtocolError(ValueError):
-    pass
+    def __init__(self, message, turn=None):
+        self.turn = turn
+        super().__init__(message)
+
+
+def completion_options(tools):
+    implementation = any(tool.get("function", {}).get("name") != "finish_implementation" for tool in tools or [])
+    return {
+        "max_tokens": settings.DEEPSEEK_MAX_OUTPUT_TOKENS,
+        "extra_body": {"thinking": {"type": "enabled" if implementation else settings.DEEPSEEK_PLANNING_THINKING}},
+    }
 
 
 class UpstreamUnavailable(RuntimeError):
@@ -44,8 +54,7 @@ class DeepSeekClient:
                     model=model,
                     messages=messages,
                     tools=tools or None,
-                    max_tokens=settings.DEEPSEEK_MAX_OUTPUT_TOKENS,
-                    extra_body={"thinking": {"type": "enabled"}},
+                    **completion_options(tools),
                 )
                 break
             except APIStatusError as exc:
@@ -59,33 +68,37 @@ class DeepSeekClient:
                 # A disconnected request may already have incurred cost. Caller records
                 # its unknown outcome rather than blindly replaying and charging twice.
                 raise UpstreamUnavailable("模型请求结果无法确认，请稍后重试") from exc
-        if not response.choices:
-            raise ModelProtocolError("model response has no assistant turn")
-        raw = response.choices[0].message.model_dump(exclude_none=False)
+        choice = response.choices[0] if response.choices else None
+        raw = choice.message.model_dump(exclude_none=False) if choice else {}
+        usage = response.usage
+        cached = getattr(usage, "prompt_cache_hit_tokens", 0) or 0
+        valid_usage = usage is not None and 0 <= cached <= usage.prompt_tokens and usage.completion_tokens >= 0
+        turn = ModelTurn(
+            assistant_message=raw,
+            input_tokens=usage.prompt_tokens if valid_usage else 0,
+            cached_input_tokens=cached if valid_usage else 0,
+            output_tokens=usage.completion_tokens if valid_usage else 0,
+            usage_known=valid_usage,
+            finish_reason=choice.finish_reason if choice else None,
+            provider_request_id=response.id,
+        )
+        if usage is not None and not valid_usage:
+            raise ModelProtocolError("invalid model usage", turn)
+        if choice is None:
+            raise ModelProtocolError("model response has no assistant turn", turn)
+        if choice.finish_reason == "length":
+            raise ModelProtocolError("MODEL_OUTPUT_TRUNCATED", turn)
         calls = []
         try:
-            for call in response.choices[0].message.tool_calls or []:
+            for call in choice.message.tool_calls or []:
                 arguments = json.loads(call.function.arguments)
                 if not isinstance(arguments, dict):
                     raise ValueError("arguments must be an object")
-                calls.append(
-                    ToolCall(id=call.id, name=call.function.name, arguments=arguments)
-                )
+                calls.append(ToolCall(id=call.id, name=call.function.name, arguments=arguments))
         except (ValueError, AttributeError, TypeError) as exc:
-            raise ModelProtocolError("invalid model tool arguments") from exc
+            raise ModelProtocolError("invalid model tool arguments", turn) from exc
         if len({c.id for c in calls}) != len(calls):
-            raise ModelProtocolError("duplicate model tool call IDs")
-        usage = response.usage
-        if usage is None:
-            return ModelTurn(assistant_message=raw, calls=calls, usage_known=False)
-        cached = getattr(usage, "prompt_cache_hit_tokens", 0) or 0
-        if not (0 <= cached <= usage.prompt_tokens and usage.completion_tokens >= 0):
-            raise ModelProtocolError("invalid model usage")
-        return ModelTurn(
-            assistant_message=raw,
-            calls=calls,
-            input_tokens=usage.prompt_tokens,
-            cached_input_tokens=cached,
-            output_tokens=usage.completion_tokens,
-            usage_known=True,
-        )
+            raise ModelProtocolError("duplicate model tool call IDs", turn)
+        if not calls and not (raw.get("content") or "").strip():
+            raise ModelProtocolError("MODEL_OUTPUT_EMPTY", turn)
+        return turn.model_copy(update={"calls": calls})

@@ -19,6 +19,7 @@ from app.evaluation.schemas import (
     EvaluationEvidenceGate,
     EvaluationRecord,
     EvaluationRetrieval,
+    EvaluationRequirementCompilation,
     EvaluationSource,
     PhaseDuration,
 )
@@ -306,6 +307,16 @@ def build_evaluation_record(session, job: Job) -> EvaluationRecord:
         phase_durations=_phase_durations(session, job),
         sources=_sources(checkpoint),
         retrieval=_retrieval(checkpoint),
+        requirement_compilation=(
+            EvaluationRequirementCompilation(
+                status=compilation["status"],
+                stage=compilation["stage"],
+                attempt_count=compilation["attempt_count"],
+                source_digest=compilation["source_digest"],
+                last_error_code=compilation.get("last_error_code"),
+                unresolved_issues=[str(issue)[:1024] for issue in compilation.get("unresolved_issues", [])[:50]],
+            ) if (compilation := checkpoint.get("requirement_compilation")) else None
+        ),
         result=result,
         report=report,
         created_at=job.created_at,

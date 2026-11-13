@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+from pydantic import TypeAdapter
 from typing import Any
 
 from app.core.types import BrowserCheck, Requirement
@@ -46,16 +47,25 @@ async def _model_checks(model_client, requirement, source_tree, feedback):
         value = model_client.compile_checks(requirement, source_tree, feedback=feedback)
     elif hasattr(model_client, "complete"):
         prompt = {
+            "schema": TypeAdapter(list[BrowserCheck]).json_schema(),
             "requirement": requirement.model_dump(mode="json"),
             "source_tree": list(source_tree),
             "feedback": feedback,
             "allowed_actions": sorted(ALLOWED_ACTIONS),
+            "action_arguments": {
+                "goto": ["path"], "fill": ["selector", "value"],
+                "click": ["selector"], "expect_text": ["selector", "text"],
+                "expect_count": ["selector", "count"], "reload": [],
+                "request": ["path"], "restart_service": ["service"],
+            },
+            "request_optional_fields": ["method", "json"],
+            "request_assertion_fields": ["expected_status", "expected_text"],
         }
         value = model_client.complete(
             [
                 {
                     "role": "system",
-                    "content": "Return only a JSON array of browser checks for every acceptance item.",
+                    "content": "Return only a JSON array matching the supplied schema for every acceptance item. Use actual source selectors/routes and action_arguments; each request requires expected_status or expected_text. Never replace business checks with a homepage or health response.",
                 },
                 {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)},
             ],

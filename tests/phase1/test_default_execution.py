@@ -1125,3 +1125,233 @@ async def test_invalid_command_arguments_are_feedback_before_runner_or_resource(
     runner.tool.assert_not_awaited()
     with session_factory() as session:
         assert session.scalar(select(ResourceRecord).where(ResourceRecord.job_id == job_id, ResourceRecord.type == 'EXECUTION_CONTAINER')) is None
+
+
+@pytest.mark.asyncio
+async def test_requirement_compilation_checkpoint_survives_failure(new_job, session_factory):
+    from app.jobs.execution import JobExecution
+    from app.agent.requirements import RequirementInvalid
+
+    class MissingModel(RequirementModel):
+        async def complete(self, messages, tools, model):
+            if '审阅draft' in messages[0]['content']:
+                return ModelTurn(assistant_message={'content': json.dumps({'missing': ['删除后重启仍需核对']})}, input_tokens=1, output_tokens=1)
+            return await super().complete(messages, tools, model)
+
+    job_id, _, _, generation = new_job
+    execution = JobExecution(job_id, 'worker', generation, session_factory=session_factory, model_client=MissingModel())
+    with pytest.raises(RequirementInvalid):
+        await execution.ensure_requirement()
+    with session_factory() as session:
+        snapshot = session.get(Job, job_id).checkpoint['requirement_compilation']
+        assert snapshot['status'] == 'FAILED'
+        assert snapshot['attempt_count'] == 3
+        assert snapshot['unresolved_issues'] == ['删除后重启仍需核对']
+        assert len(snapshot['review_history']) == 3
+
+
+@pytest.mark.asyncio
+async def test_requirement_failure_has_specific_public_error(new_job, session_factory, monkeypatch):
+    from types import SimpleNamespace
+    from app.jobs.pipeline import run_pipeline
+    from app.agent.requirements import RequirementInvalid
+
+    job_id, _, _, generation = new_job
+    async def fail():
+        raise RequirementInvalid('internal-only', {'unresolved_issues': ['删除后重启仍需核对']})
+    execution = SimpleNamespace(ensure_requirement=fail, close=AsyncMock())
+    async def dependencies(*args):
+        return None, execution
+    monkeypatch.setattr('app.jobs.execution.build_default_dependencies', dependencies)
+    await run_pipeline(job_id, worker_id='worker', generation=generation, session_factory=session_factory)
+    with session_factory() as session:
+        error = session.get(Job, job_id).error
+        assert error['code'] == 'REQUIREMENT_INVALID'
+        assert '1' in error['message']
+        assert 'internal-only' not in error['message']
+
+
+@pytest.mark.asyncio
+async def test_requirement_restart_replays_received_turns_without_duplicate_usage(new_job, session_factory):
+    from app.jobs.execution import JobExecution
+    from app.billing.models import UsageEntry
+
+    class FirstReviewMissing(RequirementModel):
+        async def complete(self, messages, tools, model):
+            if '审阅draft' in messages[0]['content']:
+                return ModelTurn(assistant_message={'content': '{"missing":["refresh verification"]}'}, input_tokens=1, output_tokens=1)
+            return await super().complete(messages, tools, model)
+
+    job_id, _, owner, generation = new_job
+    first = JobExecution(job_id, 'worker', generation, session_factory=session_factory, model_client=FirstReviewMissing())
+    original_save = first.save
+    def interrupted_save(**values):
+        original_save(**values)
+        if values.get('requirement_compilation', {}).get('status') == 'CORRECTING':
+            raise RuntimeError('simulated worker interruption after saved review')
+    first.save = interrupted_save
+    with pytest.raises(RuntimeError, match='simulated worker interruption'):
+        await first.ensure_requirement()
+    with session_factory() as session:
+        before = len(list(session.scalars(select(UsageEntry).where(UsageEntry.payer_id == owner))))
+    raw = RequirementModel()
+    resumed = JobExecution(job_id, 'worker', generation, session_factory=session_factory, model_client=raw)
+    result = await resumed.ensure_requirement()
+    assert result.acceptance[0].id == 'save'
+    assert raw.calls == 2
+    with session_factory() as session:
+        after = len(list(session.scalars(select(UsageEntry).where(UsageEntry.payer_id == owner))))
+        assert after == before + 4
+        assert session.get(Job, job_id).checkpoint['requirement_compilation']['attempt_count'] == 2
+
+
+@pytest.mark.asyncio
+async def test_received_protocol_failure_is_metered_once_without_replaying_provider(new_job, session_factory):
+    from app.agent.deepseek import ModelProtocolError
+    from app.jobs.execution import JobExecution
+    from app.runtime.models import ResourceRecord
+    from app.billing.models import UnknownUsage
+
+    class TruncatedModel:
+        calls = 0
+        async def complete(self,*args):
+            self.calls += 1
+            error = ModelProtocolError('MODEL_OUTPUT_TRUNCATED')
+            error.turn = ModelTurn(assistant_message={'content':''},input_tokens=10,output_tokens=5)
+            raise error
+
+    job_id, _, _, generation = new_job
+    raw = TruncatedModel()
+    execution = JobExecution(job_id,'worker',generation,session_factory=session_factory,model_client=raw)
+    for _ in range(2):
+        with pytest.raises(ModelProtocolError):
+            await execution.model('protocol').complete([],[],'model')
+    assert raw.calls == 1
+    with session_factory() as session:
+        record = session.scalar(select(ResourceRecord).where(ResourceRecord.job_id==job_id,ResourceRecord.type=='MODEL_CALL'))
+        assert record.state == 'METERED'
+        assert record.metadata_json['response']['output_tokens'] == 5
+        assert session.get(Job,job_id).used_units == 2
+        assert session.scalar(select(UnknownUsage).where(UnknownUsage.operation_id==record.operation_id)) is None
+
+
+@pytest.mark.asyncio
+async def test_cancelled_waiting_model_request_is_explicit_unknown(new_job, session_factory):
+    import asyncio
+    from app.jobs.execution import JobExecution
+    from app.runtime.models import ResourceRecord
+    from app.billing.models import UnknownUsage
+
+    class CancelledModel:
+        async def complete(self,*args):
+            raise asyncio.CancelledError()
+    job_id, _, _, generation = new_job
+    execution = JobExecution(job_id,'worker',generation,session_factory=session_factory,model_client=CancelledModel())
+    with pytest.raises(asyncio.CancelledError):
+        await execution.model('cancel').complete([],[],'model')
+    with session_factory() as session:
+        record = session.scalar(select(ResourceRecord).where(ResourceRecord.job_id==job_id,ResourceRecord.type=='MODEL_CALL'))
+        assert record.state == 'UNKNOWN'
+        unknown = session.scalar(select(UnknownUsage).where(UnknownUsage.operation_id==record.operation_id))
+        assert unknown is not None
+        assert session.get(Job,job_id).used_units == 0
+
+
+@pytest.mark.asyncio
+async def test_requested_cancellation_prevents_new_paid_model_calls(new_job, session_factory):
+    from app.jobs.execution import JobExecution
+    from app.jobs.pipeline import PipelineCancelled
+    from app.runtime.models import ResourceRecord
+
+    job_id, _, _, generation = new_job
+    with session_factory() as session:
+        session.get(Job,job_id).cancel_requested = True
+        session.commit()
+    class ForbiddenModel:
+        async def complete(self,*args):
+            pytest.fail('cancelled job issued a new paid model request')
+    execution = JobExecution(job_id,'worker',generation,session_factory=session_factory,model_client=ForbiddenModel())
+    with pytest.raises(PipelineCancelled):
+        await execution.model('cancel-guard').complete([],[],'model')
+    with session_factory() as session:
+        assert session.scalar(select(ResourceRecord).where(ResourceRecord.job_id==job_id,ResourceRecord.type=='MODEL_CALL')) is None
+        assert session.get(Job,job_id).used_units == 0
+
+
+@pytest.mark.parametrize('used,expected', [(3,31),(23,11),(39,0)])
+def test_generation_round_budget_uses_remaining_job_calls_and_reserves_review(new_job,session_factory,used,expected):
+    from app.jobs.execution import JobExecution
+    from app.runtime.models import ResourceRecord
+    job_id,app_id,_,generation=new_job
+    with session_factory() as session:
+        for i in range(used):
+            operation=f'count:{job_id}:{i}'
+            session.add(ResourceRecord(type='MODEL_CALL',job_id=job_id,app_id=app_id,operation_id=operation,state='METERED',reference=operation,metadata_json={}))
+        session.commit()
+    execution=JobExecution(job_id,'worker',generation,session_factory=session_factory)
+    assert execution.generation_round_budget()==expected
+
+
+def test_builder_receives_runtime_alias_and_final_submission_contract(new_job,session_factory):
+    from app.jobs.execution import JobExecution
+    from app.core.types import Requirement,RoutePlan
+    job_id,_,_,generation=new_job
+    execution=JobExecution(job_id,'worker',generation,session_factory=session_factory)
+    payload=execution.builder_payload(Requirement(prompt='私人笔记',acceptance=[]),RoutePlan(route='GENERATE_APP',steps=['实现'],reason='test'))
+    contract=payload['platform_contract']
+    assert contract['env_refs']['DATABASE_URL']=='database-url'
+    assert contract['env_refs']['PLATFORM_INSTANCE_TOKEN']=='platform_instance_token'
+    assert contract['final_submission']=='finish_implementation'
+    assert contract['source_builds_require_buildspec'] is True
+
+
+@pytest.mark.asyncio
+async def test_runner_argument_rejection_is_feedback_without_execution_charge(new_job,session_factory):
+    from app.runner.client import RunnerToolRejected
+    from app.jobs.execution import JobExecution
+    from app.core.types import ToolCall
+    from unittest.mock import Mock
+    job_id,_,_,generation=new_job
+    runner=AsyncMock()
+    runner.tool.side_effect=RunnerToolRejected('relative path required')
+    execution=JobExecution(job_id,'worker',generation,session_factory=session_factory,runner=runner)
+    execution.record_resource=Mock()
+    result=await execution.execute_tool(ToolCall(id='absolute',name='list_files',arguments={'path':'/workspace'}))
+    assert result.ok is False
+    assert 'relative path' in result.content
+    execution.record_resource.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_runner_retries_once_when_reconciliation_confirms_tool_never_started(new_job,session_factory):
+    from app.runner.client import RunnerUnavailable
+    from app.jobs.execution import JobExecution
+    from app.core.types import ToolCall
+    from unittest.mock import Mock
+    job_id,_,_,generation=new_job
+    runner=AsyncMock()
+    runner.tool.side_effect=[
+        RunnerUnavailable('transport closed'),
+        {'result':{'call_id':'write','ok':True,'content':'saved'},'duration_ms':7},
+    ]
+    runner.tool_result.return_value={'state':'NOT_STARTED'}
+    execution=JobExecution(job_id,'worker',generation,session_factory=session_factory,runner=runner)
+    execution.record_resource=Mock()
+    result=await execution.execute_tool(ToolCall(id='write',name='write_file',arguments={'path':'app.py','content':'source'}))
+    assert result.ok is True
+    assert runner.tool.await_count==2
+    runner.tool_result.assert_awaited_once_with(job_id,'write',generation)
+    execution.record_resource.assert_called_once_with('tool:write','execution.millis',7)
+
+
+def test_generation_budget_replays_uncheckpointed_received_turn(new_job,session_factory):
+    from app.jobs.execution import JobExecution
+    from app.runtime.models import ResourceRecord
+    job_id,app_id,_,generation=new_job
+    with session_factory() as session:
+        for i in range(34):
+            op=f'model:{job_id}:implementation:0' if i==0 else f'count:{job_id}:{i}'
+            session.add(ResourceRecord(type='MODEL_CALL',job_id=job_id,app_id=app_id,operation_id=op,state='METERED',reference=op,metadata_json={}))
+        session.commit()
+    execution=JobExecution(job_id,'worker',generation,session_factory=session_factory,model_client=RequirementModel())
+    assert execution.generation_round_budget(execution.model('implementation'))==1

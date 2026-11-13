@@ -5,3 +5,7 @@
 继续调整默认保留已有验收ID、action、expected和private_data。新增功能增加ID。只有本次用户明确删除/替换的功能才能移除旧ID，explicit_removals和removal_evidence记录原文；不改写旧expected降低门槛。
 验收覆盖持久化、权限、文件及真实AI/搜索等实际需求。不能遗漏用户要求。评审发现漏项填写review_missing，不能宣布已完成。
 只输出符合所附RequirementDraft JSON Schema的JSON，不执行工具，不输出Markdown。questions和unsupported未解决前不能冻结需求。
+
+平台默认使用统一登录和平台账号身份；除非用户明确要求另外的业务账号流程，不追问自助注册、账号技术方案或管理员预置账号。
+current_draft是本次纠正的上一轮草稿，previous是已冻结的上一版需求，二者不能混淆。每次纠正保留current_draft已有验收的ID、action、expected、private_data；加强覆盖时增加新验收项，不能补一个又删掉另一个。
+review_history记录历史审阅，请结合correction逐项修复，不只修最新一条。review_missing只能列本版仍未解决的遗漏，已经落实到验收中的旧反馈不能原样复制成当前未解决问题。必要业务问题写入questions，不得未经回答偷偷消失。

@@ -1179,6 +1179,7 @@ export interface components {
             /** Sources */
             sources?: components["schemas"]["EvaluationSource"][];
             retrieval: components["schemas"]["EvaluationRetrieval"];
+            requirement_compilation?: components["schemas"]["EvaluationRequirementCompilation"] | null;
             result?: components["schemas"]["DeliveryResult"] | null;
             report: components["schemas"]["JobReport"];
             /**
@@ -1191,6 +1192,21 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** EvaluationRequirementCompilation */
+        EvaluationRequirementCompilation: {
+            /** Status */
+            status: string;
+            /** Stage */
+            stage: string;
+            /** Attempt Count */
+            attempt_count: number;
+            /** Source Digest */
+            source_digest: string;
+            /** Last Error Code */
+            last_error_code?: string | null;
+            /** Unresolved Issues */
+            unresolved_issues?: string[];
         };
         /** EvaluationRetrieval */
         EvaluationRetrieval: {
