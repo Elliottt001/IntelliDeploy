@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, AppState, Platform } from "react-native";
 
 import type { SourceMotion } from "../../design/sourceMotionEvidence";
@@ -151,7 +151,9 @@ export function useSourceMotion(motion: SourceMotion | null): {
   );
   const settle = useCallback(() => runTo(targetValueRef.current), [runTo]);
 
-  useEffect(() => {
+  // A new source target must never commit with the previous motion's progress.
+  // Mibo captures that presentation in its preceding layout before changing motion.
+  useLayoutEffect(() => {
     cancel();
     targetValueRef.current = 0;
     setProgressValue(0);

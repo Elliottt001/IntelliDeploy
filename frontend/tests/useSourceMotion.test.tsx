@@ -1,7 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
-import { act, createElement, useEffect } from "react";
+import { act, createElement, useEffect, useLayoutEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -162,9 +162,13 @@ function renderHookHarness(sourceMotion: SourceMotion | null) {
   document.body.appendChild(container);
   const root = createRoot(container);
   let latest!: SourceMotionApi;
+  let beforePaint = 0;
 
   function Harness({ currentMotion }: { currentMotion: SourceMotion | null }) {
     const api = useSourceMotion(currentMotion);
+    useLayoutEffect(() => {
+      beforePaint = (api.progress as unknown as { value: number }).value;
+    }, [currentMotion]);
     useEffect(() => {
       latest = api;
     }, [api]);
@@ -184,6 +188,9 @@ function renderHookHarness(sourceMotion: SourceMotion | null) {
   return {
     get api() {
       return latest;
+    },
+    get beforePaint() {
+      return beforePaint;
     },
     render,
     unmount,
@@ -289,6 +296,14 @@ test("motion changes cancel active animation and reset visual progress", () => {
   expect(native.store.animations[1].config).toMatchObject({
     duration: 800.000011920929,
   });
+});
+
+test("a replacement motion resets old progress before consumers measure their next layout", () => {
+  const harness = renderHookHarness(motion());
+  act(() => harness.api.start());
+  (harness.api.progress as unknown as { setValue: (value: number) => void }).setValue(0.965);
+  harness.render(motion({ nodeId: '849:3794', targetNodeId: '849:3883' }));
+  expect(harness.beforePaint).toBe(0);
 });
 
 test("web reduced motion completes progress without creating timing", () => {
