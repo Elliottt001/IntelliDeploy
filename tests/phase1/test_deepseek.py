@@ -107,3 +107,40 @@ async def test_missing_usage_is_unknown_instead_of_free():
     ) as client:
         turn = await client.complete([], [], "deepseek-flash")
     assert turn.usage_known is False
+
+
+@pytest.mark.asyncio
+async def test_planning_output_policy_and_tool_reasoning_are_explicit():
+    import json
+    from app.config import settings
+    requests = []
+    def respond(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json=payload())
+    async with DeepSeekClient(api_key='test-only', transport=httpx.MockTransport(respond)) as client:
+        await client.complete([{'role':'user','content':'输出JSON'}], [], 'deepseek-flash')
+        await client.complete([{'role':'user','content':'读取文件'}], [{'type':'function','function':{'name':'read_file','parameters':{'type':'object'}}}], 'deepseek-flash')
+    assert requests[0]['thinking']['type'] == 'disabled'
+    assert requests[1]['thinking']['type'] == 'enabled'
+    assert requests[0]['max_tokens'] == settings.DEEPSEEK_MAX_OUTPUT_TOKENS
+    assert type(settings).model_fields['DEEPSEEK_MAX_OUTPUT_TOKENS'].default == 8192
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('kind', ['truncated', 'empty', 'invalid-arguments'])
+async def test_received_protocol_error_preserves_actual_usage_and_provider_id(kind):
+    data = payload()
+    if kind != 'invalid-arguments':
+        data['choices'][0]['message']['content'] = ''
+        data['choices'][0]['message']['tool_calls'] = []
+        data['choices'][0]['finish_reason'] = 'length' if kind == 'truncated' else 'stop'
+    else:
+        data['choices'][0]['message']['tool_calls'][0]['function']['arguments'] = '[]'
+    async with DeepSeekClient(api_key='test-only', transport=httpx.MockTransport(lambda r:httpx.Response(200,json=data))) as client:
+        with pytest.raises(ModelProtocolError) as caught:
+            await client.complete([], [], 'deepseek-flash')
+    turn = caught.value.turn
+    assert turn.usage_known is True
+    assert (turn.input_tokens,turn.cached_input_tokens,turn.output_tokens) == (20,10,5)
+    assert turn.provider_request_id == 'chat-test'
+    assert turn.finish_reason == data['choices'][0]['finish_reason']

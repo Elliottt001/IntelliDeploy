@@ -64,7 +64,8 @@ class Settings(BaseSettings):
     INSTANCE_DATABASE_ADMIN_URL: str = ""
     INSTANCE_DATABASE_HOST: str = ""
     INSTANCE_POSTGRES_IMAGE: str = ""
-    DEEPSEEK_MAX_OUTPUT_TOKENS: int = Field(default=2048,gt=0)
+    DEEPSEEK_MAX_OUTPUT_TOKENS: int = Field(default=8192,gt=0)
+    DEEPSEEK_PLANNING_THINKING: str = Field(default="disabled", pattern="^(enabled|disabled)$")
     DEEPSEEK_PRICE_PREFIX: str = 'model.flash'
     MAX_JOB_MODEL_CALLS: int = Field(default=40,gt=0)
     PAYMENT_PLATFORM_ORIGIN: str = ''

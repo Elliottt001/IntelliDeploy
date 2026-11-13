@@ -101,6 +101,9 @@ class ModelTurn(BaseModel):
     cached_input_tokens: int = 0
     output_tokens: int = 0
     usage_known: bool = True
+    finish_reason: str | None = None
+    provider_request_id: str | None = None
+    protocol_error: str | None = None
 
 class Checkpoint(BaseModel):
     messages: list[dict] = Field(default_factory=list)

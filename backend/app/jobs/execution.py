@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import asyncio
 import inspect
 import json
 import time
@@ -10,7 +11,7 @@ from pathlib import Path
 
 from sqlalchemy import func, select
 
-from app.agent.deepseek import DeepSeekClient, UpstreamUnavailable
+from app.agent.deepseek import DeepSeekClient, UpstreamUnavailable, ModelProtocolError, completion_options
 from app.agent.requirements import (
     compile_requirement,
     persist_requirement,
@@ -23,7 +24,7 @@ from app.billing.pricing import resolve_price
 from app.config import settings
 from app.core.types import ModelTurn, Requirement, UsageInput
 from app.database import SessionLocal
-from app.jobs.models import JobEvent
+from app.jobs.models import Job, JobEvent
 from app.jobs.store import leased_job
 from app.runtime.models import ResourceRecord
 from app.runtime.artifacts import source_archive
@@ -45,6 +46,28 @@ def request_hash(value):
     ).hexdigest()
 
 
+def record_model_uncertainty(session, record, reason):
+    """Retain an unconfirmed provider effect; never turn it into a free request."""
+    if record.state not in {"REQUESTED", "UNKNOWN"} or record.metadata_json.get("response"):
+        return False
+    job = session.get(Job, record.job_id)
+    record.state = "UNKNOWN"
+    record.metadata_json = {**record.metadata_json, "failure_type": reason}
+    unknown = session.scalar(select(UnknownUsage).where(UnknownUsage.operation_id == record.operation_id))
+    if unknown is None:
+        session.add(UnknownUsage(
+            operation_id=record.operation_id,
+            payer_id=job_owner(session, job),
+            kind="model.chat",
+            metadata_json={
+                "reservation_operation_id": record.metadata_json["reservation_operation_id"],
+                "request_hash": record.metadata_json["request_hash"],
+                "reason": reason,
+            },
+        ))
+    return True
+
+
 class DurableModel:
     def __init__(self, execution, phase, start=0):
         self.execution = execution
@@ -60,6 +83,7 @@ class DurableModel:
             "messages": messages,
             "tools": tools,
             "model": settings.DEEPSEEK_MODEL,
+            "completion_options": completion_options(tools),
         }
         digest = request_hash(payload)
         with execution.sessions() as session:
@@ -86,6 +110,8 @@ class DurableModel:
                     raise UncertainModelCall("模型请求或用量待核对，不能自动重复执行")
                 turn = ModelTurn.model_validate(record.metadata_json["response"])
                 if record.state == "METERED":
+                    if turn.protocol_error:
+                        raise ModelProtocolError(turn.protocol_error, turn)
                     return turn
             else:
                 count = session.scalar(
@@ -107,7 +133,7 @@ class DurableModel:
                     f"{prefix}.output", settings.PRICE_VERSION, session
                 )
                 bound = (input_bound * n + d - 1) // d + (
-                    settings.DEEPSEEK_MAX_OUTPUT_TOKENS * output_n + output_d - 1
+                    payload["completion_options"]["max_tokens"] * output_n + output_d - 1
                 ) // output_d
                 if parent.used_units + bound > parent.max_units:
                     raise InsufficientQuota()
@@ -124,6 +150,7 @@ class DurableModel:
                         "price_version": settings.PRICE_VERSION,
                         "price_prefix": prefix,
                         "reservation_operation_id": parent.operation_id,
+                        "completion_options": payload["completion_options"],
                     },
                 )
                 session.add(record)
@@ -134,24 +161,16 @@ class DurableModel:
                 turn = await execution.raw_model.complete(
                     messages, tools, settings.DEEPSEEK_MODEL
                 )
+            except ModelProtocolError as exc:
+                if exc.turn is None:
+                    self.mark_unknown(operation, type(exc).__name__)
+                    raise UncertainModelCall("模型响应用量无法核对") from exc
+                turn = exc.turn.model_copy(update={"protocol_error": str(exc)})
+            except asyncio.CancelledError:
+                self.mark_unknown(operation, "CancelledError")
+                raise
             except Exception as exc:
-                with execution.sessions() as session:
-                    execution.job(session)
-                    record = session.scalar(
-                        select(ResourceRecord)
-                        .where(
-                            ResourceRecord.operation_id == operation,
-                            ResourceRecord.type == "MODEL_CALL",
-                        )
-                        .with_for_update()
-                    )
-                    # A response cannot be inferred from a lost connection or worker.
-                    record.state = "UNKNOWN"
-                    record.metadata_json = {
-                        **record.metadata_json,
-                        "failure_type": type(exc).__name__,
-                    }
-                    session.commit()
+                self.mark_unknown(operation, type(exc).__name__)
                 raise UncertainModelCall("模型请求结果未确认，已保存核对记录") from exc
             with execution.sessions() as session:
                 execution.job(session)
@@ -236,7 +255,21 @@ class DurableModel:
             execution.sync_usage(session, job)
             record.state = "METERED"
             session.commit()
+        if turn.protocol_error:
+            raise ModelProtocolError(turn.protocol_error, turn)
         return turn
+
+    def mark_unknown(self, operation, reason):
+        execution = self.execution
+        with execution.sessions() as session:
+            record = session.scalar(select(ResourceRecord).where(
+                ResourceRecord.operation_id == operation,
+                ResourceRecord.job_id == execution.job_id,
+                ResourceRecord.type == "MODEL_CALL",
+            ).with_for_update())
+            if record is not None:
+                record_model_uncertainty(session, record, reason)
+                session.commit()
 
 
 def job_owner(session, job):
