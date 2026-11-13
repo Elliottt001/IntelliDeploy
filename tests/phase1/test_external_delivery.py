@@ -68,3 +68,17 @@ def test_verified_link_persists_without_hosted_entities(new_job,session_factory)
         assert detail.delivery.kind=='EXTERNAL_LINK'
         assert s.scalar(select(Instance).where(Instance.app_id==app_id)) is None
         assert s.scalar(select(AppVersion).where(AppVersion.app_id==app_id)) is None
+
+
+@pytest.mark.asyncio
+async def test_observation_source_is_separate_from_business_pass():
+    from app.runtime.external_delivery import verify_external_service
+    from app.agent.contracts import DeploymentAsset
+    from app.core.types import Requirement
+    class Verifier:
+        source_mode='real'
+        async def inspect(self,url):return {'url':url,'status':200,'text':'Welcome'}
+    asset=DeploymentAsset(kind='OFFICIAL_SERVICE',location='https://editor.example/',source_ref='github:homepage',source_digest='a'*64)
+    verification=await verify_external_service(Requirement(prompt='编辑',acceptance=[{'id':'A1','action':'编辑','expected':'预览'}]),asset,Verifier())
+    assert verification.source_mode=='real'
+    assert verification.status=='NOT_RUN'

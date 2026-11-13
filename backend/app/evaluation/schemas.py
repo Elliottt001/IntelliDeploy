@@ -110,6 +110,7 @@ class EvaluationRecord(BaseModel):
     requirement_compilation: EvaluationRequirementCompilation | None = None
     result: DeliveryOutcome | None = None
     delivery_kind: Literal['EXTERNAL_LINK', 'HOSTED_INSTANCE'] | None = None
+    external_service_status: Literal['PASS', 'FAIL', 'NOT_RUN'] | None = None
     report: JobReport
     created_at: datetime
     updated_at: datetime

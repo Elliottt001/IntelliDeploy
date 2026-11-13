@@ -4,6 +4,7 @@ import ipaddress
 import json
 import socket
 from datetime import datetime, timezone
+from typing import Literal
 from urllib.parse import urlsplit, urljoin
 import httpx
 from pydantic import BaseModel, Field
@@ -13,6 +14,7 @@ from app.core.types import Requirement, CheckResult
 
 
 class ExternalVerification(BaseModel):
+    source_mode: Literal['real', 'fixture'] = 'fixture'
     service_kind: str
     url: str
     source_refs: list[str]
@@ -58,6 +60,7 @@ class PublicNetworkBackend:
 
 
 class OfficialServiceVerifier:
+    source_mode = 'real'
     def __init__(self, requirement, model):
         self.requirement=requirement
         self.model=model
@@ -116,6 +119,7 @@ async def verify_external_service(requirement, asset, verifier):
     passed=(asset.kind=='OFFICIAL_SERVICE' and value.get('service_kind')=='OFFICIAL_SERVICE'
             and value.get('status')==200 and bool(checks) and all(c.status=='PASS' for c in checks))
     return ExternalVerification(service_kind=value.get('service_kind','UNKNOWN'),url=value['url'],
+        source_mode=getattr(verifier,'source_mode','fixture'),
         source_refs=[asset.source_ref],checked_at=datetime.now(timezone.utc),status='PASS' if passed else 'NOT_RUN',core_checks=checks)
 
 
