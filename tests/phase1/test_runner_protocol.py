@@ -148,6 +148,30 @@ async def test_runner_client_preserves_repairable_build_failure_code():
 
 
 @pytest.mark.asyncio
+async def test_runner_client_retries_readonly_snapshot_once(tmp_path):
+    from app.runner.client import RunnerClient
+
+    archive=BytesIO()
+    with zipfile.ZipFile(archive,'w') as output:
+        output.writestr('app.py','print("ready")')
+    calls=0
+    def handler(request):
+        nonlocal calls
+        calls+=1
+        if calls==1:
+            raise httpx.ConnectError('connection reset',request=request)
+        return httpx.Response(200,content=archive.getvalue())
+    client=httpx.AsyncClient(transport=httpx.MockTransport(handler),base_url='https://runner.test')
+    root=tmp_path/'snapshot';root.mkdir()
+    runner=RunnerClient(client)
+    files=await runner.snapshot('job',root,1)
+    assert calls==2
+    assert files==['app.py']
+    assert (root/'app.py').read_text()=='print("ready")'
+    await client.aclose()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ('build_output','expected_message'),
     [

@@ -68,12 +68,17 @@ class RunnerClient:
         headers = (
             {"X-Lease-Generation": str(generation)} if generation is not None else {}
         )
-        try:
-            response = await self.client.request(
-                method, path, headers={**headers, **kwargs.pop("headers", {})}, **kwargs
-            )
-        except httpx.RequestError as exc:
-            raise RunnerUnavailable("执行节点结果待核对，不能盲目重放") from exc
+        request_headers = kwargs.pop("headers", {})
+        for attempt in range(2 if method.upper() == "GET" else 1):
+            try:
+                response = await self.client.request(
+                    method, path, headers={**headers, **request_headers}, **kwargs
+                )
+                break
+            except httpx.RequestError as exc:
+                if attempt == 0 and method.upper() == "GET":
+                    continue
+                raise RunnerUnavailable("执行节点结果待核对，不能盲目重放") from exc
         if response.status_code == 409:
             raise RunnerConflict("执行节点操作冲突或结果待核对")
         if response.status_code >= 400:
