@@ -334,3 +334,27 @@ def test_registered_linux_user_can_contain_a_dot_without_allowing_shell_syntax()
     value['capacity']['ssh_user'] = 'user;command'
     with pytest.raises(TargetUnavailable, match='SSH user'):
         _validated_target(value, manifest_fixture())
+
+
+def test_registered_caddy_admin_reload_uses_real_cli_without_systemctl(tmp_path):
+    import os,subprocess,sys
+    from app.runtime.linux import REMOTE_SCRIPT
+    root = tmp_path / 'deploy'
+    version = root / 'instances/app/versions/v1'
+    version.mkdir(parents=True)
+    (version / 'release.json').write_text('{"host_port":3000}')
+    snippets = tmp_path / 'snippets'
+    snippets.mkdir()
+    binary = tmp_path / 'caddy'
+    log = tmp_path / 'commands.jsonl'
+    binary.write_text('#!/usr/bin/env python3\nimport sys,json\nfrom pathlib import Path\nwith Path('+repr(str(log))+').open("a") as f: f.write(json.dumps(sys.argv[1:])+"\\n")\n')
+    binary.chmod(0o755)
+    payload = {'action':'activate','deployment_root':str(root),'instance_id':'app','version_id':'v1',
+               'caddy_config_dir':str(snippets),'caddy_main_config':str(tmp_path/'Caddyfile'),
+               'stable_domain':'app.internal.example','caddy_reload_mode':'admin','caddy_binary':str(binary)}
+    result = subprocess.run([sys.executable,'-c',REMOTE_SCRIPT],input=json.dumps(payload),text=True,
+                            capture_output=True,env={**os.environ,'PATH':str(tmp_path)+':'+os.environ['PATH']})
+    assert result.returncode == 0, result.stderr
+    commands = [json.loads(line) for line in log.read_text().splitlines()]
+    assert commands[0][0]=='validate'
+    assert commands[1][0]=='reload'

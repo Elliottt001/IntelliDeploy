@@ -72,8 +72,12 @@ else:
     current_link = child(root, "instances", instance, "current")
 
     def reload_caddy():
-        run(["caddy", "validate", "--config", payload["caddy_main_config"]], 30)
-        run(["systemctl", "reload", "caddy"], 30)
+        binary = payload.get("caddy_binary", "caddy")
+        run([binary, "validate", "--config", payload["caddy_main_config"]], 30)
+        if payload.get("caddy_reload_mode", "systemd") == "admin":
+            run([binary, "reload", "--config", payload["caddy_main_config"]], 30)
+        else:
+            run(["systemctl", "reload", "caddy"], 30)
 
     if action == "prepare":
         for reference, value in payload.get('secret_values', {}).items():
@@ -270,6 +274,8 @@ class LinuxInstanceAdapter:
             "version_id": instance.version_id,
             "caddy_config_dir": capacity.get("caddy_config_dir", "/etc/caddy/conf.d"),
             "caddy_main_config": capacity.get("caddy_main_config", "/etc/caddy/Caddyfile"),
+        "caddy_reload_mode": capacity.get("caddy_reload_mode", "systemd"),
+        "caddy_binary": capacity.get("caddy_binary", "caddy"),
             **extra,
         }
         return await self.ssh_executor.run(
@@ -423,6 +429,11 @@ def _validated_target(value, manifest: AppManifest) -> dict:
         raise TargetUnavailable("Linux target deployment root is invalid")
     if not isinstance(domain, str) or not DOMAIN.fullmatch(domain):
         raise TargetUnavailable("Linux target domain suffix is invalid")
+    if capacity.get("caddy_reload_mode", "systemd") not in {"systemd", "admin"}:
+        raise TargetUnavailable("Linux target Caddy reload mode is invalid")
+    caddy_binary = capacity.get("caddy_binary", "caddy")
+    if not isinstance(caddy_binary, str) or (caddy_binary != "caddy" and (not PurePosixPath(caddy_binary).is_absolute() or ".." in PurePosixPath(caddy_binary).parts)):
+        raise TargetUnavailable("Linux target Caddy binary is invalid")
     required_memory = sum(service.memory_mb for service in manifest.services)
     required_cpu = sum(service.cpu_millis for service in manifest.services)
     required_storage = sum(sum(service.storage_mb.values()) for service in manifest.services)
@@ -563,6 +574,8 @@ async def deploy_linux(
         "candidate_domain": candidate_domain,
         "caddy_config_dir": caddy_dir,
         "caddy_main_config": caddy_main,
+        "caddy_reload_mode": capacity.get("caddy_reload_mode", "systemd"),
+        "caddy_binary": capacity.get("caddy_binary", "caddy"),
         "secret_values":secret_values or {},
         "migrations":manifest.migration,
     }
