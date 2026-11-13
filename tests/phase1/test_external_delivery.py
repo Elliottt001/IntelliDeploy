@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
 import pytest
-from test_default_execution import new_job
+from test_default_execution import new_job as new_job
 
 
 def test_external_result_never_fabricates_hosted_instance():
-    from app.core.types import ExternalLinkDelivery, JobSnapshot
+    from app.core.types import ExternalLinkDelivery
     result=ExternalLinkDelivery(app_id='app',job_id='job',url='https://notes.example/',repo_url='https://github.com/example/notes',
         source_ref='repo@commit:README.md',summary='官方笔记服务',features=['私人笔记'],differences=[],
         verified_at=datetime.now(timezone.utc),verification_refs=['verification:job'],report_url='/api/jobs/job/report')
@@ -24,6 +24,46 @@ async def test_http_200_without_business_evidence_is_not_success():
             return {'url':url,'status':200,'text':'Welcome','service_kind':'OFFICIAL_SERVICE'}
     result=await verify_external_service(Requirement(prompt='笔记',acceptance=[{'id':'A1','action':'保存笔记','expected':'持久保存'}]),asset,Verifier())
     assert result.status=='NOT_RUN'
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('renders_preview', [True, False])
+async def test_public_spa_verification_executes_edit_and_preview_without_credentials(renders_preview):
+    import httpx
+    import json
+    from app.runtime.external_delivery import OfficialServiceVerifier
+    from app.core.types import Requirement, ModelTurn
+
+    req = Requirement(prompt='edit and preview Markdown', acceptance=[
+        {'id': 'A1', 'action': 'edit', 'expected': 'preview updated'}])
+    html = '''<textarea id="editor"></textarea><div id="preview"></div><img src="http://127.0.0.1/private">
+        <script>document.querySelector('#editor').addEventListener('input', e =>
+        document.querySelector('#preview').textContent = e.target.value);</script>'''
+    if not renders_preview:
+        html = html.replace('e.target.value', '"broken preview"')
+    seen = []
+    def respond(request):
+        seen.append(request)
+        assert request.url.host == 'editor.example'
+        assert request.method == 'GET'
+        assert 'authorization' not in request.headers and 'cookie' not in request.headers
+        return httpx.Response(200, text=html, headers={'content-type': 'text/html'})
+
+    class Model:
+        async def complete(self, messages, tools, purpose):
+            if purpose == 'external-verification':
+                value = {'service_kind': 'OFFICIAL_SERVICE', 'requires_user_action': False}
+            else:
+                value = [{'item_id': 'A1', 'actor': 'anonymous', 'expected': 'preview updated', 'actions': [
+                    {'type': 'fill', 'selector': '#editor', 'value': 'reuse-preview'},
+                    {'type': 'expect_text', 'selector': '#preview', 'text': 'reuse-preview'}]}]
+            return ModelTurn(assistant_message={'content': json.dumps(value)})
+
+    verifier = OfficialServiceVerifier(req, Model())
+    async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+        result = await verifier._inspect_in_browser('https://editor.example/', client)
+    assert result['executed_core_checks'][0]['status'] == ('PASS' if renders_preview else 'NOT_RUN')
+    assert seen
 
 
 def test_external_urls_reject_private_hosts_and_credentials():
