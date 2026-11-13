@@ -34,6 +34,23 @@ def test_supported_capability_must_cite_read_source_and_exact_quote():
         validate_assessment(value,requirement(),profile('notes'),{'README.md':'unrelated'})
 
 
+def test_full_source_reference_binds_exact_repo_commit_path_and_quote():
+    from app.agent.assessment import candidate_evidence, validate_assessment
+    from app.agent.contracts import CandidateAssessment
+    p = profile('notes')
+    candidate = RetrievalCandidate(repo_url=p.repo_url, commit=p.commit, key_files={'README.md': 'Create private notes'})
+    ref = f'{p.repo_url}@{p.commit}:README.md'
+    value = CandidateAssessment(repo_url=p.repo_url, commit=p.commit, requirement_revision=1,
+        capabilities=[{'acceptance_id': 'A1', 'status': 'SUPPORTED', 'evidence_refs': [ref],
+                       'quote': 'Create private notes', 'reason': 'documented'}],
+        route_verdicts={'A': {'status': 'ELIGIBLE', 'reason': 'source', 'evidence_refs': [ref]}})
+    assert validate_assessment(value, requirement(), p, candidate_evidence(candidate)).capabilities[0].status == 'SUPPORTED'
+    for bad in [ref.replace(p.commit, 'b' * 40), ref.replace('example/notes', 'other/notes'), ref + '.missing']:
+        value.capabilities[0].evidence_refs = [bad]
+        with pytest.raises(ValueError, match='evidence'):
+            validate_assessment(value, requirement(), p, candidate_evidence(candidate))
+
+
 @pytest.mark.asyncio
 async def test_one_bad_quote_does_not_discard_other_valid_candidates():
     from app.agent.assessment import assess_candidates

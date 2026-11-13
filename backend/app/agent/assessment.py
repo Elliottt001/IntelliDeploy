@@ -42,6 +42,8 @@ def candidate_evidence(candidate):
     evidence=dict(candidate.key_files)
     if candidate.homepage:
         evidence['github:homepage']=candidate.homepage
+    evidence.update({f'{candidate.repo_url}@{candidate.commit}:{path}': content
+                     for path, content in list(evidence.items())})
     return evidence
 
 
@@ -63,7 +65,9 @@ async def assess_candidates(requirement, candidates, profiles, model=None):
     if model is None or not selected:
         return result
     schema = TypeAdapter(list[CandidateAssessment]).json_schema()
-    material = [{'repo_url':c.repo_url,'commit':c.commit,'files':{k:v[:10000] for k,v in candidate_evidence(c).items()},
+    material = [{'repo_url':c.repo_url,'commit':c.commit,
+                 'files':{k:v[:10000] for k,v in candidate_evidence(c).items() if k in c.key_files or k == 'github:homepage'},
+                 'allowed_evidence_refs':list(candidate_evidence(c)),
                  'profile':by_url[c.repo_url].model_dump(mode='json')} for c in selected]
     feedback = None
     for _ in range(2):

@@ -1188,6 +1188,7 @@ class JobExecution:
 
         if call.name in {"search_repositories", "fetch_repository"}:
             saved = self.checkpoint()
+            retrieval = (saved.get('algorithm') or {}).get('retrieval') or saved.get('retrieval') or {}
             if call.name == "search_repositories":
                 client = GitHubRepositorySearchClient()
                 rows = await client.search_repositories(
@@ -1200,15 +1201,19 @@ class JobExecution:
                 ]
                 known = {
                     item["repo_url"]: item
-                    for item in (saved.get("retrieval") or {}).get("candidates", [])
+                    for item in retrieval.get("candidates", [])
                 }
                 known.update({item["repo_url"]: item for item in candidates})
                 self.save(
                     retrieval={
-                        **(saved.get("retrieval") or {}),
+                        **retrieval,
                         "candidates": list(known.values()),
                     }
                 )
+                checkpoint = self.algorithm_checkpoint()
+                from app.core.types import RetrievalResult
+                checkpoint.retrieval = RetrievalResult.model_validate({**retrieval, 'candidates': list(known.values())})
+                self.save_algorithm_checkpoint(checkpoint)
                 return ToolResult(
                     call_id=call.id,
                     ok=True,
@@ -1216,7 +1221,7 @@ class JobExecution:
                 )
             known = {
                 item["repo_url"]: item
-                for item in (saved.get("retrieval") or {}).get("candidates", [])
+                for item in retrieval.get("candidates", [])
             }
             url = call.arguments["url"]
             commit = call.arguments["commit"]

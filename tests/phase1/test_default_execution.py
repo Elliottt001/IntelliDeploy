@@ -1344,6 +1344,39 @@ async def test_runner_retries_once_when_reconciliation_confirms_tool_never_start
     execution.record_resource.assert_called_once_with('tool:write','execution.millis',7)
 
 
+@pytest.mark.asyncio
+async def test_fetch_repository_accepts_algorithm_retrieval_and_rejects_other_commit(new_job, session_factory, tmp_path, monkeypatch):
+    from app.jobs.execution import JobExecution
+    from app.core.types import ToolCall, RetrievalResult, RetrievalCandidate
+    from app.config import settings
+    from pathlib import Path
+
+    job_id, _, _, generation = new_job
+    runner = AsyncMock()
+    execution = JobExecution(job_id, 'worker', generation, session_factory=session_factory, runner=runner)
+    checkpoint = execution.algorithm_checkpoint()
+    url = 'https://github.com/example/editor'
+    checkpoint.retrieval = RetrievalResult(queries=['editor'], completed=True, candidates=[
+        RetrievalCandidate(repo_url=url, commit='a' * 40)])
+    execution.save_algorithm_checkpoint(checkpoint)
+    monkeypatch.setattr(settings, 'AGENT_WORKSPACE_ROOT', str(tmp_path))
+
+    def prepare(destination, route):
+        assert route.sources[0].commit == 'a' * 40
+        Path(destination, 'README.md').write_text('fixed source')
+
+    monkeypatch.setattr('app.agent.routing.prepare_sources', prepare)
+    result = await execution.execute_tool(ToolCall(id='fetch', name='fetch_repository', arguments={
+        'url': url, 'commit': 'a' * 40, 'destination': 'component'}))
+    assert result.ok is True
+    assert (tmp_path / job_id / 'component' / 'README.md').read_text() == 'fixed source'
+    assert execution.checkpoint()['sources'][0]['commit'] == 'a' * 40
+    with pytest.raises(ValueError, match='source was not retrieved at this commit'):
+        await execution.execute_tool(ToolCall(id='wrong', name='fetch_repository', arguments={
+            'url': url, 'commit': 'b' * 40, 'destination': 'other'}))
+    assert not (tmp_path / job_id / 'other').exists()
+
+
 def test_generation_budget_replays_uncheckpointed_received_turn(new_job,session_factory):
     from app.jobs.execution import JobExecution
     from app.runtime.models import ResourceRecord
