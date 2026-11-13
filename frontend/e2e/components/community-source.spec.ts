@@ -79,19 +79,64 @@ test('wheel navigation only responds to dominant horizontal delta',async({page})
  await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('1');
 });
 
-test('pointer cancel and native termination settle in-flight motion to the latest stable target',async({page})=>{
+test('pointer cancellation during a new gesture settles in-flight motion in both directions',async({page})=>{
  await page.goto('/');
  const rail=page.getByTestId('community-source-rail'),responder=page.getByTestId('community-source-drag-responder'),box=(await responder.boundingBox())!;
- await page.mouse.move(box.x+120,box.y+30);await page.mouse.down();await page.mouse.move(box.x+20,box.y+30);await page.mouse.up();
- await page.waitForTimeout(90);
- await responder.dispatchEvent('pointercancel');
+ const start=async(dx:number)=>{
+  await page.mouse.move(box.x+120,box.y+30);await page.mouse.down();await page.mouse.move(box.x+120+dx,box.y+30);await page.mouse.up();
+ };
+ const cancel=async(dx:number)=>{
+  await page.mouse.move(box.x+120,box.y+30);await page.mouse.down();await page.mouse.move(box.x+120+dx,box.y+30);
+  await responder.evaluate(element=>element.dispatchEvent(new PointerEvent('pointercancel',{bubbles:true,pointerId:1})));
+  await page.mouse.up();
+ };
+ await start(-100);await page.waitForTimeout(90);await cancel(40);
  await expect.poll(()=>railX(rail)).toBeCloseTo(-94,1);
- await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('1');
- await page.mouse.move(box.x+120,box.y+30);await page.mouse.down();await page.mouse.move(box.x+220,box.y+30);await page.mouse.up();
- await page.waitForTimeout(90);
- await responder.evaluate(element=>element.dispatchEvent(new Event('responderTerminate',{bubbles:true})));
+ await expect(rail).toHaveAttribute('data-source-progress','1');
+ await start(100);await page.waitForTimeout(90);await cancel(-40);
  await expect.poll(()=>railX(rail)).toBeCloseTo(0,1);
- await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('0');
+ await expect(rail).toHaveAttribute('data-source-progress','0');
+});
+
+// Browser-native capture and document listener accounting complements the
+// ReactDOM tests: compatibility mouse delivery must not create extra handles.
+test('captured drag released outside cleans each document handle and capture once',async({page})=>{
+ await page.goto('/');
+ const rail=page.getByTestId('community-source-rail'),responder=page.getByTestId('community-source-drag-responder'),box=(await responder.boundingBox())!;
+ await page.evaluate(()=>{
+  const counts={added:0,removed:0,set:0,released:0};
+  (window as typeof window&{gestureAudit:typeof counts}).gestureAudit=counts;
+  const types=['pointermove','pointerup','pointercancel','mousemove','mouseup'];
+  const add=document.addEventListener.bind(document),remove=document.removeEventListener.bind(document);
+  document.addEventListener=((type:string,listener:EventListenerOrEventListenerObject,options?:boolean|AddEventListenerOptions)=>{if(types.includes(type))counts.added++;add(type,listener,options);}) as typeof document.addEventListener;
+  document.removeEventListener=((type:string,listener:EventListenerOrEventListenerObject,options?:boolean|EventListenerOptions)=>{if(types.includes(type))counts.removed++;remove(type,listener,options);}) as typeof document.removeEventListener;
+  const element=document.querySelector<HTMLElement>('[data-testid="community-source-drag-responder"]')!;
+  const set=element.setPointerCapture.bind(element),release=element.releasePointerCapture.bind(element);
+  element.setPointerCapture=id=>{counts.set++;set(id);};
+  element.releasePointerCapture=id=>{counts.released++;release(id);};
+ });
+ await page.mouse.move(box.x+120,box.y+30);await page.mouse.down();
+ await page.mouse.move(box.x+20,box.y+30);await page.mouse.move(box.x+10,box.y+box.height+30);await page.mouse.up();
+ await expect.poll(()=>railX(rail)).toBeCloseTo(-94,1);
+ expect(await page.evaluate(()=>(window as typeof window&{gestureAudit:unknown}).gestureAudit)).toEqual({added:3,removed:3,set:1,released:1});
+ expect(await responder.evaluate(element=>element.hasPointerCapture(1))).toBe(false);
+});
+
+test('native browser touch pans the long body vertically without claiming the rail',async({page})=>{
+ await page.goto('/');
+ const rail=page.getByTestId('community-source-rail'),body=page.getByTestId('community-source-card-fixture-long').getByTestId('community-card-body');
+ const box=(await body.boundingBox())!,x=box.x+box.width/2,y=box.y+box.height-10;
+ const session=await page.context().newCDPSession(page);
+ await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+ for(let distance=20;distance<=120;distance+=20){
+  await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-distance}]});
+ }
+ await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ await expect.poll(()=>body.evaluate(element=>element.scrollTop)).toBeGreaterThan(0);
+ await page.waitForTimeout(350);
+ expect(await railX(rail)).toBeCloseTo(0,1);
+ await expect(rail).toHaveAttribute('data-source-progress','0');
+ await session.detach();
 });
 
 test('source cards expose supported paints and effects without treating GLASS as implemented',async({page})=>{

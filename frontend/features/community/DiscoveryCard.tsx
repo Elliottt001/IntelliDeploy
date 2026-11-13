@@ -12,8 +12,8 @@ import {communityCardSlots as slots} from '../../design/communityCardSlots';
 import {FigmaTree,type FigmaTreeNode} from '../../components/mobile/FigmaTree';
 import {communityAvatarRenderEvidence as mascot} from '../../design/communityAvatarRenderEvidence';
 const neutralArtwork=mobileAssets['845:3522:114'].source as ImageSourcePropType;
-type WebPointerEvent={currentTarget?:{setPointerCapture?:(pointerId:number)=>void}|EventTarget|null;nativeEvent?:{clientX?:number;clientY?:number;deltaX?:number;deltaY?:number;pointerId?:number};clientX?:number;clientY?:number};
-const WebWheelView=View as unknown as ComponentType<{children:ReactNode;style:ViewStyle;onMouseDown:(event:WebPointerEvent)=>void;onMouseDownCapture:(event:WebPointerEvent)=>void;onMouseMove:(event:WebPointerEvent)=>void;onMouseMoveCapture:(event:WebPointerEvent)=>void;onMouseUp:(event:WebPointerEvent)=>void;onMouseUpCapture:(event:WebPointerEvent)=>void;onWheel:(event:WebPointerEvent)=>void;onPointerDown:(event:WebPointerEvent)=>void;onPointerDownCapture:(event:WebPointerEvent)=>void;onPointerMove:(event:WebPointerEvent)=>void;onPointerMoveCapture:(event:WebPointerEvent)=>void;onPointerUp:(event:WebPointerEvent)=>void;onPointerUpCapture:(event:WebPointerEvent)=>void;onPointerCancel:(event:WebPointerEvent)=>void;testID?:string;dataSet?:Record<string,string>}&Record<string,unknown>>;
+type WebPointerEvent={currentTarget?:EventTarget|null;nativeEvent?:Partial<PointerEvent&WheelEvent>;clientX?:number;clientY?:number;pointerId?:number;button?:number;isPrimary?:boolean};
+const WebWheelView=View as unknown as ComponentType<{children:ReactNode;style:ViewStyle&{touchAction?:string};onWheel:(event:WebPointerEvent)=>void;onPointerDown?:(event:WebPointerEvent)=>void;onLostPointerCapture?:(event:WebPointerEvent)=>void;testID?:string;dataSet?:Record<string,string>}&Record<string,unknown>>;
 const WebAnimatedView=Animated.View as unknown as ComponentType<{children:ReactNode;testID:string;dataSet:Record<string,string>;style:unknown}&Record<string,unknown>>;
 const WebDataView=View as unknown as ComponentType<{children:ReactNode;testID:string;dataSet?:Record<string,string>;style:unknown;pointerEvents?:'none'}>;
 const nativePanHandlers=(panHandlers:GestureResponderHandlers):Partial<GestureResponderHandlers>=>Platform.OS==='web'?{}:panHandlers;
@@ -58,12 +58,22 @@ export function CommunitySourceRail({cards}:{cards:readonly {id:string;copy:Comm
  const reverse=useMemo(()=>getSourceMotion('825:6488','DRAG','168:6358'),[]);
  const {animateTo,progress,settle}=useSourceMotion(motion);
  const [position,setPosition]=useState(0);
- const pointer=useRef<{active:boolean;claimed:boolean;x:number;y:number}|null>(null);
+ const pointer=useRef<{claimed:boolean;x:number;y:number;pointerId:number;captureTarget:HTMLElement;captured:boolean;removeListeners:()=>void}|null>(null);
+ const clearPointer=useCallback(()=>{
+  const current=pointer.current;
+  if(!current)return;
+  pointer.current=null;
+  current.removeListeners();
+  if(current.captured){
+   try{current.captureTarget.releasePointerCapture(current.pointerId);}catch{/* Capture can already be lost or the element detached. */}
+  }
+ },[]);
+ useEffect(()=>clearPointer,[clearPointer]);
  useEffect(()=>{const listener=progress.addListener(({value})=>setPosition(value));return()=>progress.removeListener(listener);},[progress]);
  const delta=source.railTarget.transform.m02-source.rail.transform.m02;
  const offset=progress.interpolate({inputRange:[0,1],outputRange:[0,delta]});
  const setTarget=useCallback((target:0|1)=>animateTo(target),[animateTo]);
- const settleTarget=useCallback(()=>{pointer.current=null;settle();},[settle]);
+ const settleTarget=useCallback(()=>{clearPointer();settle();},[clearPointer,settle]);
  const handleWheel=useCallback((event:WebPointerEvent)=>{if(Platform.OS!=='web')return;const deltaX=event.nativeEvent?.deltaX??0,deltaY=event.nativeEvent?.deltaY??0;if(Math.abs(deltaX)>Math.abs(deltaY)&&deltaX!==0)setTarget(deltaX>0?1:0);},[setTarget]);
  const point=(event:WebPointerEvent)=>({x:event.nativeEvent?.clientX??event.clientX??0,y:event.nativeEvent?.clientY??event.clientY??0});
  const responder=useMemo(()=>PanResponder.create({
@@ -73,11 +83,49 @@ export function CommunitySourceRail({cards}:{cards:readonly {id:string;copy:Comm
   onPanResponderTerminate:()=>{if(Platform.OS!=='web')settleTarget();},
   onShouldBlockNativeResponder:()=>false,
  }),[setTarget,settleTarget]);
- const pointerMove=useCallback((event:WebPointerEvent)=>{const current=pointer.current;if(Platform.OS!=='web'||!current?.active)return;const next=point(event),dx=next.x-current.x,dy=next.y-current.y;if(!current.claimed&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.2)current.claimed=true;},[]);
- const pointerEnd=useCallback((event:WebPointerEvent)=>{const current=pointer.current;if(Platform.OS!=='web'||!current)return;pointer.current=null;const dx=point(event).x-current.x;if(current.claimed&&Math.abs(dx)>30)setTarget(dx<0?1:0);},[setTarget]);
- const pointerDown=useCallback((event:WebPointerEvent)=>{if(Platform.OS!=='web')return;const start=point(event);pointer.current={active:true,claimed:false,x:start.x,y:start.y};const pointerId=event.nativeEvent?.pointerId,currentTarget=event.currentTarget as {setPointerCapture?:(pointerId:number)=>void}|undefined|null;if(pointerId!=null)currentTarget?.setPointerCapture?.(pointerId);const documentRef=(globalThis as typeof globalThis&{document?:Document}).document;if(!documentRef)return;const move=(mouseEvent:MouseEvent)=>pointerMove(mouseEvent);const up=(mouseEvent:MouseEvent)=>{documentRef.removeEventListener('mousemove',move);documentRef.removeEventListener('mouseup',up);pointerEnd(mouseEvent);};documentRef.addEventListener('mousemove',move);documentRef.addEventListener('mouseup',up,{once:true});},[pointerEnd,pointerMove]);
+ const pointerCancel=useCallback((event:WebPointerEvent)=>{
+  const current=pointer.current,id=event.nativeEvent?.pointerId??event.pointerId;
+  if(current&&id===current.pointerId)settleTarget();
+ },[settleTarget]);
+ const pointerDown=useCallback((event:WebPointerEvent)=>{
+  const raw=event.nativeEvent??event;
+  if(Platform.OS!=='web'||pointer.current||raw.pointerId==null||raw.button!==0||raw.isPrimary===false)return;
+  const target=event.currentTarget as HTMLElement|null;
+  const documentRef=target?.ownerDocument;
+  if(!target||!documentRef)return;
+  const start=point(event);
+  const current={claimed:false,x:start.x,y:start.y,pointerId:raw.pointerId,captureTarget:target,captured:false,removeListeners:()=>{
+   documentRef.removeEventListener('pointermove',move);
+   documentRef.removeEventListener('pointerup',end);
+   documentRef.removeEventListener('pointercancel',cancel);
+  }};
+  // Document pointer events are the sole move/end authority, also covering
+  // outside releases when capture is unavailable. No compatibility mouse path.
+  const move=(next:PointerEvent)=>{
+   if(pointer.current!==current||next.pointerId!==current.pointerId)return;
+   const dx=next.clientX-current.x,dy=next.clientY-current.y;
+   if(!current.claimed&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.2){
+    current.claimed=true;
+    // Defer capture until horizontal intent; body panning keeps native scroll.
+    if(target.setPointerCapture){
+     try{target.setPointerCapture(current.pointerId);current.captured=true;}catch{/* Continue with document fallback. */}
+    }
+   }
+  };
+  const end=(next:PointerEvent)=>{
+   if(pointer.current!==current||next.pointerId!==current.pointerId)return;
+   const dx=next.clientX-current.x;
+   clearPointer();
+   if(current.claimed&&Math.abs(dx)>30)setTarget(dx<0?1:0);
+  };
+  const cancel=(next:PointerEvent)=>pointerCancel(next);
+  pointer.current=current;
+  documentRef.addEventListener('pointermove',move);
+  documentRef.addEventListener('pointerup',end);
+  documentRef.addEventListener('pointercancel',cancel);
+ },[clearPointer,pointerCancel,setTarget]);
  const panHandlers=nativePanHandlers(responder.panHandlers);
- return <WebWheelView testID="community-source-drag-responder" dataSet={{sourceResponder:'pan'}} style={{height:source.rail.size.y,overflow:'hidden'}} onMouseDown={pointerDown} onMouseDownCapture={pointerDown} onMouseMove={pointerMove} onMouseMoveCapture={pointerMove} onMouseUp={pointerEnd} onMouseUpCapture={pointerEnd} onPointerDown={pointerDown} onPointerDownCapture={pointerDown} onPointerMove={pointerMove} onPointerMoveCapture={pointerMove} onPointerUp={pointerEnd} onPointerUpCapture={pointerEnd} onPointerCancel={settleTarget} onWheel={handleWheel} {...panHandlers}>
+ return <WebWheelView testID="community-source-drag-responder" dataSet={{sourceResponder:'pan'}} style={{height:source.rail.size.y,overflow:'hidden',...(Platform.OS==='web'?{touchAction:'pan-y'}:{})}} onWheel={handleWheel} {...(Platform.OS==='web'?{onPointerDown:pointerDown,onLostPointerCapture:pointerCancel}:{})} {...panHandlers}>
   <WebAnimatedView testID="community-source-rail" dataSet={{sourceMotion:`${motion?.nodeId}->${motion?.targetNodeId}`,sourceReverseMotion:`${reverse?.nodeId}->${reverse?.targetNodeId}`,sourceDurationMs:String(motion?.durationMs),sourceEasing:motion?.easingType??'',sourceProgress:position>.5?'1':'0'}} style={{position:'absolute',left:0,top:0,width:source.rail.size.x,height:source.rail.size.y,transform:[{translateX:offset}]}} {...panHandlers}>
    <View style={{position:'absolute',left:0,top:0}}><CommunitySourceCard id={cards[0]?.id??'primary'} copy={cards[0]?.copy??{author:null,time:null,body:null}} kind={cards[0]?.kind}/></View>
    <View style={{position:'absolute',left:source.standardNode.transform.m02,top:0}}><CommunitySourceCard id={cards[1]?.id??'standard'} copy={cards[1]?.copy??{author:null,time:null,body:null}} kind={cards[1]?.kind??'standard'}/></View>
