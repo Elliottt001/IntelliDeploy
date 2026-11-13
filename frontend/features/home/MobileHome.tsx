@@ -18,6 +18,7 @@ import {
   CircleAction,
   MobileIcon,
 } from "../../components/mobile";
+import { useSourceMotion } from "../../components/mobile/useSourceMotion";
 import { FigmaText } from "../../components/mobile/FigmaText";
 import { FigmaGeometry } from "../../components/mobile/FigmaGeometry";
 import { homeRenderEvidence as source } from "../../design/homeRenderEvidence";
@@ -25,8 +26,7 @@ import type { FigmaVectorLayer } from "../../design/figmaComponentEvidence";
 import { authAPI } from "../../services/api";
 import { mobileFontFamilies } from "../../theme/typography";
 import { fitSourceWidth, getMobileLayout } from "../../theme/responsive";
-import { getSourceMotion, type SourceMotion } from "../../design/sourceMotionEvidence";
-import { sampleSourceEasing } from "../navigation/sourceMotionPolicy";
+import { getSourceMotion } from "../../design/sourceMotionEvidence";
 import {
   homeCards,
   homeFigmaEvidence,
@@ -36,17 +36,6 @@ import {
 import { HomeAvatar, HomeCardArtwork, matrix } from "./HomeArtwork";
 
 const sourceCardWidth = 321;
-
-function isReducedMotionEnabled() {
-  if (Platform.OS !== "web") {
-    return false;
-  }
-  return (
-    (globalThis as typeof globalThis & {
-      matchMedia?: (query: string) => { matches: boolean };
-    }).matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
-  );
-}
 
 function HomeCard({
   card,
@@ -76,44 +65,21 @@ function HomeCard({
       ),
     [target.interactionNodeId, target.motionTargetNodeId],
   );
-  const progress = useRef(new Animated.Value(expanded ? 1 : 0)).current;
-  const animation = useRef<ReturnType<typeof Animated.timing> | null>(null);
   const hoverOpened = useRef(false);
   const right = card.key === "products" || card.key === "profile";
   const sourceCopy =
     card.key === "profile" ? null : source.cardCopy[card.key];
   const sourceX = (value: number) => (value / sourceCardWidth) * cardWidth;
-  const animate = (toValue: number, sourceMotion: SourceMotion | null) => {
-    animation.current?.stop();
-    if (!sourceMotion || isReducedMotionEnabled()) {
-      progress.setValue(toValue);
-      return;
-    }
-    const current = (progress as any).__getValue?.() ?? 0;
-    const distance = Math.abs(toValue - current);
-    animation.current = Animated.timing(progress, {
-      toValue,
-      duration: sourceMotion.durationMs * distance,
-      easing: (t: number) =>
-        toValue === 1
-          ? sampleSourceEasing(sourceMotion, t)
-          : 1 - sampleSourceEasing(sourceMotion, 1 - t),
-      useNativeDriver: false,
-    });
-    animation.current.start(({ finished }: { finished: boolean }) => {
-      if (finished) {
-        animation.current = null;
-      }
-    });
-  };
+  const copyWidth = Math.max(160, cardWidth - sourceX(right ? 49 : 48) - 44.5);
+  const { animateTo, cancel, progress } = useSourceMotion(motion);
 
   useEffect(() => {
-    const timer = setTimeout(() => animate(expanded ? 1 : 0, motion), 16);
+    const timer = setTimeout(() => animateTo(expanded ? 1 : 0), 16);
     return () => {
       clearTimeout(timer);
-      animation.current?.stop();
+      cancel();
     };
-  }, [expanded, motion]);
+  }, [animateTo, cancel, expanded]);
 
   const animatedStyle = {
     height: progress.interpolate({
@@ -161,15 +127,20 @@ function HomeCard({
           }}
           style={StyleSheet.absoluteFill}
         />
-        <HomeCardArtwork kind={card.key} expanded={expanded} />
+        <HomeCardArtwork
+          cardWidth={cardWidth}
+          kind={card.key}
+          progress={progress}
+        />
         <View
           pointerEvents="none"
+          testID={`home-card-${card.key}-copy`}
           style={[
             styles.cardCopy,
             { top: sourceCopy?.title.transform.m12 ?? 12 },
             right
-              ? { right: sourceX(27), width: 160 }
-              : { left: sourceX(31), width: 160 },
+              ? { right: sourceX(27), width: copyWidth }
+              : { left: sourceX(31), width: copyWidth },
           ]}
         >
           {sourceCopy ? (

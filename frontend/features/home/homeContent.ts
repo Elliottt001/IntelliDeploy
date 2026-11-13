@@ -1,4 +1,5 @@
 import type { MobileRoute } from '../navigation/mobileNavigation';
+import { homeRenderEvidence as source } from '../../design/homeRenderEvidence';
 
 export const homeSuggestions = [
   {
@@ -149,44 +150,11 @@ export const homeFigmaEvidence = {
     expandedState: { frameId: string; y: number };
     key: HomeCardKey;
   }[],
-  homeStateTargets: [
-    {
-      card: 'store',
-      closedNodeId: '266:21248',
-      expandedFrameId: '268:22904',
-      expandedNodeId: '268:23005',
-      interactionNodeId: '266:21248',
-      motionTargetNodeId: '268:22904',
-      sourceY: { closed: 447, expanded: 328 },
-    },
-    {
-      card: 'products',
-      closedNodeId: '266:21339',
-      expandedFrameId: '268:23238',
-      expandedNodeId: '268:23425',
-      interactionNodeId: '266:21339',
-      motionTargetNodeId: '268:23238',
-      sourceY: { closed: 517, expanded: 401 },
-    },
-    {
-      card: 'community',
-      closedNodeId: '266:21373',
-      expandedFrameId: '268:23572',
-      expandedNodeId: '268:23788',
-      interactionNodeId: '266:21373',
-      motionTargetNodeId: '268:23572',
-      sourceY: { closed: 587, expanded: 465 },
-    },
-    {
-      card: 'profile',
-      closedNodeId: '268:22898',
-      expandedFrameId: '268:23906',
-      expandedNodeId: '268:24166',
-      interactionNodeId: '268:22898',
-      motionTargetNodeId: '268:23906',
-      sourceY: { closed: 657, expanded: 544 },
-    },
-  ] satisfies readonly HomeStateTarget[],
+  homeStateTargets: source.homeStates.map((state) => ({
+    ...state,
+    interactionNodeId: state.closedNodeId,
+    motionTargetNodeId: state.expandedFrameId,
+  })) satisfies readonly HomeStateTarget[],
   sourceInspection: {
     wordCloud: {
       background: {

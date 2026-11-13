@@ -1,4 +1,5 @@
 import {
+  Animated,
   Platform,
   StyleSheet,
   View,
@@ -23,41 +24,45 @@ export function HomeAvatar({pressed=false}:{pressed?:boolean}) {
  return <View testID={pressed?'home-avatar-pressed':'home-avatar-default'} style={{position:'absolute',left:pressed?source.avatarPressedTransform.m02-36:0,top:pressed?source.avatarPressedTransform.m12-107:0,width:definition.size.width,height:definition.size.height}}><FigmaTree node={pressed?source.avatarTrees.pressed:source.avatarTrees.normal} prefix={pressed?'home-avatar-pressed':'home-avatar'}/></View>;
 }
 export function HomeCardArtwork({
+  cardWidth,
   kind,
-  expanded,
+  progress,
 }: {
+  cardWidth: number;
   kind: keyof typeof source.cards;
-  expanded: boolean;
+  progress: Animated.Value;
 }) {
   const definition = source.cards[kind];
-  const images = source.images.filter(
-    (n) =>
-      n.rootId ===
-      (kind === "products"
-        ? expanded
-          ? "268:23425"
-          : "270:26431"
-        : kind === "profile"
-          ? expanded
-            ? "268:24166"
-            : "270:26504"
-          : null),
+  const closedImageRoot =
+    kind === "products" ? "270:26431" : kind === "profile" ? "270:26504" : null;
+  const expandedImageRoot =
+    source.homeStates.find((state) => state.card === kind)?.expandedNodeId ??
+    null;
+  const closedImages = source.images.filter((n) => n.rootId === closedImageRoot);
+  const expandedImages = source.images.filter(
+    (n) => n.rootId === expandedImageRoot,
   );
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <FigmaGeometry
-        geometry={definition.geometry as readonly FigmaVectorLayer[]}
-        width={321}
-        height={195}
-        prefix={`home-${kind}`}
-        transform={matrix(definition.nodeTransform)}
-      />
-      {kind === 'store' && expanded && <View style={StyleSheet.absoluteFill}>
-        <FigmaGeometry geometry={source.storeFold.geometry as readonly FigmaVectorLayer[]}
-          width={321} height={195} prefix="home-store-fold" transform={matrix(source.storeFold.nodeTransform)} />
-      </View>}
-      {kind==='community'&&source.decorations.community.map((decoration,index)=><View key={decoration.surfaceNodeId} style={{position:'absolute',left:decoration.nodeTransform.m02,top:decoration.nodeTransform.m12,width:decoration.size.width,height:decoration.size.height}}><FigmaGeometry geometry={decoration.geometry as readonly FigmaVectorLayer[]} width={decoration.size.width} height={decoration.size.height} prefix={`home-community-decoration-${index}`}/></View>)}
-      {images.length > 0 && (
+  const sourceX = (value: number) => (value / 321) * cardWidth;
+  const sourceScale = cardWidth / 321;
+  const expandedOpacity = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+  const closedOpacity = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
+  });
+  const imageLayer = (
+    images: ReadonlyArray<(typeof source.images)[number]>,
+    opacity: Animated.AnimatedInterpolation<number>,
+    testID: string,
+  ) =>
+    images.length > 0 && (
+      <Animated.View
+        pointerEvents="none"
+        testID={testID}
+        style={[StyleSheet.absoluteFill, { opacity }]}
+      >
         <Svg
           {...(Platform.OS === "web"
             ? { "aria-hidden": true }
@@ -76,7 +81,7 @@ export function HomeCardArtwork({
             const asset = Object.values(mobileAssets).find(
               (a) => a.nodeId === n.assetNodeId,
             )!.source as ImageSourcePropType;
-            const clip = `home-${kind}-image-${i}`;
+            const clip = `home-${kind}-image-${testID}-${i}`;
             return (
               <G
                 key={n.sourceNodeId}
@@ -111,7 +116,24 @@ export function HomeCardArtwork({
             );
           })}
         </Svg>
-      )}
+      </Animated.View>
+    );
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <FigmaGeometry
+        geometry={definition.geometry as readonly FigmaVectorLayer[]}
+        width={321}
+        height={195}
+        prefix={`home-${kind}`}
+        transform={matrix(definition.nodeTransform)}
+      />
+      {kind === 'store' && <Animated.View testID="home-store-fold-layer" style={[StyleSheet.absoluteFill,{opacity:expandedOpacity}]}>
+        <FigmaGeometry geometry={source.storeFold.geometry as readonly FigmaVectorLayer[]}
+          width={321} height={195} prefix="home-store-fold" transform={matrix(source.storeFold.nodeTransform)} />
+      </Animated.View>}
+      {kind==='community'&&source.decorations.community.map((decoration,index)=><Animated.View key={decoration.surfaceNodeId} testID={`home-community-decoration-${index}`} style={{position:'absolute',left:sourceX(decoration.nodeTransform.m02),top:decoration.nodeTransform.m12,width:decoration.size.width*sourceScale,height:decoration.size.height,opacity:expandedOpacity}}><FigmaGeometry geometry={decoration.geometry as readonly FigmaVectorLayer[]} width={decoration.size.width} height={decoration.size.height} prefix={`home-community-decoration-${index}`}/></Animated.View>)}
+      {imageLayer(closedImages, closedOpacity, `home-${kind}-closed-image-layer`)}
+      {imageLayer(expandedImages, expandedOpacity, `home-${kind}-expanded-image-layer`)}
     </View>
   );
 }

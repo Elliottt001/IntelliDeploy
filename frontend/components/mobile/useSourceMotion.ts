@@ -39,12 +39,14 @@ function webReducedMotionSource(): MediaQueryHandle | null {
 }
 
 export function useSourceMotion(motion: SourceMotion | null): {
+  animateTo: (toValue: 0 | 1) => void;
   progress: Animated.Value;
   start: () => void;
   cancel: () => void;
 } {
   const progress = useRef(new Animated.Value(0)).current;
   const animationRef = useRef<AnimationHandle | null>(null);
+  const progressValueRef = useRef(0);
   const [reducedMotion, setReducedMotion] = useState(() => {
     if (Platform.OS !== 'web') {
       return false;
@@ -57,18 +59,33 @@ export function useSourceMotion(motion: SourceMotion | null): {
     animationRef.current = null;
   }, []);
 
-  const start = useCallback(() => {
+  const setProgressValue = useCallback(
+    (value: number) => {
+      progressValueRef.current = value;
+      progress.setValue(value);
+    },
+    [progress],
+  );
+
+  const animateTo = useCallback((toValue: 0 | 1) => {
     cancel();
     if (!motion || reducedMotion) {
-      progress.setValue(1);
+      setProgressValue(toValue);
+      return;
+    }
+    const distance = Math.abs(toValue - progressValueRef.current);
+    if (distance === 0) {
+      setProgressValue(toValue);
       return;
     }
 
-    progress.setValue(0);
     const animation = Animated.timing(progress, {
-      toValue: 1,
-      duration: motion.durationMs,
-      easing: (t: number) => sampleSourceEasing(motion, t),
+      toValue,
+      duration: motion.durationMs * distance,
+      easing: (t: number) =>
+        toValue === 1
+          ? sampleSourceEasing(motion, t)
+          : 1 - sampleSourceEasing(motion, 1 - t),
       useNativeDriver: false,
     });
     animationRef.current = animation;
@@ -77,12 +94,23 @@ export function useSourceMotion(motion: SourceMotion | null): {
         animationRef.current = null;
       }
     });
-  }, [cancel, motion, progress, reducedMotion]);
+  }, [cancel, motion, progress, reducedMotion, setProgressValue]);
+
+  const start = useCallback(() => animateTo(1), [animateTo]);
 
   useEffect(() => {
     cancel();
-    progress.setValue(reducedMotion ? 1 : 0);
-  }, [cancel, motion, progress, reducedMotion]);
+    setProgressValue(reducedMotion ? 1 : 0);
+  }, [cancel, motion, reducedMotion, setProgressValue]);
+
+  useEffect(() => {
+    const listenerId = progress.addListener(({ value }) => {
+      progressValueRef.current = value;
+    });
+    return () => {
+      progress.removeListener(listenerId);
+    };
+  }, [progress]);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -138,5 +166,5 @@ export function useSourceMotion(motion: SourceMotion | null): {
     };
   }, [cancel]);
 
-  return { progress, start, cancel };
+  return { animateTo, progress, start, cancel };
 }

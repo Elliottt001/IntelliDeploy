@@ -15,13 +15,26 @@ const native = vi.hoisted(() => {
   type ReduceMotionListener = (enabled: boolean) => void;
 
   class MockAnimatedValue {
+    private listenerId = 0;
+    private listeners = new Map<string, (event: { value: number }) => void>();
     value: number;
+    addListener: ReturnType<typeof vi.fn>;
+    removeListener: ReturnType<typeof vi.fn>;
     setValue: ReturnType<typeof vi.fn>;
 
     constructor(value: number) {
       this.value = value;
+      this.addListener = vi.fn((listener: (event: { value: number }) => void) => {
+        const id = String(++this.listenerId);
+        this.listeners.set(id, listener);
+        return id;
+      });
+      this.removeListener = vi.fn((id: string) => {
+        this.listeners.delete(id);
+      });
       this.setValue = vi.fn((next: number) => {
         this.value = next;
+        this.listeners.forEach((listener) => listener({ value: next }));
       });
     }
   }
@@ -215,6 +228,31 @@ test('restart stops the active animation before starting a new source timing', (
   expect(native.store.animations[1].config).toMatchObject({
     duration: 1250.1229047775269,
     toValue: 1,
+    useNativeDriver: false,
+  });
+});
+
+test('animateTo reverses from the tracked current progress without private value reads', () => {
+  const harness = renderHookHarness(motion({ durationMs: 1000 }));
+  const api = harness.api as SourceMotionApi & {
+    animateTo: (toValue: 0 | 1) => void;
+  };
+  const progress = api.progress as unknown as {
+    __getValue?: () => number;
+    setValue: (next: number) => void;
+  };
+  progress.setValue(0.25);
+  progress.__getValue = vi.fn(() => {
+    throw new Error('private value read');
+  });
+
+  act(() => api.animateTo(1));
+  act(() => api.animateTo(0));
+
+  expect(native.store.timing).toHaveBeenCalledTimes(2);
+  expect(native.store.animations[1].config).toMatchObject({
+    duration: 250,
+    toValue: 0,
     useNativeDriver: false,
   });
 });

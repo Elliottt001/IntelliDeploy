@@ -1,9 +1,22 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import {
   expectNoHorizontalOverflow,
   expectTouchTarget,
   installMobileSourceFixtures,
 } from './sourceAssertions';
+
+const HOME_CARD_STATES = [
+  { key: 'store', targetY: 328, destination: /\/store$/ },
+  { key: 'products', targetY: 401, destination: /\/app-gallery$/ },
+  { key: 'community', targetY: 465, destination: /\/community$/ },
+  { key: 'profile', targetY: 544, destination: /\/app-gallery$/ },
+] as const;
+
+async function elementOpacity(locator: Locator) {
+  return Number(
+    await locator.evaluate((element) => getComputedStyle(element).opacity),
+  );
+}
 
 test('home cards expand without changing their real destination', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('token', 'fixture-token'));
@@ -88,52 +101,160 @@ test('visible source inspiration words are real curated prompt actions',async({p
  await expect(page.getByTestId('create-prompt')).toHaveValue('创建一个用于记录、搜索和整理私人笔记的 AI Copilot');
 });
 
-test('home card width follows screen space and expansion reaches its source state', async ({ page }) => {
+test('home card internals follow the adaptive source container at mobile widths', async ({ page }) => {
   await installMobileSourceFixtures(page);
-  const widths: number[] = [];
+  const cardWidths: number[] = [];
+  const productCopyWidths: number[] = [];
+  const decorationXs: number[] = [];
 
-  for (const width of [375, 430]) {
+  for (const width of [320, 375, 430]) {
     await page.setViewportSize({ width, height: 812 });
     await page.goto('/');
     const shell = page.getByTestId('home-card-store-shell');
-    widths.push((await shell.boundingBox())!.width);
+    cardWidths.push((await shell.boundingBox())!.width);
     await page.getByTestId('home-card-store').click();
     await expect(page.getByTestId('home-card-store')).toHaveAttribute(
       'aria-expanded',
       'true',
     );
+    const storeTitle = await page.getByTestId('home-store-source-title').boundingBox();
+    const storeArrow = await page.getByTestId('home-card-store-open').boundingBox();
+    const storeShell = await shell.boundingBox();
+    expect(storeTitle).not.toBeNull();
+    expect(storeArrow).not.toBeNull();
+    expect(storeTitle!.x).toBeGreaterThanOrEqual(storeShell!.x);
+    expect(storeArrow!.x + storeArrow!.width).toBeLessThanOrEqual(
+      storeShell!.x + storeShell!.width,
+    );
+
     await expectTouchTarget(page.getByTestId('home-card-store-open'));
     await expectNoHorizontalOverflow(page);
+
+    await page.goto('/');
+    await page.getByTestId('home-card-products').click();
+    await expect(page.getByTestId('home-card-products')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    productCopyWidths.push(
+      (await page.getByTestId('home-card-products-copy').boundingBox())!.width,
+    );
+    const productImage = await page
+      .getByTestId('home-products-expanded-image-layer')
+      .boundingBox();
+    const productShell = await page
+      .getByTestId('home-card-products-shell')
+      .boundingBox();
+    expect(productImage).not.toBeNull();
+    expect(productImage!.x).toBeGreaterThanOrEqual(productShell!.x);
+    expect(productImage!.x + productImage!.width).toBeLessThanOrEqual(
+      productShell!.x + productShell!.width,
+    );
+
+    await page.goto('/');
+    await page.getByTestId('home-card-community').click();
+    await expect(page.getByTestId('home-card-community')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    decorationXs.push(
+      (await page.getByTestId('home-community-decoration-0').boundingBox())!.x,
+    );
   }
 
-  expect(widths[1]).toBeGreaterThan(widths[0]);
+  expect(cardWidths[2]).toBeGreaterThan(cardWidths[1]);
+  expect(cardWidths[1]).toBeGreaterThan(cardWidths[0]);
+  expect(productCopyWidths[2]).toBeGreaterThan(productCopyWidths[1]);
+  expect(decorationXs[2]).toBeGreaterThan(decorationXs[1]);
 });
 
-test('home expansion animates through source start middle and end without duplicate navigation', async ({
+test('each home expansion animates through its source start middle and end without duplicate navigation', async ({
   page,
 }) => {
   await installMobileSourceFixtures(page);
   await page.clock.install({ time: new Date('2026-11-13T00:00:00Z') });
+
+  for (const state of HOME_CARD_STATES) {
+    await page.goto('/');
+    const card = page.getByTestId(`home-card-${state.key}`);
+    const start = (await card.boundingBox())!;
+
+    await card.click();
+    const duringStart = (await card.boundingBox())!;
+    expect(duringStart.y).toBeCloseTo(start.y, 1);
+
+    await page.clock.runFor(320);
+    const middle = (await card.boundingBox())!;
+    expect(middle.y).toBeLessThan(start.y - 8);
+    expect(middle.y).toBeLessThan(state.targetY);
+    expect(middle.y).toBeGreaterThan(state.targetY - 12);
+
+    await page.clock.runFor(400);
+    const end = (await card.boundingBox())!;
+    expect(end.y).toBeCloseTo(state.targetY, 2);
+
+    await page.getByTestId(`home-card-${state.key}-open`).click();
+    await expect(page).toHaveURL(state.destination);
+  }
+});
+
+test('home source artwork layers fade with expansion progress instead of snapping', async ({
+  page,
+}) => {
+  await installMobileSourceFixtures(page);
+  await page.clock.install({ time: new Date('2026-11-13T00:02:00Z') });
   await page.goto('/');
-  const card = page.getByTestId('home-card-store');
-  const start = (await card.boundingBox())!;
 
-  await card.click();
-  const duringStart = (await card.boundingBox())!;
-  expect(duringStart.y).toBeCloseTo(start.y, 1);
+  const store = page.getByTestId('home-card-store');
+  await store.click();
+  const storeFold = page.getByTestId('home-store-fold-layer');
+  await expect(storeFold).toBeAttached();
+  expect(await elementOpacity(storeFold)).toBeLessThan(0.1);
+  await page.clock.runFor(120);
+  const storeFoldMiddle = await elementOpacity(storeFold);
+  expect(storeFoldMiddle).toBeGreaterThan(0.2);
+  expect(storeFoldMiddle).toBeLessThan(0.9);
+  await page.clock.runFor(600);
+  expect(await elementOpacity(storeFold)).toBeCloseTo(1, 1);
 
-  await page.clock.runFor(320);
-  const middle = (await card.boundingBox())!;
-  expect(middle.y).toBeLessThan(start.y - 8);
-  expect(middle.y).toBeLessThan(328);
-  expect(middle.y).toBeGreaterThan(320);
+  await page.goto('/');
+  const products = page.getByTestId('home-card-products');
+  await products.click();
+  const productClosed = page.getByTestId('home-products-closed-image-layer');
+  const productExpanded = page.getByTestId('home-products-expanded-image-layer');
+  await expect(productClosed).toBeAttached();
+  await expect(productExpanded).toBeAttached();
+  expect(await elementOpacity(productClosed)).toBeGreaterThan(0.9);
+  expect(await elementOpacity(productExpanded)).toBeLessThan(0.1);
+  await page.clock.runFor(120);
+  expect(await elementOpacity(productClosed)).toBeGreaterThan(0.1);
+  expect(await elementOpacity(productExpanded)).toBeGreaterThan(0.1);
+  await page.clock.runFor(600);
+  expect(await elementOpacity(productClosed)).toBeLessThan(0.1);
+  expect(await elementOpacity(productExpanded)).toBeGreaterThan(0.9);
 
-  await page.clock.runFor(400);
-  const end = (await card.boundingBox())!;
-  expect(end.y).toBeCloseTo(328, 2);
+  await page.goto('/');
+  const community = page.getByTestId('home-card-community');
+  await community.click();
+  const decoration = page.getByTestId('home-community-decoration-0');
+  await expect(decoration).toBeAttached();
+  expect(await elementOpacity(decoration)).toBeLessThan(0.1);
+  await page.clock.runFor(120);
+  const decorationMiddle = await elementOpacity(decoration);
+  expect(decorationMiddle).toBeGreaterThan(0.1);
+  expect(decorationMiddle).toBeLessThan(0.9);
+  await page.clock.runFor(600);
+  expect(await elementOpacity(decoration)).toBeGreaterThan(0.9);
 
-  await page.getByTestId('home-card-store-open').click();
-  await expect(page).toHaveURL(/\/store$/);
+  await page.goto('/');
+  const profile = page.getByTestId('home-card-profile');
+  await profile.click();
+  const profileClosed = page.getByTestId('home-profile-closed-image-layer');
+  const profileExpanded = page.getByTestId('home-profile-expanded-image-layer');
+  await expect(profileClosed).toBeAttached();
+  await expect(profileExpanded).toBeAttached();
+  expect(await elementOpacity(profileClosed)).toBeGreaterThan(0.9);
+  expect(await elementOpacity(profileExpanded)).toBeLessThan(0.1);
 });
 
 test('home hover follows the source card variant without navigating', async ({ page }) => {
