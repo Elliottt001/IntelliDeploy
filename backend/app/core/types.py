@@ -106,6 +106,7 @@ class ModelTurn(BaseModel):
     protocol_error: str | None = None
 
 class Checkpoint(BaseModel):
+    generation_phase: Literal['IMPLEMENT', 'FINALIZE'] = 'IMPLEMENT'
     messages: list[dict] = Field(default_factory=list)
     route: RoutePlan | None = None
     workspace: str | None = None

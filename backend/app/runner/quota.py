@@ -1,6 +1,22 @@
 import os
 from pathlib import Path
 import subprocess
+import stat
+
+
+def ensure_loop_nodes(device_root=Path("/dev"), *, slots=64):
+    """A privileged container needs device nodes for dynamically allocated loops."""
+    if not 1 <= slots <= 64:
+        raise ValueError("loop device slots outside bounded range")
+    for index in range(slots):
+        path = Path(device_root) / f"loop{index}"
+        device = os.makedev(7, index)
+        if path.exists():
+            info = path.stat()
+            if path.is_symlink() or not stat.S_ISBLK(info.st_mode) or info.st_rdev != device:
+                raise RuntimeError("unexpected existing loop device path")
+        else:
+            os.mknod(path, stat.S_IFBLK | 0o600, device)
 
 
 class WorkspaceQuota:
@@ -25,6 +41,7 @@ class WorkspaceQuota:
             image.chmod(0o600)
             subprocess.run(["mkfs.ext4", "-q", "-F", str(image)], check=True)
         if not os.path.ismount(source):
+            ensure_loop_nodes()
             subprocess.run(
                 ["mount", "-o", "loop,nosuid,nodev", str(image), str(source)],
                 check=True,

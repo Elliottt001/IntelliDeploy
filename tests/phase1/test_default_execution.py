@@ -1320,3 +1320,16 @@ async def test_runner_argument_rejection_is_feedback_without_execution_charge(ne
     assert result.ok is False
     assert 'relative path' in result.content
     execution.record_resource.assert_not_called()
+
+
+def test_generation_budget_replays_uncheckpointed_received_turn(new_job,session_factory):
+    from app.jobs.execution import JobExecution
+    from app.runtime.models import ResourceRecord
+    job_id,app_id,_,generation=new_job
+    with session_factory() as session:
+        for i in range(34):
+            op=f'model:{job_id}:implementation:0' if i==0 else f'count:{job_id}:{i}'
+            session.add(ResourceRecord(type='MODEL_CALL',job_id=job_id,app_id=app_id,operation_id=op,state='METERED',reference=op,metadata_json={}))
+        session.commit()
+    execution=JobExecution(job_id,'worker',generation,session_factory=session_factory,model_client=RequirementModel())
+    assert execution.generation_round_budget(execution.model('implementation'))==1

@@ -64,7 +64,7 @@ async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_too
                          persist, record_usage, *, payer_id: int | None = None,
                          reservation_operation_id: str | None = None,
                          price_version: str | None = None, max_rounds: int = 20,
-                         tools=None) -> GenerationOutput:
+                         tools=None, finalize_last_round=False) -> GenerationOutput:
     price_version = price_version or settings.PRICE_VERSION
     tools = TOOLS if tools is None else tools
     if any(call.id not in checkpoint.completed_calls for call in checkpoint.pending_calls):
@@ -74,7 +74,14 @@ async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_too
                                 requirement_revision=checkpoint.requirement_revision)
     last_failure = None
     for round_number in range(max_rounds):
-        turn = await model.complete(checkpoint.messages, tools, settings.DEEPSEEK_MODEL)
+        recorded = getattr(model, "has_recorded_turn", lambda: False)()
+        if finalize_last_round and round_number == max_rounds - 1 and not recorded and checkpoint.generation_phase != "FINALIZE":
+            checkpoint.generation_phase = "FINALIZE"
+            checkpoint.messages.append({"role": "user", "content": "源码阶段结束。不要再搭建临时数据库或浏览器自测；平台负责真实验证。现在必须调用finish_implementation提交当前源码对应的AppManifest、真实BuildSpec及平台环境引用，候选提交不代表交付成功。"})
+            await _call(persist, checkpoint)
+        offered_tools = ([tool for tool in tools if tool["function"]["name"] == "finish_implementation"]
+                         if checkpoint.generation_phase == "FINALIZE" else tools)
+        turn = await model.complete(checkpoint.messages, offered_tools, settings.DEEPSEEK_MODEL)
         checkpoint.messages.append(turn.assistant_message)
         checkpoint.pending_calls = turn.calls
         await _call(persist, checkpoint)
@@ -88,6 +95,8 @@ async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_too
             return GenerationOutput(checkpoint=checkpoint, exhausted=True,
                                     requirement_revision=checkpoint.requirement_revision)
         for call in turn.calls:
+            if checkpoint.generation_phase == "FINALIZE" and call.name != "finish_implementation":
+                raise ValueError("finalization only accepts finish_implementation")
             previous_arguments = checkpoint.call_arguments.get(call.id)
             if previous_arguments is not None and previous_arguments != call.arguments:
                 raise ValueError("tool call id was reused with different arguments")

@@ -74,6 +74,15 @@ class DurableModel:
         self.phase = phase
         self.position = start
 
+    def has_recorded_turn(self):
+        operation = f"model:{self.execution.job_id}:{self.phase}:{self.position}"
+        with self.execution.sessions() as session:
+            return session.scalar(select(ResourceRecord.id).where(
+                ResourceRecord.job_id == self.execution.job_id,
+                ResourceRecord.type == "MODEL_CALL",
+                ResourceRecord.operation_id == operation,
+            )) is not None
+
     async def complete(self, messages, tools, model):
         execution = self.execution
         prefix = settings.DEEPSEEK_PRICE_PREFIX
@@ -744,13 +753,13 @@ class JobExecution:
             )
         return payload
 
-    def generation_round_budget(self):
+    def generation_round_budget(self, model=None):
         with self.sessions() as session:
             job = self.job(session)
             used = session.scalar(select(func.count()).select_from(ResourceRecord).where(
                 ResourceRecord.job_id == job.id, ResourceRecord.type == "MODEL_CALL"))
         # Reserve six calls for independent checks/review; the global cap still fences every request.
-        return max(0, min(32, settings.MAX_JOB_MODEL_CALLS - used - 6))
+        return max(0, min(32, settings.MAX_JOB_MODEL_CALLS - used - 6)) + int(model is not None and model.has_recorded_turn())
 
     def prepare_algorithm_inputs(self, requirement, plan, workspace):
         from app.agent.gaps import deterministic_gap_plan
@@ -1003,7 +1012,8 @@ class JobExecution:
                 lambda cp: self.save(loop=cp.model_dump(mode="json")),
                 lambda _: None,
                 tools=DEFAULT_WORKER_TOOLS,
-                max_rounds=self.generation_round_budget(),
+                max_rounds=self.generation_round_budget(model),
+                finalize_last_round=True,
             )
             if output.question:
                 self.wait_for_user(output.question)

@@ -143,3 +143,35 @@ def test_command_schema_declares_seconds_and_matches_validated_arguments():
     schema = next(t['function']['parameters'] for t in TOOLS if t['function']['name'] == 'run_command')
     assert schema == CommandArgs.model_json_schema()
     assert 'seconds' in schema['properties']['timeout']['description']
+
+
+@pytest.mark.asyncio
+async def test_generation_final_round_is_reserved_for_manifest_submission(tmp_path):
+    from app.agent.loop import TOOLS
+    class Model:
+        calls=0
+        async def complete(self,messages,tools,model):
+            self.calls+=1
+            if self.calls<3:
+                assert any(t['function']['name']=='write_file' for t in tools)
+                return turn([ToolCall(id=f'w{self.calls}',name='write_file',arguments={'path':'app.py','content':'source'})])
+            assert [t['function']['name'] for t in tools]==['finish_implementation']
+            assert 'finish_implementation' in messages[-1]['content']
+            return turn([ToolCall(id='finish',name='finish_implementation',arguments={'manifest':MANIFEST})])
+    model=Model()
+    result=await run_generation('job',Checkpoint(),model,CounterTool(),lambda _:None,lambda _:None,
+                                max_rounds=3,tools=TOOLS,finalize_last_round=True)
+    assert result.manifest.web_service=='web'
+    assert model.calls==3
+
+
+@pytest.mark.asyncio
+async def test_finalization_checkpoint_resumes_with_only_submission_tool():
+    checkpoint=Checkpoint(generation_phase='FINALIZE',messages=[{'role':'user','content':'finish_implementation now'}])
+    class Model:
+        async def complete(self,messages,tools,model):
+            assert [t['function']['name'] for t in tools]==['finish_implementation']
+            assert len(messages)==1
+            return turn([ToolCall(id='finish',name='finish_implementation',arguments={'manifest':MANIFEST})])
+    result=await run_generation('job',checkpoint,Model(),CounterTool(),lambda _:None,lambda _:None,max_rounds=2,finalize_last_round=True)
+    assert result.manifest.web_service=='web'
