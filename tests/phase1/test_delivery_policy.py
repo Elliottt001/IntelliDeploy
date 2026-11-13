@@ -40,6 +40,35 @@ def test_private_acceptance_cannot_be_downgraded_to_preference():
         validate_revision(None,value,rows('保存私人笔记'))
 
 
+def test_delivery_and_waived_storage_facts_do_not_become_software_checks():
+    text = '编辑预览。只需要当次编辑和预览，不需要跨会话保存。不需要自己部署。'
+    value = RequirementDraft(prompt=text, acceptance=[{'id': 'edit', 'action': '编辑预览', 'expected': '当次可用'}],
+        facts=[{'id': 'function', 'source_message_id': 'm', 'quote': '编辑预览', 'kind': 'FUNCTION', 'acceptance_ids': ['edit']},
+            {'id': 'scope', 'source_message_id': 'm', 'quote': '只需要当次编辑和预览，不需要跨会话保存', 'kind': 'DATA', 'acceptance_ids': []},
+            {'id': 'delivery', 'source_message_id': 'm', 'quote': '不需要自己部署。', 'kind': 'EXTERNAL', 'acceptance_ids': []}])
+    req = validate_revision(None, value, rows(text))
+    assert [a.id for a in req.core_acceptance] == ['edit']
+    assert len(req.facts) == 3
+    assert req.delivery_policy.preference == 'EXISTING_SERVICE_FIRST'
+    assert req.delivery_policy.allow_generation is False
+
+
+@pytest.mark.parametrize('quote,kind', [('必须跨会话保存', 'DATA'), ('必须账号隔离', 'ACCESS'), ('真实调用AI', 'EXTERNAL')])
+def test_actual_business_facts_still_need_acceptance_mapping(quote, kind):
+    value = RequirementDraft(prompt=quote, acceptance=[{'id': 'A1', 'action': quote, 'expected': '实际生效'}],
+        facts=[{'id': 'F1', 'source_message_id': 'm', 'quote': quote, 'kind': kind, 'acceptance_ids': []}])
+    with pytest.raises(RequirementCoverageError, match='acceptance mapping'):
+        validate_revision(None, value, rows(quote))
+
+
+def test_delivery_fact_cannot_replace_business_coverage():
+    text = '编辑预览，不需要自己部署'
+    value = RequirementDraft(prompt=text, acceptance=[{'id': 'edit', 'action': '编辑预览', 'expected': '可用'}],
+        facts=[{'id': 'delivery', 'source_message_id': 'm', 'quote': '不需要自己部署', 'kind': 'EXTERNAL', 'acceptance_ids': []}])
+    with pytest.raises(RequirementCoverageError, match='business fact'):
+        validate_revision(None, value, rows(text))
+
+
 def test_confirmation_is_bound_to_the_actual_deployment_question():
     from app.agent.requirements import delivery_policy_from_messages
     messages=[{'id':'q','role':'assistant','sequence':1,'content':'是否部署独立实例？'},

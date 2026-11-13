@@ -91,8 +91,18 @@ def validate_revision(previous, draft, messages):
             raise RequirementCoverageError(
                 "fact quote is not in the original user message"
             )
-        if not fact.acceptance_ids or not set(fact.acceptance_ids) <= set(ids):
+        quote = fact.quote.strip(' 。；，,;.\n')
+        delivery_fact = fact.kind == 'EXTERNAL' and bool(re.fullmatch(
+            r'[^，。；\n]{0,30}(?:官方.{0,6}服务链接|自己部署|独立部署|自托管|从头生成|从零生成|(?:官方|仓库).{0,12}部署方式)[^，。；\n]{0,15}', quote)) \
+            and not re.search(r'AI|搜索|上传|账号|隔离|持久', quote, re.I)
+        waived_storage = fact.kind == 'DATA' and bool(re.fullmatch(
+            r'(?:只(?:需要|需|要)当次[^，,。；]{0,20}[，,]\s*)?(?:不要求|不需要|不必)[^。；]{0,30}(?:保存|恢复|存储|持久化)[^。；]{0,15}', quote)) \
+            and not re.search(r'必须|仍需|保留已有|保留现有|保持隔离|不能丢|重启后仍', quote)
+        if ((not fact.acceptance_ids and not (delivery_fact or waived_storage))
+                or not set(fact.acceptance_ids) <= set(ids)):
             raise RequirementCoverageError("fact has no valid acceptance mapping")
+    if not any(fact.acceptance_ids for fact in draft.facts):
+        raise RequirementCoverageError('business fact has no valid acceptance mapping')
     if previous:
         old = {i.id: i for i in previous.acceptance}
         new = {i.id: i for i in draft.acceptance}
