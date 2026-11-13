@@ -6,16 +6,30 @@ import { beforeEach, expect, test, vi } from "vitest";
 
 vi.mock("react-native", () => ({
   Image: "Image",
-  Platform: { OS: "ios", select: (options: Record<string, string>) => options.default },
+  Platform: {
+    OS: "ios",
+    select: (options: Record<string, string>) => options.default,
+  },
   Pressable: "Pressable",
   StyleSheet: { create: <T>(styles: T) => styles },
   Text: "Text",
   TextInput: "TextInput",
   View: "View",
-  useWindowDimensions: () => ({width:375,height:812}),
+  useWindowDimensions: () => ({ width: 375, height: 812 }),
 }));
 vi.mock("expo-linear-gradient", () => ({ LinearGradient: "LinearGradient" }));
-vi.mock("react-native-svg", () => ({ Rect:"Rect", ClipPath:"ClipPath", Filter:"Filter", FeGaussianBlur:"FeGaussianBlur", G:"G", Defs:"Defs", LinearGradient:"SvgLinearGradient", Stop:"Stop", Path:"Path", default:"Svg" }));
+vi.mock("react-native-svg", () => ({
+  Rect: "Rect",
+  ClipPath: "ClipPath",
+  Filter: "Filter",
+  FeGaussianBlur: "FeGaussianBlur",
+  G: "G",
+  Defs: "Defs",
+  LinearGradient: "SvgLinearGradient",
+  Stop: "Stop",
+  Path: "Path",
+  default: "Svg",
+}));
 
 import {
   ChatComposer,
@@ -29,6 +43,8 @@ import {
   miboStageFigmaEvidence,
 } from "../components/mobile/MiboStage";
 import { getJobVisualState } from "../features/chatbot/jobVisualState";
+import { miboRenderEvidence } from "../design/miboRenderEvidence";
+import { miboSourceAudit } from "../design/miboSourceAudit";
 
 type Job = components["schemas"]["JobSnapshot"];
 type ElementProps = Record<string, unknown> & {
@@ -256,22 +272,74 @@ test.each([
   [job("RUNNING", "building"), { x: 94, y: 188, width: 194, height: 168 }],
   [job("SUCCEEDED"), miboStageFigmaEvidence.art.successCat.box],
 ] as const)("Mibo cat uses the measured art geometry for %s", (input, box) => {
-  const {primaryCharacter}=getMiboStageLayout(getJobVisualState(input),false,375);
-  expect({height:primaryCharacter.size.y,left:primaryCharacter.transform.m02,top:primaryCharacter.transform.m12-miboStageFigmaEvidence.art.rippleLarge.box.y,width:primaryCharacter.size.x}).toEqual({height:box.height,left:box.x,top:box.y-miboStageFigmaEvidence.art.rippleLarge.box.y,width:box.width});
+  const { primaryCharacter } = getMiboStageLayout(
+    getJobVisualState(input),
+    false,
+    375,
+  );
+  expect({
+    height: primaryCharacter.size.y,
+    left: primaryCharacter.transform.m02,
+    top:
+      primaryCharacter.transform.m12 -
+      miboStageFigmaEvidence.art.rippleLarge.box.y,
+    width: primaryCharacter.size.x,
+  }).toEqual({
+    height: box.height,
+    left: box.x,
+    top: box.y - miboStageFigmaEvidence.art.rippleLarge.box.y,
+    width: box.width,
+  });
 });
 
 test("Mibo source layout retains exact visible image UV and hidden robot state", () => {
-  const layout=getMiboStageLayout(getJobVisualState(null),false,375);
-  expect(layout.rippleLarge).toMatchObject({size:{x:504,y:336},transform:{m02:-61,m12:137},paintTransform:{m00:1,m11:1,m02:0,m12:0},opacity:1});
-  expect(layout.ripple).toMatchObject({size:{x:359,y:239},transform:{m02:8,m12:196},paintTransform:{m00:1,m11:1,m02:0,m12:0},opacity:1});
-  expect(layout.imageNodes.find(value=>value.rawHash===miboStageFigmaEvidence.art.robot.assetHash)?.visible).toBe(false);
+  const layout = getMiboStageLayout(getJobVisualState(null), false, 375);
+  expect(layout.rippleLarge).toMatchObject({
+    size: { x: 504, y: 336 },
+    transform: { m02: -61, m12: 137 },
+    paintTransform: { m00: 1, m11: 1, m02: 0, m12: 0 },
+    opacity: 1,
+  });
+  expect(layout.ripple).toMatchObject({
+    size: { x: 359, y: 239 },
+    transform: { m02: 8, m12: 196 },
+    paintTransform: { m00: 1, m11: 1, m02: 0, m12: 0 },
+    opacity: 1,
+  });
+  expect(
+    layout.imageNodes.find(
+      (value) => value.rawHash === miboStageFigmaEvidence.art.robot.assetHash,
+    )?.visible,
+  ).toBe(false);
 });
 
-test.each([[320,320/375],[360,360/375],[375,1],[390,1],[430,1]] as const)("Mibo scales only its local art to fit a %ipt viewport",(viewportWidth,expectedScale)=>{
- const layout=getMiboStageLayout(getJobVisualState(null),false,viewportWidth);
- expect(layout.artScale).toBeCloseTo(expectedScale,8);
- expect(375*layout.artScale).toBeLessThanOrEqual(viewportWidth);
-});
+test.each([
+  [320, 320 / 375],
+  [360, 360 / 375],
+  [375, 1],
+  [390, 1],
+  [430, 1],
+] as const)(
+  "Mibo scales only its local art to fit a %ipt viewport",
+  (viewportWidth, expectedScale) => {
+    const layout = getMiboStageLayout(
+      getJobVisualState(null),
+      false,
+      viewportWidth,
+    );
+    expect(layout.artScale).toBeCloseTo(expectedScale, 8);
+    expect(375 * layout.artScale).toBeLessThanOrEqual(viewportWidth);
+    expect(layout.artCanvasTop).toBeCloseTo(
+      -(330 - 330 * expectedScale) / 2,
+      8,
+    );
+    expect(layout.artCanvasTop + (330 - 330 * expectedScale) / 2).toBeCloseTo(
+      0,
+      8,
+    );
+    expect(330 * layout.artScale).toBeCloseTo(layout.artViewportHeight, 8);
+  },
+);
 
 test("composer blocks busy, disabled, and blank submission while preserving 44pt controls", () => {
   const onSubmit = vi.fn();
@@ -335,8 +403,11 @@ test("composer shell uses measured Kiwi surface geometry and remains fluid", () 
     shadowRadius: 2.679201,
     width: "100%",
   });
-  const paint=(propsOf(composer).children as ReactElement[])[0];
-  expect(flattenStyle(propsOf(paint).style)).toMatchObject({borderWidth:1.339601,borderColor:"#FFFFFF"});
+  const paint = (propsOf(composer).children as ReactElement[])[0];
+  expect(flattenStyle(propsOf(paint).style)).toMatchObject({
+    borderWidth: 1.339601,
+    borderColor: "#FFFFFF",
+  });
   expect(chatComposerFigmaEvidence.shellNodeId).toBe("845:3530");
   expect(chatComposerFigmaEvidence.noSymbolReason).toMatch(
     /no INSTANCE or SYMBOL/,
@@ -396,12 +467,93 @@ test.skipIf(!figmaSource)(
     ]);
     for (const frameId of miboStageFigmaEvidence.frameIds) {
       expect(nodes.get(frameId)?.size).toEqual({ x: 375, y: 812 });
+      const frameDescendants = descendants(frameId);
       expect(
-        descendants(frameId).filter((node) =>
+        frameDescendants.filter((node) =>
           ["INSTANCE", "SYMBOL"].includes(String(node.type)),
         ),
       ).toEqual([]);
+      const rawFrame = [nodes.get(frameId)!, ...frameDescendants];
+      const auditById = new Map(
+        miboSourceAudit.frames[frameId].map((node) => [id(node), node]),
+      );
+      expect(auditById.size).toBe(rawFrame.length);
+      for (const rawNode of rawFrame)
+        expect(auditById.get(id(rawNode))).toEqual(rawNode);
+      const runtimeFrame = miboRenderEvidence.frames[frameId];
+      expect(runtimeFrame.nodeCount).toBe(rawFrame.length);
+      expect(runtimeFrame.geometryNodeCount).toBe(
+        rawFrame.filter(
+          (node) => node.fillGeometry?.length || node.strokeGeometry?.length,
+        ).length,
+      );
+      expect(runtimeFrame.paintNodeCount).toBe(
+        rawFrame.filter(
+          (node) => node.fillPaints?.length || node.strokePaints?.length,
+        ).length,
+      );
+      const imageNodes = rawFrame.filter((node) =>
+        node.fillPaints?.some(
+          (paint: Record<string, any>) =>
+            paint.type === "IMAGE" && paint.visible !== false,
+        ),
+      );
+      expect(new Set(runtimeFrame.imageNodeIds)).toEqual(
+        new Set(imageNodes.map(id)),
+      );
+      for (const imageNode of imageNodes) {
+        const paint = imageNode.fillPaints.find(
+            (value: Record<string, any>) =>
+              value.type === "IMAGE" && value.visible !== false,
+          ),
+          runtime =
+            miboRenderEvidence.images[
+              id(imageNode) as keyof typeof miboRenderEvidence.images
+            ];
+        expect(runtime).toEqual({
+          sourceNodeId: id(imageNode),
+          visible: imageNode.visible !== false,
+          size: imageNode.size,
+          transform: imageNode.transform,
+          paintTransform: paint.transform,
+          blendMode: paint.blendMode,
+          opacity: (imageNode.opacity ?? 1) * (paint.opacity ?? 1),
+          rawHash: Buffer.from(paint.image.hash.data, "base64").toString("hex"),
+        });
+      }
+      const rawInteractions = rawFrame.flatMap((node) =>
+        (node.prototypeInteractions ?? []).map(
+          (interaction: Record<string, any>) => {
+            const action = interaction.actions?.[0];
+            return {
+              sourceNodeId: id(node),
+              interactionId: `${interaction.id.sessionID}:${interaction.id.localID}`,
+              event: interaction.event,
+              transitionNodeId: action?.transitionNodeID
+                ? `${action.transitionNodeID.sessionID}:${action.transitionNodeID.localID}`
+                : null,
+              transitionType: action?.transitionType ?? null,
+              transitionDuration: action?.transitionDuration ?? 0,
+              easingType: action?.easingType ?? null,
+              easingFunction: action?.easingFunction ?? [],
+            };
+          },
+        ),
+      );
+      expect(runtimeFrame.interactions).toEqual(rawInteractions);
     }
+    expect(
+      fs.statSync(path.join(process.cwd(), "design/miboRenderEvidence.ts"))
+        .size,
+    ).toBeLessThan(250_000);
+    for (const runtimeFile of [
+      "components/mobile/MiboStage.tsx",
+      "screens/app-detail/AppDetailScreen.tsx",
+      "features/chatbot/CreateWorkspaceView.tsx",
+    ])
+      expect(
+        fs.readFileSync(path.join(process.cwd(), runtimeFile), "utf8"),
+      ).not.toContain("miboSourceAudit");
     for (const art of Object.values(miboStageFigmaEvidence.art)) {
       const node = nodes.get(art.nodeId)!;
       expect({
@@ -438,41 +590,63 @@ test.skipIf(!figmaSource)(
   },
 );
 
-test('creation composer uses custom stable IDs and its input label', () => {
-  const tree = ChatComposer({ value: '需求', editable: true, busy: false,
-    inputTestID: 'create-prompt', submitTestID: 'create-app', inputLabel: '你想做什么应用', submitLabel: '开始创建',
-    onChangeText: vi.fn(), onSubmit: vi.fn() });
-  expect(propsOf(findByTestId(tree, 'create-prompt')!).accessibilityLabel).toBe('你想做什么应用');
-  expect(propsOf(findByTestId(tree, 'create-app')!).accessibilityLabel).toBe('开始创建');
-  expect(findByTestId(tree, 'message-input')).toBeUndefined();
+test("creation composer uses custom stable IDs and its input label", () => {
+  const tree = ChatComposer({
+    value: "需求",
+    editable: true,
+    busy: false,
+    inputTestID: "create-prompt",
+    submitTestID: "create-app",
+    inputLabel: "你想做什么应用",
+    submitLabel: "开始创建",
+    onChangeText: vi.fn(),
+    onSubmit: vi.fn(),
+  });
+  expect(propsOf(findByTestId(tree, "create-prompt")!).accessibilityLabel).toBe(
+    "你想做什么应用",
+  );
+  expect(propsOf(findByTestId(tree, "create-app")!).accessibilityLabel).toBe(
+    "开始创建",
+  );
+  expect(findByTestId(tree, "message-input")).toBeUndefined();
 });
 
-test('running composer keeps the draft editable while preventing button and keyboard submission', () => {
+test("running composer keeps the draft editable while preventing button and keyboard submission", () => {
   const send = vi.fn();
   const change = vi.fn();
-  const tree = ChatComposer({ value: '下一项需求', editable: true, busy: false, canSubmit: false,
-    onChangeText: change, onSubmit: send });
-  const input = propsOf(findByTestId(tree, 'message-input')!);
-  const button = propsOf(findByTestId(tree, 'send-message')!);
+  const tree = ChatComposer({
+    value: "下一项需求",
+    editable: true,
+    busy: false,
+    canSubmit: false,
+    onChangeText: change,
+    onSubmit: send,
+  });
+  const input = propsOf(findByTestId(tree, "message-input")!);
+  const button = propsOf(findByTestId(tree, "send-message")!);
   expect(input.editable).toBe(true);
   expect(button.disabled).toBe(true);
-  (input.onChangeText as (value: string) => void)('保存下一项需求');
-  expect(change).toHaveBeenCalledWith('保存下一项需求');
+  (input.onChangeText as (value: string) => void)("保存下一项需求");
+  expect(change).toHaveBeenCalledWith("保存下一项需求");
   (input.onSubmitEditing as () => void)();
   (button.onPress as () => void)();
   expect(send).not.toHaveBeenCalled();
 });
 
-
-test.each(['web', 'ios', 'android'])('decorative icons preserve native hiding without leaking native props on %s', platform => {
-  const mockedPlatform = Platform as unknown as { OS: string };
-  const original = mockedPlatform.OS;
-  mockedPlatform.OS = platform;
-  try {
-    const icon = propsOf(MobileIcon({ name: 'send' }));
-    if (platform === 'web') {
-      expect(icon.accessibilityElementsHidden).toBeUndefined();
-      expect(icon['aria-hidden']).toBe(true);
-    } else expect(icon.accessibilityElementsHidden).toBe(true);
-  } finally { mockedPlatform.OS = original; }
-});
+test.each(["web", "ios", "android"])(
+  "decorative icons preserve native hiding without leaking native props on %s",
+  (platform) => {
+    const mockedPlatform = Platform as unknown as { OS: string };
+    const original = mockedPlatform.OS;
+    mockedPlatform.OS = platform;
+    try {
+      const icon = propsOf(MobileIcon({ name: "send" }));
+      if (platform === "web") {
+        expect(icon.accessibilityElementsHidden).toBeUndefined();
+        expect(icon["aria-hidden"]).toBe(true);
+      } else expect(icon.accessibilityElementsHidden).toBe(true);
+    } finally {
+      mockedPlatform.OS = original;
+    }
+  },
+);

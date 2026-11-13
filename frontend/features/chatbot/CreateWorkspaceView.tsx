@@ -1,5 +1,6 @@
-import { useState, type PropsWithChildren } from "react";
+import { useEffect, useRef, useState, type PropsWithChildren } from "react";
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -9,7 +10,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import {formalMobileControls} from '../../design/formalMobileControls';
+import { formalMobileControls } from "../../design/formalMobileControls";
 import { FigmaText } from "../../components/mobile/FigmaText";
 import { miboRenderEvidence } from "../../design/miboRenderEvidence";
 import {
@@ -24,6 +25,7 @@ import {
 import { mobileColors } from "../../theme/tokens";
 import { mobileFontFamilies } from "../../theme/typography";
 import { getJobVisualState, type JobVisualState } from "./jobVisualState";
+import { composerViewportLayout } from "../../theme/responsive";
 
 // Direct Kiwi composition: the approved 845:3479 subtree has no Instance/Symbol.
 export const chatbotLayoutEvidence = {
@@ -57,18 +59,70 @@ export function ChatbotPage({
   onBack,
   onProducts,
   onBilling,
-  footer,detailActions,
+  footer,
+  detailActions,
+  keyboardHeight: keyboardHeightOverride,
 }: PropsWithChildren<
   Navigation & {
     footer?: React.ReactNode;
-    detailActions?:readonly {id:string;label:string;expanded:boolean;onPress:()=>void}[];
+    detailActions?: readonly {
+      id: string;
+      label: string;
+      expanded: boolean;
+      onPress: () => void;
+    }[];
     insets: { top: number; bottom: number; left: number; right: number };
+    keyboardHeight?: number;
   }
 >) {
   const viewport = useWindowDimensions();
   const [actionsOpen, setActionsOpen] = useState(false);
-  const headerSource=formalMobileControls.productHeader;
-  const headerLeft=headerSource.transform.m02-3+Math.max(0,(viewport.width-375)/2),headerWidth=Math.min(headerSource.size.x+6,viewport.width-insets.left-insets.right-35);
+  const [observedKeyboardHeight, setObservedKeyboardHeight] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (event) => setObservedKeyboardHeight(event.endCoordinates.height),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setObservedKeyboardHeight(0),
+    );
+    if (Platform.OS !== "web" || !window.visualViewport) {
+      return () => {
+        show.remove();
+        hide.remove();
+      };
+    }
+    const visualViewport = window.visualViewport;
+    const updateWebKeyboard = () =>
+      setObservedKeyboardHeight(
+        Math.max(
+          0,
+          window.innerHeight - visualViewport.height - visualViewport.offsetTop,
+        ),
+      );
+    visualViewport.addEventListener("resize", updateWebKeyboard);
+    return () => {
+      show.remove();
+      hide.remove();
+      visualViewport.removeEventListener("resize", updateWebKeyboard);
+    };
+  }, []);
+  const keyboardHeight = keyboardHeightOverride ?? observedKeyboardHeight;
+  const unobscuredViewportHeight = useRef(viewport.height);
+  if (keyboardHeight === 0) unobscuredViewportHeight.current = viewport.height;
+  else
+    unobscuredViewportHeight.current = Math.max(
+      unobscuredViewportHeight.current,
+      viewport.height,
+    );
+  const headerSource = formalMobileControls.productHeader;
+  const headerLeft =
+      headerSource.transform.m02 - 3 + Math.max(0, (viewport.width - 375) / 2),
+    headerWidth = Math.min(
+      headerSource.size.x + 6,
+      viewport.width - insets.left - insets.right - 35,
+    );
   const contentWidth = Math.max(
     0,
     Math.min(
@@ -78,6 +132,13 @@ export function ChatbotPage({
         insets.right -
         chatbotLayoutEvidence.gutter * 2,
     ),
+  );
+  const composerLayout = composerViewportLayout(
+    keyboardHeight > 0 ? unobscuredViewportHeight.current : viewport.height,
+    keyboardHeight,
+    insets,
+    chatComposerFigmaEvidence.height,
+    29,
   );
   return (
     <AppBackground
@@ -91,12 +152,22 @@ export function ChatbotPage({
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View
-          style={[viewStyles.header, { marginTop: Math.max(insets.top, 44),alignSelf:'flex-start',width:headerWidth,maxWidth:headerWidth,marginLeft:headerLeft-(viewport.width-contentWidth)/2 }]}
+          style={[
+            viewStyles.header,
+            {
+              marginTop: Math.max(insets.top, 44),
+              alignSelf: "flex-start",
+              width: headerWidth,
+              maxWidth: headerWidth,
+              marginLeft: headerLeft - (viewport.width - contentWidth) / 2,
+            },
+          ]}
         >
           <CircleAction
             accessibilityLabel="返回"
             icon="back"
-            surfaceOffset={headerSource.back.surfaceOffset} iconOffset={headerSource.back.iconOffset}
+            surfaceOffset={headerSource.back.surfaceOffset}
+            iconOffset={headerSource.back.iconOffset}
             onPress={onBack}
             testID="chatbot-back"
           />
@@ -107,14 +178,29 @@ export function ChatbotPage({
           <CircleAction
             accessibilityLabel="应用与额度操作"
             icon="share"
-            surfaceOffset={headerSource.share.surfaceOffset} iconOffset={headerSource.share.iconOffset}
+            surfaceOffset={headerSource.share.surfaceOffset}
+            iconOffset={headerSource.share.iconOffset}
             onPress={() => setActionsOpen((value) => !value)}
             testID="chatbot-settings"
           />
         </View>
         {actionsOpen && (
           <View style={viewStyles.actionsMenu}>
-            {detailActions?.map(action=><Pressable key={action.id} accessibilityRole="button" accessibilityState={{expanded:action.expanded}} testID={action.id} onPress={()=>{setActionsOpen(false);action.onPress();}} style={viewStyles.menuAction}><Text style={viewStyles.caption}>{action.label}</Text></Pressable>)}
+            {detailActions?.map((action) => (
+              <Pressable
+                key={action.id}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: action.expanded }}
+                testID={action.id}
+                onPress={() => {
+                  setActionsOpen(false);
+                  action.onPress();
+                }}
+                style={viewStyles.menuAction}
+              >
+                <Text style={viewStyles.caption}>{action.label}</Text>
+              </Pressable>
+            ))}
             <Pressable
               accessibilityRole="button"
               onPress={() => {
@@ -148,6 +234,18 @@ export function ChatbotPage({
         )}
         <ScrollView
           keyboardShouldPersistTaps="handled"
+          style={
+            footer
+              ? {
+                  marginBottom: Math.max(
+                    0,
+                    (keyboardHeight > 0
+                      ? unobscuredViewportHeight.current
+                      : viewport.height) - composerLayout.contentBottom,
+                  ),
+                }
+              : undefined
+          }
           contentContainerStyle={[
             viewStyles.scroll,
             { paddingBottom: footer ? 24 : Math.max(insets.bottom, 29) },
@@ -156,7 +254,15 @@ export function ChatbotPage({
           {children}
         </ScrollView>
         {footer && (
-          <View style={{ paddingBottom: Math.max(insets.bottom, 29) }}>
+          <View
+            testID="chatbot-composer-anchor"
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: composerLayout.footerTop,
+            }}
+          >
             {footer}
           </View>
         )}
@@ -190,28 +296,54 @@ export function CreateWorkspaceView({
   onContinue,
 }: CreateWorkspaceViewProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const initialState=getJobVisualState(null);
-  const pendingState:JobVisualState={...initialState,kind:'thinking',title:'Mibo 正在思考中'};
+  const initialState = getJobVisualState(null);
+  const pendingState: JobVisualState = {
+    ...initialState,
+    kind: "thinking",
+    title: "Mibo 正在思考中",
+  };
   return (
     <View style={{ flexGrow: 1 }}>
-      <MiboStage state={busy?pendingState:initialState} sourceFrameHint={busy?'846:3544':'845:3479'} snapshotKey={busy?'create:submitting':'create:idle'} transitionReason="interaction" />
+      <MiboStage
+        state={busy ? pendingState : initialState}
+        sourceFrameHint={busy ? "846:3544" : "845:3479"}
+        snapshotKey={busy ? "create:submitting" : "create:idle"}
+        transitionReason="interaction"
+      />
       <View style={viewStyles.suggestions}>
-        {chatbotLayoutEvidence.suggestions.map((suggestion) => {const text=miboRenderEvidence.text[`${suggestion.nodeId.split(':')[0]}:${Number(suggestion.nodeId.split(':')[1])+1}` as keyof typeof miboRenderEvidence.text];return (
-          <Pressable
-            key={suggestion.nodeId}
-            accessibilityRole="button"
-            disabled={!editable || busy}
-            onPress={() => onChangePrompt(suggestion.label)}
-            style={[viewStyles.suggestionTarget, { width: suggestion.width }]}
-          >
-            <View
-              testID={`mibo-suggestion-face-${suggestion.nodeId}`}
-              style={[viewStyles.suggestion, { width: suggestion.width }]}
+        {chatbotLayoutEvidence.suggestions.map((suggestion) => {
+          const text =
+            miboRenderEvidence.text[
+              `${suggestion.nodeId.split(":")[0]}:${Number(suggestion.nodeId.split(":")[1]) + 1}` as keyof typeof miboRenderEvidence.text
+            ];
+          return (
+            <Pressable
+              key={suggestion.nodeId}
+              accessibilityRole="button"
+              disabled={!editable || busy}
+              onPress={() => onChangePrompt(suggestion.label)}
+              style={[viewStyles.suggestionTarget, { width: suggestion.width }]}
             >
-            </View>
-            <View pointerEvents="none" style={{position:'absolute',left:text.transform.m02,top:(44-35)/2+text.transform.m12}}><FigmaText testID={`mibo-suggestion-text-${suggestion.nodeId}`} evidence={text}/></View>
-          </Pressable>
-        );})}
+              <View
+                testID={`mibo-suggestion-face-${suggestion.nodeId}`}
+                style={[viewStyles.suggestion, { width: suggestion.width }]}
+              ></View>
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  left: text.transform.m02,
+                  top: (44 - 35) / 2 + text.transform.m12,
+                }}
+              >
+                <FigmaText
+                  testID={`mibo-suggestion-text-${suggestion.nodeId}`}
+                  evidence={text}
+                />
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
       <Pressable
         accessibilityRole="button"
@@ -323,7 +455,7 @@ export const viewStyles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
   },
-  suggestions: { alignItems: "center", gap: 5, marginTop: 15,left:4 },
+  suggestions: { alignItems: "center", gap: 5, marginTop: 15, left: 4 },
   suggestionTarget: {
     alignItems: "center",
     justifyContent: "center",

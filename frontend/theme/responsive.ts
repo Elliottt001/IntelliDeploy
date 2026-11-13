@@ -1,6 +1,6 @@
-import { mobileSpacing } from './tokens';
+import { mobileSpacing } from "./tokens";
 
-type WidthPolicy = 'relative' | 'fixed';
+type WidthPolicy = "relative" | "fixed";
 
 function finiteOrZero(value: number) {
   return Number.isFinite(value) ? value : 0;
@@ -17,12 +17,12 @@ export function fitSourceWidth(
     sourceParentWidth <= 0 ||
     sourceWidth < 0
   ) {
-    throw new Error('Invalid source width');
+    throw new Error("Invalid source width");
   }
   const usableWidth = Math.max(0, availableWidth);
   return Math.min(
     usableWidth,
-    policy === 'fixed'
+    policy === "fixed"
       ? sourceWidth
       : (usableWidth * sourceWidth) / sourceParentWidth,
   );
@@ -45,6 +45,28 @@ export function bottomAnchor(
   );
 }
 
+export function composerViewportLayout(
+  viewportHeight: number,
+  keyboardHeight: number,
+  insets: { top: number; bottom: number; left: number; right: number },
+  composerHeight: number,
+  sourceBottomGap: number,
+) {
+  const footerTop = bottomAnchor(
+    viewportHeight,
+    keyboardHeight,
+    insets.bottom,
+    composerHeight,
+    sourceBottomGap,
+  );
+  return {
+    contentBottom: footerTop,
+    footerLeft: Math.max(0, finiteOrZero(insets.left)),
+    footerRight: Math.max(0, finiteOrZero(insets.right)),
+    footerTop,
+  };
+}
+
 export function getMobileLayout(
   width: number,
   insets: { left: number; right: number },
@@ -61,7 +83,7 @@ export function getMobileLayout(
   return {
     gutter,
     contentWidth: Math.min(
-      fitSourceWidth(maxReadableWidth, maxReadableWidth, available, 'relative'),
+      fitSourceWidth(maxReadableWidth, maxReadableWidth, available, "relative"),
       maxReadableWidth,
     ),
     scale: 1 as const,

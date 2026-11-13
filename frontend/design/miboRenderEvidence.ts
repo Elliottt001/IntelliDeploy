@@ -1,4 +1,4 @@
-// Actual formal Kiwi frame audit, image UV and derived glyph geometry.
+// Compact runtime evidence generated from the formal Kiwi Mibo frames.
 export const miboRenderEvidence = {
   "frames": {
     "845:3479": {
@@ -23,6 +23,22 @@ export const miboRenderEvidence = {
         "845:3520",
         "845:3522"
       ],
+      "statusNode": {
+        "sourceNodeId": "845:3521",
+        "size": {
+          "x": 199,
+          "y": 71
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 92,
+          "m10": 0,
+          "m11": 1,
+          "m12": 382
+        },
+        "opacity": 1
+      },
       "interactions": [
         {
           "sourceNodeId": "845:3503",
@@ -82,6 +98,22 @@ export const miboRenderEvidence = {
         "846:3585",
         "846:3587"
       ],
+      "statusNode": {
+        "sourceNodeId": "846:3586",
+        "size": {
+          "x": 220,
+          "y": 71
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 81,
+          "m10": 0,
+          "m11": 1,
+          "m12": 382
+        },
+        "opacity": 1
+      },
       "interactions": [
         {
           "sourceNodeId": "846:3544",
@@ -142,6 +174,22 @@ export const miboRenderEvidence = {
         "849:3649",
         "849:3651"
       ],
+      "statusNode": {
+        "sourceNodeId": "849:3650",
+        "size": {
+          "x": 264,
+          "y": 34
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 59,
+          "m10": 0,
+          "m11": 1,
+          "m12": 382
+        },
+        "opacity": 1
+      },
       "interactions": [
         {
           "sourceNodeId": "849:3608",
@@ -202,6 +250,22 @@ export const miboRenderEvidence = {
         "849:3746",
         "849:3748"
       ],
+      "statusNode": {
+        "sourceNodeId": "849:3747",
+        "size": {
+          "x": 264,
+          "y": 34
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 59,
+          "m10": 0,
+          "m11": 1,
+          "m12": 382
+        },
+        "opacity": 1
+      },
       "interactions": [
         {
           "sourceNodeId": "849:3705",
@@ -262,6 +326,22 @@ export const miboRenderEvidence = {
         "849:3835",
         "849:3837"
       ],
+      "statusNode": {
+        "sourceNodeId": "849:3836",
+        "size": {
+          "x": 264,
+          "y": 34
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 59,
+          "m10": 0,
+          "m11": 1,
+          "m12": 382
+        },
+        "opacity": 1
+      },
       "interactions": [
         {
           "sourceNodeId": "849:3794",
@@ -322,6 +402,22 @@ export const miboRenderEvidence = {
         "849:3924",
         "849:3926"
       ],
+      "statusNode": {
+        "sourceNodeId": "849:3925",
+        "size": {
+          "x": 264,
+          "y": 34
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 59,
+          "m10": 0,
+          "m11": 1,
+          "m12": 382
+        },
+        "opacity": 1
+      },
       "interactions": [
         {
           "sourceNodeId": "849:3883",
@@ -382,6 +478,22 @@ export const miboRenderEvidence = {
         "849:4013",
         "849:4015"
       ],
+      "statusNode": {
+        "sourceNodeId": "849:4014",
+        "size": {
+          "x": 264,
+          "y": 34
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 59,
+          "m10": 0,
+          "m11": 1,
+          "m12": 382
+        },
+        "opacity": 1
+      },
       "interactions": [
         {
           "sourceNodeId": "849:3972",
@@ -442,6 +554,22 @@ export const miboRenderEvidence = {
         "852:4102",
         "852:4104"
       ],
+      "statusNode": {
+        "sourceNodeId": "852:4103",
+        "size": {
+          "x": 264,
+          "y": 34
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 59,
+          "m10": 0,
+          "m11": 1,
+          "m12": 382
+        },
+        "opacity": 1
+      },
       "interactions": [
         {
           "sourceNodeId": "852:4061",
@@ -503,6 +631,22 @@ export const miboRenderEvidence = {
         "852:4193",
         "852:4383"
       ],
+      "statusNode": {
+        "sourceNodeId": "852:4192",
+        "size": {
+          "x": 264,
+          "y": 34
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 59,
+          "m10": 0,
+          "m11": 1,
+          "m12": 382
+        },
+        "opacity": 1
+      },
       "interactions": [
         {
           "sourceNodeId": "852:4150",
@@ -564,6 +708,22 @@ export const miboRenderEvidence = {
         "852:4381",
         "852:4285"
       ],
+      "statusNode": {
+        "sourceNodeId": "852:4284",
+        "size": {
+          "x": 264,
+          "y": 34
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 59,
+          "m10": 0,
+          "m11": 1,
+          "m12": 382
+        },
+        "opacity": 1
+      },
       "interactions": []
     },
     "852:4391": {
@@ -589,6 +749,22 @@ export const miboRenderEvidence = {
         "852:4434",
         "852:4435"
       ],
+      "statusNode": {
+        "sourceNodeId": "852:4516",
+        "size": {
+          "x": 264,
+          "y": 34
+        },
+        "transform": {
+          "m00": 1,
+          "m01": 0,
+          "m02": 59,
+          "m10": 0,
+          "m11": 1,
+          "m12": 382
+        },
+        "opacity": 1
+      },
       "interactions": [
         {
           "sourceNodeId": "852:4415",
