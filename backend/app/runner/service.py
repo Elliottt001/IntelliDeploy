@@ -14,7 +14,7 @@ from typing import Literal
 from fastapi import FastAPI, Header, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict
 
-from app.agent.tools import execute_tool
+from app.agent.tools import execute_tool, ARGUMENTS
 from app.agent.workspace import safe_path
 from app.core.types import AppManifest, ToolCall, ToolResult
 from app.runtime.artifacts import source_archive, unpack_source
@@ -160,8 +160,6 @@ class RunnerService:
         if not workspace.is_dir():
             raise HTTPException(409, "workspace is not prepared")
         policy = self.workspace_policy(job)
-        if call.name in {"write_file", "apply_patch"}:
-            self.assert_write(job, call.arguments.get("path", ""))
         self.verify_policy(workspace, policy)
         identity = hashlib.sha256(call.id.encode()).hexdigest()
         path = root / "operations" / f"{identity}.json"
@@ -171,14 +169,22 @@ class RunnerService:
             if record["request_hash"] != digest or record["state"] != "COMPLETED":
                 raise HTTPException(409, "tool effect is unknown or conflicts")
             return record["result"]
+        try:
+            args = ARGUMENTS[call.name].model_validate(call.arguments)
+            if hasattr(args, "path"):
+                safe_path(workspace, args.path)
+        except (ValueError, TypeError) as exc:
+            raise HTTPException(422, {
+                "code": "TOOL_ARGUMENTS_INVALID",
+                "message": "工具参数或工作区路径无效",
+            }) from exc
+        if call.name in {"write_file", "apply_patch"}:
+            self.assert_write(job, args.path)
+        if call.name == "run_command" and self.command_executor is None:
+            raise HTTPException(503, "isolated command executor is not configured")
         self.save(path, {"request_hash": digest, "state": "STARTED"})
         started = time.monotonic()
         if call.name == "run_command":
-            if self.command_executor is None:
-                raise HTTPException(503, "isolated command executor is not configured")
-            from app.agent.tools import CommandArgs
-
-            args = CommandArgs.model_validate(call.arguments)
             result = await asyncio.to_thread(
                 self.command_executor.run,
                 str(workspace),

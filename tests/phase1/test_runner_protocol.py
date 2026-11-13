@@ -242,3 +242,51 @@ async def test_composition_policy_blocks_writes_and_survives_runner_restart(tmp_
             json={"call": {"id": "patch", "name": "apply_patch", "arguments": {
                 "path": "components/search/source.txt", "old_text": "search", "new_text": "bad"}}})
         assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('arguments', [
+    {'argv':['npm','ci'],'timeout':300000}, {'argv':[]}, {'argv':['npm'],'timeout':0},
+])
+async def test_runner_validates_command_before_start_record(tmp_path, arguments):
+    from app.runner.service import RunnerService, create_app
+    class ForbiddenCommands:
+        def run(self,*args):
+            raise AssertionError('invalid command was executed')
+    service = RunnerService(tmp_path, command_executor=ForbiddenCommands())
+    job = '12345678-1234-1234-1234-123456789abc'
+    headers = {'Authorization':'Bearer test-rpc-token','X-Lease-Generation':'1'}
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(service,'test-rpc-token'), raise_app_exceptions=False),base_url='https://runner.test') as client:
+        path = '/v1/jobs/'+job
+        await client.post(path+'/workspace',content=bundle(),headers=headers)
+        response = await client.post(path+'/tools',json={'call':{'id':'invalid','name':'run_command','arguments':arguments}},headers=headers)
+    assert response.status_code == 422
+    assert response.json()['detail']['code'] == 'TOOL_ARGUMENTS_INVALID'
+    assert not list((tmp_path/job/'operations').glob('*.json'))
+
+
+@pytest.mark.asyncio
+async def test_runner_missing_executor_has_no_started_effect(tmp_path):
+    from app.runner.service import RunnerService, create_app
+    job = '12345678-1234-1234-1234-123456789abc'
+    headers = {'Authorization':'Bearer test-rpc-token','X-Lease-Generation':'1'}
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(RunnerService(tmp_path),'test-rpc-token')),base_url='https://runner.test') as client:
+        path = '/v1/jobs/'+job
+        await client.post(path+'/workspace',content=bundle(),headers=headers)
+        response = await client.post(path+'/tools',json={'call':{'id':'no-executor','name':'run_command','arguments':{'argv':['true']}}},headers=headers)
+    assert response.status_code == 503
+    assert not list((tmp_path/job/'operations').glob('*.json'))
+
+
+@pytest.mark.asyncio
+async def test_runner_rejects_escape_path_before_started_effect(tmp_path):
+    from app.runner.service import RunnerService, create_app
+    job = '12345678-1234-1234-1234-123456789abc'
+    headers = {'Authorization':'Bearer test-rpc-token','X-Lease-Generation':'1'}
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(RunnerService(tmp_path),'test-rpc-token'), raise_app_exceptions=False),base_url='https://runner.test') as client:
+        path = '/v1/jobs/'+job
+        await client.post(path+'/workspace',content=bundle(),headers=headers)
+        response = await client.post(path+'/tools',json={'call':{'id':'escape','name':'write_file','arguments':{'path':'../escape','content':'unsafe'}}},headers=headers)
+    assert response.status_code == 422
+    assert not list((tmp_path/job/'operations').glob('*.json'))
+    assert not (tmp_path/job/'escape').exists()
