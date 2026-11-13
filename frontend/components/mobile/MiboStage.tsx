@@ -116,6 +116,42 @@ type MiboCompositionSnapshot = Pick<
   | "reply"
 > & { snapshotKey: string };
 
+type MiboPresentation = {
+  character: {
+    name: string;
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    opacity: number;
+  };
+  status: {
+    name: string;
+    x: number;
+    y: number;
+    opacity: number;
+  } | null;
+  translateY: number;
+};
+
+type MiboTransition = {
+  id: number;
+  from: MiboCompositionSnapshot;
+  to: MiboCompositionSnapshot;
+  motion: SourceMotion;
+  startPresentation: MiboPresentation;
+  retainedPresentation: MiboPresentation | null;
+};
+
+type MiboMotionStyles = {
+  currentStyle?: object;
+  characterStyle?: object;
+  statusStyle?: object;
+  previousStyle?: object;
+  previousCharacterStyle?: object;
+  previousStatusStyle?: object;
+};
+
 function getArt(art?: Partial<MiboStageArt>): MiboStageArt {
   return {
     rippleLarge:
@@ -206,6 +242,103 @@ export function getMiboStageLayout(
     artScale,
     artViewportHeight,
     artCanvasTop,
+  };
+}
+
+function rawPresentation(
+  snapshot: MiboCompositionSnapshot,
+  viewportWidth: number,
+): MiboPresentation {
+  const layout = getMiboStageLayout(
+    snapshot.state,
+    snapshot.hasDetails ?? false,
+    viewportWidth,
+    snapshot.sourceFrameHint,
+  );
+  const character = layout.primaryCharacter;
+  const status = layout.frame.statusNode;
+  return {
+    character: {
+      name: character.name,
+      left: character.transform.m02,
+      top: character.transform.m12 - 137,
+      width: character.size.x,
+      height: character.size.y,
+      opacity: character.opacity,
+    },
+    status: status
+      ? {
+          name: status.name,
+          x: status.transform.m02,
+          y: status.transform.m12,
+          opacity: status.opacity,
+        }
+      : null,
+    translateY: 0,
+  };
+}
+
+function interpolate(start: number, end: number, progress: number) {
+  return start + (end - start) * progress;
+}
+
+function resolvedPresentation(
+  transition: MiboTransition,
+  progress: number,
+  viewportWidth: number,
+  viewportHeight: number,
+): MiboPresentation {
+  const target = rawPresentation(transition.to, viewportWidth);
+  if (transition.motion.transition === "SLIDE_FROM_BOTTOM") {
+    return {
+      ...target,
+      translateY: interpolate(viewportHeight, 0, progress),
+    };
+  }
+  const start = transition.startPresentation;
+  const characterMatches = start.character.name === target.character.name;
+  const statusMatches =
+    start.status && target.status && start.status.name === target.status.name;
+  return {
+    character: characterMatches
+      ? {
+          name: target.character.name,
+          left: interpolate(
+            start.character.left,
+            target.character.left,
+            progress,
+          ),
+          top: interpolate(start.character.top, target.character.top, progress),
+          width: interpolate(
+            start.character.width,
+            target.character.width,
+            progress,
+          ),
+          height: interpolate(
+            start.character.height,
+            target.character.height,
+            progress,
+          ),
+          opacity: interpolate(
+            start.character.opacity,
+            target.character.opacity,
+            progress,
+          ),
+        }
+      : target.character,
+    status: statusMatches
+      ? {
+          name: target.status!.name,
+          x: interpolate(start.status!.x, target.status!.x, progress),
+          y: interpolate(start.status!.y, target.status!.y, progress),
+          opacity: interpolate(
+            start.status!.opacity,
+            target.status!.opacity,
+            progress,
+          ),
+        }
+      : target.status,
+    translateY: 0,
   };
 }
 
@@ -489,10 +622,11 @@ export function MiboStage({
     sourceFrameHint,
   );
   const previousComposition = useRef(current);
-  const [transition, setTransition] = useState<{
-    from: MiboCompositionSnapshot;
-    motion: SourceMotion;
-  } | null>(null);
+  const transitionId = useRef(0);
+  const [transition, setTransition] = useState<MiboTransition | null>(null);
+  const { progress, start, getCurrentValue } = useSourceMotion(
+    transition?.motion ?? null,
+  );
   useLayoutEffect(() => {
     const previous = previousComposition.current;
     const previousFrame = getMiboStageLayout(
@@ -522,28 +656,79 @@ export function MiboStage({
           snapshotKey,
         )
       ) {
-        setTransition({ from: previous, motion });
+        const activeProgress = getCurrentValue();
+        const presented = transition
+          ? resolvedPresentation(
+              transition,
+              activeProgress,
+              viewport.width,
+              viewport.height,
+            )
+          : rawPresentation(previous, viewport.width);
+        const crossTransition =
+          transition && transition.motion.transition !== motion.transition;
+        setTransition({
+          id: ++transitionId.current,
+          from: previous,
+          to: current,
+          motion,
+          startPresentation: crossTransition
+            ? rawPresentation(previous, viewport.width)
+            : presented,
+          retainedPresentation:
+            motion.transition === "SLIDE_FROM_BOTTOM" || crossTransition
+              ? presented
+              : null,
+        });
       } else {
         setTransition(null);
       }
     }
     previousComposition.current = current;
   });
-  const { progress, start } = useSourceMotion(transition?.motion ?? null);
   useEffect(() => {
-    if (transition) start();
+    if (!transition) return;
+    const id = transition.id;
+    start(() => {
+      setTransition((active) => (active?.id === id ? null : active));
+    });
   }, [start, transition]);
-  const motionStyles = useMemo(() => {
+  const motionStyles = useMemo<MiboMotionStyles>(() => {
     if (!transition) return {};
-    const fromLayout = getMiboStageLayout(
-      transition.from.state,
-      transition.from.hasDetails ?? false,
-      viewport.width,
-      transition.from.sourceFrameHint,
-    );
+    const target = rawPresentation(transition.to, viewport.width);
     const isSlide = transition.motion.transition === "SLIDE_FROM_BOTTOM";
+    const retained = transition.retainedPresentation;
+    const retainedRaw = rawPresentation(transition.from, viewport.width);
+    const retainedStatusMatches =
+      retained?.status &&
+      retainedRaw.status &&
+      retained.status.name === retainedRaw.status.name;
+    const previousStyles = retained
+      ? {
+          previousStyle: {
+            transform: [{ translateY: retained.translateY }],
+          },
+          previousCharacterStyle: {
+            left: retained.character.left,
+            top: retained.character.top,
+            width: retained.character.width,
+            height: retained.character.height,
+            opacity: retained.character.opacity,
+          },
+          previousStatusStyle: retainedStatusMatches
+            ? {
+                transform: [
+                  { translateX: retained.status!.x - retainedRaw.status!.x },
+                  { translateY: retained.status!.y - retainedRaw.status!.y },
+                ],
+                opacity: retained.status!.opacity,
+              }
+            : undefined,
+        }
+      : {};
     if (isSlide) {
       return {
+        ...previousStyles,
         currentStyle: {
           transform: [
             {
@@ -556,48 +741,49 @@ export function MiboStage({
         },
       };
     }
-    const fromStatus = fromLayout.frame.statusNode;
-    const toStatus = currentLayout.frame.statusNode;
     const matchingCharacter =
-      fromLayout.primaryCharacter.name === currentLayout.primaryCharacter.name;
+      transition.startPresentation.character.name === target.character.name;
     const matchingStatus =
-      fromStatus && toStatus && fromStatus.name === toStatus.name;
+      transition.startPresentation.status &&
+      target.status &&
+      transition.startPresentation.status.name === target.status.name;
     return {
+      ...previousStyles,
       characterStyle: matchingCharacter
         ? {
             left: progress.interpolate({
               inputRange: [0, 1],
               outputRange: [
-                fromLayout.primaryCharacter.transform.m02,
-                currentLayout.primaryCharacter.transform.m02,
+                transition.startPresentation.character.left,
+                target.character.left,
               ],
             }),
             top: progress.interpolate({
               inputRange: [0, 1],
               outputRange: [
-                fromLayout.primaryCharacter.transform.m12 - 137,
-                currentLayout.primaryCharacter.transform.m12 - 137,
+                transition.startPresentation.character.top,
+                target.character.top,
               ],
             }),
             width: progress.interpolate({
               inputRange: [0, 1],
               outputRange: [
-                fromLayout.primaryCharacter.size.x,
-                currentLayout.primaryCharacter.size.x,
+                transition.startPresentation.character.width,
+                target.character.width,
               ],
             }),
             height: progress.interpolate({
               inputRange: [0, 1],
               outputRange: [
-                fromLayout.primaryCharacter.size.y,
-                currentLayout.primaryCharacter.size.y,
+                transition.startPresentation.character.height,
+                target.character.height,
               ],
             }),
             opacity: progress.interpolate({
               inputRange: [0, 1],
               outputRange: [
-                fromLayout.primaryCharacter.opacity,
-                currentLayout.primaryCharacter.opacity,
+                transition.startPresentation.character.opacity,
+                target.character.opacity,
               ],
             }),
           }
@@ -609,7 +795,7 @@ export function MiboStage({
                 translateX: progress.interpolate({
                   inputRange: [0, 1],
                   outputRange: [
-                    fromStatus.transform.m02 - toStatus.transform.m02,
+                    transition.startPresentation.status!.x - target.status!.x,
                     0,
                   ],
                 }),
@@ -618,7 +804,7 @@ export function MiboStage({
                 translateY: progress.interpolate({
                   inputRange: [0, 1],
                   outputRange: [
-                    fromStatus.transform.m12 - toStatus.transform.m12,
+                    transition.startPresentation.status!.y - target.status!.y,
                     0,
                   ],
                 }),
@@ -626,12 +812,15 @@ export function MiboStage({
             ],
             opacity: progress.interpolate({
               inputRange: [0, 1],
-              outputRange: [fromStatus.opacity, toStatus.opacity],
+              outputRange: [
+                transition.startPresentation.status!.opacity,
+                target.status!.opacity,
+              ],
             }),
           }
         : undefined,
     };
-  }, [currentLayout, progress, transition, viewport.width]);
+  }, [progress, transition, viewport.height, viewport.width]);
   const sourceData =
     Platform.OS === "web"
       ? ({
@@ -644,13 +833,15 @@ export function MiboStage({
 
   return (
     <View {...sourceData} style={styles.stage} testID="mibo-stage">
-      {transition?.motion.transition === "SLIDE_FROM_BOTTOM" && (
+      {transition?.retainedPresentation && (
         <MiboComposition
           snapshot={{ ...transition.from, reply: undefined }}
           sources={sources}
           viewport={viewport}
           testID="mibo-composition-previous"
-          style={styles.previousComposition}
+          style={[styles.previousComposition, motionStyles.previousStyle]}
+          characterStyle={motionStyles.previousCharacterStyle}
+          statusStyle={motionStyles.previousStatusStyle}
           visualOnly
         />
       )}

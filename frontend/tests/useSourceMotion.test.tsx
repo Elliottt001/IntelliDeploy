@@ -1,14 +1,15 @@
 /**
  * @vitest-environment happy-dom
  */
-import { act, createElement, useEffect } from 'react';
-import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { act, createElement, useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import type { SourceMotion } from '../design/sourceMotionEvidence';
+import type { SourceMotion } from "../design/sourceMotionEvidence";
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
-  .IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 const native = vi.hoisted(() => {
   type AppStateListener = (state: string) => void;
@@ -25,11 +26,13 @@ const native = vi.hoisted(() => {
 
     constructor(value: number) {
       this.value = value;
-      this.addListener = vi.fn((listener: (event: { value: number }) => void) => {
-        const id = String(++this.listenerId);
-        this.listeners.set(id, listener);
-        return id;
-      });
+      this.addListener = vi.fn(
+        (listener: (event: { value: number }) => void) => {
+          const id = String(++this.listenerId);
+          this.listeners.set(id, listener);
+          return id;
+        },
+      );
       this.removeListener = vi.fn((id: string) => {
         this.listeners.delete(id);
       });
@@ -57,7 +60,7 @@ const native = vi.hoisted(() => {
     animations,
     appStateListeners,
     appStateRemoveCalls: [] as Array<ReturnType<typeof vi.fn>>,
-    platform: { OS: 'ios' },
+    platform: { OS: "ios" },
     reduceMotionListeners,
     reduceMotionRemoveCalls: [] as Array<ReturnType<typeof vi.fn>>,
     reduceMotionPromise: Promise.resolve(false),
@@ -81,7 +84,7 @@ const native = vi.hoisted(() => {
       reduceMotionListeners.clear();
       this.appStateRemoveCalls.splice(0);
       this.reduceMotionRemoveCalls.splice(0);
-      this.platform.OS = 'ios';
+      this.platform.OS = "ios";
       this.reduceMotionPromise = Promise.resolve(false);
       this.timing.mockClear();
     },
@@ -90,10 +93,10 @@ const native = vi.hoisted(() => {
   return { MockAnimatedValue, store };
 });
 
-vi.mock('react-native', () => ({
+vi.mock("react-native", () => ({
   AccessibilityInfo: {
     addEventListener: vi.fn(
-      (event: 'reduceMotionChanged', listener: (enabled: boolean) => void) => {
+      (event: "reduceMotionChanged", listener: (enabled: boolean) => void) => {
         native.store.reduceMotionListeners.add(listener);
         const remove = vi.fn(() => {
           native.store.reduceMotionListeners.delete(listener);
@@ -110,7 +113,7 @@ vi.mock('react-native', () => ({
   },
   AppState: {
     addEventListener: vi.fn(
-      (event: 'change', listener: (state: string) => void) => {
+      (event: "change", listener: (state: string) => void) => {
         native.store.appStateListeners.add(listener);
         const remove = vi.fn(() => {
           native.store.appStateListeners.delete(listener);
@@ -123,21 +126,21 @@ vi.mock('react-native', () => ({
   Platform: native.store.platform,
 }));
 
-import { useSourceMotion } from '../components/mobile/useSourceMotion';
+import { useSourceMotion } from "../components/mobile/useSourceMotion";
 
 type SourceMotionApi = ReturnType<typeof useSourceMotion>;
 type MediaListener = (event: { matches: boolean }) => void;
 
 const motion = (overrides: Partial<SourceMotion> = {}): SourceMotion => ({
-  nodeId: '846:3544',
-  interactionId: '852:4337',
-  event: 'AFTER_TIMEOUT',
-  navigation: 'NAVIGATE',
-  targetNodeId: '849:3608',
-  transition: 'SMART_ANIMATE',
+  nodeId: "846:3544",
+  interactionId: "852:4337",
+  event: "AFTER_TIMEOUT",
+  navigation: "NAVIGATE",
+  targetNodeId: "849:3608",
+  transition: "SMART_ANIMATE",
   durationMs: 1250.1229047775269,
   prototypeDelayMs: 300.00001192092896,
-  easingType: 'SPRING_PRESET_THREE',
+  easingType: "SPRING_PRESET_THREE",
   easingFunction: [1, 80, 20, 0],
   ...overrides,
 });
@@ -155,7 +158,7 @@ function flushPromises() {
 }
 
 function renderHookHarness(sourceMotion: SourceMotion | null) {
-  const container = document.createElement('div');
+  const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   let latest!: SourceMotionApi;
@@ -189,19 +192,22 @@ function renderHookHarness(sourceMotion: SourceMotion | null) {
 
 function installMatchMedia(matches = false) {
   const listeners = new Set<MediaListener>();
-  const addEventListener = vi.fn((event: 'change', listener: MediaListener) => {
+  const addEventListener = vi.fn((event: "change", listener: MediaListener) => {
     listeners.add(listener);
   });
   const removeEventListener = vi.fn(
-    (event: 'change', listener: MediaListener) => {
+    (event: "change", listener: MediaListener) => {
       listeners.delete(listener);
     },
   );
-  vi.stubGlobal('matchMedia', vi.fn(() => ({
-    addEventListener,
-    matches,
-    removeEventListener,
-  })));
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn(() => ({
+      addEventListener,
+      matches,
+      removeEventListener,
+    })),
+  );
   return {
     addEventListener,
     emit(nextMatches: boolean) {
@@ -216,14 +222,14 @@ function installMatchMedia(matches = false) {
 
 beforeEach(() => {
   native.store.reset();
-  document.body.innerHTML = '';
+  document.body.innerHTML = "";
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test('restart stops the active animation before starting a new source timing', () => {
+test("restart stops the active animation before starting a new source timing", () => {
   const harness = renderHookHarness(motion());
 
   act(() => harness.api.start());
@@ -239,7 +245,7 @@ test('restart stops the active animation before starting a new source timing', (
   });
 });
 
-test('animateTo reverses from the tracked current progress without private value reads', () => {
+test("animateTo reverses from the tracked current progress without private value reads", () => {
   const harness = renderHookHarness(motion({ durationMs: 1000 }));
   const api = harness.api as SourceMotionApi & {
     animateTo: (toValue: 0 | 1) => void;
@@ -250,7 +256,7 @@ test('animateTo reverses from the tracked current progress without private value
   };
   progress.setValue(0.25);
   progress.__getValue = vi.fn(() => {
-    throw new Error('private value read');
+    throw new Error("private value read");
   });
 
   act(() => api.animateTo(1));
@@ -264,7 +270,7 @@ test('animateTo reverses from the tracked current progress without private value
   });
 });
 
-test('motion changes cancel active animation and reset visual progress', () => {
+test("motion changes cancel active animation and reset visual progress", () => {
   const harness = renderHookHarness(motion());
 
   act(() => harness.api.start());
@@ -285,8 +291,8 @@ test('motion changes cancel active animation and reset visual progress', () => {
   });
 });
 
-test('web reduced motion completes progress without creating timing', () => {
-  native.store.platform.OS = 'web';
+test("web reduced motion completes progress without creating timing", () => {
+  native.store.platform.OS = "web";
   installMatchMedia(true);
   const harness = renderHookHarness(motion());
   const progress = harness.api.progress as unknown as {
@@ -300,8 +306,8 @@ test('web reduced motion completes progress without creating timing', () => {
   expect(progress.setValue).toHaveBeenCalledWith(1);
 });
 
-test('web media changes toggle reduced motion and cleanup the listener', () => {
-  native.store.platform.OS = 'web';
+test("web media changes toggle reduced motion and cleanup the listener", () => {
+  native.store.platform.OS = "web";
   const media = installMatchMedia(false);
   const harness = renderHookHarness(motion());
 
@@ -323,8 +329,8 @@ test('web media changes toggle reduced motion and cleanup the listener', () => {
   expect(media.listenerCount()).toBe(0);
 });
 
-test('web reduced-motion changes settle to the latest collapsed target', () => {
-  native.store.platform.OS = 'web';
+test("web reduced-motion changes settle to the latest collapsed target", () => {
+  native.store.platform.OS = "web";
   const media = installMatchMedia(false);
   const harness = renderHookHarness(motion());
   const progress = harness.api.progress as unknown as {
@@ -339,8 +345,8 @@ test('web reduced-motion changes settle to the latest collapsed target', () => {
   expect(progress.setValue).toHaveBeenLastCalledWith(0);
 });
 
-test('web reduced-motion changes settle to the latest expanded target when disabled', () => {
-  native.store.platform.OS = 'web';
+test("web reduced-motion changes settle to the latest expanded target when disabled", () => {
+  native.store.platform.OS = "web";
   const media = installMatchMedia(true);
   const harness = renderHookHarness(motion());
   const progress = harness.api.progress as unknown as {
@@ -355,7 +361,7 @@ test('web reduced-motion changes settle to the latest expanded target when disab
   expect(progress.setValue).toHaveBeenLastCalledWith(1);
 });
 
-test('native async reduced motion update completes progress without timing', async () => {
+test("native async reduced motion update completes progress without timing", async () => {
   const reduceMotion = deferred<boolean>();
   native.store.reduceMotionPromise = reduceMotion.promise;
   const harness = renderHookHarness(motion());
@@ -377,7 +383,7 @@ test('native async reduced motion update completes progress without timing', asy
   expect(progress.setValue).toHaveBeenCalledWith(1);
 });
 
-test('native reduced-motion event settles collapsed target without flashing expanded', async () => {
+test("native reduced-motion event settles collapsed target without flashing expanded", async () => {
   const harness = renderHookHarness(motion());
   const progress = harness.api.progress as unknown as {
     setValue: ReturnType<typeof vi.fn>;
@@ -394,7 +400,7 @@ test('native reduced-motion event settles collapsed target without flashing expa
   expect(progress.setValue).toHaveBeenLastCalledWith(0);
 });
 
-test('native reduced-motion event settles expanded target when disabled', async () => {
+test("native reduced-motion event settles expanded target when disabled", async () => {
   const harness = renderHookHarness(motion());
   const progress = harness.api.progress as unknown as {
     setValue: ReturnType<typeof vi.fn>;
@@ -417,24 +423,26 @@ test('native reduced-motion event settles expanded target when disabled', async 
   expect(progress.setValue).toHaveBeenLastCalledWith(1);
 });
 
-test('background states cancel active animation but active state does not', () => {
+test("background states cancel active animation but active state does not", () => {
   const harness = renderHookHarness(motion());
 
   act(() => harness.api.start());
   act(() => {
-    native.store.appStateListeners.forEach((listener) => listener('active'));
+    native.store.appStateListeners.forEach((listener) => listener("active"));
   });
 
   expect(native.store.animations[0].stop).not.toHaveBeenCalled();
 
   act(() => {
-    native.store.appStateListeners.forEach((listener) => listener('background'));
+    native.store.appStateListeners.forEach((listener) =>
+      listener("background"),
+    );
   });
 
   expect(native.store.animations[0].stop).toHaveBeenCalledTimes(1);
 });
 
-test('active state resumes from background toward the latest target and ignores stale callbacks', () => {
+test("active state resumes from background toward the latest target and ignores stale callbacks", () => {
   const harness = renderHookHarness(motion({ durationMs: 1000 }));
   const progress = harness.api.progress as unknown as {
     setValue: (next: number) => void;
@@ -443,12 +451,14 @@ test('active state resumes from background toward the latest target and ignores 
   act(() => harness.api.animateTo(1));
   progress.setValue(0.4);
   act(() => {
-    native.store.appStateListeners.forEach((listener) => listener('background'));
+    native.store.appStateListeners.forEach((listener) =>
+      listener("background"),
+    );
   });
   expect(native.store.animations[0].stop).toHaveBeenCalledTimes(1);
 
   act(() => {
-    native.store.appStateListeners.forEach((listener) => listener('active'));
+    native.store.appStateListeners.forEach((listener) => listener("active"));
   });
   expect(native.store.animations[1].config).toMatchObject({
     duration: 600,
@@ -467,7 +477,62 @@ test('active state resumes from background toward the latest target and ignores 
   });
 });
 
-test('unmount removes native listeners, stops animation, and ignores late accessibility promises', async () => {
+test("completion belongs only to the current finished animation generation", () => {
+  const harness = renderHookHarness(motion());
+  const first = vi.fn(),
+    second = vi.fn();
+  const start = (callback: () => void) =>
+    (
+      harness.api as SourceMotionApi & { start: (complete: () => void) => void }
+    ).start(callback);
+  act(() => start(first));
+  harness.render(motion({ durationMs: 800 }));
+  act(() => start(second));
+  act(() => native.store.animations[0].complete?.({ finished: true }));
+  expect(first).not.toHaveBeenCalled();
+  expect(second).not.toHaveBeenCalled();
+  act(() => native.store.animations[1].complete?.({ finished: true }));
+  expect(first).not.toHaveBeenCalled();
+  expect(second).toHaveBeenCalledTimes(1);
+});
+
+test("reduced motion completes synchronously without an animation handle", () => {
+  native.store.platform.OS = "web";
+  installMatchMedia(true);
+  const harness = renderHookHarness(motion()),
+    complete = vi.fn();
+  act(() =>
+    (
+      harness.api as SourceMotionApi & { start: (callback: () => void) => void }
+    ).start(complete),
+  );
+  expect(native.store.timing).not.toHaveBeenCalled();
+  expect(complete).toHaveBeenCalledTimes(1);
+});
+
+test("background pause retains current completion for the resumed handle only", () => {
+  const harness = renderHookHarness(motion()),
+    complete = vi.fn();
+  act(() =>
+    (
+      harness.api as SourceMotionApi & { start: (callback: () => void) => void }
+    ).start(complete),
+  );
+  act(() =>
+    native.store.appStateListeners.forEach((listener) =>
+      listener("background"),
+    ),
+  );
+  act(() =>
+    native.store.appStateListeners.forEach((listener) => listener("active")),
+  );
+  act(() => native.store.animations[0].complete?.({ finished: true }));
+  expect(complete).not.toHaveBeenCalled();
+  act(() => native.store.animations[1].complete?.({ finished: true }));
+  expect(complete).toHaveBeenCalledTimes(1);
+});
+
+test("unmount removes native listeners, stops animation, and ignores late accessibility promises", async () => {
   const reduceMotion = deferred<boolean>();
   native.store.reduceMotionPromise = reduceMotion.promise;
   const harness = renderHookHarness(motion());
