@@ -474,6 +474,9 @@ class JobExecution:
             repository_index=load_index(Path(settings.REPOSITORY_INDEX_PATH)),
         )
         if not result.completed:
+            checkpoint = self.algorithm_checkpoint()
+            checkpoint.retrieval = result
+            self.save_algorithm_checkpoint(checkpoint)
             raise SearchUnavailable("仓库检索未完成，不能直接生成")
         from app.agent.compatibility import assess_compatibility
 

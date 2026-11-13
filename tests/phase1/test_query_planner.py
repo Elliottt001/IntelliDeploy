@@ -101,3 +101,15 @@ async def test_model_overlay_can_add_but_not_remove_deterministic_evidence():
     assert "private notes web app" in plan.github_queries
     assert {"identity", "private_data"} <= set(plan.required_capabilities)
     assert plan.constraints["planning_mode"] == "deterministic+model"
+
+
+@pytest.mark.asyncio
+async def test_invalid_known_model_overlay_keeps_deterministic_queries_and_records_fallback():
+    value = requirement('做一个私人笔记应用')
+    class Model:
+        async def complete(self, messages, tools, model):
+            assert 'schema' in json.loads(messages[1]['content'])
+            return ModelTurn(assistant_message={'role':'assistant','content':'{"queryPlan":{"version":1}}'})
+    plan = await plan_queries(value, Model())
+    assert 'private notes web app' in plan.github_queries
+    assert plan.constraints['planning_mode'] == 'deterministic_model_invalid'

@@ -1079,3 +1079,18 @@ async def test_hybrid_component_builder_consumes_contract_through_runner(
         with pytest.raises(ValueError, match="read-only"):
             await execution.execute_tool(ToolCall(id="forbidden", name="write_file",
                                                  arguments={"path": "components/search/source.txt", "content": "bad"}))
+
+
+@pytest.mark.asyncio
+async def test_failed_baseline_retrieval_is_saved_before_stopping(new_job, session_factory, monkeypatch):
+    from app.jobs.execution import JobExecution
+    from app.core.types import Requirement, RetrievalResult
+    from app.agent.retrieval import SearchUnavailable
+    async def failed(*args, **kwargs):
+        return RetrievalResult(queries=['notes'],completed=False,errors=['GitHub temporary error'])
+    monkeypatch.setattr('app.agent.retrieval.retrieve_sources',failed)
+    job_id,_,_,generation = new_job
+    execution = JobExecution(job_id,'worker',generation,session_factory=session_factory)
+    with pytest.raises(SearchUnavailable):
+        await execution.select_sources_baseline(Requirement(prompt='notes',acceptance=[]))
+    assert execution.algorithm_checkpoint().retrieval.errors == ['GitHub temporary error']
