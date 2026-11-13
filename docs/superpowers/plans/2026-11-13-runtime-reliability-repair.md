@@ -149,3 +149,7 @@ assert len(route_payload['candidates'][0]['key_files']['README.md']) <= 4096
 ## Coverage and execution
 
 RT-01/02/03→Task1; RT-06→Task2; RT-04→Task3; RT-05→Task4; RT-07→Task3/5; RT-08→Task6. Task7 verifies shared behavior and truthful external results. User authorized code changes against the issue document; execute inline under the repository's single-agent contract.
+
+## Execution record
+
+- Task 1: initial regressions confirmed RED for lost correction acceptance, stale issue closure, question-before-review and persisted failure state; GREEN: requirement suite17 passed, default execution20 passed. Retry JSON preserves current draft/history; current evidence is required to close a self-reported issue.
