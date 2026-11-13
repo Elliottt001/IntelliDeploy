@@ -610,3 +610,23 @@ Deliver scoped commits, test evidence, unresolved limitations, and preserved WIP
 | Baseline/Shadow boundaries and real rollout gates | 3, 5, 7, 8 |
 
 After user confirms this plan, execute inline with `superpowers:executing-plans`; repository instructions rule out the subagent execution option. No product code is changed during plan preparation.
+
+
+## Execution Record — 2026-11-13
+
+原步骤保留为实施规格，下表记录实际完成和证据；真实外部验收未被标为完成。
+
+| Task | Implementation | Evidence / commits |
+| --- | --- | --- |
+| 1 契约与旧规则审计 | COMPLETE | c4d4393；旧检查点兼容、typed contracts、14组规则 |
+| 2 确定性生产打包 | COMPLETE | e3137b7、31f7ce0、55853be；生产脚本前提、端口冲突、原子 hash 重放、安全 WORKDIR |
+| 3 验收缺口与 B→C | COMPLETE | 904e4c2、55853be、6f49554；正向覆盖保护、固定来源/价格/合同门禁 |
+| 4 来源物化与 Runner 只读 | COMPLETE | 0739c8c、31f7ce0；RPC、策略重启、真实 AMD64 容器挂载验证 |
+| 5 持久 Builder 接线 | COMPLETE | 479783b；生成循环实际消费全部计划、来源归档与调整恢复 |
+| 6 Review 构建前门禁 | COMPLETE | 1452664；未解决缺口阻塞、修复后重查、多角色服务映射 |
+| 7 主链审计关闭 | COMPLETE | 31f7ce0；无效合同不提交 C、真实 Builder/Runner 消费、MIGRATE=0 |
+| 8 最终回归与交付记录 | COMPLETE WITH EXISTING LINT DEBT | 独立PG17全量463 passed / 3 skipped；共享客户端9 passed；本轮 Ruff/diff通过；全仓68项基线 lint无新增 |
+
+完整回归使用本地固定 AMD64 Python 镜像进行命令只读验证；最初旧Runner ARM64镜像不匹配后改用正确架构，没有降低运行平台约束。普通用户默认Baseline未改变；外部真实paired、专用节点及两云验收仍为NOT_RUN。
+
+本轮末尾保留的并发WIP：backend/alembic/env.py、backend/app/community/models.py、backend/alembic/versions/0014_community_posts.py、scripts/seed_development_content.py、tests/phase1/test_development_content_seed.py。这些文件未纳入算法迁移提交。
