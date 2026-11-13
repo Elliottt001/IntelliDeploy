@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { getSourceMotion } from '../design/sourceMotionEvidence';
 
 const app = (id: string, source: string | null = null, status: string | null = 'RUNNING') => ({ id, name: `真实应用-${id}`, updated_at: '', source_version_id: source, active_job_id: null, instance_status: status });
 const publication = (id: string) => ({ id, app_id: `private-${id}`, instance_id: `instance-${id}`, version_id: `version-${id}`, name: `公开应用-${id}`, summary: `${id}摘要`, features: [], creator: '真实作者', preview_url: null, url: null, available: true, payer_policy: 'VISITOR', sponsor_period: 'DAY', sponsor_limit_units: 100, copy_url: `/api/publications/${id}/copies`, updated_at: '' });
@@ -137,12 +138,12 @@ test('formal folder paths, gradients and upward glyph coordinates reach the runt
   await expect(folder.locator('path').first()).not.toHaveAttribute('stroke');
   await expect(folder.locator('stop').first()).toHaveAttribute('stop-color', '#7C62FF');
   await expect(folder.locator('path[fill="#FFFFFF"][opacity="0.1"]')).toHaveAttribute('d', /^M0 20 C0 8\.954305 8\.954306 0 20 0 L240 0/);
-  await expect(folder.locator('path[fill="#FFFFFF"][opacity="0.1"]').locator('..')).toHaveAttribute('transform', 'matrix(1 0 0 1 10 55)');
+  await expect(folder.locator('path[fill="#FFFFFF"][opacity="0.1"]').locator('..')).toHaveAttribute('transform', 'matrix(1 0 0 1 0 55)');
   await expect(folder.locator('path[fill="#EC3EDD"]').first()).toBeAttached();
   await expect(page.getByLabel('COLLECTION').locator('path').first()).toHaveAttribute('transform', /scale\(24 -24\)/);
   if (process.env.INTELLIDEPLOY_PRODUCT_CAPTURE) await page.screenshot({ path: testInfo.outputPath('products-closed.png'), fullPage: true });
   await folder.click();
-  await expect(folder.locator('path').first().locator('..')).toHaveAttribute('transform', /matrix\(0\.9938837289810181 0\.11043152958154678 0 1 10 0\)/);
+  await expect(folder.locator('path').first().locator('..')).toHaveAttribute('transform', /matrix\(0\.9938837289810181 0\.11043152958154678 0 1 0 0\)/);
   await expect(folder.getByTestId(/^folder-item-/)).toHaveCount(1);
   await expect(folder.locator('filter[id^="folder-blur-"] feGaussianBlur')).toHaveAttribute('stdDeviation', '40');
   if (process.env.INTELLIDEPLOY_PRODUCT_CAPTURE) await page.screenshot({ path: testInfo.outputPath('products-open.png'), fullPage: true });
@@ -198,18 +199,110 @@ test('closed and expanded folder origins stay at formal screen coordinates acros
       return { rear, front, svg };
     };
     const closed = await origins();
+    const scale = width / 375;
     expect(closed.rear.y, `closed rear at ${width}`).toBeCloseTo(255, 2);
-    expect(closed.front.y, `closed front at ${width}`).toBeCloseTo(310, 2);
-    expect(closed.rear.x).toBeCloseTo((width - 260) / 2, 2);
+    expect(closed.front.y, `closed front at ${width}`).toBeCloseTo(255 + 55 * scale, 1);
+    expect(closed.rear.x).toBeCloseTo((width - 260 * scale) / 2, 1);
     expect(closed.svg!.y).toBeCloseTo(255, 2);
     await folder.click();
+    await expect.poll(async () => (await origins()).front.y).toBeCloseTo(255 + 100 * scale, 1);
     const open = await origins();
-    expect(open.rear.y, `expanded rear at ${width}`).toBeCloseTo(255, 2);
-    expect(open.front.y, `expanded front at ${width}`).toBeCloseTo(355, 2);
-    expect(open.rear.x).toBeCloseTo(closed.rear.x, 2);
-    expect(open.front.x).toBeCloseTo(closed.front.x, 2);
-    expect(open.svg!.y, `preview viewport includes 30pt above rear at ${width}`).toBeCloseTo(225, 2);
+    expect(open.rear.y, `expanded rear at ${width}`).toBeCloseTo(255, 1);
+    expect(open.front.y, `expanded front at ${width}`).toBeCloseTo(255 + 100 * scale, 1);
+    expect(open.rear.x).toBeCloseTo(closed.rear.x, 1);
+    expect(open.front.x).toBeCloseTo(closed.front.x, 1);
+    expect(open.svg!.y, `preview viewport includes 30pt above rear at ${width}`).toBeCloseTo(255 - 30 * scale, 1);
     await folder.click();
+    await expect.poll(async () => (await origins()).front.y).toBeCloseTo(255 + 55 * scale, 1);
     expect((await origins()).rear.y).toBeCloseTo(255, 2);
+  }
+});
+
+test('folder shell scales from the 260pt source geometry at all five required widths', async ({ page }) => {
+  await apps(page);
+  for (const width of [320, 360, 375, 390, 430]) {
+    await page.setViewportSize({ width, height: 812 });
+    await page.goto('/app-gallery');
+    const folder = page.getByTestId('product-folder-created');
+    const shell = await folder.boundingBox();
+    expect(shell).not.toBeNull();
+    expect(shell!.width).toBeCloseTo((260 / 375) * width, 1);
+    expect(shell!.width).toBeLessThan(width);
+    expect((await page.getByText('已加载 1 个应用 · 点击展开').boundingBox())!.height).toBeGreaterThanOrEqual(18);
+  }
+});
+
+test('folder follows the source spring through a real midpoint and supports reversal', async ({ page }) => {
+  await apps(page); await page.goto('/app-gallery');
+  const folder = page.getByTestId('product-folder-created');
+  const front = folder.locator('path[fill="#FFFFFF"][opacity="0.1"]').first().locator('..');
+  const matrix = async () => (await front.getAttribute('transform'))!.match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi)!.map(Number);
+  const closed = await matrix();
+  const motion = getSourceMotion('280:26962', 'ON_CLICK', '380:147')!;
+  await page.clock.install();
+  await folder.click();
+  await page.clock.runFor(Math.floor(motion.durationMs / 2));
+  const middle = await matrix();
+  expect(middle[1]).toBeGreaterThan(closed[1]);
+  expect(Math.abs(middle[1] - 0.11043152958154678)).toBeGreaterThan(0.001);
+  await folder.click();
+  await page.clock.runFor(Math.ceil(motion.durationMs * 2));
+  await expect(folder).toHaveAttribute('aria-expanded', 'false');
+  expect((await matrix())[1]).toBeCloseTo(closed[1], 5);
+});
+
+test('folder keeps its current spring presentation while the viewport resizes', async ({ page }) => {
+  await apps(page); await page.setViewportSize({ width: 375, height: 812 }); await page.goto('/app-gallery');
+  const folder = page.getByTestId('product-folder-created'); await folder.click();
+  await page.waitForTimeout(200);
+  await page.setViewportSize({ width: 430, height: 932 });
+  await expect.poll(async () => (await folder.boundingBox())!.width).toBeCloseTo((260 / 375) * 430, 1);
+  await expect(folder.locator('path').first().locator('..')).toHaveAttribute('transform', 'matrix(0.9938837289810181 0.11043152958154678 0 1 0 0)');
+});
+
+test('five source slots retain their IDs and order while six real apps page without examples', async ({ page }) => {
+  await auth(page);
+  const first = Array.from({ length: 5 }, (_, index) => ({ ...app(`real-${index + 1}`), name: index === 0 ? `真实长名称-${'完整文字'.repeat(12)}` : `真实应用-${index + 1}` }));
+  await page.route('**/api/apps?**', route => route.fulfill({ json: { items: [app('real-6')], next_cursor: null } }));
+  await page.route('**/api/apps', route => route.fulfill({ json: { items: first, next_cursor: 'page-2' } }));
+  await page.goto('/app-gallery');
+  const folder = page.getByTestId('product-folder-created');
+  await folder.click();
+  await expect(folder).toHaveAttribute('aria-expanded', 'true');
+  expect(await folder.getByTestId(/^folder-slot-/).evaluateAll(nodes => nodes.map(node => node.getAttribute('data-testid')))).toEqual([
+    'folder-slot-380-191', 'folder-slot-380-192', 'folder-slot-380-193', 'folder-slot-380-194', 'folder-slot-380-195',
+  ]);
+  await viewAppList(page);
+  await expect(page.getByTestId(/^product-row-/)).toHaveCount(5);
+  await expect(page.getByTestId('product-row-real-1')).toContainText(`真实长名称-${'完整文字'.repeat(12)}`);
+  await page.getByTestId('products-load-more').click();
+  await expect(page.getByTestId(/^product-row-/)).toHaveCount(6);
+  await expect(folder.getByTestId(/^folder-item-/)).toHaveCount(5);
+});
+
+test('switching accounts replaces created products instead of retaining the previous account data', async ({ page }) => {
+  await page.addInitScript(() => { if (!localStorage.getItem('token')) localStorage.setItem('token', 'account-a'); });
+  await page.route('**/api/apps', route => {
+    const account = route.request().headers().authorization === 'Bearer account-b' ? 'account-b' : 'account-a';
+    return route.fulfill({ json: { items: [{ ...app(account), name: `仅属于${account}` }], next_cursor: null } });
+  });
+  await page.goto('/app-gallery');
+  await page.getByTestId('product-folder-created').click(); await viewAppList(page);
+  await expect(page.getByText('仅属于account-a')).toBeVisible();
+  await page.evaluate(() => localStorage.setItem('token', 'account-b'));
+  await page.reload();
+  await expect(page.getByText('仅属于account-a')).toHaveCount(0);
+  await page.getByTestId('product-folder-created').click(); await viewAppList(page);
+  await expect(page.getByText('仅属于account-b')).toBeVisible();
+});
+
+test('reduced motion reaches the source endpoint immediately on short and long screens', async ({ page }) => {
+  await apps(page); await page.emulateMedia({ reducedMotion: 'reduce' });
+  for (const size of [{ width: 320, height: 640 }, { width: 430, height: 932 }]) {
+    await page.setViewportSize(size); await page.goto('/app-gallery');
+    const folder = page.getByTestId('product-folder-created'); await folder.click();
+    await expect(folder.locator('path').first().locator('..')).toHaveAttribute('transform', 'matrix(0.9938837289810181 0.11043152958154678 0 1 0 0)');
+    await expect(folder).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByTestId('mobile-products')).toHaveCSS('transform', 'none');
   }
 });

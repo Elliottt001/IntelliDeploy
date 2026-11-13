@@ -14,6 +14,8 @@ export const productFolderEvidence = {
       "noSymbolReason": "no-instance-or-symbol-in-audited-subtree"
     }
   ],
+  "sourceFrameWidth": 375,
+  "sourceFrameHeight": 812,
   "rawGlassEffects": {
     "closed": [
       {
@@ -228,6 +230,115 @@ export const productFolderEvidence = {
       }
     ]
   },
+  "sourcePrototypeInteractions": {
+    "closed": [
+      {
+        "id": {
+          "sessionID": 382,
+          "localID": 202
+        },
+        "event": {
+          "interactionType": "ON_CLICK"
+        },
+        "actions": [
+          {
+            "connectionType": "INTERNAL_NODE",
+            "navigationType": "SCROLL_TO"
+          }
+        ],
+        "isDeleted": false,
+        "stateManagementVersion": 1
+      }
+    ],
+    "closedFront": [
+      {
+        "id": {
+          "sessionID": 386,
+          "localID": 137
+        },
+        "event": {
+          "interactionType": "ON_CLICK"
+        },
+        "actions": [
+          {
+            "transitionNodeID": {
+              "sessionID": 380,
+              "localID": 147
+            },
+            "transitionType": "SMART_ANIMATE",
+            "transitionDuration": 1.2776172161102295,
+            "easingType": "GENTLE_SPRING",
+            "connectionType": "INTERNAL_NODE",
+            "navigationType": "NAVIGATE",
+            "easingFunction": [
+              1,
+              64,
+              12,
+              0
+            ],
+            "transitionResetVideoPosition": false
+          }
+        ],
+        "isDeleted": false,
+        "stateManagementVersion": 1
+      }
+    ],
+    "openBack": [
+      {
+        "id": {
+          "sessionID": 382,
+          "localID": 201
+        },
+        "event": {
+          "interactionType": "ON_CLICK"
+        },
+        "actions": [
+          {
+            "transitionNodeID": {
+              "sessionID": 4294967295,
+              "localID": 4294967295
+            },
+            "connectionType": "INTERNAL_NODE",
+            "navigationType": "SCROLL_TO"
+          }
+        ],
+        "isDeleted": false,
+        "stateManagementVersion": 1
+      }
+    ],
+    "openFront": [
+      {
+        "id": {
+          "sessionID": 386,
+          "localID": 138
+        },
+        "event": {
+          "interactionType": "ON_CLICK"
+        },
+        "actions": [
+          {
+            "transitionNodeID": {
+              "sessionID": 168,
+              "localID": 6299
+            },
+            "transitionType": "SMART_ANIMATE",
+            "transitionDuration": 1.2776172161102295,
+            "easingType": "GENTLE_SPRING",
+            "connectionType": "INTERNAL_NODE",
+            "navigationType": "NAVIGATE",
+            "easingFunction": [
+              1,
+              64,
+              12,
+              0
+            ]
+          }
+        ],
+        "isDeleted": false,
+        "stateManagementVersion": 1
+      }
+    ]
+  },
   "closed": {
     "borderWidths": {
       "bottom": 1,
@@ -245,6 +356,7 @@ export const productFolderEvidence = {
     "derivedValues": [],
     "effects": [
       {
+        "bevelSize": 1,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -259,6 +371,73 @@ export const productFolderEvidence = {
         },
         "opacity": 0.25,
         "radius": 80,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          }
+        },
+        "rawPayload": {
+          "type": "GLASS",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 80,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          },
+          "noiseSize": {
+            "x": 4,
+            "y": 4
+          },
+          "seed": 8666,
+          "clipToShape": false,
+          "refractionRadius": 30,
+          "specularAngle": -45,
+          "specularIntensity": 1,
+          "bevelSize": 1,
+          "chromaticAberration": 0.5,
+          "reflectionDistance": 0,
+          "refractionIntensity": 1
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 1,
@@ -266,11 +445,25 @@ export const productFolderEvidence = {
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0,
         "seed": 8666,
+        "secondarySourceColor": {
+          "a": 0,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
+        "sourceNodeId": "280:26959",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 1,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS",
+        "visible": true
       }
     ],
     "fills": [
@@ -361,6 +554,7 @@ export const productFolderEvidence = {
       "height": 185,
       "width": 260
     },
+    "sourceClipsContent": false,
     "sourceKind": "node",
     "sourceNodeIds": [
       "280:26959"
@@ -368,6 +562,7 @@ export const productFolderEvidence = {
     "strokes": [],
     "surfaceEffects": [
       {
+        "bevelSize": 1,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -382,6 +577,73 @@ export const productFolderEvidence = {
         },
         "opacity": 0.25,
         "radius": 80,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          }
+        },
+        "rawPayload": {
+          "type": "GLASS",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 80,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          },
+          "noiseSize": {
+            "x": 4,
+            "y": 4
+          },
+          "seed": 8666,
+          "clipToShape": false,
+          "refractionRadius": 30,
+          "specularAngle": -45,
+          "specularIntensity": 1,
+          "bevelSize": 1,
+          "chromaticAberration": 0.5,
+          "reflectionDistance": 0,
+          "refractionIntensity": 1
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 1,
@@ -389,11 +651,25 @@ export const productFolderEvidence = {
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0,
         "seed": 8666,
+        "secondarySourceColor": {
+          "a": 0,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
+        "sourceNodeId": "280:26959",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 1,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS",
+        "visible": true
       }
     ],
     "surfaceFills": [
@@ -453,6 +729,7 @@ export const productFolderEvidence = {
     "derivedValues": [],
     "effects": [
       {
+        "bevelSize": 1,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -467,6 +744,73 @@ export const productFolderEvidence = {
         },
         "opacity": 0.25,
         "radius": 80,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          }
+        },
+        "rawPayload": {
+          "type": "GLASS",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 80,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          },
+          "noiseSize": {
+            "x": 4,
+            "y": 4
+          },
+          "seed": 8666,
+          "clipToShape": false,
+          "refractionRadius": 30,
+          "specularAngle": -45,
+          "specularIntensity": 1,
+          "bevelSize": 1,
+          "chromaticAberration": 0.5,
+          "reflectionDistance": 0,
+          "refractionIntensity": 1
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 1,
@@ -474,11 +818,25 @@ export const productFolderEvidence = {
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0,
         "seed": 8666,
+        "secondarySourceColor": {
+          "a": 0,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
+        "sourceNodeId": "280:26962",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 1,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS",
+        "visible": true
       }
     ],
     "fills": [
@@ -518,6 +876,7 @@ export const productFolderEvidence = {
       "height": 185,
       "width": 260
     },
+    "sourceClipsContent": false,
     "sourceKind": "node",
     "sourceNodeIds": [
       "280:26962"
@@ -525,6 +884,7 @@ export const productFolderEvidence = {
     "strokes": [],
     "surfaceEffects": [
       {
+        "bevelSize": 1,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -539,6 +899,73 @@ export const productFolderEvidence = {
         },
         "opacity": 0.25,
         "radius": 80,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          }
+        },
+        "rawPayload": {
+          "type": "GLASS",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 80,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          },
+          "noiseSize": {
+            "x": 4,
+            "y": 4
+          },
+          "seed": 8666,
+          "clipToShape": false,
+          "refractionRadius": 30,
+          "specularAngle": -45,
+          "specularIntensity": 1,
+          "bevelSize": 1,
+          "chromaticAberration": 0.5,
+          "reflectionDistance": 0,
+          "refractionIntensity": 1
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 1,
@@ -546,11 +973,25 @@ export const productFolderEvidence = {
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0,
         "seed": 8666,
+        "secondarySourceColor": {
+          "a": 0,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
+        "sourceNodeId": "280:26962",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 1,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS",
+        "visible": true
       }
     ],
     "surfaceFills": [
@@ -581,6 +1022,7 @@ export const productFolderEvidence = {
     "derivedValues": [],
     "effects": [
       {
+        "bevelSize": 1,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -595,6 +1037,73 @@ export const productFolderEvidence = {
         },
         "opacity": 0.25,
         "radius": 80,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          }
+        },
+        "rawPayload": {
+          "type": "GLASS",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 80,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          },
+          "noiseSize": {
+            "x": 4,
+            "y": 4
+          },
+          "seed": 8666,
+          "clipToShape": false,
+          "refractionRadius": 30,
+          "specularAngle": -45,
+          "specularIntensity": 1,
+          "bevelSize": 1,
+          "chromaticAberration": 0.5,
+          "reflectionDistance": 0,
+          "refractionIntensity": 1
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 1,
@@ -602,11 +1111,25 @@ export const productFolderEvidence = {
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0,
         "seed": 8666,
+        "secondarySourceColor": {
+          "a": 0,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
+        "sourceNodeId": "380:190",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 1,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS",
+        "visible": true
       }
     ],
     "fills": [
@@ -697,6 +1220,7 @@ export const productFolderEvidence = {
       "height": 185,
       "width": 260
     },
+    "sourceClipsContent": false,
     "sourceKind": "node",
     "sourceNodeIds": [
       "380:190"
@@ -704,6 +1228,7 @@ export const productFolderEvidence = {
     "strokes": [],
     "surfaceEffects": [
       {
+        "bevelSize": 1,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -718,6 +1243,73 @@ export const productFolderEvidence = {
         },
         "opacity": 0.25,
         "radius": 80,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          }
+        },
+        "rawPayload": {
+          "type": "GLASS",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 80,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          },
+          "noiseSize": {
+            "x": 4,
+            "y": 4
+          },
+          "seed": 8666,
+          "clipToShape": false,
+          "refractionRadius": 30,
+          "specularAngle": -45,
+          "specularIntensity": 1,
+          "bevelSize": 1,
+          "chromaticAberration": 0.5,
+          "reflectionDistance": 0,
+          "refractionIntensity": 1
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 1,
@@ -725,11 +1317,25 @@ export const productFolderEvidence = {
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0,
         "seed": 8666,
+        "secondarySourceColor": {
+          "a": 0,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
+        "sourceNodeId": "380:190",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 1,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS",
+        "visible": true
       }
     ],
     "surfaceFills": [
@@ -789,6 +1395,7 @@ export const productFolderEvidence = {
     "derivedValues": [],
     "effects": [
       {
+        "bevelSize": 1,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -803,6 +1410,73 @@ export const productFolderEvidence = {
         },
         "opacity": 0.25,
         "radius": 80,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          }
+        },
+        "rawPayload": {
+          "type": "GLASS",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 80,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          },
+          "noiseSize": {
+            "x": 4,
+            "y": 4
+          },
+          "seed": 8666,
+          "clipToShape": false,
+          "refractionRadius": 30,
+          "specularAngle": -45,
+          "specularIntensity": 1,
+          "bevelSize": 1,
+          "chromaticAberration": 0.5,
+          "reflectionDistance": 0,
+          "refractionIntensity": 1
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 1,
@@ -810,11 +1484,25 @@ export const productFolderEvidence = {
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0,
         "seed": 8666,
+        "secondarySourceColor": {
+          "a": 0,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
+        "sourceNodeId": "380:196",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 1,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS",
+        "visible": true
       }
     ],
     "fills": [
@@ -854,6 +1542,7 @@ export const productFolderEvidence = {
       "height": 185,
       "width": 260
     },
+    "sourceClipsContent": false,
     "sourceKind": "node",
     "sourceNodeIds": [
       "380:196"
@@ -861,6 +1550,7 @@ export const productFolderEvidence = {
     "strokes": [],
     "surfaceEffects": [
       {
+        "bevelSize": 1,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -875,6 +1565,73 @@ export const productFolderEvidence = {
         },
         "opacity": 0.25,
         "radius": 80,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          }
+        },
+        "rawPayload": {
+          "type": "GLASS",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 80,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          },
+          "noiseSize": {
+            "x": 4,
+            "y": 4
+          },
+          "seed": 8666,
+          "clipToShape": false,
+          "refractionRadius": 30,
+          "specularAngle": -45,
+          "specularIntensity": 1,
+          "bevelSize": 1,
+          "chromaticAberration": 0.5,
+          "reflectionDistance": 0,
+          "refractionIntensity": 1
+        },
         "rawType": "GLASS",
         "reflectionDistance": 0,
         "refractionIntensity": 1,
@@ -882,11 +1639,25 @@ export const productFolderEvidence = {
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0,
         "seed": 8666,
+        "secondarySourceColor": {
+          "a": 0,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
+        "sourceNodeId": "380:196",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 1,
-        "type": "BACKGROUND_BLUR"
+        "type": "GLASS",
+        "visible": true
       }
     ],
     "surfaceFills": [
@@ -899,6 +1670,14 @@ export const productFolderEvidence = {
     ],
     "surfaceNodeId": "380:196",
     "surfaceStrokes": []
+  },
+  "closedBackTransform": {
+    "m00": 1,
+    "m01": 0,
+    "m02": 58,
+    "m10": 0,
+    "m11": 1,
+    "m12": 255
   },
   "closedFrontTransform": {
     "m00": 1,
@@ -1532,22 +2311,88 @@ export const productFolderEvidence = {
       }
     ]
   },
-  "closedPreviewSlot": {
-    "sourceNodeId": "380:138",
-    "size": {
-      "x": 79,
-      "y": 79
+  "closedPreviewSlots": [
+    {
+      "sourceNodeId": "380:138",
+      "size": {
+        "x": 79,
+        "y": 79
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 148,
+        "m10": 0,
+        "m11": 1,
+        "m12": 297
+      },
+      "cornerRadius": 22
     },
-    "transform": {
-      "m00": 1,
-      "m01": 0,
-      "m02": 148,
-      "m10": 0,
-      "m11": 1,
-      "m12": 297
+    {
+      "sourceNodeId": "380:139",
+      "size": {
+        "x": 79,
+        "y": 79
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 148,
+        "m10": 0,
+        "m11": 1,
+        "m12": 297
+      },
+      "cornerRadius": 22
     },
-    "cornerRadius": 22
-  },
+    {
+      "sourceNodeId": "380:141",
+      "size": {
+        "x": 79,
+        "y": 79
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 148,
+        "m10": 0,
+        "m11": 1,
+        "m12": 297
+      },
+      "cornerRadius": 22
+    },
+    {
+      "sourceNodeId": "380:143",
+      "size": {
+        "x": 79,
+        "y": 79
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 148,
+        "m10": 0,
+        "m11": 1,
+        "m12": 297
+      },
+      "cornerRadius": 22
+    },
+    {
+      "sourceNodeId": "380:145",
+      "size": {
+        "x": 79,
+        "y": 79
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 148,
+        "m10": 0,
+        "m11": 1,
+        "m12": 297
+      },
+      "cornerRadius": 22
+    }
+  ],
   "previewSlots": [
     {
       "sourceNodeId": "380:191",

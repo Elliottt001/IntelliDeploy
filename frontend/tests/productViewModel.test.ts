@@ -90,6 +90,7 @@ test.skipIf(!designSource)('actual Figma source independently confirms paths, pa
   for (const [key, sourceId] of [['closed', '280:26959'], ['closedFront', '280:26962'], ['openBack', '380:190'], ['openFront', '380:196']] as const) {
     const source = nodes.get(sourceId); const evidence = productFolderEvidence[key];
     expect(productFolderEvidence.rawGlassEffects[key]).toEqual(source.effects);
+    expect(productFolderEvidence.sourcePrototypeInteractions[key]).toEqual(source.prototypeInteractions ?? []);
     const sourceCommands = operands(Buffer.from(document.blobs[source.fillGeometry[0].commandsBlob].bytes.data, 'base64'));
     const recorded = evidence.geometry[0].path.match(/[MLCZ]|-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi)!;
     const numeric = recorded.filter(value => !/^[MLCZ]$/i.test(value)).map(Number);
@@ -137,6 +138,19 @@ test.skipIf(!designSource)('actual Figma source independently confirms paths, pa
 
   expect(productFolderEvidence.openBackTransform).toEqual(nodes.get('380:190').transform);
   expect(productFolderEvidence.openFrontTransform).toEqual(nodes.get('380:196').transform);
+  expect(productFolderEvidence.closedBackTransform).toEqual(nodes.get('280:26959').transform);
+  expect(productFolderEvidence.sourceFrameWidth).toBe(375);
+  expect(productFolderEvidence.closedPreviewSlots.map(slot => slot.sourceNodeId)).toEqual(['380:138', '380:139', '380:141', '380:143', '380:145']);
+  expect(productFolderEvidence.previewSlots.map(slot => slot.sourceNodeId)).toEqual(['380:191', '380:192', '380:193', '380:194', '380:195']);
+  productFolderEvidence.closedPreviewSlots.forEach((slot, index) => {
+    expect(slot.size).toEqual(nodes.get(['380:138', '380:139', '380:141', '380:143', '380:145'][index]).size);
+    expect(slot.transform).toEqual(nodes.get(['380:138', '380:139', '380:141', '380:143', '380:145'][index]).transform);
+  });
+  const openAction = productFolderEvidence.sourcePrototypeInteractions.closedFront[0].actions[0];
+  const closeAction = productFolderEvidence.sourcePrototypeInteractions.openFront[0].actions[0];
+  expect(closeAction.transitionDuration).toBe(openAction.transitionDuration);
+  expect(closeAction.easingType).toBe(openAction.easingType);
+  expect(closeAction.easingFunction).toEqual(openAction.easingFunction);
   expect(productFolderEvidence.collection.fontName).toEqual(nodes.get('825:5846').fontName);
   expect(productFolderEvidence.collection.fontSize).toBe(24);
   expect(nodes.get('825:5848').size).toEqual({ x: 334, y: 38 });

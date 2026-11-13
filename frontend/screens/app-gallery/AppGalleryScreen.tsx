@@ -22,7 +22,7 @@ export default function AppGalleryScreen() {
   const epoch = useRef(0);
   const load = useCallback(async () => {
     const request = ++epoch.current;
-    setLoading(true); setError(''); setBusy(false);
+    setData(null); setLoading(true); setError(''); setBusy(false); setExpanded(false); setListOpen(false);
     try {
       const value = await phase1Api.listMyApps();
       if (request === epoch.current) setData(value);

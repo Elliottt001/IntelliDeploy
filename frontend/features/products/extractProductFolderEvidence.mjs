@@ -66,14 +66,18 @@ try {
   }
   const result = {
     frames: auditProductFrames(document.nodeChanges),
+    sourceFrameWidth: nodes.get('168:6299').size.x,
+    sourceFrameHeight: nodes.get('168:6299').size.y,
     rawGlassEffects: Object.fromEntries([['closed', '280:26959'], ['closedFront', '280:26962'], ['openBack', '380:190'], ['openFront', '380:196']].map(([key, sourceId]) => [key, nodes.get(sourceId).effects ?? []])),
+    sourcePrototypeInteractions: Object.fromEntries([['closed', '280:26959'], ['closedFront', '280:26962'], ['openBack', '380:190'], ['openFront', '380:196']].map(([key, sourceId]) => [key, nodes.get(sourceId).prototypeInteractions ?? []])),
     closed: primitives.products, closedFront: primitives.send, openBack: primitives.back, openFront: primitives.share,
+    closedBackTransform: nodes.get('280:26959').transform,
     closedFrontTransform: nodes.get('280:26962').transform,
     openBackTransform: nodes.get('380:190').transform,
     openFrontTransform: nodes.get('380:196').transform,
     header: { sourceNodeIds: ['825:5827', '825:5848'], size: nodes.get('825:5848').size },
     collection: textEvidence('825:5846'), slogan: textEvidence('280:26963'),
-    closedPreviewSlot: { sourceNodeId: '380:138', size: nodes.get('380:138').size, transform: nodes.get('380:138').transform, cornerRadius: nodes.get('380:138').cornerRadius },
+    closedPreviewSlots: ['380:138', '380:139', '380:141', '380:143', '380:145'].map(sourceNodeId => { const node = nodes.get(sourceNodeId); return { sourceNodeId, size: node.size, transform: node.transform, cornerRadius: node.cornerRadius }; }),
     previewSlots: ['380:191', '380:192', '380:193', '380:194', '380:195'].map(sourceNodeId => { const node = nodes.get(sourceNodeId); return { sourceNodeId, size: node.size, transform: node.transform, cornerRadius: node.cornerRadius }; }),
   };
   const destination = path.join(path.dirname(fileURLToPath(import.meta.url)), 'productFolderEvidence.ts');

@@ -1,4 +1,4 @@
-import type { PropsWithChildren, ReactNode } from 'react';
+import { useEffect, useMemo, useState, type PropsWithChildren, type ReactNode } from 'react';
 import { Image as NativeImage, useWindowDimensions, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
 import Svg, { ClipPath, Defs, FeDropShadow, FeGaussianBlur, Filter, G, Image, LinearGradient, Path, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import {formalMobileControls} from '../../design/formalMobileControls';
@@ -9,6 +9,9 @@ import type { FigmaPaintEvidence, FigmaVectorLayer } from '../../design/figmaCom
 import { mobileAssets } from '../../design/generated/mobileAssetManifest';
 import { mobileColors } from '../../theme/tokens';
 import { mobileFontFamilies } from '../../theme/typography';
+import { getSourceMotion } from '../../design/sourceMotionEvidence';
+import { useSourceMotion } from '../../components/mobile/useSourceMotion';
+import { fitSourceWidth } from '../../theme/responsive';
 import { productFolderEvidence as source } from './productFolderEvidence';
 
 const neutralArtwork = mobileAssets['845:3522:114'].source as ImageSourcePropType;
@@ -46,48 +49,66 @@ function FolderShape({ kind, gradientId }: { kind: 'closed' | 'closedFront' | 'o
   </>;
 }
 
-function localMatrix(matrix: { m00: number; m01: number; m02: number; m10: number; m11: number; m12: number }, x: number, y: number) {
-  return `matrix(${matrix.m00} ${matrix.m10} ${matrix.m01} ${matrix.m11} ${x} ${y})`;
+type SourceMatrix = { m00: number; m01: number; m02: number; m10: number; m11: number; m12: number };
+const lerp = (from: number, to: number, progress: number) => from + (to - from) * progress;
+function localMatrix(from: SourceMatrix, to: SourceMatrix, progress: number) {
+  const origin = source.closedBackTransform;
+  return `matrix(${lerp(from.m00,to.m00,progress)} ${lerp(from.m10,to.m10,progress)} ${lerp(from.m01,to.m01,progress)} ${lerp(from.m11,to.m11,progress)} ${lerp(from.m02-origin.m02,to.m02-origin.m02,progress)} ${lerp(from.m12-origin.m12,to.m12-origin.m12,progress)})`;
 }
 
 export function ProductFolder({ id, title, items, expanded, hasMore, onToggle }: {
   id: string; title: string; items: readonly Item[]; expanded: boolean; hasMore: boolean; onToggle: () => void;
 }) {
   const viewport=useWindowDimensions();
-  const back = source.openBackTransform;
-  const front = expanded ? source.openFrontTransform : source.closedFrontTransform;
-  const frontKey = expanded ? 'openFront' : 'closedFront';
-  const glass = source[frontKey].surfaceEffects.find(effect => effect.type === 'BACKGROUND_BLUR');
+  // Open and close author the same spring tuple. Keeping one motion object lets
+  // useSourceMotion reverse from the current presentation value without reset.
+  const motion=useMemo(()=>getSourceMotion('280:26962','ON_CLICK','380:147'),[]);
+  const {animateTo,progress}=useSourceMotion(motion);
+  const [presentation,setPresentation]=useState(expanded?1:0);
+  useEffect(()=>{const listener=progress.addListener(({value})=>setPresentation(value));return()=>progress.removeListener(listener);},[progress]);
+  useEffect(()=>animateTo(expanded?1:0),[animateTo,expanded]);
+  const folderWidth=fitSourceWidth(source.closed.size.width,source.sourceFrameWidth,viewport.width,'relative');
+  const scale=folderWidth/source.closed.size.width;
+  const safeScale=scale||1;
+  const localHeight=240+105*presentation;
+  const back=localMatrix(source.closedBackTransform,source.openBackTransform,presentation);
+  const front=localMatrix(source.closedFrontTransform,source.openFrontTransform,presentation);
+  const glass = source.closedFront.surfaceEffects.find(effect => effect.rawType === 'GLASS');
+  const backdropX=-(viewport.width-folderWidth)/(2*safeScale);
+  const backdropY=-255/safeScale;
   const preview = (item: Item, index: number, accessible: boolean) => {
-    const slot = expanded ? source.previewSlots[index] : source.closedPreviewSlot;
-    return <G key={item.id} transform={localMatrix(slot.transform, slot.transform.m02 - back.m02 + 10, slot.transform.m12 - back.m12)} testID={accessible ? `folder-item-${item.id}` : undefined}>
-      <Defs><ClipPath id={`folder-art-${id}-${index}-${accessible}`}><Rect width={slot.size.x} height={slot.size.y} rx={slot.cornerRadius} /></ClipPath></Defs>
-      <Rect width={slot.size.x} height={slot.size.y} rx={slot.cornerRadius} fill="#FFFFFF" fillOpacity={0.7}/>
-      <SvgText x={slot.size.x/2} y={slot.size.y/2} fill="#494A64" fontFamily={mobileFontFamilies.body} fontSize={Math.min(28,slot.size.y/2)} textAnchor="middle" alignmentBaseline="central">{Array.from(item.name.trim())[0]??'·'}</SvgText>
+    const closedSlot=source.closedPreviewSlots[index],openSlot=source.previewSlots[index];
+    const opacity=index===0?1:Math.max(0,Math.min(1,presentation));
+    return <G key={item.id} opacity={opacity} transform={localMatrix(closedSlot.transform,openSlot.transform,presentation)} testID={accessible ? `folder-slot-${openSlot.sourceNodeId.replace(':','-')}` : undefined}>
+      <G testID={accessible ? `folder-item-${item.id}` : undefined}>
+      <Defs><ClipPath id={`folder-art-${id}-${index}-${accessible}`}><Rect width={openSlot.size.x} height={openSlot.size.y} rx={openSlot.cornerRadius} /></ClipPath></Defs>
+      <Rect width={openSlot.size.x} height={openSlot.size.y} rx={openSlot.cornerRadius} fill="#FFFFFF" fillOpacity={0.7}/>
+      <SvgText x={openSlot.size.x/2} y={openSlot.size.y/2} fill="#494A64" fontFamily={mobileFontFamilies.body} fontSize={Math.min(28,openSlot.size.y/2)} textAnchor="middle" alignmentBaseline="central">{Array.from(item.name.trim())[0]??'·'}</SvgText>
+      </G>
     </G>;
   };
   return <Pressable accessibilityRole="button" accessibilityLabel={`${title}文件夹`} accessibilityState={{ expanded }} aria-expanded={expanded}
-    onPress={onToggle} style={[styles.folder, expanded && styles.expandedFolder]} testID={`product-folder-${id}`}>
-    <Svg {...(Platform.OS === 'web' ? { 'aria-hidden': true } : { accessibilityElementsHidden: true })} width="100%" height={expanded ? 345 : 240} viewBox={expanded ? '0 -30 280 345' : '0 0 280 240'}>
-      <G transform={expanded ? localMatrix(back, 10, 0) : 'translate(10 0)'}>
-        <FolderShape kind={expanded ? 'openBack' : 'closed'} gradientId={`folder-gradient-${id}`} />
+    onPress={onToggle} style={[styles.folder,{width:folderWidth,marginTop:69-30*scale*presentation}]} testID={`product-folder-${id}`}>
+    <Svg {...(Platform.OS === 'web' ? { 'aria-hidden': true } : { accessibilityElementsHidden: true })} width={folderWidth} height={localHeight*scale} viewBox={`0 ${-30*presentation} 260 ${localHeight}`} style={styles.folderArt}>
+      <G transform={back}>
+        <FolderShape kind="closed" gradientId={`folder-gradient-${id}`} />
 
       </G>
-      {items.slice(0, expanded ? source.previewSlots.length : 1).map((item, index) => preview(item, index, true))}
+      {items.slice(0,source.previewSlots.length).map((item,index)=>preview(item,index,true))}
       {glass && <>
         <Defs>
           <Filter id={`folder-blur-${id}`} x="-100%" y="-100%" width="300%" height="300%"><FeGaussianBlur stdDeviation={glass.radius/2} /></Filter>
-          <ClipPath id={`folder-front-clip-${id}`}><Path d={source[frontKey].geometry[0].path} transform={localMatrix(front, 10, front.m12 - back.m12)} /></ClipPath>
+          <ClipPath id={`folder-front-clip-${id}`}><Path d={source.closedFront.geometry[0].path} transform={front} /></ClipPath>
         </Defs>
-        {/* The shared extractor maps Figma GLASS to background blur. Physical refraction needs native visual acceptance. */}
+        {/* Local blur is only the current fallback; raw GLASS remains NOT_IMPLEMENTED. */}
         <G clipPath={`url(#folder-front-clip-${id})`}><G filter={`url(#folder-blur-${id})`}>
-          <G transform={`translate(${-(viewport.width-280)/2} -255)`}><MobileBackdrop width={viewport.width} height={viewport.height} prefix={`folder-${id}`}/></G>
-          <G transform={expanded ? localMatrix(back, 10, 0) : 'translate(10 0)'}><FolderShape kind={expanded ? 'openBack' : 'closed'} gradientId={`folder-background-${id}`} /></G>
-          {items.slice(0, expanded ? source.previewSlots.length : 1).map((item, index) => preview(item, index, false))}
+          <G transform={`translate(${backdropX} ${backdropY})`}><MobileBackdrop width={viewport.width/safeScale} height={viewport.height/safeScale} prefix={`folder-${id}`}/></G>
+          <G transform={back}><FolderShape kind="closed" gradientId={`folder-background-${id}`} /></G>
+          {items.slice(0,source.previewSlots.length).map((item,index)=>preview(item,index,false))}
         </G></G>
       </>}
-      <G transform={localMatrix(front, 10, front.m12 - back.m12)}>
-        <FolderShape kind={frontKey} gradientId={`folder-front-${id}`} />
+      <G transform={front}>
+        <FolderShape kind="closedFront" gradientId={`folder-front-${id}`} />
         <G transform="translate(17 113)"><SourceText evidence={source.slogan} color="#FFFFFF" /></G>
       </G>
     </Svg>
@@ -140,9 +161,8 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingTop:40, paddingBottom: 24 },
   collection: { alignSelf: 'flex-start', height: source.collection.size.y, width: source.collection.size.x },
   subtitle: { marginTop: 7, fontFamily: mobileFontFamilies.pingFang, fontSize: 12, lineHeight: 17, color: mobileColors.muted },
-  folder: { alignItems: 'center', alignSelf: 'center', marginTop: 69, minHeight: 44, minWidth: 44, width: 280, maxWidth: '100%' },
-  // The expanded viewBox starts at -30: move its layout box up 30pt to keep the source rear anchored.
-  expandedFolder: { marginTop: 39 },
+  folder: { alignItems: 'center', alignSelf: 'center', minHeight: 44, minWidth: 44, maxWidth: '100%' },
+  folderArt: { overflow: 'visible' },
   folderCount: { marginTop: 20, fontFamily: mobileFontFamilies.body, fontSize: 12, lineHeight: 18, color: mobileColors.muted },
   rowArt: { backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 12, width: 44, height: 44 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 20, marginBottom: 12 },
