@@ -210,3 +210,40 @@ async def test_received_protocol_corrections_stop_after_three_failures():
     result=await run_generation('job',Checkpoint(),model,CounterTool(),lambda _:None,lambda _:None,max_rounds=10)
     assert result.exhausted is True
     assert model.calls==3
+
+
+@pytest.mark.asyncio
+async def test_finalization_rejects_extra_tool_and_allows_one_correction():
+    class Model:
+        calls=0
+        async def complete(self,messages,tools,model):
+            self.calls+=1
+            if self.calls==1:
+                return turn([ToolCall(id='write',name='write_file',arguments={'path':'app.py','content':'source'})])
+            if self.calls==2:
+                assert [t['function']['name'] for t in tools]==['finish_implementation']
+                return turn([ToolCall(id='cleanup',name='run_command',arguments={'argv':['rm','-f','test.js']})])
+            assert any(m.get('tool_call_id')=='cleanup' and '未执行' in m['content'] for m in messages)
+            return turn([ToolCall(id='finish',name='finish_implementation',arguments={'manifest':MANIFEST})])
+    model=Model();tool=CounterTool()
+    result=await run_generation('job',Checkpoint(),model,tool,lambda _:None,lambda _:None,max_rounds=2,finalize_last_round=True)
+    assert result.manifest.web_service=='web'
+    assert model.calls==3
+    assert tool.calls==1
+
+
+@pytest.mark.asyncio
+async def test_finalization_stops_after_one_rejected_tool_correction():
+    class Model:
+        calls=0
+        async def complete(self,messages,tools,model):
+            self.calls+=1
+            if self.calls==1:
+                return turn([ToolCall(id='write',name='write_file',arguments={'path':'app.py','content':'source'})])
+            return turn([ToolCall(id=f'cleanup-{self.calls}',name='run_command',arguments={'argv':['rm','-f','test.js']})])
+    model=Model();tool=CounterTool()
+    result=await run_generation('job',Checkpoint(),model,tool,lambda _:None,lambda _:None,max_rounds=2,finalize_last_round=True)
+    assert result.exhausted is True
+    assert model.calls==3
+    assert tool.calls==1
+    assert result.checkpoint.finalization_corrections==1

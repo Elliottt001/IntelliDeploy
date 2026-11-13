@@ -74,7 +74,10 @@ async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_too
         return GenerationOutput(checkpoint=checkpoint, exhausted=True,
                                 requirement_revision=checkpoint.requirement_revision)
     last_failure = None
-    for round_number in range(max_rounds):
+    extra_finalization_turn = False
+    for round_number in range(max_rounds + 1):
+        if round_number == max_rounds and not extra_finalization_turn:
+            break
         recorded = getattr(model, "has_recorded_turn", lambda: False)()
         if finalize_last_round and round_number == max_rounds - 1 and not recorded and checkpoint.generation_phase != "FINALIZE":
             checkpoint.generation_phase = "FINALIZE"
@@ -120,9 +123,24 @@ async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_too
         if not turn.calls:
             return GenerationOutput(checkpoint=checkpoint, exhausted=True,
                                     requirement_revision=checkpoint.requirement_revision)
+        rejected_finalization = (checkpoint.generation_phase == "FINALIZE"
+                                 and any(call.name != "finish_implementation" for call in turn.calls))
+        if rejected_finalization:
+            checkpoint.pending_calls = []
+            for call in turn.calls:
+                checkpoint.messages.append({"role": "tool", "tool_call_id": call.id,
+                    "content": "收尾阶段未执行本轮工具；请仅调用finish_implementation提交候选。"})
+            if checkpoint.finalization_corrections >= 1:
+                await _call(persist, checkpoint)
+                return GenerationOutput(checkpoint=checkpoint, exhausted=True,
+                                        requirement_revision=checkpoint.requirement_revision)
+            checkpoint.finalization_corrections += 1
+            extra_finalization_turn = True
+            checkpoint.messages.append({"role": "user", "content":
+                "收尾阶段不会执行额外命令，也不会返回实现阶段。请直接调用finish_implementation提交当前源码清单。"})
+            await _call(persist, checkpoint)
+            continue
         for call in turn.calls:
-            if checkpoint.generation_phase == "FINALIZE" and call.name != "finish_implementation":
-                raise ValueError("finalization only accepts finish_implementation")
             previous_arguments = checkpoint.call_arguments.get(call.id)
             if previous_arguments is not None and previous_arguments != call.arguments:
                 raise ValueError("tool call id was reused with different arguments")
