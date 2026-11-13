@@ -64,3 +64,12 @@ def test_repeated_apply_does_not_ignore_changed_package_inputs(tmp_path):
     (tmp_path / "package.json").write_text('{"scripts":{"start":"different"}}')
     with pytest.raises(ValueError, match="input changed"):
         apply_packaging_plan(str(tmp_path), applied)
+
+
+def test_workdir_insert_is_limited_to_absolute_runtime_paths(tmp_path):
+    text = 'FROM scratch\nCOPY server /server\nCMD ["/server"]\n'
+    (tmp_path / "Dockerfile").write_text(text)
+    plan = plan_packaging(str(tmp_path), None, route())
+    assert any(e.kind == "INSERT_WORKDIR" for e in plan.safe_edits)
+    apply_packaging_plan(str(tmp_path), plan)
+    assert (tmp_path / "Dockerfile").read_text() == text.replace('FROM scratch\n', 'FROM scratch\nWORKDIR /\n')

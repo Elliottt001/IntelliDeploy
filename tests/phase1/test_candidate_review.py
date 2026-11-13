@@ -278,6 +278,6 @@ def test_packaging_finding_is_rechecked_after_builder_fix(tmp_path):
     assert planned.action == "GENERATE"
     before = review_deterministic("before", candidate, notes_requirement(), route(), packaging_plans=[planned])
     assert any(f.id == "packaging:blocking:DOCKERFILE_MISSING" for f in before.findings)
-    (root / "Dockerfile").write_text('FROM scratch\nCOPY server /server\nCMD ["/server"]\n')
+    (root / "Dockerfile").write_text('FROM scratch\nWORKDIR /\nCOPY server /server\nCMD ["/server"]\n')
     after = review_deterministic("after", candidate, notes_requirement(), route(), packaging_plans=[planned])
     assert not any(f.id.startswith("packaging:blocking:") for f in after.findings)

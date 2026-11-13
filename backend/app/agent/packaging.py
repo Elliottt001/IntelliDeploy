@@ -142,6 +142,12 @@ def plan_packaging(workspace_id, profile, route) -> PackagingPlan:
         block("START_COMMAND_AMBIGUOUS", str(exc))
         plan.safe_edits = []
         return plan
+    # Scratch has no inherited WORKDIR. Explicit / preserves its default cwd;
+    # choosing /app for an arbitrary base image would change program semantics.
+    if len(starts) == 1 and final[0].strip().upper() == "FROM SCRATCH" and not any(
+        line.strip().upper().startswith("WORKDIR ") for line in final
+    ):
+        edit("INSERT_WORKDIR", final[0], final[0] + "\nWORKDIR /")
     ports = set(profile.ports if profile else [])
     exposed = [line for line in final if line.strip().upper().startswith("EXPOSE ")]
     if len(ports) > 1:

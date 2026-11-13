@@ -75,9 +75,15 @@ async def plan_acceptance_gaps(requirement, provisional, profiles, evaluations, 
             raise ValueError("gap input hash differs")
         proposed = validate_gap_plan(proposed, requirement, provisional, profiles, evaluations)
         # Preservation is a platform invariant, not an editable model instruction.
-        for gap in proposed.gaps:
+        for index, gap in enumerate(proposed.gaps):
             original = next(g for g in base.gaps if g.acceptance_id == gap.acceptance_id)
-            gap.preserve = sorted(set(gap.preserve) | set(original.preserve))
+            if original.status == "SATISFIED":
+                proposed.gaps[index] = original.model_copy(deep=True)
+            else:
+                gap.preserve = sorted(set(gap.preserve) | set(original.preserve))
+        satisfied = {g.acceptance_id for g in proposed.gaps if g.status == "SATISFIED"}
+        for gap in proposed.gaps:
+            gap.preserve = sorted(set(gap.preserve) | (satisfied - {gap.acceptance_id}))
         return proposed
     except (ValueError, TypeError, KeyError):
         # Known malformed response is not UNKNOWN; keep deterministic disposition.
@@ -90,6 +96,13 @@ def finalize_route_with_gaps(provisional, gaps, retrieval, profiles, evaluations
     validate_gap_plan(gaps, requirement, provisional, profiles, evaluations)
     if not gaps.complete:
         raise ValueError("gap planning is blocked")
+    if provisional.route == "DEPLOY_EXISTING" and any(g.status != "SATISFIED" for g in gaps.gaps):
+        principal = gaps.principal_source.model_copy(update={"role": "principal"})
+        provisional = provisional.model_copy(update={"route": "MODIFY_EXISTING", "sources": [principal],
+            "reason": "bound gap evidence requires local implementation"})
+        gaps.principal_source = principal
+        for gap in gaps.gaps:
+            gap.principal_source = principal
     providers = {g.provider_source.url: g.provider_source for g in gaps.gaps if g.status == "COMPONENT_SOURCE"}
     if not providers or provisional.route != "MODIFY_EXISTING":
         return provisional

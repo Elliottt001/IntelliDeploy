@@ -95,3 +95,34 @@ async def test_invalid_integration_contract_never_persists_route_c():
     assert final.route == "MODIFY_EXISTING"
     assert execution.saved_routes == ["MODIFY_EXISTING"]
     assert gaps.gaps[1].status == "LOCAL_REPAIR"
+
+
+def test_a_without_bound_coverage_becomes_local_b_instead_of_rewriting_business():
+    from app.core.types import RetrievalCandidate, RetrievalResult
+    s = source("complete_application")
+    facts = profile(s)
+    req = requirement()
+    provisional = route("DEPLOY_EXISTING", [s])
+    gaps = deterministic_gap_plan(req, provisional, [facts], [rank_candidate(facts, req)])
+    retrieval = RetrievalResult(completed=True, queries=["notes"], candidates=[RetrievalCandidate(repo_url=s.url, commit=s.commit)])
+    final = finalize_route_with_gaps(provisional, gaps, retrieval, [facts], [rank_candidate(facts, req)], req)
+    assert final.route == "MODIFY_EXISTING"
+    assert final.sources[0].role == "principal"
+
+
+@pytest.mark.asyncio
+async def test_model_cannot_schedule_rewrite_of_already_satisfied_acceptance():
+    import json
+    from app.agent.gaps import plan_acceptance_gaps
+    from app.core.types import ModelTurn
+    req = requirement()
+    facts = profile(source(), ["save"])
+    class Model:
+        async def complete(self, messages, tools, model):
+            payload = json.loads(messages[1]["content"])["base"]
+            payload["gaps"][0].update(status="LOCAL_REPAIR", required_changes=["rewrite notes"])
+            payload["gaps"][1]["preserve"] = []
+            return ModelTurn(assistant_message={"role": "assistant", "content": json.dumps(payload)})
+    gaps = await plan_acceptance_gaps(req, route(), [facts], [rank_candidate(facts, req)], Model())
+    assert gaps.gaps[0].status == "SATISFIED"
+    assert "save" in gaps.gaps[1].preserve
