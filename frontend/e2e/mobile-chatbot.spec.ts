@@ -3,6 +3,7 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import type { components } from "@intellideploy/api-client";
 import { getSourceMotion } from "../design/sourceMotionEvidence";
+import { miboRenderEvidence } from "../design/miboRenderEvidence";
 import { sampleSourceEasing } from "../features/navigation/sourceMotionPolicy";
 
 type App = components["schemas"]["AppDetail"];
@@ -618,13 +619,7 @@ test("Mibo SMART replacement continues from the rendered character without a fra
   page,
 }) => {
   let app = detail("RUNNING"),
-    stage = 0,
-    beforeReplacement:
-      | {
-          character: { x: number; y: number };
-          status: { x: number; y: number; opacity: number };
-        }
-      | undefined;
+    stage = 0;
   app.latest_job!.phase = "clarifying";
   app.active_job!.phase = "clarifying";
   await page.route("**/api/apps/app", (r) => r.fulfill({ json: app }));
@@ -634,23 +629,6 @@ test("Mibo SMART replacement continues from the rendered character without a fra
       app.latest_job!.phase = "retrieving";
       app.active_job!.phase = "retrieving";
     } else if (stage === 2) {
-      const [character, status] = await Promise.all([
-        page.getByTestId("mibo-cat").evaluate((element) => {
-          const style = getComputedStyle(element);
-          return { x: parseFloat(style.left), y: parseFloat(style.top) + 137 };
-        }),
-        page.getByTestId("job-status").evaluate((element) => {
-          const style = getComputedStyle(element),
-            value = style.transform,
-            matrix = value === "none" ? new DOMMatrix() : new DOMMatrix(value);
-          return {
-            x: matrix.m41,
-            y: matrix.m42,
-            opacity: parseFloat(style.opacity),
-          };
-        }),
-      ]);
-      beforeReplacement = { character, status };
       app = detail("RUNNING");
       app.latest_job!.phase = "implementing";
       app.active_job!.phase = "implementing";
@@ -671,32 +649,149 @@ test("Mibo SMART replacement continues from the rendered character without a fra
       });
   const first = getSourceMotion("849:3705", "AFTER_TIMEOUT", "849:3794")!;
   await page.clock.runFor(first.durationMs / 2);
+  await page.evaluate(() => {
+    const read = () => {
+      const characterStyle = getComputedStyle(
+        document.querySelector('[data-testid="mibo-cat"]')!,
+      );
+      const statusStyle = getComputedStyle(
+        document.querySelector('[data-testid="job-status"]')!,
+      );
+      const statusTransform =
+        statusStyle.transform === "none"
+          ? new DOMMatrix()
+          : new DOMMatrix(statusStyle.transform);
+      return {
+        character: {
+          left: parseFloat(characterStyle.left),
+          top: parseFloat(characterStyle.top),
+          width: parseFloat(characterStyle.width),
+          height: parseFloat(characterStyle.height),
+          opacity: parseFloat(characterStyle.opacity),
+        },
+        status: {
+          x: statusTransform.m41,
+          y: statusTransform.m42,
+          opacity: parseFloat(statusStyle.opacity),
+        },
+      };
+    };
+    const stageElement = document.querySelector('[data-testid="mibo-stage"]')!;
+    let lastPaint = read();
+    let frame = 0;
+    const sample = () => {
+      lastPaint = read();
+      frame = requestAnimationFrame(sample);
+    };
+    frame = requestAnimationFrame(sample);
+    (
+      window as typeof window & {
+        __smartContinuity?: Promise<{
+          before: ReturnType<typeof read>;
+          after: ReturnType<typeof read>;
+        }>;
+      }
+    ).__smartContinuity = new Promise((resolve) => {
+      const observer = new MutationObserver(() => {
+        if (stageElement.getAttribute("data-source-motion") !== "852:4340")
+          return;
+        cancelAnimationFrame(frame);
+        observer.disconnect();
+        resolve({ before: lastPaint, after: read() });
+      });
+      observer.observe(stageElement, {
+        attributes: true,
+        attributeFilter: ["data-source-motion"],
+      });
+    });
+  });
   stage = 2;
   await page.getByTestId("refresh-job").click();
   await expect(page.getByTestId("mibo-stage")).toHaveAttribute(
     "data-source-motion",
     "852:4340",
   );
-  const after = await origin();
-  expect(
-    Math.hypot(
-      after.x - beforeReplacement!.character.x,
-      after.y - beforeReplacement!.character.y,
-    ),
-  ).toBeLessThan(1);
-  const afterStatus = await page
-    .getByTestId("job-status")
-    .evaluate((element) => {
-      const style = getComputedStyle(element),
-        value = style.transform,
-        matrix = value === "none" ? new DOMMatrix() : new DOMMatrix(value);
-      return {
-        x: matrix.m41,
-        y: matrix.m42,
-        opacity: parseFloat(style.opacity),
-      };
-    });
-  expect(afterStatus).toEqual(beforeReplacement!.status);
+  const continuity = await page.evaluate(
+    () =>
+      (
+        window as typeof window & {
+          __smartContinuity?: Promise<{
+            before: {
+              character: Record<string, number>;
+              status: Record<string, number>;
+            };
+            after: {
+              character: Record<string, number>;
+              status: Record<string, number>;
+            };
+          }>;
+        }
+      ).__smartContinuity!,
+  );
+  const frameFraction = 1000 / 60 / first.durationMs;
+  let maximumFrameProgress = 0;
+  for (let time = 0; time < 1; time += frameFraction) {
+    maximumFrameProgress = Math.max(
+      maximumFrameProgress,
+      Math.abs(
+        sampleSourceEasing(first, Math.min(1, time + frameFraction)) -
+          sampleSourceEasing(first, time),
+      ),
+    );
+  }
+  const quantization = await page.evaluate(() => 0.5 / devicePixelRatio);
+  const fromCharacter = miboRenderEvidence.images["849:3748"];
+  const toCharacter = miboRenderEvidence.images["849:3837"];
+  const fromStatus = miboRenderEvidence.frames["849:3705"].statusNode!;
+  const toStatus = miboRenderEvidence.frames["849:3794"].statusNode!;
+  const thresholds = {
+    character: {
+      left:
+        Math.abs(toCharacter.transform.m02 - fromCharacter.transform.m02) *
+          maximumFrameProgress +
+        quantization,
+      top:
+        Math.abs(toCharacter.transform.m12 - fromCharacter.transform.m12) *
+          maximumFrameProgress +
+        quantization,
+      width:
+        Math.abs(toCharacter.size.x - fromCharacter.size.x) *
+          maximumFrameProgress +
+        quantization,
+      height:
+        Math.abs(toCharacter.size.y - fromCharacter.size.y) *
+          maximumFrameProgress +
+        quantization,
+      opacity:
+        Math.abs(toCharacter.opacity - fromCharacter.opacity) *
+          maximumFrameProgress +
+        quantization,
+    },
+    status: {
+      x:
+        Math.abs(toStatus.transform.m02 - fromStatus.transform.m02) *
+          maximumFrameProgress +
+        quantization,
+      y:
+        Math.abs(toStatus.transform.m12 - fromStatus.transform.m12) *
+          maximumFrameProgress +
+        quantization,
+      opacity:
+        Math.abs(toStatus.opacity - fromStatus.opacity) * maximumFrameProgress +
+        quantization,
+    },
+  };
+  for (const group of ["character", "status"] as const)
+    for (const property of Object.keys(thresholds[group]))
+      expect(
+        Math.abs(
+          continuity.after[group][property] -
+            continuity.before[group][property],
+        ),
+        `${group}.${property} continuity`,
+      ).toBeLessThanOrEqual(
+        thresholds[group][property as keyof (typeof thresholds)[typeof group]],
+      );
   const second = getSourceMotion("849:3794", "AFTER_TIMEOUT", "849:3883")!;
   await page.clock.runFor(second.durationMs);
   expect((await origin()).y).toBeCloseTo(157, 1);
