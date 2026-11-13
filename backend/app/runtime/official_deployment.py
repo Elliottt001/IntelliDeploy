@@ -1,5 +1,4 @@
 """Adapt supported official deployment material without regenerating business code."""
-import json
 import re
 import shlex
 from pathlib import Path

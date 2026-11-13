@@ -2,7 +2,7 @@
 import json
 import re
 from pydantic import TypeAdapter
-from app.agent.contracts import CandidateAssessment, CapabilityEvidence, RouteVerdict
+from app.agent.contracts import CandidateAssessment, CapabilityEvidence
 
 
 def validate_assessment(value, requirement, profile, evidence):

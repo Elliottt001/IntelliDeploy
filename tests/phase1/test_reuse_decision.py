@@ -38,6 +38,21 @@ def test_small_difference_does_not_block_direct_deployment():
     assert decision.differences==['界面不同']
 
 
+def test_external_service_does_not_require_permission_to_redistribute_code():
+    from app.agent.reuse import choose_reuse_decision
+    from app.agent.contracts import CandidateAssessment, DeploymentAsset
+    from test_candidate_ranking import profile
+    req=Requirement(prompt='在线编辑器',acceptance=[{'id':'A1','action':'编辑','expected':'可用'}])
+    p=profile('editor',license_status='UNKNOWN')
+    p.deployment_assets=[DeploymentAsset(kind='OFFICIAL_SERVICE',location='https://editor.example/',source_ref='github:homepage',source_digest='a'*64)]
+    a=CandidateAssessment(repo_url=p.repo_url,commit=p.commit,requirement_revision=1,
+        capabilities=[{'acceptance_id':'A1','status':'SUPPORTED','evidence_refs':['README.md'],'quote':'editor','reason':'editor'}])
+    assert choose_reuse_decision(req,[a],[p]).delivery_kind=='EXTERNAL_LINK'
+    req.delivery_policy.preference='SELF_HOSTED'
+    from app.agent.reuse import NoReusableSolution
+    with pytest.raises(NoReusableSolution): choose_reuse_decision(req,[a],[p])
+
+
 @pytest.mark.asyncio
 async def test_real_orchestrator_entry_selects_repository_without_generation(new_job,session_factory,monkeypatch):
     import json

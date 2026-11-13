@@ -9,7 +9,7 @@ import httpx
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from app.runtime.models import ResourceRecord
-from app.core.types import ExternalLinkDelivery, Requirement, CheckResult
+from app.core.types import Requirement, CheckResult
 
 
 class ExternalVerification(BaseModel):

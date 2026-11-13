@@ -47,7 +47,9 @@ def choose_reuse_decision(requirement, assessments, profiles):
     usable = [a for a in assessments if (a.repo_url,a.commit) in facts
               and facts[(a.repo_url,a.commit)].license_status == 'ALLOWED']
     if requirement.delivery_policy.preference == 'EXISTING_SERVICE_FIRST':
-        for a in usable:
+        # Using a public official service does not distribute its source code.
+        # Its actual availability/account/payment conditions are checked separately.
+        for a in (a for a in assessments if (a.repo_url,a.commit) in facts):
             p = facts[(a.repo_url,a.commit)]
             asset = next((x for x in p.deployment_assets if x.kind=='OFFICIAL_SERVICE'),None)
             if asset and core_supported(requirement,a):

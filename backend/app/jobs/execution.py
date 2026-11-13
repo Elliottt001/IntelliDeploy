@@ -602,7 +602,7 @@ class JobExecution:
                             params={'ref':c.commit})
                         if value.get('encoding') == 'base64' and value.get('size',0) <= 50000:
                             c.key_files[path] = base64.b64decode(value['content']).decode(errors='replace')[:20000]
-                    except Exception as exc:
+                    except Exception:
                         # Unknown evidence does not become a negative capability claim.
                         c.enrichment_status = 'PARTIAL'
             profiles = [profile_repository(c,requirement) for c in candidates if c.commit]
