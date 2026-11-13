@@ -21,6 +21,12 @@ def core_supported(requirement, assessment):
                for a in requirement.acceptance if a.importance == 'CORE')
 
 
+def external_core_can_be_verified(requirement, assessment):
+    known = {c.acceptance_id:c.status for c in assessment.capabilities}
+    statuses = [known.get(a.id) for a in requirement.core_acceptance]
+    return bool(statuses) and 'SUPPORTED' in statuses and all(s in {'SUPPORTED','UNKNOWN'} for s in statuses)
+
+
 def disclosed_differences(requirement, assessment):
     known={c.acceptance_id:c.status for c in assessment.capabilities}
     differences=list(assessment.differences)
@@ -44,7 +50,7 @@ def validate_reuse_decision(decision, requirement, assessments):
             raise ValueError('reuse assessment revision differs')
     primary = known[(decision.selected_sources[0].url,decision.selected_sources[0].commit)]
     if decision.delivery_kind == 'EXTERNAL_LINK':
-        if requirement.delivery_policy.preference == 'SELF_HOSTED' or not core_supported(requirement,primary):
+        if requirement.delivery_policy.preference == 'SELF_HOSTED' or not external_core_can_be_verified(requirement,primary):
             raise ValueError('external service does not satisfy delivery policy or core requirements')
         if decision.deployment_asset is None or decision.deployment_asset.kind != 'OFFICIAL_SERVICE':
             raise ValueError('external delivery requires official service evidence')
@@ -68,7 +74,7 @@ def choose_reuse_decision(requirement, assessments, profiles):
         for a in (a for a in assessments if (a.repo_url,a.commit) in facts):
             p = facts[(a.repo_url,a.commit)]
             asset = next((x for x in p.deployment_assets if x.kind=='OFFICIAL_SERVICE'),None)
-            if asset and core_supported(requirement,a):
+            if asset and external_core_can_be_verified(requirement,a):
                 return validate_reuse_decision(ReuseDecision(delivery_kind='EXTERNAL_LINK',
                     selected_sources=[RepoSource(url=a.repo_url,commit=a.commit,role='official service')],
                     assessment_refs=[a.repo_url+'@'+a.commit],deployment_asset=asset,differences=disclosed_differences(requirement,a)),requirement,assessments)

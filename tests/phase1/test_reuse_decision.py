@@ -53,6 +53,36 @@ def test_external_service_does_not_require_permission_to_redistribute_code():
     with pytest.raises(NoReusableSolution): choose_reuse_decision(req,[a],[p])
 
 
+@pytest.mark.asyncio
+async def test_unknown_anonymous_access_is_verified_at_official_service_not_assumed():
+    from app.agent.reuse import choose_reuse_decision, NoReusableSolution
+    from app.agent.contracts import CandidateAssessment, DeploymentAsset
+    from app.runtime.external_delivery import verify_external_service
+    from test_candidate_ranking import profile
+    req = Requirement(prompt='online editor', acceptance=[
+        {'id': 'edit', 'action': 'edit', 'expected': 'preview'},
+        {'id': 'access', 'action': 'open anonymously', 'expected': 'no registration'}])
+    p = profile('editor')
+    p.deployment_assets = [DeploymentAsset(kind='OFFICIAL_SERVICE', location='https://editor.example/',
+        source_ref='github:homepage', source_digest='a' * 64)]
+    a = CandidateAssessment(repo_url=p.repo_url, commit=p.commit, requirement_revision=1, capabilities=[
+        {'acceptance_id': 'edit', 'status': 'SUPPORTED', 'reason': 'editor', 'evidence_refs': ['README.md'], 'quote': 'editor'},
+        {'acceptance_id': 'access', 'status': 'UNKNOWN', 'reason': 'actual public access not checked'}])
+    decision = choose_reuse_decision(req, [a], [p])
+    assert decision.delivery_kind == 'EXTERNAL_LINK'
+    class Verifier:
+        async def inspect(self, url):
+            return {'url': url, 'status': 200, 'text': 'editor', 'service_kind': 'OFFICIAL_SERVICE'}
+    assert (await verify_external_service(req, decision.deployment_asset, Verifier())).status == 'NOT_RUN'
+    req.delivery_policy.preference = 'SELF_HOSTED'
+    with pytest.raises(NoReusableSolution):
+        choose_reuse_decision(req, [a], [p])
+    req.delivery_policy.preference = 'EXISTING_SERVICE_FIRST'
+    a.capabilities[1].status = 'MISSING'
+    with pytest.raises(NoReusableSolution):
+        choose_reuse_decision(req, [a], [p])
+
+
 def test_equally_capable_principal_prefers_smaller_adaptation_scope():
     from app.agent.reuse import choose_reuse_decision
     from app.agent.contracts import CandidateAssessment
