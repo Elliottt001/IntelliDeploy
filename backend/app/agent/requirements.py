@@ -257,6 +257,8 @@ async def compile_requirement(messages, previous, model_client, *, persist=None)
                         "role": "system",
                         "content": (
                             "按用户原文和上版要求审阅draft，逐项核对历史遗漏与当前草稿。只输出所附schema的JSON。"
+                            "当前尚未检索仓库或运行应用，只核对需求定义是否完整，不能要求草稿提供实际软件名称、交付链接、源码或运行验证。"
+                            "交付偏好由delivery_policy和原始消息保留，不要求重复列为软件业务验收。"
                             "仍有遗漏填写missing；resolved仅填写当前草稿已实际解决的原样issue、具体验收ID及证据。"
                             "检查全部原始功能、数据、权限、删除后刷新/重启持久性；不能因旧标记仍在就判未修，"
                             "也不能因为草稿声称修复就通过。不要加入用户未要求的业务。"
@@ -267,6 +269,7 @@ async def compile_requirement(messages, previous, model_client, *, persist=None)
                         "content": json.dumps({
                             **source,
                             "schema": RequirementReview.model_json_schema(),
+                            "review_scope": {"phase": "REQUIREMENT_ONLY", "requires_delivery_evidence": False},
                             "draft": draft.model_dump(mode="json"),
                             "draft_hash": draft_hash,
                             "review_history": list(history),

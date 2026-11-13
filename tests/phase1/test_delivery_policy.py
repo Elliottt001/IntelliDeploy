@@ -46,3 +46,22 @@ def test_confirmation_is_bound_to_the_actual_deployment_question():
               {'id':'a','role':'user','sequence':2,'content':'同意'}]
     assert delivery_policy_from_messages(messages).preference=='SELF_HOSTED'
     assert delivery_policy_from_messages(rows('同意')).preference=='EXISTING_SERVICE_FIRST'
+
+
+@pytest.mark.asyncio
+async def test_requirement_review_does_not_demand_delivery_before_search():
+    import json
+    from app.agent.requirements import compile_requirement
+    from app.core.types import ModelTurn
+    text='找一个私人笔记软件，先给官方服务链接'
+    value=draft(text)
+    class Model:
+        calls=0
+        async def complete(self,messages,tools,model):
+            self.calls+=1
+            if self.calls%2==0:
+                scope=json.loads(messages[1]['content'])['review_scope']
+                assert scope['requires_delivery_evidence'] is False
+                return ModelTurn(assistant_message={'content':'{"missing":[]}'})
+            return ModelTurn(assistant_message={'content':json.dumps(value.model_dump(mode='json'),ensure_ascii=False)})
+    assert (await compile_requirement(rows(text),None,Model())).acceptance[0].id=='A1'

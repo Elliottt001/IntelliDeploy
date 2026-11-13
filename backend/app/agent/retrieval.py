@@ -143,6 +143,7 @@ async def retrieve_sources(
     github_client=None,
     repository_index=None,
     readme_search=None,
+    enrichment_limit=None,
 ) -> RetrievalResult:
     client = github_client or GitHubRepositorySearchClient()
     plan = query_plan or deterministic_queries(requirement)
@@ -169,6 +170,20 @@ async def retrieve_sources(
         return (_canonical_url(str(row.get("repo_url") or "")).casefold(),
                 row.get("default_branch"), row.get("commit"))
 
+    allowed_keys = None
+    if enrichment_limit is not None:
+        if not isinstance(enrichment_limit,int) or enrichment_limit < 1:
+            raise ValueError('enrichment limit must be positive')
+        from app.agent.assessment import relevance
+        rows = [normalize_candidate(value) for result in results[:len(github_queries)]
+                if not isinstance(result,BaseException) for value in result]
+        rows.sort(key=lambda row:(relevance(RetrievalCandidate.model_validate(row),requirement),int(row.get('stars') or 0)),reverse=True)
+        allowed_keys = set()
+        for row in rows:
+            allowed_keys.add(enrichment_key(row))
+            if len(allowed_keys) >= enrichment_limit:
+                break
+
     async def enrich(value):
         async with semaphore:
             try:
@@ -183,6 +198,8 @@ async def retrieve_sources(
             row = normalize_candidate(value)
             if not _valid_commit(row.get("commit")) and hasattr(client, "enrich_repository"):
                 key = enrichment_key(row)
+                if allowed_keys is not None and key not in allowed_keys:
+                    continue
                 prepared_keys[id(value)] = key
                 if key not in enrichment_cache:
                     enrichment_cache[key] = asyncio.create_task(enrich(value))

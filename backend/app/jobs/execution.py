@@ -595,6 +595,7 @@ class JobExecution:
         for search_round in range(2):
             started = time.monotonic()
             retrieval = await retrieve_sources(requirement, query, github_client=client,
+                enrichment_limit=5,
                 repository_index=load_index(Path(settings.REPOSITORY_INDEX_PATH)))
             checkpoint.retrieval = retrieval
             self.save_algorithm_checkpoint(checkpoint)
