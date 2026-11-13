@@ -1,10 +1,11 @@
 // Task-owned source extraction. Shared extractor validates original FIG/mobile/Instance/Symbol/style sources.
-import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdtemp, mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { extractMobileComponentEvidence } from '../../scripts/extract-mobile-component-evidence.mjs';
 const id = guid => `${guid.sessionID}:${guid.localID}`;
+const defaultOutputPath=path.join(path.dirname(fileURLToPath(import.meta.url)),'communityEvidence.ts');
 export function auditCommunityFrames(nodeChanges) {
  const nodes=new Map(nodeChanges.map(n=>[id(n.guid),n])); const children=new Map();
  for(const n of nodeChanges) { if(!n.parentIndex?.guid)continue; const p=id(n.parentIndex.guid); children.set(p,[...(children.get(p)??[]),id(n.guid)]); }
@@ -34,9 +35,14 @@ export async function extractCommunityEvidence(designSource) {
    rail:node('825:5887'),railTarget:node('825:6488'),tallNode:node('270:24544'),standardNode:node('270:24568'),squareNode:node('270:24618'),featuredNode:node('825:6570'),preview:node('825:6172'),decoration:node('825:6573'),decorationContainer:node('825:6572'),glow:node('825:6571'),title:text('818:5811'),subtitle:text('818:5810'),featuredContent:node('825:6574'),summary:node('270:24553'),cardTitle:node('270:24549'),creatorLine:node('270:24551'),featuredTitle:node('825:6582'),featuredTitleSlot:node('825:6581'),featuredSummary:node('825:6584'),featuredSummarySlot:node('825:6583'),featuredCaption:node('825:6580'),availabilitySlot:node('825:6585')};
  } finally {await rm(temporary,{recursive:true,force:true});}
 }
+export async function writeCommunityEvidence(designSource,outputPath=defaultOutputPath) {
+ const result=await extractCommunityEvidence(designSource);
+ await mkdir(path.dirname(outputPath),{recursive:true});
+ await writeFile(outputPath,`// Generated from actual formal Kiwi nodes; regenerate with extractCommunityEvidence.mjs.\nexport const communityEvidence = ${JSON.stringify(result,null,2)} as const;\n`);
+ return result;
+}
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){
  const designSource=process.env.INTELLIDEPLOY_FIGMA_SOURCE;if(!designSource)throw Error('Set INTELLIDEPLOY_FIGMA_SOURCE to full local Figma pack');
- const result=await extractCommunityEvidence(designSource);
- await writeFile(path.join(path.dirname(fileURLToPath(import.meta.url)),'communityEvidence.ts'),`// Generated from actual formal Kiwi nodes; regenerate with extractCommunityEvidence.mjs.\nexport const communityEvidence = ${JSON.stringify(result,null,2)} as const;\n`);
+ await writeCommunityEvidence(designSource,process.env.INTELLIDEPLOY_COMMUNITY_EVIDENCE_OUTPUT??process.env.INTELLIDEPLOY_EVIDENCE_OUTPUT??defaultOutputPath);
  console.log('Extracted community frame/source shells, paint visibility/effects, glyphs, clipping, rotation and slots.');
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
-import { Animated, Image, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
+import { Animated, Image, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderHandlers, type ImageSourcePropType, type ViewStyle } from 'react-native';
 import Svg, { Defs, FeDropShadow, Filter, G, Path } from 'react-native-svg';
 import type { FigmaPrimitiveEvidence } from '../../design/figmaComponentEvidence';
 import { mobileAssets } from '../../design/generated/mobileAssetManifest';
@@ -12,10 +12,11 @@ import {communityCardSlots as slots} from '../../design/communityCardSlots';
 import {FigmaTree,type FigmaTreeNode} from '../../components/mobile/FigmaTree';
 import {communityAvatarRenderEvidence as mascot} from '../../design/communityAvatarRenderEvidence';
 const neutralArtwork=mobileAssets['845:3522:114'].source as ImageSourcePropType;
-type WebPointerEvent={nativeEvent?:{clientX?:number;clientY?:number;deltaX?:number;deltaY?:number}};
-const WebWheelView=View as unknown as ComponentType<{children:ReactNode;style:ViewStyle;onWheel:(event:WebPointerEvent)=>void;onPointerDown:(event:WebPointerEvent)=>void;onPointerMove:(event:WebPointerEvent)=>void;onPointerUp:(event:WebPointerEvent)=>void;onPointerCancel:(event:WebPointerEvent)=>void;testID?:string;dataSet?:Record<string,string>}&Record<string,unknown>>;
+type WebPointerEvent={currentTarget?:{setPointerCapture?:(pointerId:number)=>void}|EventTarget|null;nativeEvent?:{clientX?:number;clientY?:number;deltaX?:number;deltaY?:number;pointerId?:number};clientX?:number;clientY?:number};
+const WebWheelView=View as unknown as ComponentType<{children:ReactNode;style:ViewStyle;onMouseDown:(event:WebPointerEvent)=>void;onMouseDownCapture:(event:WebPointerEvent)=>void;onMouseMove:(event:WebPointerEvent)=>void;onMouseMoveCapture:(event:WebPointerEvent)=>void;onMouseUp:(event:WebPointerEvent)=>void;onMouseUpCapture:(event:WebPointerEvent)=>void;onWheel:(event:WebPointerEvent)=>void;onPointerDown:(event:WebPointerEvent)=>void;onPointerDownCapture:(event:WebPointerEvent)=>void;onPointerMove:(event:WebPointerEvent)=>void;onPointerMoveCapture:(event:WebPointerEvent)=>void;onPointerUp:(event:WebPointerEvent)=>void;onPointerUpCapture:(event:WebPointerEvent)=>void;onPointerCancel:(event:WebPointerEvent)=>void;testID?:string;dataSet?:Record<string,string>}&Record<string,unknown>>;
 const WebAnimatedView=Animated.View as unknown as ComponentType<{children:ReactNode;testID:string;dataSet:Record<string,string>;style:unknown}&Record<string,unknown>>;
 const WebDataView=View as unknown as ComponentType<{children:ReactNode;testID:string;dataSet?:Record<string,string>;style:unknown;pointerEvents?:'none'}>;
+const nativePanHandlers=(panHandlers:GestureResponderHandlers):Partial<GestureResponderHandlers>=>Platform.OS==='web'?{}:panHandlers;
 const rgba=(color:string,opacity:number)=>{const hex=color.slice(1);return `rgba(${parseInt(hex.slice(0,2),16)},${parseInt(hex.slice(2,4),16)},${parseInt(hex.slice(4,6),16)},${opacity})`;};
 export function communitySurface(definition:FigmaPrimitiveEvidence):ViewStyle {
  const fill=definition.surfaceFills?.find(p=>p.type==='SOLID');const stroke=definition.surfaceStrokes?.find(p=>p.type==='SOLID');
@@ -64,18 +65,20 @@ export function CommunitySourceRail({cards}:{cards:readonly {id:string;copy:Comm
  const setTarget=useCallback((target:0|1)=>animateTo(target),[animateTo]);
  const settleTarget=useCallback(()=>{pointer.current=null;settle();},[settle]);
  const handleWheel=useCallback((event:WebPointerEvent)=>{if(Platform.OS!=='web')return;const deltaX=event.nativeEvent?.deltaX??0,deltaY=event.nativeEvent?.deltaY??0;if(Math.abs(deltaX)>Math.abs(deltaY)&&deltaX!==0)setTarget(deltaX>0?1:0);},[setTarget]);
+ const point=(event:WebPointerEvent)=>({x:event.nativeEvent?.clientX??event.clientX??0,y:event.nativeEvent?.clientY??event.clientY??0});
  const responder=useMemo(()=>PanResponder.create({
   onMoveShouldSetPanResponder:(_,gesture)=>Math.abs(gesture.dx)>12&&Math.abs(gesture.dx)>Math.abs(gesture.dy)*1.2,
   onMoveShouldSetPanResponderCapture:(_,gesture)=>Math.abs(gesture.dx)>12&&Math.abs(gesture.dx)>Math.abs(gesture.dy)*1.2,
-  onPanResponderRelease:(_,gesture)=>{if(Math.abs(gesture.dx)>30)setTarget(gesture.dx<0?1:0);},
+  onPanResponderRelease:(_,gesture)=>{if(Platform.OS!=='web'&&Math.abs(gesture.dx)>30)setTarget(gesture.dx<0?1:0);},
   onPanResponderTerminate:()=>{if(Platform.OS!=='web')settleTarget();},
   onShouldBlockNativeResponder:()=>false,
  }),[setTarget,settleTarget]);
- const pointerDown=(event:WebPointerEvent)=>{if(Platform.OS==='web')pointer.current={active:true,claimed:false,x:event.nativeEvent?.clientX??0,y:event.nativeEvent?.clientY??0};};
- const pointerMove=(event:WebPointerEvent)=>{const current=pointer.current;if(Platform.OS!=='web'||!current?.active)return;const dx=(event.nativeEvent?.clientX??current.x)-current.x,dy=(event.nativeEvent?.clientY??current.y)-current.y;if(!current.claimed&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.2)current.claimed=true;};
- const pointerEnd=(event:WebPointerEvent)=>{const current=pointer.current;if(Platform.OS!=='web'||!current)return;pointer.current=null;const dx=(event.nativeEvent?.clientX??current.x)-current.x;if(current.claimed&&Math.abs(dx)>30)setTarget(dx<0?1:0);};
- return <WebWheelView testID="community-source-drag-responder" dataSet={{sourceResponder:'pan'}} style={{height:source.rail.size.y,overflow:'hidden'}} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerEnd} onPointerCancel={settleTarget} onWheel={handleWheel} {...responder.panHandlers}>
-  <WebAnimatedView testID="community-source-rail" dataSet={{sourceMotion:`${motion?.nodeId}->${motion?.targetNodeId}`,sourceReverseMotion:`${reverse?.nodeId}->${reverse?.targetNodeId}`,sourceDurationMs:String(motion?.durationMs),sourceEasing:motion?.easingType??'',sourceProgress:position>.5?'1':'0'}} style={{position:'absolute',left:0,top:0,width:source.rail.size.x,height:source.rail.size.y,transform:[{translateX:offset}]}} {...responder.panHandlers}>
+ const pointerMove=useCallback((event:WebPointerEvent)=>{const current=pointer.current;if(Platform.OS!=='web'||!current?.active)return;const next=point(event),dx=next.x-current.x,dy=next.y-current.y;if(!current.claimed&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.2)current.claimed=true;},[]);
+ const pointerEnd=useCallback((event:WebPointerEvent)=>{const current=pointer.current;if(Platform.OS!=='web'||!current)return;pointer.current=null;const dx=point(event).x-current.x;if(current.claimed&&Math.abs(dx)>30)setTarget(dx<0?1:0);},[setTarget]);
+ const pointerDown=useCallback((event:WebPointerEvent)=>{if(Platform.OS!=='web')return;const start=point(event);pointer.current={active:true,claimed:false,x:start.x,y:start.y};const pointerId=event.nativeEvent?.pointerId,currentTarget=event.currentTarget as {setPointerCapture?:(pointerId:number)=>void}|undefined|null;if(pointerId!=null)currentTarget?.setPointerCapture?.(pointerId);const documentRef=(globalThis as typeof globalThis&{document?:Document}).document;if(!documentRef)return;const move=(mouseEvent:MouseEvent)=>pointerMove(mouseEvent);const up=(mouseEvent:MouseEvent)=>{documentRef.removeEventListener('mousemove',move);documentRef.removeEventListener('mouseup',up);pointerEnd(mouseEvent);};documentRef.addEventListener('mousemove',move);documentRef.addEventListener('mouseup',up,{once:true});},[pointerEnd,pointerMove]);
+ const panHandlers=nativePanHandlers(responder.panHandlers);
+ return <WebWheelView testID="community-source-drag-responder" dataSet={{sourceResponder:'pan'}} style={{height:source.rail.size.y,overflow:'hidden'}} onMouseDown={pointerDown} onMouseDownCapture={pointerDown} onMouseMove={pointerMove} onMouseMoveCapture={pointerMove} onMouseUp={pointerEnd} onMouseUpCapture={pointerEnd} onPointerDown={pointerDown} onPointerDownCapture={pointerDown} onPointerMove={pointerMove} onPointerMoveCapture={pointerMove} onPointerUp={pointerEnd} onPointerUpCapture={pointerEnd} onPointerCancel={settleTarget} onWheel={handleWheel} {...panHandlers}>
+  <WebAnimatedView testID="community-source-rail" dataSet={{sourceMotion:`${motion?.nodeId}->${motion?.targetNodeId}`,sourceReverseMotion:`${reverse?.nodeId}->${reverse?.targetNodeId}`,sourceDurationMs:String(motion?.durationMs),sourceEasing:motion?.easingType??'',sourceProgress:position>.5?'1':'0'}} style={{position:'absolute',left:0,top:0,width:source.rail.size.x,height:source.rail.size.y,transform:[{translateX:offset}]}} {...panHandlers}>
    <View style={{position:'absolute',left:0,top:0}}><CommunitySourceCard id={cards[0]?.id??'primary'} copy={cards[0]?.copy??{author:null,time:null,body:null}} kind={cards[0]?.kind}/></View>
    <View style={{position:'absolute',left:source.standardNode.transform.m02,top:0}}><CommunitySourceCard id={cards[1]?.id??'standard'} copy={cards[1]?.copy??{author:null,time:null,body:null}} kind={cards[1]?.kind??'standard'}/></View>
    <View style={{position:'absolute',left:source.squareNode.transform.m02,top:source.standard.size.height+(source.squareNode.transform.m12-source.standard.size.height)}}><CommunitySourceCard id={cards[2]?.id??'square'} copy={cards[2]?.copy??{author:null,time:null,body:null}} kind={cards[2]?.kind??'square'}/></View>

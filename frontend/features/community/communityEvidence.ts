@@ -210,6 +210,7 @@ export const communityEvidence = {
     "derivedValues": [],
     "effects": [
       {
+        "bevelSize": 1,
         "blendMode": "NORMAL",
         "clipToShape": false,
         "color": "#000000",
@@ -226,6 +227,76 @@ export const communityEvidence = {
         },
         "opacity": 0.15,
         "radius": 101.541862,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          }
+        },
+        "rawPayload": {
+          "type": "FOREGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 101.54186248779297,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0
+          },
+          "noiseSize": {
+            "x": 4,
+            "y": 4
+          },
+          "seed": 6469,
+          "clipToShape": false,
+          "density": 1,
+          "noiseType": "MONOTONE",
+          "opacity": 0.15000000596046448,
+          "refractionRadius": 20,
+          "specularAngle": -45,
+          "specularIntensity": 0.800000011920929,
+          "bevelSize": 1,
+          "chromaticAberration": 0.5,
+          "reflectionDistance": 0,
+          "refractionIntensity": 0.800000011920929
+        },
         "rawType": "FOREGROUND_BLUR",
         "reflectionDistance": 0,
         "refractionIntensity": 0.8,
@@ -233,11 +304,25 @@ export const communityEvidence = {
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0,
         "seed": 6469,
+        "secondarySourceColor": {
+          "a": 0,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
+        "sourceNodeId": "168:6379",
         "spread": 0,
         "specularAngle": -45,
         "specularIntensity": 0.8,
-        "type": "DROP_SHADOW"
+        "type": "FOREGROUND_BLUR",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -254,13 +339,89 @@ export const communityEvidence = {
         },
         "opacity": 0.15,
         "radius": 101.541862,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
+        "rawPayload": {
+          "type": "FOREGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 101.54186248779297,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          },
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "seed": 6301,
+          "density": 1,
+          "noiseType": "MONOTONE",
+          "opacity": 0.15000000596046448
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 6301,
+        "secondarySourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
+        "sourceNodeId": "168:6380",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "FOREGROUND_BLUR",
+        "visible": true
       }
     ],
     "fills": [
@@ -315,6 +476,7 @@ export const communityEvidence = {
       "height": 611.330383,
       "width": 658.450378
     },
+    "sourceClipsContent": true,
     "sourceKind": "node",
     "sourceNodeIds": [
       "168:6378",
@@ -345,6 +507,62 @@ export const communityEvidence = {
     "effects": [
       {
         "blendMode": "NORMAL",
+        "color": "#1F2687",
+        "offset": {
+          "x": 0,
+          "y": 8
+        },
+        "opacity": 0.07,
+        "radius": 32,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 8
+          },
+          "radius": 32,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.12156862765550613,
+            "g": 0.14901961386203766,
+            "b": 0.529411792755127,
+            "a": 0.07000000029802322
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.07,
+          "b": 0.529412,
+          "g": 0.14902,
+          "r": 0.121569
+        },
+        "sourceNodeId": "270:24544",
+        "spread": 0,
+        "type": "DROP_SHADOW",
+        "visible": true
+      },
+      {
+        "blendMode": "NORMAL",
         "blurOpType": "NORMAL",
         "color": "#000000",
         "offset": {
@@ -353,24 +571,53 @@ export const communityEvidence = {
         },
         "opacity": 1,
         "radius": 16,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
+        "rawPayload": {
+          "type": "BACKGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 16,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": true,
+          "blurOpType": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
         "rawType": "BACKGROUND_BLUR",
         "showShadowBehindNode": true,
-        "spread": 0,
-        "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#1F2687",
-        "offset": {
-          "x": 0,
-          "y": 8
+        "sourceColor": {
+          "a": 1,
+          "b": 0,
+          "g": 0,
+          "r": 0
         },
-        "opacity": 0.07,
-        "radius": 32,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
+        "sourceNodeId": "270:24544",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "BACKGROUND_BLUR",
+        "visible": true
       }
     ],
     "fills": [
@@ -419,6 +666,7 @@ export const communityEvidence = {
       "height": 345.5,
       "width": 145.5
     },
+    "sourceClipsContent": false,
     "sourceKind": "node",
     "sourceNodeIds": [
       "270:24544"
@@ -434,6 +682,62 @@ export const communityEvidence = {
     "surfaceEffects": [
       {
         "blendMode": "NORMAL",
+        "color": "#1F2687",
+        "offset": {
+          "x": 0,
+          "y": 8
+        },
+        "opacity": 0.07,
+        "radius": 32,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 8
+          },
+          "radius": 32,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.12156862765550613,
+            "g": 0.14901961386203766,
+            "b": 0.529411792755127,
+            "a": 0.07000000029802322
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.07,
+          "b": 0.529412,
+          "g": 0.14902,
+          "r": 0.121569
+        },
+        "sourceNodeId": "270:24544",
+        "spread": 0,
+        "type": "DROP_SHADOW",
+        "visible": true
+      },
+      {
+        "blendMode": "NORMAL",
         "blurOpType": "NORMAL",
         "color": "#000000",
         "offset": {
@@ -442,24 +746,53 @@ export const communityEvidence = {
         },
         "opacity": 1,
         "radius": 16,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
+        "rawPayload": {
+          "type": "BACKGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 16,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": true,
+          "blurOpType": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
         "rawType": "BACKGROUND_BLUR",
         "showShadowBehindNode": true,
-        "spread": 0,
-        "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#1F2687",
-        "offset": {
-          "x": 0,
-          "y": 8
+        "sourceColor": {
+          "a": 1,
+          "b": 0,
+          "g": 0,
+          "r": 0
         },
-        "opacity": 0.07,
-        "radius": 32,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
+        "sourceNodeId": "270:24544",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "BACKGROUND_BLUR",
+        "visible": true
       }
     ],
     "surfaceFills": [
@@ -498,6 +831,62 @@ export const communityEvidence = {
     "effects": [
       {
         "blendMode": "NORMAL",
+        "color": "#1F2687",
+        "offset": {
+          "x": 0,
+          "y": 8
+        },
+        "opacity": 0.07,
+        "radius": 32,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 8
+          },
+          "radius": 32,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.12156862765550613,
+            "g": 0.14901961386203766,
+            "b": 0.529411792755127,
+            "a": 0.07000000029802322
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.07,
+          "b": 0.529412,
+          "g": 0.14902,
+          "r": 0.121569
+        },
+        "sourceNodeId": "270:24568",
+        "spread": 0,
+        "type": "DROP_SHADOW",
+        "visible": true
+      },
+      {
+        "blendMode": "NORMAL",
         "blurOpType": "NORMAL",
         "color": "#000000",
         "offset": {
@@ -506,24 +895,53 @@ export const communityEvidence = {
         },
         "opacity": 1,
         "radius": 16,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
+        "rawPayload": {
+          "type": "BACKGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 16,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": true,
+          "blurOpType": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
         "rawType": "BACKGROUND_BLUR",
         "showShadowBehindNode": true,
-        "spread": 0,
-        "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#1F2687",
-        "offset": {
-          "x": 0,
-          "y": 8
+        "sourceColor": {
+          "a": 1,
+          "b": 0,
+          "g": 0,
+          "r": 0
         },
-        "opacity": 0.07,
-        "radius": 32,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
+        "sourceNodeId": "270:24568",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "BACKGROUND_BLUR",
+        "visible": true
       }
     ],
     "fills": [
@@ -572,6 +990,7 @@ export const communityEvidence = {
       "height": 185,
       "width": 280.049988
     },
+    "sourceClipsContent": false,
     "sourceKind": "node",
     "sourceNodeIds": [
       "270:24568"
@@ -587,6 +1006,62 @@ export const communityEvidence = {
     "surfaceEffects": [
       {
         "blendMode": "NORMAL",
+        "color": "#1F2687",
+        "offset": {
+          "x": 0,
+          "y": 8
+        },
+        "opacity": 0.07,
+        "radius": 32,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 8
+          },
+          "radius": 32,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.12156862765550613,
+            "g": 0.14901961386203766,
+            "b": 0.529411792755127,
+            "a": 0.07000000029802322
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.07,
+          "b": 0.529412,
+          "g": 0.14902,
+          "r": 0.121569
+        },
+        "sourceNodeId": "270:24568",
+        "spread": 0,
+        "type": "DROP_SHADOW",
+        "visible": true
+      },
+      {
+        "blendMode": "NORMAL",
         "blurOpType": "NORMAL",
         "color": "#000000",
         "offset": {
@@ -595,24 +1070,53 @@ export const communityEvidence = {
         },
         "opacity": 1,
         "radius": 16,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
+        "rawPayload": {
+          "type": "BACKGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 16,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": true,
+          "blurOpType": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
         "rawType": "BACKGROUND_BLUR",
         "showShadowBehindNode": true,
-        "spread": 0,
-        "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#1F2687",
-        "offset": {
-          "x": 0,
-          "y": 8
+        "sourceColor": {
+          "a": 1,
+          "b": 0,
+          "g": 0,
+          "r": 0
         },
-        "opacity": 0.07,
-        "radius": 32,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
+        "sourceNodeId": "270:24568",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "BACKGROUND_BLUR",
+        "visible": true
       }
     ],
     "surfaceFills": [
@@ -651,6 +1155,62 @@ export const communityEvidence = {
     "effects": [
       {
         "blendMode": "NORMAL",
+        "color": "#1F2687",
+        "offset": {
+          "x": 0,
+          "y": 8
+        },
+        "opacity": 0.07,
+        "radius": 32,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 8
+          },
+          "radius": 32,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.12156862765550613,
+            "g": 0.14901961386203766,
+            "b": 0.529411792755127,
+            "a": 0.07000000029802322
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.07,
+          "b": 0.529412,
+          "g": 0.14902,
+          "r": 0.121569
+        },
+        "sourceNodeId": "270:24618",
+        "spread": 0,
+        "type": "DROP_SHADOW",
+        "visible": true
+      },
+      {
+        "blendMode": "NORMAL",
         "blurOpType": "NORMAL",
         "color": "#000000",
         "offset": {
@@ -659,24 +1219,53 @@ export const communityEvidence = {
         },
         "opacity": 1,
         "radius": 16,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
+        "rawPayload": {
+          "type": "BACKGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 16,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": true,
+          "blurOpType": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
         "rawType": "BACKGROUND_BLUR",
         "showShadowBehindNode": true,
-        "spread": 0,
-        "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#1F2687",
-        "offset": {
-          "x": 0,
-          "y": 8
+        "sourceColor": {
+          "a": 1,
+          "b": 0,
+          "g": 0,
+          "r": 0
         },
-        "opacity": 0.07,
-        "radius": 32,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
+        "sourceNodeId": "270:24618",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "BACKGROUND_BLUR",
+        "visible": true
       }
     ],
     "fills": [
@@ -725,6 +1314,7 @@ export const communityEvidence = {
       "height": 145.5,
       "width": 145.5
     },
+    "sourceClipsContent": false,
     "sourceKind": "node",
     "sourceNodeIds": [
       "270:24618"
@@ -740,6 +1330,62 @@ export const communityEvidence = {
     "surfaceEffects": [
       {
         "blendMode": "NORMAL",
+        "color": "#1F2687",
+        "offset": {
+          "x": 0,
+          "y": 8
+        },
+        "opacity": 0.07,
+        "radius": 32,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 8
+          },
+          "radius": 32,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.12156862765550613,
+            "g": 0.14901961386203766,
+            "b": 0.529411792755127,
+            "a": 0.07000000029802322
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.07,
+          "b": 0.529412,
+          "g": 0.14902,
+          "r": 0.121569
+        },
+        "sourceNodeId": "270:24618",
+        "spread": 0,
+        "type": "DROP_SHADOW",
+        "visible": true
+      },
+      {
+        "blendMode": "NORMAL",
         "blurOpType": "NORMAL",
         "color": "#000000",
         "offset": {
@@ -748,24 +1394,53 @@ export const communityEvidence = {
         },
         "opacity": 1,
         "radius": 16,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
+        "rawPayload": {
+          "type": "BACKGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 16,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": true,
+          "blurOpType": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
         "rawType": "BACKGROUND_BLUR",
         "showShadowBehindNode": true,
-        "spread": 0,
-        "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#1F2687",
-        "offset": {
-          "x": 0,
-          "y": 8
+        "sourceColor": {
+          "a": 1,
+          "b": 0,
+          "g": 0,
+          "r": 0
         },
-        "opacity": 0.07,
-        "radius": 32,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
+        "sourceNodeId": "270:24618",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "BACKGROUND_BLUR",
+        "visible": true
       }
     ],
     "surfaceFills": [
@@ -804,6 +1479,62 @@ export const communityEvidence = {
     "effects": [
       {
         "blendMode": "NORMAL",
+        "color": "#1F2687",
+        "offset": {
+          "x": 0,
+          "y": 8
+        },
+        "opacity": 0.07,
+        "radius": 32,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 8
+          },
+          "radius": 32,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.12156862765550613,
+            "g": 0.14901961386203766,
+            "b": 0.529411792755127,
+            "a": 0.07000000029802322
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.07,
+          "b": 0.529412,
+          "g": 0.14902,
+          "r": 0.121569
+        },
+        "sourceNodeId": "825:6570",
+        "spread": 0,
+        "type": "DROP_SHADOW",
+        "visible": true
+      },
+      {
+        "blendMode": "NORMAL",
         "blurOpType": "NORMAL",
         "color": "#000000",
         "offset": {
@@ -812,24 +1543,53 @@ export const communityEvidence = {
         },
         "opacity": 1,
         "radius": 16,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
+        "rawPayload": {
+          "type": "BACKGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 16,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": true,
+          "blurOpType": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
         "rawType": "BACKGROUND_BLUR",
         "showShadowBehindNode": true,
-        "spread": 0,
-        "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#1F2687",
-        "offset": {
-          "x": 0,
-          "y": 8
+        "sourceColor": {
+          "a": 1,
+          "b": 0,
+          "g": 0,
+          "r": 0
         },
-        "opacity": 0.07,
-        "radius": 32,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6570",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "BACKGROUND_BLUR",
+        "visible": true
       }
     ],
     "fills": [
@@ -878,6 +1638,13 @@ export const communityEvidence = {
       "height": 200.5,
       "width": 441.549988
     },
+    "sourceClipsContent": true,
+    "sourcePadding": {
+      "bottom": 24,
+      "left": 24,
+      "right": 24,
+      "top": 24
+    },
     "sourceKind": "node",
     "sourceNodeIds": [
       "825:6570"
@@ -893,6 +1660,62 @@ export const communityEvidence = {
     "surfaceEffects": [
       {
         "blendMode": "NORMAL",
+        "color": "#1F2687",
+        "offset": {
+          "x": 0,
+          "y": 8
+        },
+        "opacity": 0.07,
+        "radius": 32,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 8
+          },
+          "radius": 32,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.12156862765550613,
+            "g": 0.14901961386203766,
+            "b": 0.529411792755127,
+            "a": 0.07000000029802322
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.12156862765550613,
+            "c1": 0.14901961386203766,
+            "c2": 0.529411792755127,
+            "c3": 0.07000000029802322
+          }
+        },
+        "rawType": "DROP_SHADOW",
+        "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.07,
+          "b": 0.529412,
+          "g": 0.14902,
+          "r": 0.121569
+        },
+        "sourceNodeId": "825:6570",
+        "spread": 0,
+        "type": "DROP_SHADOW",
+        "visible": true
+      },
+      {
+        "blendMode": "NORMAL",
         "blurOpType": "NORMAL",
         "color": "#000000",
         "offset": {
@@ -901,24 +1724,53 @@ export const communityEvidence = {
         },
         "opacity": 1,
         "radius": 16,
+        "rawFields": {
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
+        "rawPayload": {
+          "type": "BACKGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 16,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": true,
+          "blurOpType": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 1
+          }
+        },
         "rawType": "BACKGROUND_BLUR",
         "showShadowBehindNode": true,
-        "spread": 0,
-        "type": "BACKGROUND_BLUR"
-      },
-      {
-        "blendMode": "NORMAL",
-        "color": "#1F2687",
-        "offset": {
-          "x": 0,
-          "y": 8
+        "sourceColor": {
+          "a": 1,
+          "b": 0,
+          "g": 0,
+          "r": 0
         },
-        "opacity": 0.07,
-        "radius": 32,
-        "rawType": "DROP_SHADOW",
-        "showShadowBehindNode": false,
+        "sourceNodeId": "825:6570",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "BACKGROUND_BLUR",
+        "visible": true
       }
     ],
     "surfaceFills": [

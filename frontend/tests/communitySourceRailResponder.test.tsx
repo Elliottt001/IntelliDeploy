@@ -1,7 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
-import { act, createElement } from 'react';
+import { act, createElement, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
@@ -9,13 +9,21 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 const native = vi.hoisted(() => ({
   animateTo: vi.fn(),
-  panConfig: null as null | { onPanResponderTerminate?: () => void },
+  panConfig: null as null | { onPanResponderRelease?: (_: unknown, gesture: { dx: number; dy: number }) => void; onPanResponderTerminate?: () => void },
   platform: { OS: 'ios', select: (options: Record<string, string>) => options.ios ?? options.default },
+  responderProps: null as null | Record<string, (...args: any[]) => void>,
   settle: vi.fn(),
 }));
 
+function MockView(props: { children?: ReactNode; testID?: string } & Record<string, any>) {
+  if (props.testID === 'community-source-drag-responder') {
+    native.responderProps = props;
+  }
+  return createElement('div', {}, props.children);
+}
+
 vi.mock('react-native', () => ({
-  Animated: { View: () => null },
+  Animated: { View: MockView },
   Image: () => null,
   PanResponder: {
     create: vi.fn((config: { onPanResponderTerminate?: () => void }) => {
@@ -31,7 +39,7 @@ vi.mock('react-native', () => ({
     create: <T,>(styles: T) => styles,
   },
   Text: () => null,
-  View: () => null,
+  View: MockView,
 }));
 vi.mock('react-native-svg', () => ({
   Defs: 'Defs',
@@ -59,6 +67,7 @@ beforeEach(() => {
   native.animateTo.mockClear();
   native.settle.mockClear();
   native.panConfig = null;
+  native.responderProps = null;
   native.platform.OS = 'ios';
 });
 
@@ -92,5 +101,31 @@ test('web PanResponder termination does not override pointer cancel handling', (
   act(() => native.panConfig?.onPanResponderTerminate?.());
 
   expect(native.settle).not.toHaveBeenCalled();
+  act(() => root.unmount());
+});
+
+test('web pointer release is the only release authority', () => {
+  native.platform.OS = 'web';
+  const root = renderRail();
+
+  act(() => {
+    native.responderProps?.onPointerDown?.({ nativeEvent: { clientX: 120, clientY: 30 } });
+    native.responderProps?.onPointerMove?.({ nativeEvent: { clientX: 20, clientY: 30 } });
+    native.responderProps?.onPointerUp?.({ nativeEvent: { clientX: 20, clientY: 30 } });
+    native.panConfig?.onPanResponderRelease?.({}, { dx: -100, dy: 0 });
+  });
+
+  expect(native.animateTo).toHaveBeenCalledTimes(1);
+  expect(native.animateTo).toHaveBeenCalledWith(1);
+  act(() => root.unmount());
+});
+
+test('native PanResponder release remains the native authority', () => {
+  const root = renderRail();
+
+  act(() => native.panConfig?.onPanResponderRelease?.({}, { dx: -100, dy: 0 }));
+
+  expect(native.animateTo).toHaveBeenCalledTimes(1);
+  expect(native.animateTo).toHaveBeenCalledWith(1);
   act(() => root.unmount());
 });

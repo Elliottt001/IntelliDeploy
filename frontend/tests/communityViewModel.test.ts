@@ -13,7 +13,8 @@ test('featured layout uses first available, otherwise first loaded, and has no e
  expect(selectFeaturedPublication([])).toBeUndefined();
 });
 
-import {readFileSync} from 'node:fs';
+import {existsSync,mkdtempSync,readFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {communityEvidence as source} from '../features/community/communityEvidence';
 test('formal rail and featured retain measured shells, clipping, glyphs and decoration geometry',()=>{
@@ -24,6 +25,7 @@ test('formal rail and featured retain measured shells, clipping, glyphs and deco
  expect(source.title.glyphs.every(g=>g.path.startsWith('M'))).toBe(true);expect(source.title.fontSize).toBe(24);expect(Math.atan2(source.decoration.transform.m10,source.decoration.transform.m00)*180/Math.PI).toBeCloseTo(12,4);
 });
 const designSource=process.env.INTELLIDEPLOY_FIGMA_SOURCE;
+const evidenceModule=(text:string)=>JSON.parse(text.match(/export const communityEvidence = ([\s\S]*?) as const;/)![1]);
 test.skipIf(!designSource)('provided Kiwi/FIG/mobile/CSV/raw assets independently match runtime sources',()=>{
  const document=JSON.parse(readFileSync(join(designSource!,'design-data/document.kiwi.json'),'utf8'));const mobile=JSON.parse(readFileSync(join(designSource!,'design-data/移动端UI.nodes.json'),'utf8'));
  const id=(guid:{sessionID:number;localID:number})=>`${guid.sessionID}:${guid.localID}`;const nodes=new Map<string,any>(document.nodeChanges.map((n:any)=>[id(n.guid),n]));
@@ -42,4 +44,18 @@ test.skipIf(!designSource)('provided Kiwi/FIG/mobile/CSV/raw assets independentl
  expect(readFileSync(join(designSource!,'design-data/frames.csv'),'utf8')).toContain('825:6570,FRAME,Feed Item 3 (Full Width Featured)');expect(readFileSync(join(designSource!,'design-data/text.csv'),'utf8')).toContain('818:5811,探索社区广场');
  expect(readFileSync(join(designSource!,'design-data/fonts.csv'),'utf8')).toContain('PingFang SC,Heavy');expect(readFileSync(join(designSource!,'design-data/colors.csv'),'utf8')).toContain('#494A64');
  const raw=JSON.parse(readFileSync(join(designSource!,'design-data/raw-assets.json'),'utf8'));const asset=raw.find((a:any)=>a.archive_path==='images/cf4137a92d5c522da12ba616a0dabfbfcb7da314');expect(asset).toBeTruthy();expect(readFileSync(join(designSource!,asset.local_path))).toEqual(readFileSync(join(import.meta.dirname,'../assets/mobile/generated/825-6573-cf4137a92d5c522da12ba616a0dabfbfcb7da314.png')));
+});
+
+test.skipIf(!designSource)('community evidence generator writes isolated deterministic output with raw atmosphere effects',async()=>{
+ const {writeCommunityEvidence}=await import('../features/community/extractCommunityEvidence.mjs') as {writeCommunityEvidence:(designSource:string,outputPath:string)=>Promise<unknown>};
+ const directory=mkdtempSync(join(tmpdir(),'task10-community-evidence-')),first=join(directory,'first.ts'),second=join(directory,'second.ts');
+ const trackedPath=join(import.meta.dirname,'../features/community/communityEvidence.ts'),before=readFileSync(trackedPath);
+ await writeCommunityEvidence(designSource!,first);await writeCommunityEvidence(designSource!,second);
+ expect(existsSync(first)).toBe(true);expect(existsSync(second)).toBe(true);expect(readFileSync(first)).toEqual(readFileSync(second));expect(readFileSync(trackedPath)).toEqual(before);expect(readFileSync(first)).toEqual(before);
+ const generated=evidenceModule(readFileSync(first,'utf8'));
+ const document=JSON.parse(readFileSync(join(designSource!,'design-data/document.kiwi.json'),'utf8'));const id=(guid:{sessionID:number;localID:number})=>`${guid.sessionID}:${guid.localID}`;const nodes=new Map<string,any>(document.nodeChanges.map((n:any)=>[id(n.guid),n]));
+ const raw=generated.atmosphere.effects.map((effect:any)=>nodes.get(effect.sourceNodeId).effects.find((sourceEffect:any)=>sourceEffect.type===effect.rawType&&sourceEffect.seed===effect.seed));
+ expect(generated.atmosphere.effects.map((effect:any)=>effect.sourceNodeId)).toEqual(['168:6379','168:6380']);
+ expect(generated.atmosphere.effects.map((effect:any)=>effect.type)).toEqual(raw.map((effect:any)=>effect.type));
+ expect(generated.atmosphere.effects.map((effect:any)=>effect.rawPayload)).toEqual(raw);
 });
