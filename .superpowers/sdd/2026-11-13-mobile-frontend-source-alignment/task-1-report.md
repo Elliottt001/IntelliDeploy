@@ -183,3 +183,49 @@ full frontend units with DTO env: 21 files passed, 133 tests passed, 0 skipped.
 ```
 
 Determinism was not rerun in fix round 1 because `frontend/scripts/extract-source-motion.mjs` and generated `frontend/design/sourceMotionEvidence.ts` were unchanged.
+
+## Fix round 1 documentation correction
+
+### Helper resolution
+
+The task-brief helper exists outside the worktree at:
+
+```bash
+/Users/bytedance/.trae/skills/subagent-driven-development/scripts/task-brief
+```
+
+The tracked plan was amended only in Task 1, changing:
+
+```text
+- Modify: `frontend/design/mobileEvidence.ts`
+```
+
+to:
+
+```text
+- Read: `frontend/design/mobileEvidence.ts`（preserve existing sole approved manifest; no content change required）
+```
+
+Then the brief was regenerated with:
+
+```bash
+bash /Users/bytedance/.trae/skills/subagent-driven-development/scripts/task-brief docs/superpowers/plans/2026-11-13-mobile-frontend-source-alignment.md 1 .superpowers/sdd/2026-11-13-mobile-frontend-source-alignment/task-1-brief.md
+```
+
+Output:
+
+```text
+wrote .superpowers/sdd/2026-11-13-mobile-frontend-source-alignment/task-1-brief.md: 122 lines
+```
+
+### Doc-only diff check
+
+No implementation files were changed in this documentation correction. The intended diff is limited to:
+
+```text
+docs/superpowers/plans/2026-11-13-mobile-frontend-source-alignment.md
+.superpowers/sdd/2026-11-13-mobile-frontend-source-alignment/task-1-brief.md
+.superpowers/sdd/2026-11-13-mobile-frontend-source-alignment/task-1-report.md
+```
+
+No tests were rerun because this commit is documentation-only and follows the already recorded `133/133` source+DTO-enabled unit verification.

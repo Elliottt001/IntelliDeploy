@@ -186,7 +186,7 @@ export function expectTouchTarget(locator: import('@playwright/test').Locator): 
 - Create: `frontend/design/sourceMotionEvidence.ts`
 - Create: `frontend/tests/sourceMotionEvidence.test.ts`
 - Create: `frontend/e2e/sourceAssertions.ts`
-- Modify: `frontend/design/mobileEvidence.ts`
+- Read: `frontend/design/mobileEvidence.ts`（preserve existing sole approved manifest; no content change required）
 - Read: 原始Kiwi、移动节点、现有component extractor、`motion-source-evidence.json`审计快照。
 
 **Interfaces:** Consumes原始nodeChanges及blobs；produces共享签名中的sourceNode/sourceBox、SourceMotion/getSourceMotion及E2E断言。源清单继续使用现有mobileEvidence，不手工维护第二份26Frame列表。

@@ -6,7 +6,7 @@
 - Create: `frontend/design/sourceMotionEvidence.ts`
 - Create: `frontend/tests/sourceMotionEvidence.test.ts`
 - Create: `frontend/e2e/sourceAssertions.ts`
-- Read: `frontend/design/mobileEvidence.ts`（保留现有完整26状态单一manifest；生成器直接消费，不为满足file list新增无用导出或装饰性产品改动。）
+- Read: `frontend/design/mobileEvidence.ts`（preserve existing sole approved manifest; no content change required）
 - Read: 原始Kiwi、移动节点、现有component extractor、`motion-source-evidence.json`审计快照。
 
 **Interfaces:** Consumes原始nodeChanges及blobs；produces共享签名中的sourceNode/sourceBox、SourceMotion/getSourceMotion及E2E断言。源清单继续使用现有mobileEvidence，不手工维护第二份26Frame列表。
@@ -118,5 +118,5 @@ cmp "$TASK_MOTION_TMP/a.ts" "$TASK_MOTION_TMP/b.ts"
 ```
 
 - [ ] **Step 5: 独立review。** 检查原始父链/实例继承是否正确、生成文件是否可重建、无运行时源包路径、helpers不写业务数据。重要问题修复后重跑相关GREEN。
-- [ ] **Step 6: Scoped commit。** 仅上述新文件及必要的本地计划记录校正；mobileEvidence作为现有单一manifest读取并保持内容不变。提交`feat: preserve mobile source motion contracts`。
+- [ ] **Step 6: Scoped commit。** 仅上述新文件及确实修改的mobileEvidence；提交`feat: preserve mobile source motion contracts`。
 
