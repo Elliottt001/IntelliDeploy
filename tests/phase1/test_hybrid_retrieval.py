@@ -201,3 +201,19 @@ async def test_readme_prompt_injection_remains_plain_candidate_data():
 
     assert result.candidates[0].description == injection
     assert result.candidates[0].sources == ["readme"]
+
+
+@pytest.mark.asyncio
+async def test_known_empty_repository_is_rejected_without_marking_search_unavailable():
+    from app.agent_core.brains.github_retriever import EmptyRepository
+    class EmptyGitHub(FakeGitHub):
+        async def enrich_repository(self, candidate):
+            raise EmptyRepository('Git Repository is empty.')
+    url = 'https://github.com/example/empty'
+    result = await retrieve_sources(requirement('notes'),query_plan('notes'),
+        EmptyGitHub({'notes':[candidate(url,None)]}),RepositoryIndex(),EmptyReadme())
+    assert result.completed is True
+    assert result.candidates == []
+    assert result.errors == []
+    assert result.reuse_rejections[0]['repo_url'] == url
+    assert result.reuse_rejections[0]['reason'] == 'empty_repository'

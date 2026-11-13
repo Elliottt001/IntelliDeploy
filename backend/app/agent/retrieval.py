@@ -7,7 +7,7 @@ from urllib.parse import urlsplit, urlunsplit
 from app.agent.query import deterministic_queries
 from app.agent.repository_index import RepositoryIndex, index_readme_candidates
 from app.agent_core.brains.context_rag_agent import RepositoryCandidate
-from app.agent_core.brains.github_retriever import GitHubRepositorySearchClient
+from app.agent_core.brains.github_retriever import GitHubRepositorySearchClient, EmptyRepository
 from app.agent_core.memory.vector_store import ReadmeSearchResult
 from app.core.types import Requirement, RetrievalCandidate, RetrievalResult
 
@@ -157,6 +157,7 @@ async def retrieve_sources(
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     errors: list[str] = []
+    reuse_rejections: list[dict] = []
     collected: list[tuple[str, dict]] = []
     github_results = results[: len(github_queries)]
     for query, result in zip(github_queries, github_results, strict=True):
@@ -172,6 +173,9 @@ async def retrieve_sources(
                     row = normalize_candidate(
                         await client.enrich_repository(value)
                     )
+                except EmptyRepository:
+                    reuse_rejections.append({"repo_url": row.get("repo_url"), "reason": "empty_repository", "evidence": "github_git_tree_409"})
+                    continue
                 except Exception as exc:
                     row["enrichment_status"] = "FAILED"
                     errors.append(
@@ -211,4 +215,5 @@ async def retrieve_sources(
         candidates=_merge_rows(collected),
         index_version=index_version,
         errors=errors,
+        reuse_rejections=reuse_rejections,
     )

@@ -22,6 +22,10 @@ class GitHubSearchError(Exception):
     pass
 
 
+class EmptyRepository(GitHubSearchError):
+    """GitHub positively confirmed that this repository has no git tree."""
+
+
 class GitHubTokenPool:
     """Redis-backed GitHub token provider with rate-limit awareness.
 
@@ -326,6 +330,13 @@ class GitHubRepositorySearchClient:
                     if token:
                         continue
                     break
+                if response.status_code == 409 and "/git/trees/" in path:
+                    try:
+                        payload = response.json()
+                    except ValueError:
+                        payload = None
+                    if isinstance(payload, dict) and payload.get("message") == "Git Repository is empty.":
+                        raise EmptyRepository("Git Repository is empty.")
                 if response.status_code >= 400:
                     raise GitHubSearchError(
                         f"GitHub API request failed: {response.status_code} {response.text[:200]}"

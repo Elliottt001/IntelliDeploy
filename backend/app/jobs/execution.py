@@ -487,9 +487,10 @@ class JobExecution:
             ).status
             evaluations.append(score_candidate(candidate, requirement))
         if not result.candidates:
-            result.reuse_rejections = [{"reason": "完整检索后未发现可复用候选"}]
+            result.reuse_rejections = [*result.reuse_rejections, {"reason": "完整检索后未发现可复用候选"}]
         else:
             result.reuse_rejections = [
+                *result.reuse_rejections,
                 {
                     "repo_url": item.repo_url,
                     "missing": item.missing_core,
@@ -610,6 +611,7 @@ class JobExecution:
 
         if retrieval.candidates:
             retrieval.reuse_rejections = [
+                *retrieval.reuse_rejections,
                 {
                     "repo_url": evaluation.repo_url,
                     "reasons": evaluation.rejection_reasons,
@@ -623,6 +625,7 @@ class JobExecution:
             ]
         else:
             retrieval.reuse_rejections = [
+                *retrieval.reuse_rejections,
                 {"reason": "complete search found no reusable candidates"}
             ]
         checkpoint.retrieval = retrieval
