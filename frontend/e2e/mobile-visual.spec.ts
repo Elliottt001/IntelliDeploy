@@ -52,8 +52,8 @@ test.describe('@visual formal mobile states', () => {
   });
   for (const number of [56,57]) test(`products page-${number}`, async({page},info)=>{await fixtures(page);await page.goto('/app-gallery');await expect(page.getByTestId('product-folder-created')).toBeVisible();if(number===57)await page.getByTestId('product-folder-created').click();await capture(page,'products',number,info);});
   for (const number of [59,60]) test(`community page-${number}`,async({page},info)=>{
-    await fixtures(page,false);await page.goto('/community');const rail=page.getByTestId('community-discovery');await expect(rail).toBeVisible();
-    if(number===60){await rail.hover();await page.mouse.wheel(94,0);await expect.poll(()=>rail.evaluate(el=>Math.max(...[el,...Array.from(el.querySelectorAll('*'))].map(node=>node.scrollLeft)))).toBe(94);}
+    await fixtures(page,false);await page.goto('/community');const rail=page.getByTestId('community-source-rail');await expect(rail).toBeVisible();
+    if(number===60){await rail.hover();await page.mouse.wheel(94,0);await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('1');}
     await capture(page,'community',number,info);
   });
 });

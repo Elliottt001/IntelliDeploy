@@ -14,8 +14,8 @@ test('Expo community copy survives login and navigates to its independent job',a
  await page.route('**/api/library/favorites',r=>r.fulfill({json:{items:[],next_cursor:null}}));
  await page.route('**/api/publications/shared/copies',r=>r.fulfill({status:201,json:{app_id:'copied',job_id:'copy-job',status:'QUEUED'}}));
  await page.route('**/api/apps/copied',r=>r.fulfill({json:{id:'copied',name:'我的副本',updated_at:stamp,instance_status:null,requirement:{prompt:'笔记',acceptance:[],revision:1,facts:[],source_message_ids:[]},conversation:[],active_job_id:'copy-job',active_job:copyJob,latest_job:copyJob,delivery:null,candidate_version_id:null}}));
- await page.goto('/community');
- await page.getByTestId('discovery-publication-shared').click();
+ await page.goto('/store');
+ await page.getByTestId('store-open-shared').click();
  await expect(page.getByText('访问者使用自己的额度，使用前登录。')).toBeVisible();
  await page.getByTestId('copy-publication').click();
  await expect(page).toHaveURL(/\/app-detail\/copied/);

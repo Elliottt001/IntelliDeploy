@@ -1,15 +1,19 @@
-import { useState } from 'react';
-import { Image, Platform, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
+import { Animated, Image, Platform, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
 import Svg, { Defs, FeDropShadow, Filter, G, Path } from 'react-native-svg';
 import type { FigmaPrimitiveEvidence } from '../../design/figmaComponentEvidence';
 import { mobileAssets } from '../../design/generated/mobileAssetManifest';
 import { mobileFontFamilies } from '../../theme/typography';
+import { getSourceMotion } from '../../design/sourceMotionEvidence';
+import { useSourceMotion } from '../../components/mobile/useSourceMotion';
 import { communityEvidence as source } from './communityEvidence';
-import type { DiscoveryCardModel } from './communityViewModel';
+import type { CommunityCardCopy, DiscoveryCardModel } from './communityViewModel';
 import {communityCardSlots as slots} from '../../design/communityCardSlots';
 import {FigmaTree,type FigmaTreeNode} from '../../components/mobile/FigmaTree';
 import {communityAvatarRenderEvidence as mascot} from '../../design/communityAvatarRenderEvidence';
 const neutralArtwork=mobileAssets['845:3522:114'].source as ImageSourcePropType;
+const WebWheelView=View as unknown as ComponentType<{children:ReactNode;style:ViewStyle;onWheel:(event:{nativeEvent?:{deltaX?:number;deltaY?:number}})=>void}>;
+const WebAnimatedView=Animated.View as unknown as ComponentType<{children:ReactNode;testID:string;dataSet:Record<string,string>;style:unknown}>;
 const rgba=(color:string,opacity:number)=>{const hex=color.slice(1);return `rgba(${parseInt(hex.slice(0,2),16)},${parseInt(hex.slice(2,4),16)},${parseInt(hex.slice(4,6),16)},${opacity})`;};
 export function communitySurface(definition:FigmaPrimitiveEvidence):ViewStyle {
  const fill=definition.surfaceFills?.find(p=>p.type==='SOLID');const stroke=definition.surfaceStrokes?.find(p=>p.type==='SOLID');
@@ -28,6 +32,39 @@ export function CommunitySourceHeading({kind}:{kind:'title'|'subtitle'}) {
 export function PublicationPreview({card,tall=false}:{card:DiscoveryCardModel;tall?:boolean}) {
  const [failed,setFailed]=useState(false);
  return <Image key={card.previewUrl} accessibilityLabel={card.previewUrl&&!failed?`${card.title}预览`:`${card.title}暂无预览`} source={card.previewUrl&&!failed?{uri:card.previewUrl}:neutralArtwork} onError={()=>setFailed(true)} resizeMode={card.previewUrl&&!failed?'cover':'contain'} style={tall?{width:source.preview.size.x,height:source.preview.size.y,borderRadius:source.preview.cornerRadius}:styles.preview} />;
+}
+export function CommunitySourceCard({copy,id,kind='tall'}:{copy:CommunityCardCopy;id:string;kind?:'tall'|'standard'|'square'}) {
+ const definition=source[kind],surface=communitySurface(definition),tall=kind==='tall';
+ return <View testID={`community-source-card-${id}`} style={[surface,styles.card,{width:definition.size.width,height:definition.size.height},tall&&{padding:0,borderWidth:0}]}>
+  {tall?<>
+   <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:surface.borderWidth,borderColor:surface.borderColor,borderRadius:surface.borderRadius}]} />
+   <View pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={{position:'absolute',left:slots.avatar.x,top:slots.avatar.y,width:slots.avatar.width,height:slots.avatar.height}}><FigmaTree node={mascot.tree as unknown as FigmaTreeNode} prefix={`community-source-mascot-${id}`} testID={`community-source-mascot-${id}`}/></View>
+   {copy.author!==null&&<Text testID="community-card-author" numberOfLines={1} style={[communityCardStyles.creator,{position:'absolute',left:slots.copy.x,top:slots.copy.y+slots.creator.y,width:slots.header.width-slots.copy.x}]}>{copy.author}</Text>}
+   {copy.time!==null&&<Text testID="community-card-time" numberOfLines={1} style={[communityCardStyles.creator,{position:'absolute',left:slots.summary.x,top:slots.copy.y+slots.creator.y,width:slots.summary.width,textAlign:'right'}]}>{copy.time}</Text>}
+   {copy.body!==null&&<Text testID="community-card-body" style={[communityCardStyles.summary,{position:'absolute',left:slots.summary.x,top:slots.summary.y,width:slots.summary.width,maxHeight:slots.summary.height}]}>{copy.body}</Text>}
+  </>:<>
+   {copy.author!==null&&<Text testID="community-card-author" numberOfLines={1} style={styles.creator}>{copy.author}</Text>}
+   {copy.time!==null&&<Text testID="community-card-time" numberOfLines={1} style={styles.creator}>{copy.time}</Text>}
+   {copy.body!==null&&<Text testID="community-card-body" style={styles.summary}>{copy.body}</Text>}
+  </>}
+ </View>;
+}
+export function CommunitySourceRail({cards}:{cards:readonly {id:string;copy:CommunityCardCopy;kind?:'tall'|'standard'|'square'}[]}) {
+ const motion=useMemo(()=>getSourceMotion('825:5887','DRAG','825:6452'),[]);
+ const reverse=useMemo(()=>getSourceMotion('825:6488','DRAG','168:6358'),[]);
+ const {animateTo,progress}=useSourceMotion(motion);
+ const [position,setPosition]=useState(0);
+ useEffect(()=>{const listener=progress.addListener(({value})=>setPosition(value));return()=>progress.removeListener(listener);},[progress]);
+ const delta=source.railTarget.transform.m02-source.rail.transform.m02;
+ const offset=progress.interpolate({inputRange:[0,1],outputRange:[0,delta]});
+ const setTarget=(target:0|1)=>animateTo(target);
+ return <WebWheelView style={{height:source.rail.size.y,overflow:'hidden'}} onWheel={(event)=>{if(Platform.OS==='web'){const deltaX=event.nativeEvent?.deltaX??event.nativeEvent?.deltaY??0;setTarget(deltaX>=0?1:0);}}}>
+  <WebAnimatedView testID="community-source-rail" dataSet={{sourceMotion:`${motion?.nodeId}->${motion?.targetNodeId}`,sourceReverseMotion:`${reverse?.nodeId}->${reverse?.targetNodeId}`,sourceProgress:position>.5?'1':'0'}} style={{position:'absolute',left:0,top:0,width:source.rail.size.x,height:source.rail.size.y,transform:[{translateX:offset}]}}>
+   <View style={{position:'absolute',left:0,top:0}}><CommunitySourceCard id={cards[0]?.id??'primary'} copy={cards[0]?.copy??{author:null,time:null,body:null}} kind={cards[0]?.kind}/></View>
+   <View style={{position:'absolute',left:source.standardNode.transform.m02,top:0}}><CommunitySourceCard id={cards[1]?.id??'standard'} copy={cards[1]?.copy??{author:null,time:null,body:null}} kind={cards[1]?.kind??'standard'}/></View>
+   <View style={{position:'absolute',left:source.squareNode.transform.m02,top:source.standard.size.height+(source.squareNode.transform.m12-source.standard.size.height)}}><CommunitySourceCard id={cards[2]?.id??'square'} copy={cards[2]?.copy??{author:null,time:null,body:null}} kind={cards[2]?.kind??'square'}/></View>
+  </WebAnimatedView>
+ </WebWheelView>;
 }
 export default function DiscoveryCard({card,kind='tall',onOpen}:{card:DiscoveryCardModel;kind?:'tall'|'standard'|'square';onOpen:()=>void}) {
  const definition=source[kind];const tall=kind==='tall';

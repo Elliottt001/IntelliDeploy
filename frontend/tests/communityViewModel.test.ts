@@ -1,9 +1,10 @@
 import { expect, test } from 'vitest';
-import { toDiscoveryCard, selectFeaturedPublication } from '../features/community/communityViewModel';
+import { toPublicationDetailCard, selectFeaturedPublication, unavailablePostCopy } from '../features/community/communityViewModel';
 const publication = { id: 'p', app_id: 'a', instance_id: 'i', version_id: 'v', name: '共享笔记', summary: '', features: [], creator: '作者', preview_url: null, url: null, available: true, payer_policy: 'VISITOR' as const, sponsor_period: 'DAY' as const, sponsor_limit_units: 10, copy_url: '/copy', updated_at: '2026-11-10T00:00:00Z' };
-test('community cards contain exactly publication-backed facts', () => {
- expect(toDiscoveryCard(publication)).toEqual({ id: 'p', title: '共享笔记', summary: '查看应用介绍', creator: '作者', previewUrl: null, availability: '可使用' });
- expect(toDiscoveryCard({...publication, summary:' 真实摘要 ', available:false, preview_url:'https://preview.example/image.png'})).toEqual({id:'p',title:'共享笔记',summary:'真实摘要',creator:'作者',previewUrl:'https://preview.example/image.png',availability:'暂不可用'});
+test('publication detail cards remain publication-backed without becoming community posts', () => {
+ expect(toPublicationDetailCard(publication)).toEqual({ id: 'p', title: '共享笔记', summary: '查看应用介绍', creator: '作者', previewUrl: null, availability: '可使用' });
+ expect(toPublicationDetailCard({...publication, summary:' 真实摘要 ', available:false, preview_url:'https://preview.example/image.png'})).toEqual({id:'p',title:'共享笔记',summary:'真实摘要',creator:'作者',previewUrl:'https://preview.example/image.png',availability:'暂不可用'});
+ expect(unavailablePostCopy).toEqual({author:null,time:null,body:null});
 });
 test('featured layout uses first available, otherwise first loaded, and has no empty placeholder', () => {
  const first={...publication,id:'first',available:false}; const second={...publication,id:'second'};

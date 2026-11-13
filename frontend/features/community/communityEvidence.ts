@@ -963,6 +963,30 @@ export const communityEvidence = {
     "lineHeight": null,
     "textColor": null
   },
+  "railTarget": {
+    "sourceNodeId": "825:6488",
+    "size": {
+      "x": 601.0499877929688,
+      "y": 562
+    },
+    "transform": {
+      "m00": 1,
+      "m01": 0,
+      "m02": -73,
+      "m10": 0,
+      "m11": 1,
+      "m12": 188
+    },
+    "cornerRadius": 0,
+    "opacity": 1,
+    "clipsContent": true,
+    "fillPaints": [],
+    "strokePaints": [],
+    "effects": [],
+    "fontSize": null,
+    "lineHeight": null,
+    "textColor": null
+  },
   "tallNode": {
     "sourceNodeId": "270:24544",
     "size": {
