@@ -656,16 +656,13 @@ class JobExecution:
                 evaluations,
                 model,
             )
-            if route.route == "COMPOSE_COMPONENTS":
-                from app.agent.integration import build_integration_contract
-
-                contract = await build_integration_contract(
-                    requirement,
-                    route,
-                    profiles,
-                    self.model(f"integration:{requirement.revision}"),
+            if checkpoint.mode == "hybrid":
+                from app.agent.orchestrator import AlgorithmOrchestrator
+                route, gaps = await AlgorithmOrchestrator(self).plan_gaps_and_finalize_route(
+                    requirement, route, retrieval, profiles, evaluations
                 )
-                checkpoint.integration_contract = contract
+                checkpoint = self.algorithm_checkpoint()
+                route_record = next(stage for stage in checkpoint.stages if stage.operation_id == route_record.operation_id)
         except Exception as exc:
             route_record.status = "FAILED"
             route_record.duration_ms = int((time.monotonic() - started) * 1000)
