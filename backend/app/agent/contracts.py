@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Literal, TypeAlias
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pathlib import PurePosixPath
 
 from app.core.types import (
     CandidateEvaluation,
@@ -24,6 +25,9 @@ AlgorithmStage: TypeAlias = Literal[
     "REVIEW",
     "SECURITY",
     "HEALING",
+    "GAP",
+    "PACKAGING",
+    "COMPOSITION",
 ]
 
 
@@ -68,6 +72,7 @@ class ApiMapping(BaseModel):
 
 
 class IntegrationContract(BaseModel):
+    role_services: dict[str, str] = Field(default_factory=dict)
     components: list[ComponentRole]
     service_boundaries: list[ServiceBoundary] = Field(default_factory=list)
     identity_owner: str
@@ -182,7 +187,106 @@ class AlgorithmStageRecord(BaseModel):
     error_code: str | None = None
 
 
+class PlanValue(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class PackagingFinding(PlanValue):
+    code: str
+    severity: Literal["BLOCKING", "WARNING", "INFO"]
+    message: str
+    evidence_ref: str
+
+
+class SafeDockerEdit(PlanValue):
+    kind: Literal["INSERT_WORKDIR", "SET_EXPOSE", "SET_START_COMMAND", "SET_INSTALL_COMMAND"]
+    old_value: str | None = None
+    new_value: str
+    evidence_refs: list[str] = Field(min_length=1)
+
+
+class PackagingPlan(PlanValue):
+    source_url: str | None = None
+    source_commit: str | None = Field(default=None, pattern=r"^[0-9a-f]{40}$")
+    dockerfile_path: str
+    action: Literal["REUSE", "NORMALIZE", "GENERATE", "BLOCKED"]
+    package_manager: str | None = None
+    install_command: list[str] | None = Field(default=None, min_length=1)
+    start_command: list[str] | None = Field(default=None, min_length=1)
+    container_port: int | None = Field(default=None, ge=1, le=65535)
+    health_path: str | None = None
+    safe_edits: list[SafeDockerEdit] = Field(default_factory=list)
+    findings: list[PackagingFinding] = Field(default_factory=list)
+    input_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    output_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def path_is_relative(self):
+        validate_plan_path(self.dockerfile_path)
+        return self
+
+
+def validate_plan_path(value: str):
+    path = PurePosixPath(value)
+    if not value or path.is_absolute() or ".." in path.parts or "\\" in value:
+        raise ValueError("plan path must be relative")
+
+
+class CompositionCost(PlanValue):
+    local_units: int = Field(ge=0)
+    composition_units: int = Field(ge=0)
+    evidence_refs: list[str] = Field(min_length=1)
+
+
+class AcceptanceGap(PlanValue):
+    acceptance_id: str
+    status: Literal["SATISFIED", "LOCAL_REPAIR", "COMPONENT_SOURCE", "BLOCKED"]
+    principal_source: RepoSource | None = None
+    provider_source: RepoSource | None = None
+    capability: str
+    required_changes: list[str] = Field(default_factory=list)
+    preserve: list[str] = Field(default_factory=list)
+    evidence_refs: list[str] = Field(default_factory=list)
+    reason: str
+
+
+class GapPlan(PlanValue):
+    requirement_revision: int = Field(ge=1)
+    principal_source: RepoSource | None = None
+    gaps: list[AcceptanceGap]
+    complete: bool
+    input_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    composition_cost: CompositionCost | None = None
+
+    @model_validator(mode="after")
+    def unique_acceptance(self):
+        ids = [g.acceptance_id for g in self.gaps]
+        if len(ids) != len(set(ids)):
+            raise ValueError("duplicate gap acceptance")
+        return self
+
+
+class ComponentWorkspace(PlanValue):
+    role: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,31}$")
+    source: RepoSource
+    relative_path: str
+    read_only_source_path: str
+    tree_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def valid_component(self):
+        import re
+        if not re.fullmatch(r"[0-9a-f]{40}", self.source.commit):
+            raise ValueError("component requires full commit")
+        if self.relative_path != "components/" + self.role or self.read_only_source_path != self.relative_path:
+            raise ValueError("invalid component path")
+        return self
+
+
 class AlgorithmCheckpoint(BaseModel):
+    gap_plan: GapPlan | None = None
+    packaging_plans: list[PackagingPlan] = Field(default_factory=list)
+    component_workspaces: list[ComponentWorkspace] = Field(default_factory=list)
     schema_version: Literal[1] = 1
     requirement_revision: int = Field(ge=1)
     mode: AlgorithmMode

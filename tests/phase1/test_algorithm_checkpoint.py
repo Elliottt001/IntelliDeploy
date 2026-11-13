@@ -126,3 +126,12 @@ def test_adjust_job_freezes_current_mode_and_next_requirement_revision(
         monkeypatch.setattr("app.apps.service.settings.ALGORITHM_MODE", "baseline")
         session.expire_all()
         assert session.get(Job, adjusted.job_id).checkpoint["algorithm"]["mode"] == "hybrid"
+
+
+def test_old_checkpoint_has_empty_new_plans():
+    restored = load_algorithm_checkpoint({"algorithm": {
+        "schema_version": 1, "requirement_revision": 1,
+        "mode": "baseline", "algorithm_version": "fusion-v1"}}, 1)
+    assert restored.gap_plan is None
+    assert restored.packaging_plans == []
+    assert restored.component_workspaces == []
