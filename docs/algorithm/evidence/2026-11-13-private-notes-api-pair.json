@@ -1,0 +1,160 @@
+{
+  "case_id": "private-notes-crud-persistence-isolation",
+  "prompt": "做一个私人笔记网站，登录后可以新增、修改、删除笔记，刷新页面和服务重启后内容仍在，不同账号互相看不到笔记。",
+  "execution": "real serial HTTP submissions via POST /api/evaluation/runs; no forced route or fixture",
+  "controller_commit": "1d1c5a5",
+  "pair_id": "34f5c37d-9f7c-4e57-b0b1-4bfda668331c",
+  "target_id": "paired-linux",
+  "model": "deepseek-flash",
+  "model_max_output_tokens": 32768,
+  "model_call_limit": 128,
+  "budget_units_per_job": 10000000,
+  "poll_interval_seconds": 2,
+  "clarification_answer": "按原需求：每个账号只能访问自己的笔记，使用平台统一登录，增改删和刷新、重启后持久保存都必须实现；界面采用合理默认方案，不需要其他扩展。",
+  "records": [
+    {
+      "mode": "baseline",
+      "app_id": "f02ce3b0-7f0d-4d8a-9922-d0ada8299a2b",
+      "job_id": "3e0e1266-92b5-4eac-833a-8a5f10d687e5",
+      "submitted_at": "2026-11-13T05:13:39.825178+00:00",
+      "finished_at": "2026-11-13T05:16:59.713693+00:00",
+      "status": "FAILED",
+      "time_to_terminal_seconds": 199.889,
+      "successful_completion_seconds": null,
+      "real_delivery_passed": false,
+      "report": {
+        "job_id": "3e0e1266-92b5-4eac-833a-8a5f10d687e5",
+        "overall": "NOT_RUN",
+        "checks": [],
+        "requirement_revision": null,
+        "attempt_id": null,
+        "manifest_hash": null
+      },
+      "phase_durations": [
+        {
+          "phase": "clarifying",
+          "duration_ms": 198523
+        },
+        {
+          "phase": "failed",
+          "duration_ms": 0
+        }
+      ],
+      "algorithm": {
+        "mode": "baseline",
+        "version": "fusion-v1",
+        "route": null,
+        "route_confidence": null,
+        "retrieval_complete": false,
+        "review": {
+          "blocking_count": 0,
+          "warning_count": 0,
+          "info_count": 0
+        },
+        "healing": {
+          "attempt_count": 0,
+          "candidate_count": 0,
+          "reasons": []
+        }
+      },
+      "evidence_gate": {
+        "status": "FAIL",
+        "reasons": [
+          "REAL_RELEASE_EVIDENCE_MISSING",
+          "BUSINESS_VALIDATION_NOT_PASS"
+        ]
+      },
+      "error": {
+        "code": "PIPELINE_FAILED",
+        "message": "模型未能整理完整且可核对的需求",
+        "retryable": true
+      },
+      "model_call_count": 8,
+      "model_tokens": {
+        "cached_input_tokens": 3328,
+        "output_tokens": 34104,
+        "uncached_input_tokens": 8710
+      },
+      "estimated_model_cny": "0.14519256",
+      "unknown_call_count": 0,
+      "test_ledger_cost_units": 2918,
+      "clarification": {
+        "question": "用户账号如何创建：支持访客自助注册，还是由管理员预置账号？",
+        "answer": "按原需求：每个账号只能访问自己的笔记，使用平台统一登录，增改删和刷新、重启后持久保存都必须实现；界面采用合理默认方案，不需要其他扩展。"
+      }
+    },
+    {
+      "mode": "hybrid",
+      "app_id": "9a1150d9-cb84-4b7c-ac52-5cc00ce820c7",
+      "job_id": "38818d20-e0ad-43bb-aee2-a82a4dc7e04e",
+      "submitted_at": "2026-11-13T05:16:59.751809+00:00",
+      "finished_at": "2026-11-13T05:19:29.054219+00:00",
+      "status": "FAILED",
+      "time_to_terminal_seconds": 149.303,
+      "successful_completion_seconds": null,
+      "real_delivery_passed": false,
+      "report": {
+        "job_id": "38818d20-e0ad-43bb-aee2-a82a4dc7e04e",
+        "overall": "NOT_RUN",
+        "checks": [],
+        "requirement_revision": null,
+        "attempt_id": null,
+        "manifest_hash": null
+      },
+      "phase_durations": [
+        {
+          "phase": "clarifying",
+          "duration_ms": 149092
+        },
+        {
+          "phase": "failed",
+          "duration_ms": 0
+        }
+      ],
+      "algorithm": {
+        "mode": "hybrid",
+        "version": "fusion-v1",
+        "route": null,
+        "route_confidence": null,
+        "retrieval_complete": false,
+        "review": {
+          "blocking_count": 0,
+          "warning_count": 0,
+          "info_count": 0
+        },
+        "healing": {
+          "attempt_count": 0,
+          "candidate_count": 0,
+          "reasons": []
+        }
+      },
+      "evidence_gate": {
+        "status": "FAIL",
+        "reasons": [
+          "REAL_RELEASE_EVIDENCE_MISSING",
+          "BUSINESS_VALIDATION_NOT_PASS"
+        ]
+      },
+      "error": {
+        "code": "PIPELINE_FAILED",
+        "message": "模型未能整理完整且可核对的需求",
+        "retryable": true
+      },
+      "model_call_count": 6,
+      "model_tokens": {
+        "cached_input_tokens": 2688,
+        "output_tokens": 25682,
+        "uncached_input_tokens": 5340
+      },
+      "estimated_model_cny": "0.10812176",
+      "unknown_call_count": 0,
+      "test_ledger_cost_units": 2172,
+      "clarification": null
+    }
+  ],
+  "conclusion": "Both failed before business validation. No successful completion time or Hybrid delivery benefit can be measured.",
+  "cost_note": "CNY estimate from recorded tokens and request-start peak window. Not provider invoice or actual cloud billing. Peak weekdays 09-12 and 14-18 Beijing excluding holidays; 2026-11-13 has no holiday adjustment. Model flash: cached .02/.04, input 1/2, output 4/8 per million.",
+  "all_attempts_known_estimated_model_cny": "2.92416400",
+  "all_attempts_unconfirmed_model_calls": 1,
+  "clarification_policy": "Same predefined answer if the task enters WAITING_USER; at most once. Final Baseline received it; final Hybrid did not enter WAITING_USER."
+}
