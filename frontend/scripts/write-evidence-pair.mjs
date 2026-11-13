@@ -36,14 +36,38 @@ export function resolveEvidenceOutputs({ runtimeDefault, auditDefault, env = pro
   return { runtimePath: asPath(runtimeDefault), auditPath: asPath(auditDefault) };
 }
 
-export async function writeEvidencePairAtomically({
-  runtimePath,
-  auditPath,
-  runtimeContent,
-  auditContent,
-}) {
+const failure = (operation, target, error) => ({ operation, target, error });
+
+const aggregate = (phase, failures) =>
+  new AggregateError(
+    failures.map((item) => item.error),
+    `${phase}: ${failures
+      .map((item) => `${item.operation} ${item.target}: ${item.error?.message ?? item.error}`)
+      .join('; ')}`,
+  );
+
+async function settle(tasks) {
+  const results = await Promise.allSettled(tasks.map((task) => task.run()));
+  return results.flatMap((result, index) =>
+    result.status === 'rejected'
+      ? [failure(tasks[index].operation, tasks[index].target, result.reason)]
+      : [],
+  );
+}
+
+export async function writeEvidencePairAtomically(
+  {
+    runtimePath,
+    auditPath,
+    runtimeContent,
+    auditContent,
+  },
+  {
+    ops = fs,
+    suffix = `${process.pid}-${randomUUID()}`,
+  } = {},
+) {
   if (runtimePath === auditPath) throw Error('Runtime and audit evidence targets must differ');
-  const suffix = `${process.pid}-${randomUUID()}`;
   const artifacts = [
     { target: runtimePath, content: runtimeContent },
     { target: auditPath, content: auditContent },
@@ -56,41 +80,103 @@ export async function writeEvidencePairAtomically({
     ),
   }));
 
-  await Promise.all(
-    artifacts.map((artifact) => fs.mkdir(path.dirname(artifact.target), { recursive: true })),
+  const stagingPreparationFailures = await settle(
+    artifacts.map((artifact) => ({
+      operation: 'mkdir',
+      target: path.dirname(artifact.target),
+      run: () => ops.mkdir(path.dirname(artifact.target), { recursive: true }),
+    })),
   );
-  try {
-    await Promise.all(
-      artifacts.map((artifact) => fs.writeFile(artifact.staged, artifact.content)),
-    );
-  } catch (error) {
-    await Promise.all(artifacts.map((artifact) => fs.rm(artifact.staged, { force: true })));
-    throw error;
+  if (stagingPreparationFailures.length) {
+    throw aggregate('staging preparation failed', stagingPreparationFailures);
   }
 
+  const stagingFailures = await settle(
+    artifacts.map((artifact) => ({
+      operation: 'stage write',
+      target: artifact.staged,
+      run: () => ops.writeFile(artifact.staged, artifact.content),
+    })),
+  );
+  if (stagingFailures.length) {
+    const cleanupFailures = await settle(
+      artifacts.map((artifact) => ({
+        operation: 'staged cleanup',
+        target: artifact.staged,
+        run: () => ops.rm(artifact.staged, { force: true }),
+      })),
+    );
+    throw aggregate('staging failed', [...stagingFailures, ...cleanupFailures]);
+  }
+
+  // Pre-commit: until both staged files are promoted, every failure rolls back.
   const backedUp = [];
   const promoted = [];
   try {
     for (const artifact of artifacts) {
       try {
-        await fs.rename(artifact.target, artifact.backup);
+        await ops.rename(artifact.target, artifact.backup);
         backedUp.push(artifact);
       } catch (error) {
         if (error?.code !== 'ENOENT') throw error;
       }
     }
     for (const artifact of artifacts) {
-      await fs.rename(artifact.staged, artifact.target);
+      await ops.rename(artifact.staged, artifact.target);
       promoted.push(artifact);
     }
-    await Promise.all(backedUp.map((artifact) => fs.rm(artifact.backup, { force: true })));
   } catch (error) {
-    await Promise.all(promoted.map((artifact) => fs.rm(artifact.target, { force: true })));
-    for (const artifact of backedUp.reverse()) {
-      await fs.rename(artifact.backup, artifact.target);
-    }
-    throw error;
-  } finally {
-    await Promise.all(artifacts.map((artifact) => fs.rm(artifact.staged, { force: true })));
+    const rollbackFailures = [];
+    rollbackFailures.push(
+      ...(await settle(
+        promoted.map((artifact) => ({
+          operation: 'promoted target removal',
+          target: artifact.target,
+          run: () => ops.rm(artifact.target, { force: true }),
+        })),
+      )),
+    );
+    rollbackFailures.push(
+      ...(await settle(
+        backedUp.map((artifact) => ({
+          operation: 'backup restore',
+          target: `${artifact.backup} -> ${artifact.target}`,
+          run: () => ops.rename(artifact.backup, artifact.target),
+        })),
+      )),
+    );
+    rollbackFailures.push(
+      ...(await settle(
+        artifacts.map((artifact) => ({
+          operation: 'staged cleanup',
+          target: artifact.staged,
+          run: () => ops.rm(artifact.staged, { force: true }),
+        })),
+      )),
+    );
+    throw aggregate(
+      rollbackFailures.length
+        ? 'pre-commit failed; rollback completed with issues'
+        : 'pre-commit failed; rollback restored the old pair', [
+      failure('pre-commit operation', 'runtime/audit pair', error),
+      ...rollbackFailures,
+    ]);
+  }
+
+  // Commit is complete once both promotions succeed. Cleanup must never roll it back.
+  const postCommitFailures = await settle([
+    ...backedUp.map((artifact) => ({
+      operation: 'backup cleanup',
+      target: artifact.backup,
+      run: () => ops.rm(artifact.backup, { force: true }),
+    })),
+    ...artifacts.map((artifact) => ({
+      operation: 'staged cleanup',
+      target: artifact.staged,
+      run: () => ops.rm(artifact.staged, { force: true }),
+    })),
+  ]);
+  if (postCommitFailures.length) {
+    throw aggregate('post-commit cleanup failed; new pair remains committed', postCommitFailures);
   }
 }
