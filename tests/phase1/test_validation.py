@@ -274,3 +274,13 @@ async def test_check_planner_receives_actual_schema_and_action_arguments():
             return ModelTurn(assistant_message={'content':json.dumps(value)})
     result=await compile_browser_checks(req,['app/api/notes/route.ts'],Model())
     assert result[0].item_id=='save'
+
+
+def test_browser_check_schema_requires_explicit_action_type():
+    from pydantic import TypeAdapter
+    from app.core.types import BrowserCheck
+    schema=TypeAdapter(list[BrowserCheck]).json_schema()
+    action_items=schema['$defs']['BrowserCheck']['properties']['actions']['items']
+    variants=[schema['$defs'][item['$ref'].rsplit('/',1)[-1]] for item in action_items['anyOf']]
+    assert len(variants)==8
+    assert all('type' in variant['required'] for variant in variants)

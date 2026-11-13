@@ -1135,12 +1135,18 @@ class JobExecution:
         self.admit_resource(
             "execution.millis", int(call.arguments.get("timeout", 60)) * 1000
         )
-        from app.runner.client import RunnerToolRejected
-        try:
-            response = await self.runner.tool(self.job_id, call, self.generation)
-        except RunnerToolRejected as exc:
-            self.job_check()
-            return ToolResult(call_id=call.id, ok=False, content=str(exc))
+        from app.runner.client import RunnerToolRejected, RunnerUnavailable
+        for attempt in range(2):
+            try:
+                response = await self.runner.tool(self.job_id, call, self.generation)
+                break
+            except RunnerToolRejected as exc:
+                self.job_check()
+                return ToolResult(call_id=call.id, ok=False, content=str(exc))
+            except RunnerUnavailable:
+                observed = await self.runner.tool_result(self.job_id, call.id, self.generation)
+                if observed.get("state") != "NOT_STARTED" or attempt:
+                    raise
         self.job_check()
         self.record_resource(
             "tool:" + call.id, "execution.millis", response.get("duration_ms")

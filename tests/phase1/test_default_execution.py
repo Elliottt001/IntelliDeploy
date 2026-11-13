@@ -1322,6 +1322,28 @@ async def test_runner_argument_rejection_is_feedback_without_execution_charge(ne
     execution.record_resource.assert_not_called()
 
 
+@pytest.mark.asyncio
+async def test_runner_retries_once_when_reconciliation_confirms_tool_never_started(new_job,session_factory):
+    from app.runner.client import RunnerUnavailable
+    from app.jobs.execution import JobExecution
+    from app.core.types import ToolCall
+    from unittest.mock import Mock
+    job_id,_,_,generation=new_job
+    runner=AsyncMock()
+    runner.tool.side_effect=[
+        RunnerUnavailable('transport closed'),
+        {'result':{'call_id':'write','ok':True,'content':'saved'},'duration_ms':7},
+    ]
+    runner.tool_result.return_value={'state':'NOT_STARTED'}
+    execution=JobExecution(job_id,'worker',generation,session_factory=session_factory,runner=runner)
+    execution.record_resource=Mock()
+    result=await execution.execute_tool(ToolCall(id='write',name='write_file',arguments={'path':'app.py','content':'source'}))
+    assert result.ok is True
+    assert runner.tool.await_count==2
+    runner.tool_result.assert_awaited_once_with(job_id,'write',generation)
+    execution.record_resource.assert_called_once_with('tool:write','execution.millis',7)
+
+
 def test_generation_budget_replays_uncheckpointed_received_turn(new_job,session_factory):
     from app.jobs.execution import JobExecution
     from app.runtime.models import ResourceRecord

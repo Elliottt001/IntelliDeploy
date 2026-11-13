@@ -1,6 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal, NotRequired, TypedDict
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from enum import StrEnum
 from pathlib import PurePosixPath
@@ -320,10 +320,51 @@ class RetrievalResult(BaseModel):
     index_version: str | None = None
     errors: list[str] = Field(default_factory=list)
 
+class GotoAction(TypedDict):
+    type: Literal['goto']
+    path: str
+
+class FillAction(TypedDict):
+    type: Literal['fill']
+    selector: str
+    value: str
+
+class ClickAction(TypedDict):
+    type: Literal['click']
+    selector: str
+
+class ExpectTextAction(TypedDict):
+    type: Literal['expect_text']
+    selector: str
+    text: str
+
+class ExpectCountAction(TypedDict):
+    type: Literal['expect_count']
+    selector: str
+    count: int
+
+class ReloadAction(TypedDict):
+    type: Literal['reload']
+
+class RequestAction(TypedDict):
+    type: Literal['request']
+    path: str
+    method: NotRequired[str]
+    json: NotRequired[Any]
+    expected_status: NotRequired[int]
+    expected_text: NotRequired[str]
+
+class RestartServiceAction(TypedDict):
+    type: Literal['restart_service']
+    service: str
+
+BrowserAction = (GotoAction | FillAction | ClickAction | ExpectTextAction |
+                 ExpectCountAction | ReloadAction | RequestAction | RestartServiceAction)
+
 class BrowserCheck(BaseModel):
     item_id: str
     actor: Literal['owner', 'other', 'anonymous']
-    actions: list[dict]
+    actions: list[BrowserAction]
     expected: str
 
 class CandidateRuntime(BaseModel):
