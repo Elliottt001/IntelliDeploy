@@ -24,6 +24,16 @@ class Requirement(BaseModel):
     source_message_ids: list[str] = Field(default_factory=list)
     delivery_policy: DeliveryPolicy = Field(default_factory=DeliveryPolicy)
 
+    @property
+    def core_acceptance(self):
+        return [item for item in self.acceptance if item.importance == 'CORE']
+
+    def for_core_validation(self):
+        ids = {item.id for item in self.core_acceptance}
+        facts = [f.model_copy(update={'acceptance_ids':[id for id in f.acceptance_ids if id in ids]})
+                 for f in self.facts if any(id in ids for id in f.acceptance_ids)]
+        return self.model_copy(update={'acceptance':self.core_acceptance,'facts':facts})
+
 class RequirementDraft(BaseModel):
     prompt: str
     acceptance: list[AcceptanceItem]
@@ -448,6 +458,7 @@ class DeliveryResult(BaseModel):
     url: str
     summary: str
     features: list[str]
+    differences: list[str] = Field(default_factory=list)
     report_url: str
     artifact_url: str
     published_at: datetime
@@ -497,6 +508,7 @@ class ReportCheck(BaseModel):
     action: str
     expected: str
     status: Literal['PASS', 'FAIL', 'NOT_RUN']
+    importance: Literal['CORE', 'PREFERENCE'] = 'CORE'
     evidence_urls: list[str] = Field(default_factory=list)
 
 

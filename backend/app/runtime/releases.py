@@ -324,6 +324,7 @@ async def publish_candidate(
         url=deployment.url,
         summary=delivery_metadata.get("summary") or app.name,
         features=list(delivery_metadata.get("features") or []),
+        differences=list(delivery_metadata.get('differences') or []),
         report_url=f"/api/jobs/{job.id}/report",
         artifact_url=f"/api/apps/{app.id}/versions/{candidate.id}/artifact",
         published_at=now,

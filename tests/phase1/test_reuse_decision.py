@@ -65,6 +65,21 @@ def test_equally_capable_principal_prefers_smaller_adaptation_scope():
     assert choose_reuse_decision(req,assessments,ps).selected_sources[0].url==ps[1].repo_url
 
 
+def test_unverified_preference_is_disclosed_without_blocking_a():
+    from app.agent.reuse import choose_reuse_decision
+    from app.agent.contracts import CandidateAssessment
+    from test_candidate_ranking import profile
+    req=Requirement(prompt='笔记，颜色可不同',acceptance=[{'id':'A1','action':'保存','expected':'可见'},
+        {'id':'color','action':'蓝色界面','expected':'蓝色','importance':'PREFERENCE'}],delivery_policy={'preference':'SELF_HOSTED'})
+    p=profile('notes')
+    a=CandidateAssessment(repo_url=p.repo_url,commit=p.commit,requirement_revision=1,capabilities=[
+        {'acceptance_id':'A1','status':'SUPPORTED','reason':'notes','evidence_refs':['README.md'],'quote':'notes'},
+        {'acceptance_id':'color','status':'UNKNOWN','reason':'not inspected'}])
+    decision=choose_reuse_decision(req,[a],[p])
+    assert decision.route=='DEPLOY_EXISTING'
+    assert any('蓝色界面' in difference for difference in decision.differences)
+
+
 @pytest.mark.asyncio
 async def test_real_orchestrator_entry_selects_repository_without_generation(new_job,session_factory,monkeypatch):
     import json
@@ -82,6 +97,9 @@ async def test_real_orchestrator_entry_selects_repository_without_generation(new
     class Model:
         async def complete(self,messages,tools,model):
             assert model != 'generate'
+            from app.jobs.models import Job
+            with session_factory() as session:
+                assert session.get(Job,jid).phase=='retrieving'
             return ModelTurn(assistant_message={'content':json.dumps([{'repo_url':candidate.repo_url,'commit':candidate.commit,
                 'requirement_revision':1,'capabilities':[{'acceptance_id':'A1','status':'SUPPORTED','evidence_refs':['README.md'],
                     'quote':'Create private notes','reason':'notes functionality'}],'differences':['界面不同']}])},input_tokens=1,output_tokens=1)
@@ -91,3 +109,10 @@ async def test_real_orchestrator_entry_selects_repository_without_generation(new
     assert route.route=='DEPLOY_EXISTING'
     assert route.sources[0].url==candidate.repo_url
     assert execution.algorithm_checkpoint().reuse_decision.differences==['界面不同']
+    assert execution.checkpoint()['selection_duration_ms']>=0
+    from app.jobs.diagnostics import build_evaluation_record
+    from app.jobs.models import Job
+    with session_factory() as session:
+        record=build_evaluation_record(session,session.get(Job,jid))
+        assert record.reuse_assessments[0].capabilities[0].status=='SUPPORTED'
+        assert record.selection_duration_ms>=0

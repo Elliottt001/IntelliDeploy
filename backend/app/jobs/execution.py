@@ -412,10 +412,16 @@ class JobExecution:
                 "\n".join(draft.questions or ["一期支持Web应用，是否接受以Web交付？"])
             )
         requirement = validate_revision(previous, draft, messages)
-        if requirement.revision != self.algorithm_checkpoint().requirement_revision:
-            raise ValueError(
-                "compiled requirement revision differs from algorithm checkpoint"
-            )
+        algorithm = self.algorithm_checkpoint()
+        if requirement.revision != algorithm.requirement_revision:
+            if previous is None or algorithm.requirement_revision != previous.revision:
+                raise ValueError('compiled requirement revision differs from algorithm checkpoint')
+            from app.agent.contracts import AlgorithmCheckpoint
+            fresh = AlgorithmCheckpoint.empty(requirement.revision, algorithm.mode, algorithm.algorithm_version)
+            if self.checkpoint().get('workspace_uploaded'):
+                for name in ('profiles','retrieval','selected_sources','route','component_workspaces','integration_contract'):
+                    setattr(fresh,name,getattr(algorithm,name))
+            self.save_algorithm_checkpoint(fresh)
         with self.sessions() as session:
             job = self.job(session)
             persist_requirement(
@@ -575,7 +581,13 @@ class JobExecution:
         from app.agent.checkpoint import stage_input_hash
         from app.agent_core.brains.github_retriever import GitHubRepositorySearchClient
         import base64
+        selection_started = time.monotonic()
+        with self.sessions() as session:
+            job = self.job(session)
+            job.phase = 'retrieving'
+            session.commit()
         checkpoint = self.algorithm_checkpoint()
+        checkpoint.algorithm_version = 'reuse-v1'
         query = await plan_queries(requirement, self.model(f'query:{requirement.revision}')
             if checkpoint.mode == 'hybrid' else None)
         checkpoint.query_plan = query
@@ -626,6 +638,7 @@ class JobExecution:
                 decision = choose_reuse_decision(requirement,assessments,profiles)
             except NoReusableSolution:
                 if search_round == 1:
+                    self.save(selection_duration_ms=int((time.monotonic()-selection_started)*1000))
                     raise
                 query = query.model_copy(update={'github_queries':list(dict.fromkeys([
                     *query.github_queries,*[term+' self hosted web application' for term in query.translated_terms[:2]]]))})
@@ -633,6 +646,7 @@ class JobExecution:
             checkpoint.reuse_decision = decision
             checkpoint.selected_sources = decision.selected_sources
             self.save_algorithm_checkpoint(checkpoint)
+            self.save(selection_duration_ms=int((time.monotonic()-selection_started)*1000))
             route = route_from_decision(decision)
             if checkpoint.mode == 'hybrid' and route.sources:
                 from app.agent.orchestrator import AlgorithmOrchestrator
@@ -641,6 +655,7 @@ class JobExecution:
                 checkpoint = self.algorithm_checkpoint()
             checkpoint.route = route
             self.save_algorithm_checkpoint(checkpoint)
+            self.save(selection_duration_ms=int((time.monotonic()-selection_started)*1000))
             return route
 
     async def select_sources_hybrid(self, requirement):
@@ -930,6 +945,8 @@ class JobExecution:
             from app.agent.integration import verify_component_workspaces
             verify_component_workspaces(str(workspace), self.algorithm_checkpoint().component_workspaces)
             checkpoint = Checkpoint.model_validate(saved.get("loop") or {})
+            if checkpoint.requirement_revision != requirement.revision:
+                checkpoint.messages.append({'role':'user','content':'用户已确认新一版需求。保留已有源码和此前核心功能，按此修正：'+requirement.model_dump_json()})
         else:
             with self.sessions() as session:
                 app = session.get(App, job.app_id)
@@ -1034,7 +1051,8 @@ class JobExecution:
                     + "\n只提交实际源码对应的AppManifest。应用身份/数据/文件/AI/搜索使用平台服务端适配；不得生成演示数据代替业务。"
                     + "\n完成源码后必须调用finish_implementation提交候选；平台负责后续构建和业务验证。"
                     + "源代码服务必须在builds里声明真实BuildSpec，image可用待构建标签，不得编造digest。"
-                    + "平台内置环境引用和数据库按platform_contract处理；使用批量工具调用减少重复读取。",
+                    + "平台内置环境引用和数据库按platform_contract处理；使用批量工具调用减少重复读取。"
+                    + "\nCORE验收必须实现；PREFERENCE可保留差异并说明，不为小偏好重写已有业务。",
                 },
                 {
                     "role": "user",

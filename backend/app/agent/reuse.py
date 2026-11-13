@@ -21,6 +21,16 @@ def core_supported(requirement, assessment):
                for a in requirement.acceptance if a.importance == 'CORE')
 
 
+def disclosed_differences(requirement, assessment):
+    known={c.acceptance_id:c.status for c in assessment.capabilities}
+    differences=list(assessment.differences)
+    for item in requirement.acceptance:
+        if item.importance=='PREFERENCE' and known.get(item.id)!='SUPPORTED':
+            label='未确认偏好：' if known.get(item.id)!='MISSING' else '偏好差异：'
+            differences.append(label+item.action)
+    return list(dict.fromkeys(differences))
+
+
 def validate_reuse_decision(decision, requirement, assessments):
     if decision.route == 'GENERATE_APP':
         if not requirement.delivery_policy.allow_generation:
@@ -61,7 +71,7 @@ def choose_reuse_decision(requirement, assessments, profiles):
             if asset and core_supported(requirement,a):
                 return validate_reuse_decision(ReuseDecision(delivery_kind='EXTERNAL_LINK',
                     selected_sources=[RepoSource(url=a.repo_url,commit=a.commit,role='official service')],
-                    assessment_refs=[a.repo_url+'@'+a.commit],deployment_asset=asset,differences=a.differences),requirement,assessments)
+                    assessment_refs=[a.repo_url+'@'+a.commit],deployment_asset=asset,differences=disclosed_differences(requirement,a)),requirement,assessments)
     for a in usable:
         p = facts[(a.repo_url,a.commit)]
         if p.compatibility.status != 'SUPPORTED' or p.project_type not in _WEB_TYPES:
@@ -75,7 +85,7 @@ def choose_reuse_decision(requirement, assessments, profiles):
                 route='DEPLOY_EXISTING' if direct else 'MODIFY_EXISTING',
                 selected_sources=[RepoSource(url=a.repo_url,commit=a.commit,role='principal')],
                 assessment_refs=[a.repo_url+'@'+a.commit],deployment_asset=asset,
-                differences=a.differences,adaptations=a.adaptations),requirement,assessments)
+                differences=disclosed_differences(requirement,a),adaptations=a.adaptations),requirement,assessments)
     # C remains the evidence-bound gap/integration route after a usable principal is selected.
     if requirement.delivery_policy.allow_generation:
         return ReuseDecision(delivery_kind='HOSTED_INSTANCE',route='GENERATE_APP')

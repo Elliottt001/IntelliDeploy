@@ -627,10 +627,13 @@ def _create_verified_version(
         job = session.get(Job, job_id)
         app = session.scalar(select(App).where(App.id == job.app_id).with_for_update())
         requirement=session.scalar(select(RequirementRecord).where(RequirementRecord.app_id==app.id,RequirementRecord.revision==job.requirement_revision))
+        from app.agent.checkpoint import load_algorithm_checkpoint
+        algorithm = load_algorithm_checkpoint(job.checkpoint,job.requirement_revision)
         version = AppVersion(
             app_id=app.id,
             requirement_revision=job.requirement_revision,
-            sources=(session.get(AppVersion,app.source_version_id).sources if job.kind=='COPY' else job.checkpoint.get('sources',[])),
+            sources=(session.get(AppVersion,app.source_version_id).sources if job.kind=='COPY' else
+                     [s.model_dump(mode='json') for s in algorithm.selected_sources] or job.checkpoint.get('sources',[])),
             template_version=(session.get(AppVersion,app.source_version_id).template_version if job.kind=='COPY' else job.checkpoint.get('template_version')),
             manifest=candidate.manifest.model_dump(mode="json"),
             validation=report.model_dump(mode="json"),
@@ -638,7 +641,8 @@ def _create_verified_version(
             immutable=True,
             delivery={
                 "summary": app.name,
-                "features": [item['action'] for item in requirement.requirement['acceptance']] if requirement else [],
+                "features": [item.action for item in Requirement.model_validate(requirement.requirement).core_acceptance] if requirement else [],
+                "differences": algorithm.reuse_decision.differences if algorithm.reuse_decision else [],
                 "browser_checks": [
                     item.model_dump(mode="json") for item in candidate.browser_checks
                 ],

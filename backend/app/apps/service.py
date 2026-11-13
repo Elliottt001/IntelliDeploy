@@ -24,7 +24,6 @@ from app.core.types import (
     AppPage,
     AppSummary,
     ConversationMessage,
-    DeliveryResult,
     DeliveryOutcome,
     JobRef,
     JobReport,
@@ -401,6 +400,7 @@ def job_report(session, job):
             req = Requirement.model_validate(record.requirement)
             return JobReport(job_id=job.id,overall='PASS',requirement_revision=job.requirement_revision,
                 checks=[ReportCheck(id=a.id,action=a.action,expected=a.expected,
+                    importance=a.importance,
                     status=checks.get(a.id,{}).get('status','NOT_RUN'),evidence_urls=[])
                     for a in req.acceptance])
     req = session.scalar(
@@ -419,7 +419,7 @@ def job_report(session, job):
         else None
     )
     checkpoint = job.checkpoint or {}
-    required = {i.id for i in requirement.acceptance} if requirement else set()
+    required = {i.id for i in requirement.core_acceptance} if requirement else set()
     bound = bool(
         report
         and requirement
@@ -441,6 +441,7 @@ def job_report(session, job):
                 id=i.id,
                 action=i.action,
                 expected=i.expected,
+                importance=i.importance,
                 status=results[i.id].status if i.id in results else "NOT_RUN",
             )
             for i in requirement.acceptance
@@ -467,11 +468,12 @@ def job_report(session, job):
                 if r.metadata_json.get("check_id") == check.id
                 and r.metadata_json.get("attempt_id") == report.attempt_id
             ]
+    core_checks = [c for c in checks if c.importance == 'CORE']
     overall = (
         "FAIL"
-        if any(c.status == "FAIL" for c in checks)
+        if any(c.status == "FAIL" for c in core_checks)
         else "PASS"
-        if checks and all(c.status == "PASS" for c in checks)
+        if core_checks and all(c.status == "PASS" for c in core_checks)
         else "NOT_RUN"
     )
     return JobReport(

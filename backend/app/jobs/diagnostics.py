@@ -20,6 +20,7 @@ from app.evaluation.schemas import (
     EvaluationRecord,
     EvaluationRetrieval,
     EvaluationRequirementCompilation,
+    EvaluationReuseAssessment,
     EvaluationSource,
     PhaseDuration,
 )
@@ -299,6 +300,12 @@ def build_evaluation_record(session, job: Job) -> EvaluationRecord:
         status=job.status,
         delivery_kind=delivery_kind,
         external_service_status=external_verification.get('status'),
+        selection_duration_ms=checkpoint.get('selection_duration_ms'),
+        reuse_assessments=[EvaluationReuseAssessment(repo_url=a.repo_url,commit=a.commit,
+            requirement_revision=a.requirement_revision,
+            capabilities=[{'acceptance_id':c.acceptance_id,'status':c.status,'evidence_refs':c.evidence_refs} for c in a.capabilities],
+            differences=a.differences,adaptations=a.adaptations,validation_issues=a.validation_issues)
+            for a in load_algorithm_checkpoint(checkpoint,job.requirement_revision or 1).assessments],
         route=_route(checkpoint),
         algorithm=_algorithm(checkpoint),
         source_mode="real" if is_real else "fixture",

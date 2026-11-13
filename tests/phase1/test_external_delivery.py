@@ -82,3 +82,26 @@ async def test_observation_source_is_separate_from_business_pass():
     verification=await verify_external_service(Requirement(prompt='编辑',acceptance=[{'id':'A1','action':'编辑','expected':'预览'}]),asset,Verifier())
     assert verification.source_mode=='real'
     assert verification.status=='NOT_RUN'
+
+
+def test_public_report_does_not_turn_optional_difference_into_core_failure(new_job,session_factory):
+    from app.apps.models import RequirementRecord,AppVersion,App
+    from app.jobs.models import Job
+    from app.apps.service import job_report
+    jid,aid,_,_=new_job
+    with session_factory() as session:
+        session.add(RequirementRecord(app_id=aid,revision=1,requirement={'prompt':'editor','acceptance':[
+            {'id':'A1','action':'编辑','expected':'可用'},
+            {'id':'color','action':'蓝色界面','expected':'蓝色','importance':'PREFERENCE'}]},review={}))
+        version=AppVersion(app_id=aid,requirement_revision=1,manifest={},artifact_path='fixture.zip',validation={
+            'checks':[{'id':'A1','status':'PASS','evidence':'fixture'}],'required_ids':['A1'],
+            'requirement_revision':1,'attempt_id':'attempt','manifest_hash':'a'*64})
+        session.add(version);session.flush()
+        session.get(App,aid).candidate_version_id=version.id
+        job=session.get(Job,jid);job.requirement_revision=1
+        job.checkpoint={**job.checkpoint,'attempt_id':'attempt','manifest_hash':'a'*64}
+        session.commit()
+        report=job_report(session,job)
+        assert report.overall=='PASS'
+        assert report.checks[1].importance=='PREFERENCE'
+        assert report.checks[1].status=='NOT_RUN'

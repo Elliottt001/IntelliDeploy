@@ -23,7 +23,7 @@ def _validate_plan(requirement: Requirement, raw_checks: Any) -> list[BrowserChe
         checks = [BrowserCheck.model_validate(item) for item in raw_checks]
     except Exception as exc:
         raise CheckPlanInvalid("browser check plan is malformed") from exc
-    required = [item.id for item in requirement.acceptance]
+    required = [item.id for item in requirement.core_acceptance]
     if [item.item_id for item in checks] != required:
         raise CheckPlanInvalid("browser check plan must cover every core item exactly once")
     for check in checks:
@@ -91,6 +91,7 @@ async def compile_browser_checks(
     source_tree: list[str],
     model_client,
 ) -> list[BrowserCheck]:
+    requirement = requirement.for_core_validation()
     feedback = None
     last_error: CheckPlanInvalid | None = None
     for _ in range(2):

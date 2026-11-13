@@ -1355,3 +1355,24 @@ def test_generation_budget_replays_uncheckpointed_received_turn(new_job,session_
         session.commit()
     execution=JobExecution(job_id,'worker',generation,session_factory=session_factory,model_client=RequirementModel())
     assert execution.generation_round_budget(execution.model('implementation'))==1
+
+
+@pytest.mark.asyncio
+async def test_deployment_confirmation_after_freeze_resumes_same_job_revision(new_job,session_factory):
+    from app.jobs.execution import JobExecution
+    from app.jobs.pipeline import WaitingForUser
+    from app.apps.service import add_message
+    jid,aid,owner,generation=new_job
+    execution=JobExecution(jid,'worker',generation,session_factory=session_factory,model_client=RequirementModel())
+    assert (await execution.ensure_requirement()).revision==1
+    with pytest.raises(WaitingForUser): execution.wait_for_user('是否部署独立实例？')
+    with session_factory() as session:
+        resumed=add_message(session,aid,owner,'同意','confirm-deployment')
+        assert resumed.job_id==jid
+        claimed=claim_job(session,'worker')
+        generation=claimed.lease_generation
+    execution=JobExecution(jid,'worker',generation,session_factory=session_factory,model_client=RequirementModel())
+    requirement=await execution.ensure_requirement()
+    assert requirement.revision==2
+    assert requirement.delivery_policy.preference=='SELF_HOSTED'
+    assert execution.algorithm_checkpoint().requirement_revision==2

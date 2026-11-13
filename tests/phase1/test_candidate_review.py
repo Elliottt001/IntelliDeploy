@@ -31,6 +31,23 @@ def notes_requirement() -> Requirement:
     )
 
 
+@pytest.mark.asyncio
+async def test_independent_reviewer_receives_actual_source_not_only_file_names(tmp_path):
+    import json,hashlib
+    from app.agent.review import review_with_model
+    from app.core.types import ModelTurn
+    candidate=draft(tmp_path)
+    class Model:
+        async def complete(self,messages,tools,model):
+            payload=json.loads(messages[1]['content'])
+            evidence=payload['source_evidence']['app.py']
+            assert evidence['content']=="print('safe')\n"
+            assert evidence['sha256']==hashlib.sha256(evidence['content'].encode()).hexdigest()
+            assert 'file:app.py:'+evidence['sha256'] in payload['evidence_refs']
+            return ModelTurn(assistant_message={'content':'{"findings":[]}'})
+    assert (await review_with_model('attempt',candidate,notes_requirement(),route(),Model())).findings==[]
+
+
 def route() -> RoutePlan:
     return RoutePlan(
         route="GENERATE_APP",
