@@ -342,6 +342,7 @@ def append_repair_evidence(
         evidence.append(
             {
                 "message": message[:500],
+                "acceptance_ids": [c.id for c in report.checks if c.status != "PASS"] if report else [],
                 "report": report.model_dump(mode="json") if report is not None else None,
             }
         )
@@ -596,6 +597,23 @@ def _create_verified_version(
     candidate: PipelineCandidate,
     report: ValidationReport,
 ) -> str:
+    with session_factory() as session:
+        job = session.get(Job, job_id)
+        from app.agent.checkpoint import load_algorithm_checkpoint
+        from app.agent.integration import verify_component_workspaces
+        algorithm = load_algorithm_checkpoint(dict(job.checkpoint or {}), job.requirement_revision)
+        verify_component_workspaces(candidate.workspace_id, algorithm.component_workspaces)
+        if algorithm.mode == "hybrid":
+            import json
+            metadata_path = Path(candidate.workspace_id) / ".intellideploy" / "source.json"
+            metadata_path.parent.mkdir(parents=True, exist_ok=True)
+            metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
+            metadata["composition_provenance"] = {
+                "components": [c.model_dump(mode="json") for c in algorithm.component_workspaces],
+                "integration_contract": algorithm.integration_contract.model_dump(mode="json") if algorithm.integration_contract else None,
+                "profiles": [p.model_dump(mode="json") for p in algorithm.profiles],
+            }
+            metadata_path.write_text(json.dumps(metadata, ensure_ascii=False))
     artifact_path = snapshot_release(candidate.workspace_id, candidate.manifest, report)
     with session_factory() as session:
         job = session.get(Job, job_id)
@@ -705,6 +723,9 @@ async def run_pipeline(
     next_healing = None
     last_message = "core checks did not pass"
     is_copy = _copy_job(session_factory,job_id)
+    with session_factory() as session:
+        saved_job = session.get(Job, job_id)
+        repair_evidence = list((saved_job.checkpoint or {}).get("repair_evidence") or [])
     try:
         if dependencies is None:
             from app.jobs.execution import build_default_dependencies

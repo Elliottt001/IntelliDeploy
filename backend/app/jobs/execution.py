@@ -676,6 +676,69 @@ class JobExecution:
         self.save_algorithm_checkpoint(checkpoint)
         return route
 
+    def builder_payload(self, requirement, plan):
+        from app.core.types import AppManifest
+        checkpoint = self.algorithm_checkpoint()
+        payload = {"requirement": requirement.model_dump(mode="json"),
+                   "plan": plan.model_dump(mode="json"),
+                   "manifest_schema": AppManifest.model_json_schema()}
+        if checkpoint.mode == "hybrid":
+            payload.update(
+                gap_plan=checkpoint.gap_plan.model_dump(mode="json") if checkpoint.gap_plan else None,
+                packaging_plans=[p.model_dump(mode="json") for p in checkpoint.packaging_plans],
+                integration_contract=checkpoint.integration_contract.model_dump(mode="json") if checkpoint.integration_contract else None,
+                component_workspaces=[p.model_dump(mode="json") for p in checkpoint.component_workspaces],
+            )
+        return payload
+
+    def prepare_algorithm_inputs(self, requirement, plan, workspace):
+        from app.agent.gaps import deterministic_gap_plan
+        from app.agent.packaging import plan_packaging, apply_packaging_plan
+        from app.agent.contracts import AlgorithmStageRecord
+        from app.agent.checkpoint import stage_input_hash
+        checkpoint = self.algorithm_checkpoint()
+        if checkpoint.mode != "hybrid":
+            return
+        checkpoint.route = plan
+        checkpoint.selected_sources = list(plan.sources)
+        if checkpoint.gap_plan is None or checkpoint.gap_plan.requirement_revision != requirement.revision:
+            checkpoint.gap_plan = deterministic_gap_plan(requirement, plan, checkpoint.profiles, checkpoint.evaluations)
+        if not checkpoint.gap_plan.complete:
+            raise ValueError("gap planning is blocked")
+        roots = [(workspace, None)]
+        if checkpoint.component_workspaces:
+            roots = [(workspace / "app", None)]
+        else:
+            profile = next((p for p in checkpoint.profiles if plan.sources and
+                            (p.repo_url, p.commit) == (plan.sources[0].url, plan.sources[0].commit)), None)
+            roots = [(workspace, profile)]
+        checkpoint.packaging_plans = []
+        for root, profile in roots:
+            packaging = plan_packaging(str(root), profile, plan)
+            # Intent persists before the deterministic file effect.
+            checkpoint.packaging_plans.append(packaging)
+            self.save_algorithm_checkpoint(checkpoint)
+            applied = apply_packaging_plan(str(root), packaging)
+            if checkpoint.component_workspaces:
+                applied.dockerfile_path = "app/" + applied.dockerfile_path
+            checkpoint.packaging_plans[-1] = applied
+        for stage, output in (("GAP", checkpoint.gap_plan), ("PACKAGING", checkpoint.packaging_plans),
+                              ("COMPOSITION", checkpoint.component_workspaces)):
+            digest = stage_input_hash(output)
+            operation = f"job:{self.job_id}:{stage.lower()}:{requirement.revision}:{digest}"
+            if not any(s.operation_id == operation for s in checkpoint.stages):
+                checkpoint.stages.append(AlgorithmStageRecord(operation_id=operation, stage=stage,
+                    input_hash=stage_input_hash({"requirement": requirement, "route": plan}),
+                    implementation_version="fusion-packaging-v1", status="SUCCEEDED", output_ref=digest, attempt=1))
+        self.save_algorithm_checkpoint(checkpoint)
+
+    def assert_tool_write_allowed(self, call):
+        from app.agent.integration import assert_component_write_allowed
+        checkpoint = self.algorithm_checkpoint()
+        if call.name in {"write_file", "apply_patch", "fetch_repository"}:
+            path = call.arguments.get("destination" if call.name == "fetch_repository" else "path", "")
+            assert_component_write_allowed(path, checkpoint.component_workspaces)
+
     async def generate_candidate(
         self, *, job_id, job, requirement, attempt_index, repair_evidence
     ):
@@ -707,6 +770,8 @@ class JobExecution:
             session.commit()
         if saved.get("workspace_uploaded"):
             await self.runner.snapshot(job_id, workspace, self.generation)
+            from app.agent.integration import verify_component_workspaces
+            verify_component_workspaces(str(workspace), self.algorithm_checkpoint().component_workspaces)
             checkpoint = Checkpoint.model_validate(saved.get("loop") or {})
         else:
             with self.sessions() as session:
@@ -718,6 +783,20 @@ class JobExecution:
                 )
             if previous:
                 unpack_source(Path(previous.artifact_path).read_bytes(), workspace)
+                if self.algorithm_checkpoint().mode == "hybrid":
+                    import zipfile
+                    from app.agent.contracts import ComponentWorkspace, IntegrationContract, RepositoryProfile
+                    with zipfile.ZipFile(previous.artifact_path) as archive:
+                        metadata = json.loads(archive.read("source-metadata.json")) if "source-metadata.json" in archive.namelist() else {}
+                    provenance = metadata.get("composition_provenance") or {}
+                    algorithm = self.algorithm_checkpoint()
+                    algorithm.component_workspaces = [ComponentWorkspace.model_validate(c) for c in provenance.get("components") or []]
+                    if algorithm.component_workspaces:
+                        algorithm.integration_contract = IntegrationContract.model_validate(provenance["integration_contract"])
+                        algorithm.profiles = [RepositoryProfile.model_validate(p) for p in provenance.get("profiles") or []]
+                        from app.agent.integration import verify_component_workspaces
+                        verify_component_workspaces(str(workspace), algorithm.component_workspaces)
+                    self.save_algorithm_checkpoint(algorithm)
                 plan = RoutePlan(
                     route="MODIFY_EXISTING" if previous.sources else "GENERATE_APP",
                     sources=[
@@ -727,6 +806,8 @@ class JobExecution:
                     steps=["在当前源码上修改并保留全部既有验收"],
                     reason="沿用当前验证版本及持久数据",
                 )
+                if self.algorithm_checkpoint().component_workspaces:
+                    plan.route = "COMPOSE_COMPONENTS"
             else:
                 plan = await self.choose_sources(requirement)
                 if plan.route == "GENERATE_APP":
@@ -736,11 +817,25 @@ class JobExecution:
                     plan.template_version = prepare_scaffold(
                         str(workspace), root, app.name
                     )
+                elif plan.route == "COMPOSE_COMPONENTS" and self.algorithm_checkpoint().mode == "hybrid":
+                    from app.agent.integration import prepare_component_workspaces
+                    algorithm = self.algorithm_checkpoint()
+                    algorithm.component_workspaces = await __import__("asyncio").to_thread(
+                        prepare_component_workspaces, str(workspace), plan, algorithm.profiles)
+                    self.save_algorithm_checkpoint(algorithm)
                 else:
                     await __import__("asyncio").to_thread(
                         prepare_sources, str(workspace), plan
                     )
-            await self.runner.upload(job_id, workspace, self.generation)
+            self.prepare_algorithm_inputs(requirement, plan, workspace)
+            algorithm = self.algorithm_checkpoint()
+            policy = None
+            if algorithm.component_workspaces:
+                from app.agent.contracts import ComponentWorkspacePolicy, ComponentPolicyEntry
+                policy = ComponentWorkspacePolicy(components=[ComponentPolicyEntry(
+                    role=c.role, relative_path=c.relative_path, tree_digest=c.tree_digest
+                ) for c in algorithm.component_workspaces]).model_dump(mode="json")
+            await self.runner.upload(job_id, workspace, self.generation, **({"policy": policy} if policy else {}))
             with self.sessions() as session:
                 row=register_resource(session,'WORKSPACE','workspace:'+job_id,str(workspace),job_id=job_id,app_id=job.app_id)
                 row.metadata_json={**row.metadata_json,'remote_uploaded':True}; session.commit()
@@ -771,11 +866,7 @@ class JobExecution:
                 {
                     "role": "user",
                     "content": json.dumps(
-                        {
-                            "requirement": requirement.model_dump(mode="json"),
-                            "plan": plan.model_dump(mode="json"),
-                            "manifest_schema": AppManifest.model_json_schema(),
-                        },
+                        self.builder_payload(requirement, plan),
                         ensure_ascii=False,
                     ),
                 },
@@ -794,6 +885,14 @@ class JobExecution:
             manifest = AppManifest.model_validate(saved["generation_manifest"])
         else:
             if repair_evidence:
+                algorithm = self.algorithm_checkpoint()
+                if algorithm.mode == "hybrid" and algorithm.gap_plan:
+                    failed = {item for evidence in repair_evidence for item in evidence.get("acceptance_ids", [])}
+                    local = [g.model_dump(mode="json") for g in algorithm.gap_plan.gaps
+                             if not failed or g.acceptance_id in failed]
+                    repair_evidence = [{"failures": repair_evidence, "gaps": local,
+                                        "preserve": [g.acceptance_id for g in algorithm.gap_plan.gaps
+                                                     if g.status == "SATISFIED"]}]
                 checkpoint.messages.append(
                     {
                         "role": "user",
@@ -854,9 +953,12 @@ class JobExecution:
                 implementation_attempt=attempt_index,
             )
         files = await self.runner.snapshot(job_id, workspace, self.generation)
+        from app.agent.integration import verify_component_workspaces
+        verify_component_workspaces(str(workspace), self.algorithm_checkpoint().component_workspaces)
         return CandidateDraft(str(workspace), manifest, files)
 
     async def execute_tool(self, call):
+        self.assert_tool_write_allowed(call)
         from app.core.types import ToolResult, RoutePlan, RepoSource
         from app.agent.routing import prepare_sources
         from app.agent.retrieval import normalize_candidate
@@ -1038,7 +1140,8 @@ class JobExecution:
         policy = checkpoint.orchestration or orchestrator.decide_orchestration(
             requirement, route, checkpoint.profiles, []
         )
-        profile = checkpoint.profiles[0] if checkpoint.profiles else None
+        profile = next((p for p in checkpoint.profiles if route.sources and
+                        (p.repo_url, p.commit) == (route.sources[0].url, route.sources[0].commit)), None)
         review_model = None
         security_model = None
         if policy.require_llm_review:

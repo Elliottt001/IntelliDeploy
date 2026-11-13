@@ -637,8 +637,9 @@ async def test_default_worker_missing_configuration_reaches_clear_terminal_state
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("hybrid", [False, True])
 async def test_default_generation_calls_existing_loop_on_a_prepared_scaffold(
-    new_job, session_factory, tmp_path, monkeypatch
+    new_job, session_factory, tmp_path, monkeypatch, hybrid
 ):
     from app.jobs.execution import JobExecution
     from app.core.types import (
@@ -654,6 +655,12 @@ async def test_default_generation_calls_existing_loop_on_a_prepared_scaffold(
 
     class Model(RequirementModel):
         async def complete(self, messages, tools, model):
+            if tools and hybrid:
+                initial = json.loads(messages[1]["content"])
+                assert initial["gap_plan"]["requirement_revision"] == 1
+                assert initial["packaging_plans"]
+                assert "integration_contract" in initial
+                assert "component_workspaces" in initial
             if not tools:
                 return await super().complete(messages, tools, model)
             if not any(
@@ -735,6 +742,13 @@ async def test_default_generation_calls_existing_loop_on_a_prepared_scaffold(
         lambda self, requirement: route(requirement, self.raw_model),
     )
     job_id, app_id, owner, generation = new_job
+    if hybrid:
+        with session_factory() as session:
+            row = session.get(Job, job_id)
+            saved = json.loads(json.dumps(row.checkpoint))
+            saved["algorithm"]["mode"] = "hybrid"
+            row.checkpoint = saved
+            session.commit()
     execution = JobExecution(
         job_id,
         "worker",

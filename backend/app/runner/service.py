@@ -340,6 +340,12 @@ def create_app(service, token):
             service.fence(job, x_lease_generation)
             if service.builder is None:
                 raise HTTPException(503, "dedicated builder is not configured")
+            policy = service.workspace_policy(job)
+            service.verify_policy(service.job_root(job) / "source", policy)
+            if policy:
+                for spec in body.builds:
+                    service.assert_write(job, spec.context)
+                    service.assert_write(job, spec.dockerfile)
             started = time.monotonic()
             try:
                 manifest = await build_release(
