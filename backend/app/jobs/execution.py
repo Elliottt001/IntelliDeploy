@@ -749,7 +749,7 @@ class JobExecution:
         from app.agent.workspace import WorkspaceManager
         from app.agent.scaffold import prepare_scaffold
         from app.agent.routing import prepare_sources
-        from app.agent.loop import run_generation
+        from app.agent.loop import run_generation, DEFAULT_WORKER_TOOLS
         from app.core.types import (
             Checkpoint,
             AppManifest,
@@ -942,6 +942,7 @@ class JobExecution:
                 self.execute_tool,
                 lambda cp: self.save(loop=cp.model_dump(mode="json")),
                 lambda _: None,
+                tools=DEFAULT_WORKER_TOOLS,
             )
             if output.question:
                 self.wait_for_user(output.question)

@@ -22,8 +22,15 @@ TOOLS = [
     {"type": "function", "function": {"name": "run_command", "description": "在隔离执行器运行命令，timeout单位为秒", "parameters": CommandArgs.model_json_schema()}},
     {"type": "function", "function": {"name": "search_repositories", "description": "通过受控代理检索公开GitHub仓库", "parameters": {"type": "object", "required": ["query"], "properties": {"query": {"type": "string"}, "limit": {"type": "integer"}}}}},
     {"type": "function", "function": {"name": "fetch_repository", "description": "获取已检索仓库的固定commit", "parameters": {"type": "object", "required": ["url", "commit", "destination"], "properties": {"url": {"type": "string"}, "commit": {"type": "string"}, "destination": {"type": "string"}}}}},
+    {"type": "function", "function": {"name": "web_search", "description": "通过受控能力检索实时公开网页并保留来源", "parameters": {"type": "object", "required": ["query"], "properties": {"query": {"type": "string", "minLength": 1, "maxLength": 128}, "count": {"type": "integer", "minimum": 1, "maximum": 50}}}}},
+    {"type": "function", "function": {"name": "fetch_page", "description": "通过受控能力获取HTTP(S)网页正文", "parameters": {"type": "object", "required": ["url"], "properties": {"url": {"type": "string", "minLength": 1, "maxLength": 2048}}}}},
     {"type": "function", "function": {"name": "ask_user", "description": "追问必要的业务信息", "parameters": {"type": "object", "required": ["question"], "properties": {"question": {"type": "string"}}}}},
     {"type": "function", "function": {"name": "finish_implementation", "description": "提交候选运行清单，不表示交付成功", "parameters": {"type": "object", "required": ["manifest"], "properties": {"manifest": {"type": "object"}}}}},
+]
+
+DEFAULT_WORKER_TOOLS = [
+    tool for tool in TOOLS
+    if tool["function"]["name"] not in {"web_search", "fetch_page"}
 ]
 
 
@@ -56,8 +63,10 @@ async def _record_model_usage(job_id, round_number, turn, record_usage, payer_id
 async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_tool,
                          persist, record_usage, *, payer_id: int | None = None,
                          reservation_operation_id: str | None = None,
-                         price_version: str | None = None, max_rounds: int = 20) -> GenerationOutput:
+                         price_version: str | None = None, max_rounds: int = 20,
+                         tools=None) -> GenerationOutput:
     price_version = price_version or settings.PRICE_VERSION
+    tools = TOOLS if tools is None else tools
     if any(call.id not in checkpoint.completed_calls for call in checkpoint.pending_calls):
         # A prior process may have crossed the external-effect boundary. D6 must
         # reconcile the recorded call before the generation loop can continue.
@@ -65,7 +74,7 @@ async def run_generation(job_id: str, checkpoint: Checkpoint, model, execute_too
                                 requirement_revision=checkpoint.requirement_revision)
     last_failure = None
     for round_number in range(max_rounds):
-        turn = await model.complete(checkpoint.messages, TOOLS, settings.DEEPSEEK_MODEL)
+        turn = await model.complete(checkpoint.messages, tools, settings.DEEPSEEK_MODEL)
         checkpoint.messages.append(turn.assistant_message)
         checkpoint.pending_calls = turn.calls
         await _call(persist, checkpoint)

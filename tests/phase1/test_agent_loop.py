@@ -129,9 +129,9 @@ async def test_real_ledger_charges_each_model_component_once(session_factory):
 
 
 def test_generation_advertises_only_tools_supported_by_default_worker():
-    from app.agent.loop import TOOLS
+    from app.agent.loop import DEFAULT_WORKER_TOOLS
 
-    assert {tool['function']['name'] for tool in TOOLS} == {
+    assert {tool['function']['name'] for tool in DEFAULT_WORKER_TOOLS} == {
         'list_files', 'read_file', 'write_file', 'apply_patch', 'run_command',
         'search_repositories', 'fetch_repository', 'ask_user', 'finish_implementation',
     }
