@@ -447,3 +447,27 @@ def test_developer_flag_defaults_false_and_cannot_be_registered(
     with session_factory() as session:
         user = session.scalar(select(User).where(User.username == "ordinary"))
         assert user.is_developer is False
+
+
+def test_requirement_diagnostic_projects_failure_without_private_draft(api_client, owner_headers, other_headers, session_factory, monkeypatch):
+    monkeypatch.setattr('app.config.settings.ENABLE_EVALUATION_UI', True)
+    _set_developer(session_factory, 'owner')
+    created = _create_app(api_client, owner_headers, key='requirement-diagnostic')
+    with session_factory() as session:
+        job = session.get(Job, created['job_id'])
+        job.checkpoint = {**job.checkpoint, 'requirement_compilation': {
+            'status': 'FAILED', 'stage': 'REVIEW', 'attempt_count': 3,
+            'source_digest': 'a'*64, 'last_error_code': 'REVIEW_INVALID',
+            'unresolved_issues': ['删除后重启仍需核对'],
+            'draft': {'prompt': 'must-not-leak'}, 'review_history': [{'raw': 'must-not-leak'}],
+        }}
+        session.commit()
+    path = f"/api/jobs/{created['job_id']}/diagnostics"
+    response = api_client.get(path, headers=owner_headers)
+    assert response.status_code == 200
+    compilation = response.json()['requirement_compilation']
+    assert compilation['attempt_count'] == 3
+    assert compilation['unresolved_issues'] == ['删除后重启仍需核对']
+    assert 'draft' not in compilation and 'review_history' not in compilation
+    assert 'must-not-leak' not in response.text
+    assert api_client.get(path, headers=other_headers).status_code == 404

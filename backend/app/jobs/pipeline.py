@@ -22,6 +22,7 @@ from app.config import settings
 from app.jobs.models import Job, JobEvent
 from app.jobs.store import LeaseLost, leased_job
 from app.jobs.execution import WaitingForUser, UncertainModelCall
+from app.agent.requirements import RequirementInvalid
 from app.billing.ledger import InsufficientQuota
 from app.runtime.build import build_release, snapshot_release
 from app.runtime.candidate import candidate_controller, start_candidate, stop_candidate
@@ -851,6 +852,12 @@ async def run_pipeline(
     except LeaseLost:
         raise
     except WaitingForUser:
+        return
+    except RequirementInvalid as exc:
+        count = len(exc.details.get("unresolved_issues") or [])
+        message = (f"系统未能完成需求核对，仍有{count}项验收问题；已保留本次需求。"
+                   if count else "系统未能完成完整需求核对，已保存问题记录供排查。")
+        _finish_failure(session_factory, job_id, "REQUIREMENT_INVALID", message)
         return
     except UncertainModelCall:
         from app.agent.healing import FailureEvidence

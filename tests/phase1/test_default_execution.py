@@ -1125,3 +1125,133 @@ async def test_invalid_command_arguments_are_feedback_before_runner_or_resource(
     runner.tool.assert_not_awaited()
     with session_factory() as session:
         assert session.scalar(select(ResourceRecord).where(ResourceRecord.job_id == job_id, ResourceRecord.type == 'EXECUTION_CONTAINER')) is None
+
+
+@pytest.mark.asyncio
+async def test_requirement_compilation_checkpoint_survives_failure(new_job, session_factory):
+    from app.jobs.execution import JobExecution
+    from app.agent.requirements import RequirementInvalid
+
+    class MissingModel(RequirementModel):
+        async def complete(self, messages, tools, model):
+            if '审阅draft' in messages[0]['content']:
+                return ModelTurn(assistant_message={'content': json.dumps({'missing': ['删除后重启仍需核对']})}, input_tokens=1, output_tokens=1)
+            return await super().complete(messages, tools, model)
+
+    job_id, _, _, generation = new_job
+    execution = JobExecution(job_id, 'worker', generation, session_factory=session_factory, model_client=MissingModel())
+    with pytest.raises(RequirementInvalid):
+        await execution.ensure_requirement()
+    with session_factory() as session:
+        snapshot = session.get(Job, job_id).checkpoint['requirement_compilation']
+        assert snapshot['status'] == 'FAILED'
+        assert snapshot['attempt_count'] == 3
+        assert snapshot['unresolved_issues'] == ['删除后重启仍需核对']
+        assert len(snapshot['review_history']) == 3
+
+
+@pytest.mark.asyncio
+async def test_requirement_failure_has_specific_public_error(new_job, session_factory, monkeypatch):
+    from types import SimpleNamespace
+    from app.jobs.pipeline import run_pipeline
+    from app.agent.requirements import RequirementInvalid
+
+    job_id, _, _, generation = new_job
+    async def fail():
+        raise RequirementInvalid('internal-only', {'unresolved_issues': ['删除后重启仍需核对']})
+    execution = SimpleNamespace(ensure_requirement=fail, close=AsyncMock())
+    async def dependencies(*args):
+        return None, execution
+    monkeypatch.setattr('app.jobs.execution.build_default_dependencies', dependencies)
+    await run_pipeline(job_id, worker_id='worker', generation=generation, session_factory=session_factory)
+    with session_factory() as session:
+        error = session.get(Job, job_id).error
+        assert error['code'] == 'REQUIREMENT_INVALID'
+        assert '1' in error['message']
+        assert 'internal-only' not in error['message']
+
+
+@pytest.mark.asyncio
+async def test_requirement_restart_replays_received_turns_without_duplicate_usage(new_job, session_factory):
+    from app.jobs.execution import JobExecution
+    from app.billing.models import UsageEntry
+
+    class FirstReviewMissing(RequirementModel):
+        async def complete(self, messages, tools, model):
+            if '审阅draft' in messages[0]['content']:
+                return ModelTurn(assistant_message={'content': '{"missing":["refresh verification"]}'}, input_tokens=1, output_tokens=1)
+            return await super().complete(messages, tools, model)
+
+    job_id, _, owner, generation = new_job
+    first = JobExecution(job_id, 'worker', generation, session_factory=session_factory, model_client=FirstReviewMissing())
+    original_save = first.save
+    def interrupted_save(**values):
+        original_save(**values)
+        if values.get('requirement_compilation', {}).get('status') == 'CORRECTING':
+            raise RuntimeError('simulated worker interruption after saved review')
+    first.save = interrupted_save
+    with pytest.raises(RuntimeError, match='simulated worker interruption'):
+        await first.ensure_requirement()
+    with session_factory() as session:
+        before = len(list(session.scalars(select(UsageEntry).where(UsageEntry.payer_id == owner))))
+    raw = RequirementModel()
+    resumed = JobExecution(job_id, 'worker', generation, session_factory=session_factory, model_client=raw)
+    result = await resumed.ensure_requirement()
+    assert result.acceptance[0].id == 'save'
+    assert raw.calls == 2
+    with session_factory() as session:
+        after = len(list(session.scalars(select(UsageEntry).where(UsageEntry.payer_id == owner))))
+        assert after == before + 4
+        assert session.get(Job, job_id).checkpoint['requirement_compilation']['attempt_count'] == 2
+
+
+@pytest.mark.asyncio
+async def test_received_protocol_failure_is_metered_once_without_replaying_provider(new_job, session_factory):
+    from app.agent.deepseek import ModelProtocolError
+    from app.jobs.execution import JobExecution
+    from app.runtime.models import ResourceRecord
+    from app.billing.models import UnknownUsage
+
+    class TruncatedModel:
+        calls = 0
+        async def complete(self,*args):
+            self.calls += 1
+            error = ModelProtocolError('MODEL_OUTPUT_TRUNCATED')
+            error.turn = ModelTurn(assistant_message={'content':''},input_tokens=10,output_tokens=5)
+            raise error
+
+    job_id, _, _, generation = new_job
+    raw = TruncatedModel()
+    execution = JobExecution(job_id,'worker',generation,session_factory=session_factory,model_client=raw)
+    for _ in range(2):
+        with pytest.raises(ModelProtocolError):
+            await execution.model('protocol').complete([],[],'model')
+    assert raw.calls == 1
+    with session_factory() as session:
+        record = session.scalar(select(ResourceRecord).where(ResourceRecord.job_id==job_id,ResourceRecord.type=='MODEL_CALL'))
+        assert record.state == 'METERED'
+        assert record.metadata_json['response']['output_tokens'] == 5
+        assert session.get(Job,job_id).used_units == 2
+        assert session.scalar(select(UnknownUsage).where(UnknownUsage.operation_id==record.operation_id)) is None
+
+
+@pytest.mark.asyncio
+async def test_cancelled_waiting_model_request_is_explicit_unknown(new_job, session_factory):
+    import asyncio
+    from app.jobs.execution import JobExecution
+    from app.runtime.models import ResourceRecord
+    from app.billing.models import UnknownUsage
+
+    class CancelledModel:
+        async def complete(self,*args):
+            raise asyncio.CancelledError()
+    job_id, _, _, generation = new_job
+    execution = JobExecution(job_id,'worker',generation,session_factory=session_factory,model_client=CancelledModel())
+    with pytest.raises(asyncio.CancelledError):
+        await execution.model('cancel').complete([],[],'model')
+    with session_factory() as session:
+        record = session.scalar(select(ResourceRecord).where(ResourceRecord.job_id==job_id,ResourceRecord.type=='MODEL_CALL'))
+        assert record.state == 'UNKNOWN'
+        unknown = session.scalar(select(UnknownUsage).where(UnknownUsage.operation_id==record.operation_id))
+        assert unknown is not None
+        assert session.get(Job,job_id).used_units == 0

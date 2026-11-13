@@ -351,7 +351,8 @@ class JobExecution:
             job.phase = "clarifying"
             session.commit()
         draft = await compile_requirement(
-            messages, previous, self.model(f"requirements:{stamp}")
+            messages, previous, self.model(f"requirements:{stamp}"),
+            persist=lambda state: self.save(requirement_compilation=state),
         )
         if draft.questions or draft.unsupported:
             self.wait_for_user(
