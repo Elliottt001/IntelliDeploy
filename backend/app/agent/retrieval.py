@@ -159,6 +159,7 @@ async def retrieve_sources(
     errors: list[str] = []
     reuse_rejections: list[dict] = []
     collected: list[tuple[str, dict]] = []
+    enrichment_cache = {}
     github_results = results[: len(github_queries)]
     for query, result in zip(github_queries, github_results, strict=True):
         if isinstance(result, BaseException):
@@ -169,18 +170,26 @@ async def retrieve_sources(
             if not _valid_commit(row.get("commit")) and hasattr(
                 client, "enrich_repository"
             ):
-                try:
-                    row = normalize_candidate(
-                        await client.enrich_repository(value)
-                    )
-                except EmptyRepository:
-                    reuse_rejections.append({"repo_url": row.get("repo_url"), "reason": "empty_repository", "evidence": "github_git_tree_409"})
+                cache_key = (_canonical_url(str(row.get("repo_url") or "")).casefold(),
+                             row.get("default_branch"), row.get("commit"))
+                if cache_key not in enrichment_cache:
+                    try:
+                        enrichment_cache[cache_key] = (normalize_candidate(await client.enrich_repository(value)), None)
+                    except EmptyRepository as exc:
+                        enrichment_cache[cache_key] = (None, exc)
+                        reuse_rejections.append({"repo_url": row.get("repo_url"), "reason": "empty_repository", "evidence": "github_git_tree_409"})
+                    except Exception as exc:
+                        enrichment_cache[cache_key] = (None, exc)
+                        errors.append(f"{row.get('repo_url')}: {type(exc).__name__}: {exc}")
+                enriched, error = enrichment_cache[cache_key]
+                if isinstance(error, EmptyRepository):
                     continue
-                except Exception as exc:
+                if error is not None:
                     row["enrichment_status"] = "FAILED"
-                    errors.append(
-                        f"{row.get('repo_url')}: {type(exc).__name__}: {exc}"
-                    )
+                else:
+                    row = {**enriched,
+                           "stars": max(int(enriched.get("stars") or 0), int(row.get("stars") or 0)),
+                           "source_scores": {**(enriched.get("source_scores") or {}), **(row.get("source_scores") or {})}}
             collected.append(("github", row))
 
     cursor = len(github_queries)

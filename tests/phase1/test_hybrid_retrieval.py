@@ -217,3 +217,52 @@ async def test_known_empty_repository_is_rejected_without_marking_search_unavail
     assert result.errors == []
     assert result.reuse_rejections[0]['repo_url'] == url
     assert result.reuse_rejections[0]['reason'] == 'empty_repository'
+
+
+@pytest.mark.asyncio
+async def test_duplicate_repository_is_enriched_once_across_queries():
+    url = 'https://github.com/example/notes'
+    class CountingGithub(FakeGitHub):
+        enrich_calls = 0
+        async def enrich_repository(self, row):
+            self.enrich_calls += 1
+            return {**row, 'commit':'a'*40,'key_files':{'README.md':'notes'}}
+    github = CountingGithub({'one':[candidate(url,None,default_branch='main')],
+                             'two':[candidate(url+'/',None,default_branch='main')]})
+    result = await retrieve_sources(requirement('私人笔记'), query_plan('one','two'), github)
+    assert result.completed is True
+    assert github.enrich_calls == 1
+    assert len(result.candidates) == 1
+    assert result.candidates[0].key_files['README.md'] == 'notes'
+
+
+@pytest.mark.asyncio
+async def test_enrichment_cache_preserves_distinct_refs_and_commit_conflict():
+    url = 'https://github.com/example/notes'
+    class CountingGithub(FakeGitHub):
+        enrich_calls = 0
+        async def enrich_repository(self, row):
+            self.enrich_calls += 1
+            return {**row,'commit':('a' if row['default_branch']=='main' else 'b')*40}
+    github = CountingGithub({'one':[candidate(url,None,default_branch='main')],
+                             'two':[candidate(url,None,default_branch='develop')]})
+    result = await retrieve_sources(requirement('私人笔记'), query_plan('one','two'), github)
+    assert github.enrich_calls == 2
+    assert result.candidates[0].commit is None
+    assert result.candidates[0].enrichment_status == 'PARTIAL'
+
+
+@pytest.mark.asyncio
+async def test_duplicate_enrichment_error_remains_one_incomplete_failure():
+    url = 'https://github.com/example/notes'
+    class CountingGithub(FakeGitHub):
+        enrich_calls = 0
+        async def enrich_repository(self, row):
+            self.enrich_calls += 1
+            raise ConnectionError('github unavailable')
+    github = CountingGithub({'one':[candidate(url,None)],'two':[candidate(url,None)]})
+    result = await retrieve_sources(requirement('私人笔记'),query_plan('one','two'),github)
+    assert result.completed is False
+    assert github.enrich_calls == 1
+    assert len(result.errors) == 1
+    assert not result.reuse_rejections
