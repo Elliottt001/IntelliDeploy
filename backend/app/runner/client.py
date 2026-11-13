@@ -19,6 +19,10 @@ class RunnerBuildFailed(RuntimeError):
     pass
 
 
+class RunnerToolRejected(RuntimeError):
+    """Runner rejected arguments before any tool effect started."""
+
+
 class RunnerClient:
     def __init__(self, client):
         self.client = client
@@ -81,6 +85,8 @@ class RunnerClient:
                 raise RunnerBuildFailed(
                     str(detail.get("message") or "candidate build failed")
                 )
+            if response.status_code == 422 and isinstance(detail, dict) and detail.get("code") == "TOOL_ARGUMENTS_INVALID":
+                raise RunnerToolRejected(str(detail.get("message") or "工具参数或相对路径无效"))
             raise RunnerUnavailable("执行节点拒绝操作或尚未就绪")
         return response
 

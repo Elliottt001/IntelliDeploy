@@ -290,3 +290,12 @@ async def test_runner_rejects_escape_path_before_started_effect(tmp_path):
     assert response.status_code == 422
     assert not list((tmp_path/job/'operations').glob('*.json'))
     assert not (tmp_path/job/'escape').exists()
+
+
+@pytest.mark.asyncio
+async def test_runner_client_distinguishes_rejected_arguments_from_unavailable_node():
+    from app.runner.client import RunnerClient, RunnerToolRejected
+    from app.core.types import ToolCall
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r:httpx.Response(422,json={'detail':{'code':'TOOL_ARGUMENTS_INVALID','message':'relative path required'}})),base_url='https://runner.test') as client:
+        with pytest.raises(RunnerToolRejected,match='relative path required'):
+            await RunnerClient(client).tool('job',ToolCall(id='call',name='list_files',arguments={'path':'/workspace'}),1)

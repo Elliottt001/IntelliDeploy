@@ -1303,3 +1303,20 @@ def test_builder_receives_runtime_alias_and_final_submission_contract(new_job,se
     assert contract['env_refs']['PLATFORM_INSTANCE_TOKEN']=='platform_instance_token'
     assert contract['final_submission']=='finish_implementation'
     assert contract['source_builds_require_buildspec'] is True
+
+
+@pytest.mark.asyncio
+async def test_runner_argument_rejection_is_feedback_without_execution_charge(new_job,session_factory):
+    from app.runner.client import RunnerToolRejected
+    from app.jobs.execution import JobExecution
+    from app.core.types import ToolCall
+    from unittest.mock import Mock
+    job_id,_,_,generation=new_job
+    runner=AsyncMock()
+    runner.tool.side_effect=RunnerToolRejected('relative path required')
+    execution=JobExecution(job_id,'worker',generation,session_factory=session_factory,runner=runner)
+    execution.record_resource=Mock()
+    result=await execution.execute_tool(ToolCall(id='absolute',name='list_files',arguments={'path':'/workspace'}))
+    assert result.ok is False
+    assert 'relative path' in result.content
+    execution.record_resource.assert_not_called()

@@ -732,7 +732,8 @@ class JobExecution:
                        ]}, "DATABASE_URL": "database-url"},
                        "database": "平台提供独立PostgreSQL和DATABASE_URL，不需要自行添加未登记数据库镜像或索取数据库密钥。",
                        "identity_cookie": "intellideploy_app_identity",
-                       "executor": {"working_directory": "/workspace", "npm_cache": "/tmp/npm-cache"},
+                       "executor": {"working_directory": "/workspace", "npm_cache": "/tmp/npm-cache",
+                                    "file_tool_paths": "relative paths only: use . or app/..., never /workspace or parent traversal"},
                    }}
         if checkpoint.mode == "hybrid":
             payload.update(
@@ -1124,7 +1125,12 @@ class JobExecution:
         self.admit_resource(
             "execution.millis", int(call.arguments.get("timeout", 60)) * 1000
         )
-        response = await self.runner.tool(self.job_id, call, self.generation)
+        from app.runner.client import RunnerToolRejected
+        try:
+            response = await self.runner.tool(self.job_id, call, self.generation)
+        except RunnerToolRejected as exc:
+            self.job_check()
+            return ToolResult(call_id=call.id, ok=False, content=str(exc))
         self.job_check()
         self.record_resource(
             "tool:" + call.id, "execution.millis", response.get("duration_ms")
