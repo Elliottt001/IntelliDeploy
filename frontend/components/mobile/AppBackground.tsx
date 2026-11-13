@@ -31,13 +31,15 @@ export function AppBackground({
   atmosphere = 'default',
 }: AppBackgroundProps) {
   const window = useWindowDimensions();
-  const viewportWidth = width ?? window.width;
+  const requestedWidth = width ?? window.width;
+  const viewportWidth = Number.isFinite(requestedWidth) ? requestedWidth : 0;
+  const viewportHeight = Number.isFinite(window.height) ? window.height : 0;
   const layout = getMobileLayout(viewportWidth, insets);
 
   return (
     <View style={[styles.background, style]} testID={testID}>
       <Svg testID="mobile-source-atmosphere" pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={StyleSheet.absoluteFill} width="100%" height="100%">
-        <MobileBackdrop width={viewportWidth} height={window.height} variant={atmosphere}/>
+        <MobileBackdrop width={viewportWidth} height={viewportHeight} variant={atmosphere}/>
       </Svg>
       <View
         style={[
