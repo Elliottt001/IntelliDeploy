@@ -41,13 +41,13 @@ git -C /Users/bytedance/Projects/my/byte-intelli/.worktrees/intellideploy-mobile
 git -C /Users/bytedance/Projects/my/byte-intelli/.worktrees/intellideploy-mobile-figma rev-parse HEAD
 ```
 
-有未提交文件或merge冲突时先查看具体差异，保留用户内容；不能用reset、checkout覆盖或stash全部。merge完成后在忽略的`.superpowers/sdd/2026-11-13-mobile-front-only/progress.md`记录基线、每任务RED/GREEN/review及缺口。该ledger不代替可提交的源证据和验收记录。
+有未提交文件或merge冲突时先查看具体差异，保留用户内容；不能用reset、checkout覆盖或stash全部。merge完成后在忽略的`.superpowers/sdd/2026-11-13-mobile-frontend-source-alignment/progress.md`记录基线、每任务RED/GREEN/review及缺口。该ledger不代替可提交的源证据和验收记录。
 
 在已进入worktree根的执行会话保存实际基线，后续命令直接读取该文件：
 
 ```bash
-mkdir -p .superpowers/sdd/2026-11-13-mobile-front-only
-git rev-parse HEAD > .superpowers/sdd/2026-11-13-mobile-front-only/baseline.txt
+mkdir -p .superpowers/sdd/2026-11-13-mobile-frontend-source-alignment
+git rev-parse HEAD > .superpowers/sdd/2026-11-13-mobile-frontend-source-alignment/baseline.txt
 ```
 
 所有npm命令从worktree根执行；源提取命令明确进入`frontend/`。每个测试/生成进程使用以下源位置，不把Downloads绝对路径编译入运行时：
@@ -986,7 +986,7 @@ worktree缺`.venv`时可为测试配置使用主工作区既有解释器路径�
 - [ ] **Step 5: 独立全分支review及范围扫描。** 用recorded baseline检查`backend web packages/api-client infra tests/phase1`无本轮增量，复核所有26Frame/五宽度、API状态、原生缺口、reduced motion以及没有丢失功能覆盖。
 
 ```bash
-git diff --name-only "$(cat .superpowers/sdd/2026-11-13-mobile-front-only/baseline.txt)" HEAD -- backend web packages/api-client infra tests/phase1
+git diff --name-only "$(cat .superpowers/sdd/2026-11-13-mobile-frontend-source-alignment/baseline.txt)" HEAD -- backend web packages/api-client infra tests/phase1
 git diff --check
 ```
 
