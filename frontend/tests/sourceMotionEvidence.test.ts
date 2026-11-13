@@ -81,6 +81,23 @@ test('sourceBox composes the source parent matrix into an AABB', () => {
   });
 });
 
+test('sourceBox uses the full rotated and skewed source parent chain', () => {
+  const frame = '119:76618';
+  const node = '119:76644';
+
+  expect(sourceNode('119:76633').transform.m01).not.toBe(0);
+  expect(sourceNode('119:76634').transform.m10).not.toBe(0);
+  expect(sourceNode('119:76643').transform.m01).not.toBe(0);
+  expect(sourceNode(node).transform.m10).not.toBe(0);
+
+  const box = sourceBox(frame, node);
+
+  expect(box.x).toBeCloseTo(176.75010762167238, 6);
+  expect(box.y).toBeCloseTo(183.98912954273854, 6);
+  expect(box.width).toBeCloseTo(15.91629950512447, 6);
+  expect(box.height).toBeCloseTo(9.282701190706376, 6);
+});
+
 test('mergeInteractions replaces and deletes by complete interaction ID', () => {
   const inherited = [
     {
@@ -218,4 +235,125 @@ test('extractSourceMotion applies override replacement and deletion without sour
   expect(output).toContain('"durationMs": 200');
   expect(output).not.toContain(designSource);
   expect(output).not.toContain('"4:1"');
+});
+
+test('extractSourceMotion keeps child-path override ownership while replacing and deleting interactions', async () => {
+  const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'source-motion-'));
+  temporaryDirectories.push(temporaryRoot);
+  const designSource = path.join(temporaryRoot, 'design-source');
+  await mkdir(path.join(designSource, 'design-data'), { recursive: true });
+
+  await writeFile(
+    path.join(designSource, 'design-data/document.kiwi.json'),
+    JSON.stringify({
+      nodeChanges: [
+        {
+          guid: interactionId(1, 100),
+          name: 'Approved frame',
+          parentIndex: { guid: interactionId(0, 0) },
+          size: { x: 375, y: 812 },
+          transform: { m00: 1, m01: 0, m02: 0, m10: 0, m11: 1, m12: 0 },
+          type: 'FRAME',
+        },
+        {
+          guid: interactionId(2, 200),
+          name: 'Symbol root',
+          parentIndex: { guid: interactionId(0, 0) },
+          size: { x: 10, y: 10 },
+          transform: { m00: 1, m01: 0, m02: 0, m10: 0, m11: 1, m12: 0 },
+          type: 'SYMBOL',
+        },
+        {
+          guid: interactionId(2, 201),
+          name: 'Symbol child button',
+          parentIndex: { guid: interactionId(2, 200) },
+          prototypeInteractions: [
+            {
+              id: interactionId(3, 1),
+              event: { interactionType: 'ON_CLICK' },
+              actions: [
+                {
+                  transitionNodeID: interactionId(8, 1),
+                  navigationType: 'NAVIGATE',
+                  transitionDuration: 0.1,
+                  transitionType: 'SMART_ANIMATE',
+                },
+              ],
+              isDeleted: false,
+            },
+            {
+              id: interactionId(4, 1),
+              event: { interactionType: 'ON_HOVER' },
+              actions: [
+                {
+                  navigationType: 'SWAP_STATE',
+                  transitionDuration: 0.3,
+                  transitionNodeID: interactionId(8, 4),
+                  transitionType: 'SMART_ANIMATE',
+                },
+              ],
+              isDeleted: false,
+            },
+          ],
+          size: { x: 8, y: 8 },
+          transform: { m00: 1, m01: 0, m02: 1, m10: 0, m11: 1, m12: 2 },
+          type: 'FRAME',
+        },
+        {
+          guid: interactionId(1, 101),
+          name: 'Instance root',
+          parentIndex: { guid: interactionId(1, 100) },
+          size: { x: 10, y: 10 },
+          symbolData: {
+            symbolID: interactionId(2, 200),
+            symbolOverrides: [
+              {
+                guidPath: { guids: [interactionId(2, 200), interactionId(2, 201)] },
+                prototypeInteractions: [
+                  {
+                    id: interactionId(3, 1),
+                    event: { interactionType: 'ON_CLICK' },
+                    actions: [
+                      {
+                        easingFunction: [1, 64, 12, 0],
+                        easingType: 'GENTLE_SPRING',
+                        navigationType: 'NAVIGATE',
+                        transitionDuration: 0.2,
+                        transitionNodeID: interactionId(8, 2),
+                        transitionType: 'SLIDE_FROM_LEFT',
+                      },
+                    ],
+                    isDeleted: false,
+                  },
+                  {
+                    id: interactionId(4, 1),
+                    event: { interactionType: 'ON_HOVER' },
+                    actions: [{ navigationType: 'SWAP_STATE' }],
+                    isDeleted: true,
+                  },
+                ],
+              },
+            ],
+          },
+          transform: { m00: 1, m01: 0, m02: 10, m10: 0, m11: 1, m12: 20 },
+          type: 'INSTANCE',
+        },
+      ],
+    }),
+  );
+
+  const outputPath = path.join(temporaryRoot, 'motion.ts');
+  const result = await extractSourceMotion({
+    designSource,
+    frameIds: ['1:100'],
+    outputPath,
+  });
+  const output = await readFile(outputPath, 'utf8');
+
+  expect(result.motionCount).toBe(1);
+  expect(output).toContain('"nodeId": "1:101/2:200/2:201"');
+  expect(output).toContain('"interactionId": "3:1"');
+  expect(output).toContain('"targetNodeId": "8:2"');
+  expect(output).not.toContain('"targetNodeId": "8:1"');
+  expect(output).not.toContain('"interactionId": "4:1"');
 });
