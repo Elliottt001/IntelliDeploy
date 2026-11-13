@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from app.agent.reuse import NoReusableSolution
+from app.agent.reuse import NoReusableSolution, ExternalServiceSelected
 from pathlib import Path
 from dataclasses import dataclass, replace
 from typing import Any, Awaitable, Callable
@@ -716,6 +716,27 @@ def _finish_cancelled(session_factory, job_id: str) -> None:
         session.commit()
 
 
+async def complete_external_delivery(execution, decision, session_factory):
+    job_id=execution.job_id
+    from app.runtime.external_delivery import verify_external_service, OfficialServiceVerifier, persist_external_delivery
+    from app.core.types import ExternalLinkDelivery
+    requirement=await execution.ensure_requirement()
+    verification=await verify_external_service(requirement,decision.deployment_asset,
+        OfficialServiceVerifier(requirement,execution.model(f'external:{requirement.revision}')))
+    if verification.status != 'PASS':
+        execution.save(external_verification=verification.model_dump(mode='json'))
+        execution.wait_for_user('已找到官方服务 '+verification.url+'，核心用途仍需登录或实际确认；可先体验，或要求独立部署。')
+    delivery=ExternalLinkDelivery(app_id=execution.app_id,job_id=job_id,url=verification.url,
+        repo_url=decision.selected_sources[0].url,source_ref=decision.deployment_asset.source_ref,
+        summary='可使用的第三方官方服务',features=[a.action for a in requirement.acceptance if a.importance=='CORE'],
+        differences=decision.differences,verified_at=verification.checked_at,
+        verification_refs=['external:'+job_id],report_url=f'/api/jobs/{job_id}/report')
+    with session_factory() as session:
+        current=execution.job(session)
+        persist_external_delivery(session,current,delivery,verification)
+        session.commit()
+
+
 async def run_pipeline(
     job_id: str,
     *,
@@ -868,6 +889,16 @@ async def run_pipeline(
             except WaitingForUser:
                 return
         _finish_failure(session_factory, job_id, 'REUSE_UNCONFIRMED', str(exc))
+        return
+    except ExternalServiceSelected as exc:
+        try:
+            await complete_external_delivery(execution, exc.decision, session_factory)
+        except WaitingForUser:
+            return
+        except LeaseLost:
+            raise
+        except Exception:
+            _finish_failure(session_factory, job_id, 'EXTERNAL_VERIFICATION_FAILED', '官方服务验证未完成，已保留来源供重试')
         return
     except RequirementInvalid as exc:
         count = len(exc.details.get("unresolved_issues") or [])

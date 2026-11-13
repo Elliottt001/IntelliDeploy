@@ -1,5 +1,6 @@
 import hashlib
 import json
+from pydantic import TypeAdapter
 from pathlib import Path
 
 from sqlalchemy import func, select, text
@@ -24,6 +25,7 @@ from app.core.types import (
     AppSummary,
     ConversationMessage,
     DeliveryResult,
+    DeliveryOutcome,
     JobRef,
     JobReport,
     JobSnapshot,
@@ -359,9 +361,9 @@ def app_detail(session, app):
         ],
         active_job=job_snapshot(session, active) if active else None,
         latest_job=job_snapshot(session, jobs[0]) if jobs else None,
-        delivery=DeliveryResult.model_validate(version.delivery)
-        if version and version.delivery
-        else None,
+        delivery=TypeAdapter(DeliveryOutcome).validate_python(version.delivery)
+        if version and version.delivery else next((TypeAdapter(DeliveryOutcome).validate_python(j.result)
+            for j in jobs if j.status=='SUCCEEDED' and (j.result or {}).get('kind')=='EXTERNAL_LINK'), None),
         candidate_version_id=app.candidate_version_id,
         publication=public_response(session,publication) if publication else None,
         instance=(
@@ -388,6 +390,19 @@ def app_detail(session, app):
 
 
 def job_report(session, job):
+    if (job.result or {}).get('kind') == 'EXTERNAL_LINK':
+        from app.runtime.models import ResourceRecord
+        resource = session.scalar(select(ResourceRecord).where(ResourceRecord.type=='EXTERNAL_LINK',
+            ResourceRecord.job_id==job.id,ResourceRecord.app_id==job.app_id,ResourceRecord.state=='VERIFIED'))
+        if resource:
+            record = session.scalar(select(RequirementRecord).where(RequirementRecord.app_id==job.app_id,
+                RequirementRecord.revision==job.requirement_revision))
+            checks = {c['id']:c for c in resource.metadata_json['verification']['core_checks']}
+            req = Requirement.model_validate(record.requirement)
+            return JobReport(job_id=job.id,overall='PASS',requirement_revision=job.requirement_revision,
+                checks=[ReportCheck(id=a.id,action=a.action,expected=a.expected,
+                    status=checks.get(a.id,{}).get('status','NOT_RUN'),evidence_urls=[])
+                    for a in req.acceptance])
     req = session.scalar(
         select(RequirementRecord).where(
             RequirementRecord.app_id == job.app_id,

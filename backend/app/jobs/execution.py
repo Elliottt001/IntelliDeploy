@@ -314,6 +314,14 @@ class JobExecution:
             self.raw_model = DeepSeekClient()
         return DurableModel(self, phase, start)
 
+    async def ensure_hosted_dependencies(self):
+        if self.runner is not None:
+            return
+        _, hosted = await build_hosted_dependencies(self.job_id,self.worker_id,self.generation,self.sessions)
+        self.runner = hosted.runner
+        self.candidates = hosted.candidates
+        self.candidates.execution = self
+
     def reservation(self, session, job):
         parent = (
             session.get(Reservation, job.reservation_id) if job.reservation_id else None
@@ -976,6 +984,7 @@ class JobExecution:
                     await __import__("asyncio").to_thread(
                         prepare_sources, str(workspace), plan
                     )
+            await self.ensure_hosted_dependencies()
             self.prepare_algorithm_inputs(requirement, plan, workspace)
             if plan.route == 'DEPLOY_EXISTING' and attempt_index == 0 and not repair_evidence:
                 from app.runtime.official_deployment import plan_official_deployment, execute_official_deployment
@@ -1671,7 +1680,7 @@ class JobExecution:
         }
 
 
-async def build_default_dependencies(job_id, worker_id, generation, session_factory):
+async def build_hosted_dependencies(job_id, worker_id, generation, session_factory):
     from app.jobs.pipeline import TargetUnavailable
     from app.runner.client import RunnerClient, RunnerUnavailable
     from app.runtime.candidate_execution import CandidateExecution
@@ -1739,3 +1748,26 @@ async def build_default_dependencies(job_id, worker_id, generation, session_fact
         if runner:
             await runner.close()
         raise TargetUnavailable(str(exc)) from exc
+
+
+async def build_default_dependencies(job_id, worker_id, generation, session_factory):
+    from app.jobs.pipeline import PipelineDependencies, TargetUnavailable
+    from app.runtime.validation import validate_application
+    if not worker_id or generation is None:
+        raise TargetUnavailable('默认执行需要有效Worker租约')
+    with session_factory() as session:
+        job=leased_job(session,job_id,worker_id,generation)
+        if job.kind=='COPY':
+            return await build_hosted_dependencies(job_id,worker_id,generation,session_factory)
+        if not settings.DEEPSEEK_API_KEY:
+            raise TargetUnavailable('模型服务尚未配置')
+    execution=JobExecution(job_id,worker_id,generation,session_factory=session_factory)
+    async def start(*args):
+        await execution.ensure_hosted_dependencies()
+        return await execution.candidates.start(*args)
+    async def stop(*args,**kwargs):
+        return await execution.candidates.stop(*args,**kwargs)
+    return PipelineDependencies(generate_candidate=execution.generate_candidate,review_candidate=execution.review_candidate,
+        compile_checks=execution.compile_checks,build_candidate=execution.build_candidate,start_candidate=start,stop_candidate=stop,
+        validate_candidate=validate_application,
+        runtime_controller=lambda id:execution.candidates.controller(id),deployer=execution.deploy,migration_runner=execution.migrate),execution

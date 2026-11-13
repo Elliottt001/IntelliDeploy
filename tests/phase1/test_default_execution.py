@@ -148,7 +148,7 @@ async def test_shadow_evidence_uses_deterministic_query_without_model_or_runner(
     )
 
     route = await execution.select_sources_hybrid(
-        Requirement(prompt="私人笔记", acceptance=[])
+        Requirement(prompt="私人笔记", acceptance=[],delivery_policy={'allow_generation':True})
     )
 
     assert route.route == "GENERATE_APP"

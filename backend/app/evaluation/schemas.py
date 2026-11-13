@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.core.types import DeliveryResult, JobReport, JobStatus
+from app.core.types import DeliveryOutcome, JobReport, JobStatus
 
 
 AlgorithmMode = Literal["baseline", "shadow", "hybrid"]
@@ -108,7 +108,8 @@ class EvaluationRecord(BaseModel):
     sources: list[EvaluationSource] = Field(default_factory=list)
     retrieval: EvaluationRetrieval
     requirement_compilation: EvaluationRequirementCompilation | None = None
-    result: DeliveryResult | None = None
+    result: DeliveryOutcome | None = None
+    delivery_kind: Literal['EXTERNAL_LINK', 'HOSTED_INSTANCE'] | None = None
     report: JobReport
     created_at: datetime
     updated_at: datetime

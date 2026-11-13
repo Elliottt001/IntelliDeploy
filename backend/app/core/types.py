@@ -440,6 +440,7 @@ class JobRef(CreateAppResponse):
 
 
 class DeliveryResult(BaseModel):
+    kind: Literal['HOSTED_INSTANCE'] = 'HOSTED_INSTANCE'
     app_id: str
     version_id: str
     instance_id: str
@@ -449,6 +450,22 @@ class DeliveryResult(BaseModel):
     report_url: str
     artifact_url: str
     published_at: datetime
+
+class ExternalLinkDelivery(BaseModel):
+    kind: Literal['EXTERNAL_LINK'] = 'EXTERNAL_LINK'
+    app_id: str
+    job_id: str
+    url: str
+    repo_url: str
+    source_ref: str
+    summary: str
+    features: list[str]
+    differences: list[str] = Field(default_factory=list)
+    verified_at: datetime
+    verification_refs: list[str] = Field(min_length=1)
+    report_url: str
+
+DeliveryOutcome = DeliveryResult | ExternalLinkDelivery
 
 
 class JobSnapshot(BaseModel):
@@ -460,7 +477,7 @@ class JobSnapshot(BaseModel):
     event_cursor: int = Field(ge=0)
     question: str | None = None
     usage_units: int = Field(ge=0)
-    result: DeliveryResult | None = None
+    result: DeliveryOutcome | None = None
     error: PublicError | None = None
     created_at: datetime
     updated_at: datetime
@@ -513,7 +530,7 @@ class AppDetail(AppSummary):
     conversation: list[ConversationMessage]
     active_job: JobSnapshot | None = None
     latest_job: JobSnapshot | None = None
-    delivery: DeliveryResult | None = None
+    delivery: DeliveryOutcome | None = None
     candidate_version_id: str | None = None
     instance: InstanceSnapshot | None = None
     publication: PublicationResponse | None = None
