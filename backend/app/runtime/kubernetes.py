@@ -214,7 +214,7 @@ def render_resources(
             }
             for logical_name in service.volumes
         ]
-        environment = []
+        environment = [{'name':name,'value':value} for name,value in service.env_values.items() if name not in service.env_refs]
         for name, key in service.env_refs.items():
             if key not in secrets:
                 raise ValueError("manifest secret reference is missing")
@@ -239,6 +239,8 @@ def render_resources(
         }
         if service.port is not None:
             container["ports"] = [{"name": "http", "containerPort": service.port}]
+        if service.command:
+            container['args'] = service.command
         if environment:
             container["env"] = environment
         if mounts:
