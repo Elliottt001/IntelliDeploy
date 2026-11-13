@@ -226,7 +226,7 @@ try {
     });
   }
   const cardCopy = Object.fromEntries(Object.entries({store:["270:26345","270:26349","270:26350"],products:["270:26431","270:26434","270:26435"],community:["270:26460","270:26464","270:26465"]}).map(([key,[root,title,description]])=>[key,{title:{...text(nodes.get(title)),transform:world(title,root)},description:{...text(nodes.get(description)),transform:world(description,root)}}]));
-  const renderTree=(root,primitive)=>{const build=(n,inherited=1)=>({sourceNodeId:id(n.guid),size:n.size,transform:n.transform,opacity:n.opacity??1,visible:n.visible!==false,clipsContent:n.type==='FRAME'&&n.frameMaskDisabled===false,mask:n.mask===true,booleanOperation:n.type==='BOOLEAN_OPERATION',maskPaths:(n.fillGeometry??[]).map(g=>({path:glyphPath(g.commandsBlob),fillRule:g.windingRule==='ODD'?'evenodd':'nonzero'})),effects:n.effects?.filter(e=>e.visible!==false)??[],geometry:primitive.geometry.filter(g=>g.sourceNodeId===id(n.guid)).map(g=>({...g,opacity:g.opacity/(inherited*(n.opacity??1)||1),transform:undefined,sourceEffects:[]})),children:(children.get(id(n.guid))??[]).sort((a,b)=>nodes.get(a).parentIndex.position<nodes.get(b).parentIndex.position?-1:1).map(k=>build(nodes.get(k),inherited*(n.opacity??1)))});return build(nodes.get(root));};
+  const renderTree=(root,primitive)=>{const build=(n,inherited=1,inheritedVisible=true)=>({sourceNodeId:id(n.guid),size:n.size,transform:n.transform,opacity:n.opacity??1,visible:inheritedVisible&&n.visible!==false,clipsContent:n.type==='FRAME'&&n.frameMaskDisabled===false,mask:n.mask===true,booleanOperation:n.type==='BOOLEAN_OPERATION',blendMode:n.blendMode??'NORMAL',cornerRadius:n.cornerRadius??0,maskPaths:(n.fillGeometry??[]).map(g=>({path:glyphPath(g.commandsBlob),fillRule:g.windingRule==='ODD'?'evenodd':'nonzero'})),effects:n.effects?.map(e=>normalizeSourceEffect(e,id(n.guid))).filter(Boolean)??[],geometry:primitive.geometry.filter(g=>g.sourceNodeId===id(n.guid)).map(g=>({...g,opacity:g.opacity/(inherited*(n.opacity??1)||1),transform:undefined,sourceEffects:[]})),children:(children.get(id(n.guid))??[]).sort((a,b)=>nodes.get(a).parentIndex.position<nodes.get(b).parentIndex.position?-1:1).map(k=>build(nodes.get(k),inherited*(n.opacity??1),inheritedVisible&&n.visible!==false))});return build(nodes.get(root));};
   const avatarTrees={normal:renderTree('270:26291',p.home),pressed:renderTree('188:16338',p.send)};
   const manifest = await readFile(
     new URL("../design/generated/mobileAssetManifest.ts", import.meta.url),
@@ -287,7 +287,9 @@ try {
       }
     }
   await writeFile(
-    new URL("../design/homeRenderEvidence.ts", import.meta.url),
+    process.env.INTELLIDEPLOY_HOME_RENDER_OUTPUT
+      ? path.resolve(process.env.INTELLIDEPLOY_HOME_RENDER_OUTPUT)
+      : new URL("../design/homeRenderEvidence.ts", import.meta.url),
     `// Actual Kiwi primitives, visible static glyphs and classified standalone illustration sources.\nexport const homeRenderEvidence = ${JSON.stringify({ question:text(nodes.get("270:26289")),greetingMetrics:{sourceNodeId:"270:26288",baseline:nodes.get("270:26288").derivedTextData.glyphs[0].position.y}, sourceEffectSamples:{storeSearchSurface:{sourceNodeId:"270:26624",effects:nodes.get("270:26624").effects?.map(e=>normalizeSourceEffect(e,"270:26624")).filter(Boolean)??[]}}, avatarTrees, cardCopy, decorations, storeFold, sectionIcon:p.arrowRight,sectionLabels:{inspiration:text(nodes.get("270:26312")),functions:text(nodes.get("270:26317")),refresh:text(nodes.get("270:26313"))}, avatar: p.home, avatarPressed: p.send, avatarPressedTransform: nodes.get("188:16338").transform, miboLink:p.search, cards, clouds, images }, null, 2)} as const;\n`,
   );
 } finally {

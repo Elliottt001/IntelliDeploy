@@ -5,7 +5,12 @@ const webSupported = new Set([
   'DROP_SHADOW',
   'FOREGROUND_BLUR',
   'INNER_SHADOW',
-  'LAYER_BLUR',
+]);
+
+const nativeImplementedNotRun = new Set([
+  'DROP_SHADOW',
+  'FOREGROUND_BLUR',
+  'INNER_SHADOW',
 ]);
 
 export function effectSupport(
@@ -16,7 +21,7 @@ export function effectSupport(
     return 'NOT_IMPLEMENTED';
   }
   if (platform !== 'web') {
-    return 'NOT_RUN';
+    return nativeImplementedNotRun.has(rawEffectType) ? 'NOT_RUN' : 'NOT_IMPLEMENTED';
   }
   return webSupported.has(rawEffectType) ? 'PASS' : 'NOT_IMPLEMENTED';
 }

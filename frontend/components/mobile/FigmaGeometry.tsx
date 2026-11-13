@@ -1,4 +1,4 @@
-import { FigmaEffects } from "./FigmaEffects";
+import { FigmaEffects, hasRenderableSourceEffects, type FigmaSourceEffect } from "./FigmaEffects";
 import { Platform } from "react-native";
 import Svg, {
   Defs,
@@ -10,18 +10,12 @@ import Svg, {
   ClipPath,
 } from "react-native-svg";
 import type { FigmaVectorLayer } from "../../design/figmaComponentEvidence";
-type SourceEffect = {
-  type: string;
-  radius: number;
-  offset: { x: number; y: number };
-  color: { r: number; g: number; b: number; a: number };
-};
-type Layer = Omit<FigmaVectorLayer, "paint"> & {
+type Layer = Omit<FigmaVectorLayer, "paint" | "sourceEffects"> & {
   paint?: Omit<NonNullable<FigmaVectorLayer["paint"]>, "type"> & {
     type: NonNullable<FigmaVectorLayer["paint"]>["type"] | "GRADIENT_ANGULAR";
   };
   sourceSize?: { x: number; y: number };
-  sourceEffects?: readonly SourceEffect[];
+  sourceEffects?: readonly FigmaSourceEffect[];
 };
 export function FigmaGeometry({
   geometry,
@@ -38,6 +32,52 @@ export function FigmaGeometry({
   transform?: string;
   overflow?: 'visible' | 'hidden';
 }) {
+  const sanitize = (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, '-');
+  const effectGroups: Array<{id:string;indexes:number[];sourceNodeId:string;effects:NonNullable<Layer['sourceEffects']>}> = [];
+  const grouped = new Set<number>();
+  for (let index = 0; index < geometry.length; index += 1) {
+    const layer = geometry[index];
+    if (grouped.has(index) || !hasRenderableSourceEffects(layer.sourceEffects)) continue;
+    const signature = JSON.stringify(layer.sourceEffects);
+    const indexes = [index];
+    for (let next = index + 1; next < geometry.length; next += 1) {
+      const candidate = geometry[next];
+      if (candidate.sourceNodeId !== layer.sourceNodeId || JSON.stringify(candidate.sourceEffects) !== signature) break;
+      indexes.push(next);
+    }
+    for (const groupedIndex of indexes) grouped.add(groupedIndex);
+    effectGroups.push({
+      effects: layer.sourceEffects!,
+      id: `${prefix}-effect-${sanitize(layer.sourceNodeId)}`,
+      indexes,
+      sourceNodeId: layer.sourceNodeId,
+    });
+  }
+  const groupByFirstIndex = new Map(effectGroups.map((group) => [group.indexes[0], group]));
+  const renderPath = (layer: Layer, index: number) =>
+    layer.paint?.type === "GRADIENT_ANGULAR" ? (
+      <AngularPaint
+        key={index}
+        layer={layer}
+        id={`${prefix}-angular-${index}`}
+      />
+    ) : (
+      <Path
+        key={index}
+        {...(Platform.OS === "web"
+          ? { "data-source-node": layer.sourceNodeId }
+          : {})}
+        d={layer.path}
+        fill={
+          layer.paint?.type.startsWith("GRADIENT")
+            ? `url(#${prefix}-${index})`
+            : (layer.fill ?? "none")
+        }
+        fillRule={layer.fillRule}
+        opacity={layer.opacity}
+        transform={layer.transform}
+      />
+    );
   return (
     <Svg
       pointerEvents="none"
@@ -95,38 +135,16 @@ export function FigmaGeometry({
           );
         })}
       </Defs>
-      <Defs>{geometry.map((layer,index)=>layer.sourceEffects?.length?<FigmaEffects key={index} effects={layer.sourceEffects} id={`${prefix}-effect-${index}`}/>:null)}</Defs>
+      <Defs>{effectGroups.map(group=><FigmaEffects key={group.id} effects={group.effects} id={group.id}/>)}</Defs>
       <G transform={transform}>
-        {geometry.map((layer, index) =>
-          layer.paint?.type === "GRADIENT_ANGULAR" ? (
-            <AngularPaint
-              key={index}
-              layer={layer}
-              id={`${prefix}-angular-${index}`}
-            />
-          ) : (
-            <Path
-              key={index}
-              {...(Platform.OS === "web"
-                ? { "data-source-node": layer.sourceNodeId }
-                : {})}
-              d={layer.path}
-              fill={
-                layer.paint?.type.startsWith("GRADIENT")
-                  ? `url(#${prefix}-${index})`
-                  : (layer.fill ?? "none")
-              }
-              fillRule={layer.fillRule}
-              opacity={layer.opacity}
-              transform={layer.transform}
-              filter={
-                layer.sourceEffects?.length
-                  ? `url(#${prefix}-effect-${index})`
-                  : undefined
-              }
-            />
-          ),
-        )}
+        {geometry.map((layer, index) => {
+          if (grouped.has(index) && !groupByFirstIndex.has(index)) return null;
+          const group = groupByFirstIndex.get(index);
+          if (group) {
+            return <G key={group.id} filter={`url(#${group.id})`} {...(Platform.OS === "web" ? { "data-source-effect-node": group.sourceNodeId } : {})}>{group.indexes.map((layerIndex)=>renderPath(geometry[layerIndex], layerIndex))}</G>;
+          }
+          return renderPath(layer, index);
+        })}
       </G>
     </Svg>
   );

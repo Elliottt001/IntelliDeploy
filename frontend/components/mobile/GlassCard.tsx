@@ -76,6 +76,7 @@ export function GlassCard({ children, style, testID }: GlassCardProps) {
         paddingTop: shell.sourcePadding.top,
       }
     : null;
+  const sourceClipping = shell.sourceClipsContent ? { overflow: 'hidden' as const } : null;
 
   return (
     <View
@@ -84,6 +85,7 @@ export function GlassCard({ children, style, testID }: GlassCardProps) {
         evidenceStyle,
         sourcePadding,
         style,
+        sourceClipping,
       ]}
       testID={testID}
     >

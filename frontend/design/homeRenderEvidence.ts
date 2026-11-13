@@ -476,6 +476,60 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "GLASS",
+            "offset": {
+              "x": 0,
+              "y": 2.2028987407684326
+            },
+            "radius": 2.2028987407684326,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0,
+              "g": 0,
+              "b": 0,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "noiseSize": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "seed": 3832,
+            "clipToShape": false,
+            "density": 1,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 9.913043975830078,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 0.5507246851921082,
+            "chromaticAberration": 0.3100000023841858,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.7400000095367432
+          },
           "rawType": "GLASS",
           "reflectionDistance": 0,
           "refractionIntensity": 0.74,
@@ -483,12 +537,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0.25,
           "seed": 3832,
+          "secondarySourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 0,
+            "g": 0,
+            "r": 0
+          },
           "sourceNodeId": "270:26624",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "GLASS"
+          "type": "GLASS",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -508,11 +575,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "DROP_SHADOW",
+            "offset": {
+              "x": 0,
+              "y": 2.2028987407684326
+            },
+            "radius": 3.3043482303619385,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0.72998046875,
+              "g": 0.72998046875,
+              "b": 0.72998046875,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.72998046875,
+              "c1": 0.72998046875,
+              "c2": 0.72998046875,
+              "c3": 0.25
+            }
+          },
           "rawType": "DROP_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 0.72998,
+            "g": 0.72998,
+            "r": 0.72998
+          },
           "sourceNodeId": "270:26624",
           "spread": 0,
-          "type": "DROP_SHADOW"
+          "type": "DROP_SHADOW",
+          "visible": true
         }
       ]
     }
@@ -537,6 +636,8 @@ export const homeRenderEvidence = {
       "clipsContent": true,
       "mask": false,
       "booleanOperation": false,
+      "blendMode": "NORMAL",
+      "cornerRadius": 0,
       "maskPaths": [],
       "effects": [],
       "geometry": [],
@@ -560,6 +661,8 @@ export const homeRenderEvidence = {
           "clipsContent": false,
           "mask": false,
           "booleanOperation": false,
+          "blendMode": "NORMAL",
+          "cornerRadius": 0,
           "maskPaths": [
             {
               "path": "M83.814522 41.907261 C83.814522 65.052002 65.052002 83.814522 41.907261 83.814522 C18.76252 83.814522 0 65.052002 0 41.907261 C0 18.76252 18.76252 0 41.907261 0 C65.052002 0 83.814522 18.76252 83.814522 41.907261 Z",
@@ -568,29 +671,60 @@ export const homeRenderEvidence = {
           ],
           "effects": [
             {
-              "type": "DROP_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#BDBDBD",
               "offset": {
                 "x": 2,
                 "y": 2
               },
+              "opacity": 0.25,
               "radius": 2,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.740159273147583,
-                "g": 0.740159273147583,
-                "b": 0.740159273147583,
-                "a": 0.25
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.740159273147583,
+                  "c1": 0.740159273147583,
+                  "c2": 0.740159273147583,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.740159273147583,
-                "c1": 0.740159273147583,
-                "c2": 0.740159273147583,
-                "c3": 0.25
-              }
+              "rawPayload": {
+                "type": "DROP_SHADOW",
+                "offset": {
+                  "x": 2,
+                  "y": 2
+                },
+                "radius": 2,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.740159273147583,
+                  "g": 0.740159273147583,
+                  "b": 0.740159273147583,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.740159273147583,
+                  "c1": 0.740159273147583,
+                  "c2": 0.740159273147583,
+                  "c3": 0.25
+                }
+              },
+              "rawType": "DROP_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 0.740159,
+                "g": 0.740159,
+                "r": 0.740159
+              },
+              "sourceNodeId": "270:26292",
+              "spread": 0,
+              "type": "DROP_SHADOW",
+              "visible": true
             }
           ],
           "geometry": [
@@ -630,6 +764,8 @@ export const homeRenderEvidence = {
           "clipsContent": false,
           "mask": false,
           "booleanOperation": false,
+          "blendMode": "NORMAL",
+          "cornerRadius": 0,
           "maskPaths": [
             {
               "path": "M83.814522 41.907261 C83.814522 65.052002 65.052002 83.814522 41.907261 83.814522 C18.76252 83.814522 0 65.052002 0 41.907261 C0 18.76252 18.76252 0 41.907261 0 C65.052002 0 83.814522 18.76252 83.814522 41.907261 Z M5.988007 41.907261 C5.988007 61.744919 22.069605 77.826515 41.907261 77.826515 C61.744919 77.826515 77.826515 61.744919 77.826515 41.907261 C77.826515 22.069605 61.744919 5.988007 41.907261 5.988007 C22.069605 5.988007 5.988007 22.069605 5.988007 41.907261 Z",
@@ -638,54 +774,116 @@ export const homeRenderEvidence = {
           ],
           "effects": [
             {
-              "type": "DROP_SHADOW",
-              "offset": {
-                "x": 5.139889717102051,
-                "y": 5.139889717102051
-              },
-              "radius": 20.559558868408203,
-              "visible": true,
               "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.9861647486686707,
-                "g": 0.7232947945594788,
-                "b": 1,
-                "a": 0.5
+              "color": "#FBB8FF",
+              "offset": {
+                "x": 5.13989,
+                "y": 5.13989
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.9861647486686707,
-                "c1": 0.7232947945594788,
-                "c2": 1,
-                "c3": 0.5
-              }
+              "opacity": 0.5,
+              "radius": 20.559559,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9861647486686707,
+                  "c1": 0.7232947945594788,
+                  "c2": 1,
+                  "c3": 0.5
+                }
+              },
+              "rawPayload": {
+                "type": "DROP_SHADOW",
+                "offset": {
+                  "x": 5.139889717102051,
+                  "y": 5.139889717102051
+                },
+                "radius": 20.559558868408203,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.9861647486686707,
+                  "g": 0.7232947945594788,
+                  "b": 1,
+                  "a": 0.5
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9861647486686707,
+                  "c1": 0.7232947945594788,
+                  "c2": 1,
+                  "c3": 0.5
+                }
+              },
+              "rawType": "DROP_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.5,
+                "b": 1,
+                "g": 0.723295,
+                "r": 0.986165
+              },
+              "sourceNodeId": "270:26293",
+              "spread": 0,
+              "type": "DROP_SHADOW",
+              "visible": true
             },
             {
-              "type": "DROP_SHADOW",
+              "blendMode": "NORMAL",
+              "color": "#FCCCFF",
               "offset": {
                 "x": -2,
                 "y": -2
               },
-              "radius": 13.899999618530273,
-              "visible": true,
-              "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.9865372180938721,
-                "g": 0.7980581521987915,
-                "b": 1,
-                "a": 0.25
+              "opacity": 0.25,
+              "radius": 13.9,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9865372180938721,
+                  "c1": 0.7980581521987915,
+                  "c2": 1,
+                  "c3": 0.25
+                }
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.9865372180938721,
-                "c1": 0.7980581521987915,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "rawPayload": {
+                "type": "DROP_SHADOW",
+                "offset": {
+                  "x": -2,
+                  "y": -2
+                },
+                "radius": 13.899999618530273,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.9865372180938721,
+                  "g": 0.7980581521987915,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9865372180938721,
+                  "c1": 0.7980581521987915,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
+              "rawType": "DROP_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 0.798058,
+                "r": 0.986537
+              },
+              "sourceNodeId": "270:26293",
+              "spread": 0,
+              "type": "DROP_SHADOW",
+              "visible": true
             }
           ],
           "geometry": [
@@ -789,6 +987,8 @@ export const homeRenderEvidence = {
           "clipsContent": true,
           "mask": false,
           "booleanOperation": false,
+          "blendMode": "NORMAL",
+          "cornerRadius": 0,
           "maskPaths": [],
           "effects": [],
           "geometry": [],
@@ -812,6 +1012,8 @@ export const homeRenderEvidence = {
               "clipsContent": false,
               "mask": false,
               "booleanOperation": false,
+              "blendMode": "NORMAL",
+              "cornerRadius": 0,
               "maskPaths": [
                 {
                   "path": "M0 0 L65.217812 0 L65.217812 59.737049 L0 59.737049 L0 0 Z",
@@ -820,29 +1022,60 @@ export const homeRenderEvidence = {
               ],
               "effects": [
                 {
-                  "type": "DROP_SHADOW",
-                  "offset": {
-                    "x": -5.057501316070557,
-                    "y": -1.2643753290176392
-                  },
-                  "radius": 10.115002632141113,
-                  "visible": true,
                   "blendMode": "NORMAL",
-                  "spread": 0,
-                  "showShadowBehindNode": false,
-                  "color": {
-                    "r": 0.34990984201431274,
-                    "g": 0.6424503922462463,
-                    "b": 1,
-                    "a": 0.25
+                  "color": "#59A4FF",
+                  "offset": {
+                    "x": -5.057501,
+                    "y": -1.264375
                   },
-                  "authoredColor": {
-                    "space": "DEFAULT",
-                    "c0": 0.34990984201431274,
-                    "c1": 0.6424503922462463,
-                    "c2": 1,
-                    "c3": 0.25
-                  }
+                  "opacity": 0.25,
+                  "radius": 10.115003,
+                  "rawFields": {
+                    "authoredColor": {
+                      "space": "DEFAULT",
+                      "c0": 0.34990984201431274,
+                      "c1": 0.6424503922462463,
+                      "c2": 1,
+                      "c3": 0.25
+                    }
+                  },
+                  "rawPayload": {
+                    "type": "DROP_SHADOW",
+                    "offset": {
+                      "x": -5.057501316070557,
+                      "y": -1.2643753290176392
+                    },
+                    "radius": 10.115002632141113,
+                    "visible": true,
+                    "blendMode": "NORMAL",
+                    "spread": 0,
+                    "showShadowBehindNode": false,
+                    "color": {
+                      "r": 0.34990984201431274,
+                      "g": 0.6424503922462463,
+                      "b": 1,
+                      "a": 0.25
+                    },
+                    "authoredColor": {
+                      "space": "DEFAULT",
+                      "c0": 0.34990984201431274,
+                      "c1": 0.6424503922462463,
+                      "c2": 1,
+                      "c3": 0.25
+                    }
+                  },
+                  "rawType": "DROP_SHADOW",
+                  "showShadowBehindNode": false,
+                  "sourceColor": {
+                    "a": 0.25,
+                    "b": 1,
+                    "g": 0.64245,
+                    "r": 0.34991
+                  },
+                  "sourceNodeId": "270:26295",
+                  "spread": 0,
+                  "type": "DROP_SHADOW",
+                  "visible": true
                 }
               ],
               "geometry": [],
@@ -866,6 +1099,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M9.814699 0.207635 C8.407989 1.01524 3.775799 12.252512 3.775799 12.252512 C1.18292 16.805332 0.000006 26.134298 0 31.382683 C-0.000004 43.221706 13.323302 47.770882 29.343197 47.770889 C45.363106 47.770889 55.481819 43.61776 55.481823 31.778728 C55.481812 26.530344 51.618084 5.741353 47.38081 0.155411 C46.393391 -0.526493 44.638935 1.135156 43.228149 3.197294 C41.839886 5.226511 40.414097 7.310579 39.280334 6.942737 C35.923534 5.853629 32.267586 5.377203 28.468836 5.377202 C25.233564 5.377203 21.935019 5.722774 18.790859 6.498085 C17.481335 6.820998 15.850917 4.989897 14.25678 3.199542 C12.604568 1.343947 10.991323 -0.467874 9.814699 0.207635 Z",
@@ -874,29 +1109,60 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "INNER_SHADOW",
+                      "blendMode": "NORMAL",
+                      "color": "#FFFFFF",
                       "offset": {
                         "x": 0,
                         "y": 0
                       },
-                      "radius": 10.114999771118164,
-                      "visible": true,
-                      "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 1
+                      "opacity": 1,
+                      "radius": 10.115,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
                       },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 1
-                      }
+                      "rawPayload": {
+                        "type": "INNER_SHADOW",
+                        "offset": {
+                          "x": 0,
+                          "y": 0
+                        },
+                        "radius": 10.114999771118164,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
+                      },
+                      "rawType": "INNER_SHADOW",
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 1,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "sourceNodeId": "270:26296",
+                      "spread": 0,
+                      "type": "INNER_SHADOW",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -957,6 +1223,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": true,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M9.814699 0.207635 C8.407989 1.01524 3.775799 12.252512 3.775799 12.252512 C1.18292 16.805332 0.000006 26.134298 0 31.382683 C-0.000004 43.221706 13.323302 47.770882 29.343197 47.770889 C45.363106 47.770889 55.481819 43.61776 55.481823 31.778728 C55.481812 26.530344 51.618084 5.741353 47.38081 0.155411 C46.393391 -0.526493 44.638935 1.135156 43.228149 3.197294 C41.839886 5.226511 40.414097 7.310579 39.280334 6.942737 C35.923534 5.853629 32.267586 5.377203 28.468836 5.377202 C25.233564 5.377203 21.935019 5.722774 18.790859 6.498085 C17.481335 6.820998 15.850917 4.989897 14.25678 3.199542 C12.604568 1.343947 10.991323 -0.467874 9.814699 0.207635 Z",
@@ -965,29 +1233,60 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "INNER_SHADOW",
+                      "blendMode": "NORMAL",
+                      "color": "#FFFFFF",
                       "offset": {
                         "x": 0,
                         "y": 0
                       },
-                      "radius": 13.787510871887207,
-                      "visible": true,
-                      "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 1
+                      "opacity": 1,
+                      "radius": 13.787511,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
                       },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 1
-                      }
+                      "rawPayload": {
+                        "type": "INNER_SHADOW",
+                        "offset": {
+                          "x": 0,
+                          "y": 0
+                        },
+                        "radius": 13.787510871887207,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
+                      },
+                      "rawType": "INNER_SHADOW",
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 1,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "sourceNodeId": "270:26297",
+                      "spread": 0,
+                      "type": "INNER_SHADOW",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -1048,6 +1347,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M26.061615 13.030109 C26.061615 20.22644 20.227524 26.060219 13.030807 26.060219 C5.834091 26.060219 0 20.22644 0 13.030109 C0 5.833779 5.834091 0 13.030807 0 C20.227524 0 26.061615 5.833779 26.061615 13.030109 Z",
@@ -1056,50 +1357,103 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "FOREGROUND_BLUR",
-                      "offset": {
-                        "x": 0,
-                        "y": 4
-                      },
-                      "radius": 20.230003356933594,
-                      "visible": true,
                       "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 0,
-                        "g": 0,
-                        "b": 0,
-                        "a": 0.25
-                      },
-                      "secondaryColor": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 0.25
-                      },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 0,
-                        "c1": 0,
-                        "c2": 0,
-                        "c3": 0.25
-                      },
-                      "secondaryAuthoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 0.25
-                      },
+                      "color": "#000000",
+                      "density": 1,
                       "noiseSize": {
                         "x": 0.5,
                         "y": 0.5
                       },
-                      "seed": 8172,
-                      "density": 1,
                       "noiseType": "MONOTONE",
-                      "opacity": 0.15000000596046448
+                      "offset": {
+                        "x": 0,
+                        "y": 4
+                      },
+                      "opacity": 0.15,
+                      "radius": 20.230003,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        }
+                      },
+                      "rawPayload": {
+                        "type": "FOREGROUND_BLUR",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "radius": 20.230003356933594,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0,
+                          "a": 0.25
+                        },
+                        "secondaryColor": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 0.25
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        },
+                        "noiseSize": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "seed": 8172,
+                        "density": 1,
+                        "noiseType": "MONOTONE",
+                        "opacity": 0.15000000596046448
+                      },
+                      "rawType": "FOREGROUND_BLUR",
+                      "secondaryColor": "#FFFFFF",
+                      "secondaryOpacity": 0.25,
+                      "seed": 8172,
+                      "secondarySourceColor": {
+                        "a": 0.25,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 0.25,
+                        "b": 0,
+                        "g": 0,
+                        "r": 0
+                      },
+                      "sourceNodeId": "270:26298",
+                      "spread": 0,
+                      "type": "FOREGROUND_BLUR",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -1139,6 +1493,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M26.061615 13.030109 C26.061615 20.22644 20.227524 26.060219 13.030807 26.060219 C5.834091 26.060219 0 20.22644 0 13.030109 C0 5.833779 5.834091 0 13.030807 0 C20.227524 0 26.061615 5.833779 26.061615 13.030109 Z",
@@ -1147,50 +1503,103 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "FOREGROUND_BLUR",
-                      "offset": {
-                        "x": 0,
-                        "y": 4
-                      },
-                      "radius": 20.230003356933594,
-                      "visible": true,
                       "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 0,
-                        "g": 0,
-                        "b": 0,
-                        "a": 0.25
-                      },
-                      "secondaryColor": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 0.25
-                      },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 0,
-                        "c1": 0,
-                        "c2": 0,
-                        "c3": 0.25
-                      },
-                      "secondaryAuthoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 0.25
-                      },
+                      "color": "#000000",
+                      "density": 1,
                       "noiseSize": {
                         "x": 0.5,
                         "y": 0.5
                       },
-                      "seed": 8172,
-                      "density": 1,
                       "noiseType": "MONOTONE",
-                      "opacity": 0.15000000596046448
+                      "offset": {
+                        "x": 0,
+                        "y": 4
+                      },
+                      "opacity": 0.15,
+                      "radius": 20.230003,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        }
+                      },
+                      "rawPayload": {
+                        "type": "FOREGROUND_BLUR",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "radius": 20.230003356933594,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0,
+                          "a": 0.25
+                        },
+                        "secondaryColor": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 0.25
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        },
+                        "noiseSize": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "seed": 8172,
+                        "density": 1,
+                        "noiseType": "MONOTONE",
+                        "opacity": 0.15000000596046448
+                      },
+                      "rawType": "FOREGROUND_BLUR",
+                      "secondaryColor": "#FFFFFF",
+                      "secondaryOpacity": 0.25,
+                      "seed": 8172,
+                      "secondarySourceColor": {
+                        "a": 0.25,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 0.25,
+                        "b": 0,
+                        "g": 0,
+                        "r": 0
+                      },
+                      "sourceNodeId": "270:26299",
+                      "spread": 0,
+                      "type": "FOREGROUND_BLUR",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -1230,6 +1639,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M26.061615 13.030109 C26.061615 20.22644 20.227524 26.060219 13.030807 26.060219 C5.834091 26.060219 0 20.22644 0 13.030109 C0 5.833779 5.834091 0 13.030807 0 C20.227524 0 26.061615 5.833779 26.061615 13.030109 Z",
@@ -1238,50 +1649,103 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "FOREGROUND_BLUR",
-                      "offset": {
-                        "x": 0,
-                        "y": 4
-                      },
-                      "radius": 20.230003356933594,
-                      "visible": true,
                       "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 0,
-                        "g": 0,
-                        "b": 0,
-                        "a": 0.25
-                      },
-                      "secondaryColor": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 0.25
-                      },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 0,
-                        "c1": 0,
-                        "c2": 0,
-                        "c3": 0.25
-                      },
-                      "secondaryAuthoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 0.25
-                      },
+                      "color": "#000000",
+                      "density": 1,
                       "noiseSize": {
                         "x": 0.5,
                         "y": 0.5
                       },
-                      "seed": 8172,
-                      "density": 1,
                       "noiseType": "MONOTONE",
-                      "opacity": 0.15000000596046448
+                      "offset": {
+                        "x": 0,
+                        "y": 4
+                      },
+                      "opacity": 0.15,
+                      "radius": 20.230003,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        }
+                      },
+                      "rawPayload": {
+                        "type": "FOREGROUND_BLUR",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "radius": 20.230003356933594,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0,
+                          "a": 0.25
+                        },
+                        "secondaryColor": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 0.25
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        },
+                        "noiseSize": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "seed": 8172,
+                        "density": 1,
+                        "noiseType": "MONOTONE",
+                        "opacity": 0.15000000596046448
+                      },
+                      "rawType": "FOREGROUND_BLUR",
+                      "secondaryColor": "#FFFFFF",
+                      "secondaryOpacity": 0.25,
+                      "seed": 8172,
+                      "secondarySourceColor": {
+                        "a": 0.25,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 0.25,
+                        "b": 0,
+                        "g": 0,
+                        "r": 0
+                      },
+                      "sourceNodeId": "270:26300",
+                      "spread": 0,
+                      "type": "FOREGROUND_BLUR",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -1321,6 +1785,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M9.814699 0.207635 C8.407989 1.01524 3.775799 12.252512 3.775799 12.252512 C1.18292 16.805332 0.000006 26.134298 0 31.382683 C-0.000004 43.221706 13.323302 47.770882 29.343197 47.770889 C45.363106 47.770889 55.481819 43.61776 55.481823 31.778728 C55.481812 26.530344 51.618084 5.741353 47.38081 0.155411 C46.393391 -0.526493 44.638935 1.135156 43.228149 3.197294 C41.839886 5.226511 40.414097 7.310579 39.280334 6.942737 C35.923534 5.853629 32.267586 5.377203 28.468836 5.377202 C25.233564 5.377203 21.935019 5.722774 18.790859 6.498085 C17.481335 6.820998 15.850917 4.989897 14.25678 3.199542 C12.604568 1.343947 10.991323 -0.467874 9.814699 0.207635 Z",
@@ -1329,29 +1795,60 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "INNER_SHADOW",
+                      "blendMode": "NORMAL",
+                      "color": "#FFFFFF",
                       "offset": {
                         "x": 0,
                         "y": 0
                       },
-                      "radius": 12.643750190734863,
-                      "visible": true,
-                      "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 1
+                      "opacity": 1,
+                      "radius": 12.64375,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
                       },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 1
-                      }
+                      "rawPayload": {
+                        "type": "INNER_SHADOW",
+                        "offset": {
+                          "x": 0,
+                          "y": 0
+                        },
+                        "radius": 12.643750190734863,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
+                      },
+                      "rawType": "INNER_SHADOW",
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 1,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "sourceNodeId": "270:26301",
+                      "spread": 0,
+                      "type": "INNER_SHADOW",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -1391,6 +1888,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M9.814699 0.207635 C8.407989 1.01524 3.775799 12.252512 3.775799 12.252512 C1.18292 16.805332 0.000006 26.134298 0 31.382683 C-0.000004 43.221706 13.323302 47.770882 29.343197 47.770889 C45.363106 47.770889 55.481819 43.61776 55.481823 31.778728 C55.481812 26.530344 51.618084 5.741353 47.38081 0.155411 C46.393391 -0.526493 44.638935 1.135156 43.228149 3.197294 C41.839886 5.226511 40.414097 7.310579 39.280334 6.942737 C35.923534 5.853629 32.267586 5.377203 28.468836 5.377202 C25.233564 5.377203 21.935019 5.722774 18.790859 6.498085 C17.481335 6.820998 15.850917 4.989897 14.25678 3.199542 C12.604568 1.343947 10.991323 -0.467874 9.814699 0.207635 Z",
@@ -1399,29 +1898,60 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "INNER_SHADOW",
+                      "blendMode": "NORMAL",
+                      "color": "#FFFFFF",
                       "offset": {
                         "x": 0,
                         "y": 0
                       },
-                      "radius": 12.643750190734863,
-                      "visible": true,
-                      "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 1
+                      "opacity": 1,
+                      "radius": 12.64375,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
                       },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 1
-                      }
+                      "rawPayload": {
+                        "type": "INNER_SHADOW",
+                        "offset": {
+                          "x": 0,
+                          "y": 0
+                        },
+                        "radius": 12.643750190734863,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
+                      },
+                      "rawType": "INNER_SHADOW",
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 1,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "sourceNodeId": "270:26302",
+                      "spread": 0,
+                      "type": "INNER_SHADOW",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -1461,6 +1991,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M33.925312 9.123277 C33.925312 11.581768 23.041386 15.977601 16.986561 15.977601 C10.931738 15.977601 0 14.039219 0 11.580729 C0 9.122237 11.919662 0 17.974485 0 C24.029308 0 33.925312 6.664786 33.925312 9.123277 Z",
@@ -1469,50 +2001,103 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "FOREGROUND_BLUR",
-                      "offset": {
-                        "x": 0,
-                        "y": 4
-                      },
-                      "radius": 7.586250305175781,
-                      "visible": true,
                       "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 0,
-                        "g": 0,
-                        "b": 0,
-                        "a": 0.25
-                      },
-                      "secondaryColor": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 0.25
-                      },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 0,
-                        "c1": 0,
-                        "c2": 0,
-                        "c3": 0.25
-                      },
-                      "secondaryAuthoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 0.25
-                      },
+                      "color": "#000000",
+                      "density": 1,
                       "noiseSize": {
                         "x": 0.5,
                         "y": 0.5
                       },
-                      "seed": 9231,
-                      "density": 1,
                       "noiseType": "MONOTONE",
-                      "opacity": 0.15000000596046448
+                      "offset": {
+                        "x": 0,
+                        "y": 4
+                      },
+                      "opacity": 0.15,
+                      "radius": 7.58625,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        }
+                      },
+                      "rawPayload": {
+                        "type": "FOREGROUND_BLUR",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "radius": 7.586250305175781,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0,
+                          "a": 0.25
+                        },
+                        "secondaryColor": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 0.25
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        },
+                        "noiseSize": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "seed": 9231,
+                        "density": 1,
+                        "noiseType": "MONOTONE",
+                        "opacity": 0.15000000596046448
+                      },
+                      "rawType": "FOREGROUND_BLUR",
+                      "secondaryColor": "#FFFFFF",
+                      "secondaryOpacity": 0.25,
+                      "seed": 9231,
+                      "secondarySourceColor": {
+                        "a": 0.25,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 0.25,
+                        "b": 0,
+                        "g": 0,
+                        "r": 0
+                      },
+                      "sourceNodeId": "270:26303",
+                      "spread": 0,
+                      "type": "FOREGROUND_BLUR",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -1552,6 +2137,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": true,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M0.212868 0.885868 C0.66907 0.054709 1.71004 -0.244783 2.538063 0.216923 L8.085915 3.313603 C8.194151 3.374005 8.293064 3.44492 8.38279 3.523564 C8.784657 3.748561 9.096424 4.132344 9.212868 4.616337 C9.434961 5.539657 8.866792 6.470883 7.944314 6.696415 L2.338845 8.066532 C1.416385 8.291941 0.488664 7.726147 0.266579 6.802861 C0.044783 5.879675 0.612778 4.948253 1.535134 4.722783 L2.94529 4.377079 L0.88572 3.227665 C0.057916 2.765414 -0.243358 1.717073 0.212868 0.885868 Z",
@@ -1595,6 +2182,8 @@ export const homeRenderEvidence = {
                       "clipsContent": false,
                       "mask": false,
                       "booleanOperation": false,
+                      "blendMode": "NORMAL",
+                      "cornerRadius": 4.595836162567139,
                       "maskPaths": [
                         {
                           "path": "M0 1.717109 C0 0.768776 0.768776 0 1.71711 0 L8.070247 0 C9.01858 0 9.787357 0.768776 9.787357 1.717109 L9.787357 1.717109 C9.787357 2.665443 9.018581 3.434219 8.070248 3.434219 L1.71711 3.434219 C0.768777 3.434219 0 2.665443 0 1.717109 L0 1.717109 Z",
@@ -1639,6 +2228,8 @@ export const homeRenderEvidence = {
                       "clipsContent": false,
                       "mask": false,
                       "booleanOperation": false,
+                      "blendMode": "NORMAL",
+                      "cornerRadius": 4.595837116241455,
                       "maskPaths": [
                         {
                           "path": "M0 1.719535 C0 0.769862 0.769862 0 1.719535 0 L7.489807 0 C8.43948 0 9.209342 0.769862 9.209342 1.719535 L9.209342 1.719535 C9.209342 2.669208 8.43948 3.43907 7.489807 3.43907 L1.719535 3.43907 C0.769862 3.43907 0 2.669208 0 1.719535 L0 1.719535 Z",
@@ -1685,6 +2276,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 4.595836639404297,
                   "maskPaths": [
                     {
                       "path": "M0 2.25844 C0 1.011139 1.011138 0 2.25844 0 L2.25844 0 C3.505741 0 4.51688 1.011138 4.51688 2.258439 L4.51688 4.874575 C4.51688 6.121876 3.505741 7.133015 2.25844 7.133015 L2.25844 7.133015 C1.011138 7.133015 0 6.121877 0 4.874575 L0 2.25844 Z",
@@ -1729,6 +2322,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M3.257667 1.628833 C3.257667 2.528413 2.528414 3.257666 1.628834 3.257666 C0.729254 3.257666 0 2.528413 0 1.628833 C0 0.729253 0.729254 0 1.628834 0 C2.528414 0 3.257667 0.729253 3.257667 1.628833 Z",
@@ -1737,29 +2332,60 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "FOREGROUND_BLUR",
+                      "blendMode": "NORMAL",
+                      "color": "#000000",
                       "offset": {
                         "x": 0,
                         "y": 4
                       },
-                      "radius": 6.51533317565918,
-                      "visible": true,
-                      "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 0,
-                        "g": 0,
-                        "b": 0,
-                        "a": 0.25
+                      "opacity": 0.25,
+                      "radius": 6.515333,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        }
                       },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 0,
-                        "c1": 0,
-                        "c2": 0,
-                        "c3": 0.25
-                      }
+                      "rawPayload": {
+                        "type": "FOREGROUND_BLUR",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "radius": 6.51533317565918,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0,
+                          "a": 0.25
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        }
+                      },
+                      "rawType": "FOREGROUND_BLUR",
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 0.25,
+                        "b": 0,
+                        "g": 0,
+                        "r": 0
+                      },
+                      "sourceNodeId": "270:26308",
+                      "spread": 0,
+                      "type": "FOREGROUND_BLUR",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -1805,6 +2431,8 @@ export const homeRenderEvidence = {
       "clipsContent": true,
       "mask": false,
       "booleanOperation": false,
+      "blendMode": "NORMAL",
+      "cornerRadius": 0,
       "maskPaths": [],
       "effects": [],
       "geometry": [],
@@ -1828,6 +2456,8 @@ export const homeRenderEvidence = {
           "clipsContent": false,
           "mask": false,
           "booleanOperation": false,
+          "blendMode": "NORMAL",
+          "cornerRadius": 0,
           "maskPaths": [
             {
               "path": "M95 47.5 C95 73.733528 73.733528 95 47.5 95 C21.266474 95 0 73.733528 0 47.5 C0 21.266474 21.266474 0 47.5 0 C73.733528 0 95 21.266474 95 47.5 Z",
@@ -1836,29 +2466,60 @@ export const homeRenderEvidence = {
           ],
           "effects": [
             {
-              "type": "DROP_SHADOW",
-              "offset": {
-                "x": 2.2669100761413574,
-                "y": 2.2669100761413574
-              },
-              "radius": 2.2669100761413574,
-              "visible": true,
               "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.740159273147583,
-                "g": 0.740159273147583,
-                "b": 0.740159273147583,
-                "a": 0.25
+              "color": "#BDBDBD",
+              "offset": {
+                "x": 2.26691,
+                "y": 2.26691
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.740159273147583,
-                "c1": 0.740159273147583,
-                "c2": 0.740159273147583,
-                "c3": 0.25
-              }
+              "opacity": 0.25,
+              "radius": 2.26691,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.740159273147583,
+                  "c1": 0.740159273147583,
+                  "c2": 0.740159273147583,
+                  "c3": 0.25
+                }
+              },
+              "rawPayload": {
+                "type": "DROP_SHADOW",
+                "offset": {
+                  "x": 2.2669100761413574,
+                  "y": 2.2669100761413574
+                },
+                "radius": 2.2669100761413574,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.740159273147583,
+                  "g": 0.740159273147583,
+                  "b": 0.740159273147583,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.740159273147583,
+                  "c1": 0.740159273147583,
+                  "c2": 0.740159273147583,
+                  "c3": 0.25
+                }
+              },
+              "rawType": "DROP_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 0.740159,
+                "g": 0.740159,
+                "r": 0.740159
+              },
+              "sourceNodeId": "188:16339",
+              "spread": 0,
+              "type": "DROP_SHADOW",
+              "visible": true
             }
           ],
           "geometry": [
@@ -1898,6 +2559,8 @@ export const homeRenderEvidence = {
           "clipsContent": false,
           "mask": false,
           "booleanOperation": false,
+          "blendMode": "NORMAL",
+          "cornerRadius": 49.027286529541016,
           "maskPaths": [
             {
               "path": "M95 47.5 C95 73.733528 73.733528 95 47.5 95 C21.266474 95 0 73.733528 0 47.5 C0 21.266474 21.266474 0 47.5 0 C73.733528 0 95 21.266474 95 47.5 Z M6.78714 47.5 C6.78714 69.985092 25.014908 88.21286 47.5 88.21286 C69.985092 88.21286 88.21286 69.985092 88.21286 47.5 C88.21286 25.014908 69.985092 6.78714 47.5 6.78714 C25.014908 6.78714 6.78714 25.014908 6.78714 47.5 Z",
@@ -1906,54 +2569,116 @@ export const homeRenderEvidence = {
           ],
           "effects": [
             {
-              "type": "DROP_SHADOW",
-              "offset": {
-                "x": 2.2669100761413574,
-                "y": 4.533820152282715
-              },
-              "radius": 11.334550857543945,
-              "visible": true,
               "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.8685020804405212,
-                "g": 0.5616737008094788,
-                "b": 1,
-                "a": 0.25
+              "color": "#DD8FFF",
+              "offset": {
+                "x": 2.26691,
+                "y": 4.53382
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.8685020804405212,
-                "c1": 0.5616737008094788,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "opacity": 0.25,
+              "radius": 11.334551,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.8685020804405212,
+                  "c1": 0.5616737008094788,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
+              "rawPayload": {
+                "type": "DROP_SHADOW",
+                "offset": {
+                  "x": 2.2669100761413574,
+                  "y": 4.533820152282715
+                },
+                "radius": 11.334550857543945,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.8685020804405212,
+                  "g": 0.5616737008094788,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.8685020804405212,
+                  "c1": 0.5616737008094788,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
+              "rawType": "DROP_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 0.561674,
+                "r": 0.868502
+              },
+              "sourceNodeId": "188:16340",
+              "spread": 0,
+              "type": "DROP_SHADOW",
+              "visible": true
             },
             {
-              "type": "DROP_SHADOW",
-              "offset": {
-                "x": -2.2669100761413574,
-                "y": -4.533820152282715
-              },
-              "radius": 11.334550857543945,
-              "visible": true,
               "blendMode": "NORMAL",
-              "spread": 0,
-              "showShadowBehindNode": false,
-              "color": {
-                "r": 0.8685246109962463,
-                "g": 0.5069674253463745,
-                "b": 1,
-                "a": 0.25
+              "color": "#DD81FF",
+              "offset": {
+                "x": -2.26691,
+                "y": -4.53382
               },
-              "authoredColor": {
-                "space": "DEFAULT",
-                "c0": 0.8685246109962463,
-                "c1": 0.5069674253463745,
-                "c2": 1,
-                "c3": 0.25
-              }
+              "opacity": 0.25,
+              "radius": 11.334551,
+              "rawFields": {
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.8685246109962463,
+                  "c1": 0.5069674253463745,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
+              "rawPayload": {
+                "type": "DROP_SHADOW",
+                "offset": {
+                  "x": -2.2669100761413574,
+                  "y": -4.533820152282715
+                },
+                "radius": 11.334550857543945,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.8685246109962463,
+                  "g": 0.5069674253463745,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.8685246109962463,
+                  "c1": 0.5069674253463745,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
+              "rawType": "DROP_SHADOW",
+              "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 0.506967,
+                "r": 0.868525
+              },
+              "sourceNodeId": "188:16340",
+              "spread": 0,
+              "type": "DROP_SHADOW",
+              "visible": true
             }
           ],
           "geometry": [
@@ -2020,6 +2745,8 @@ export const homeRenderEvidence = {
           "clipsContent": true,
           "mask": false,
           "booleanOperation": false,
+          "blendMode": "NORMAL",
+          "cornerRadius": 0,
           "maskPaths": [],
           "effects": [],
           "geometry": [],
@@ -2043,6 +2770,8 @@ export const homeRenderEvidence = {
               "clipsContent": false,
               "mask": false,
               "booleanOperation": false,
+              "blendMode": "NORMAL",
+              "cornerRadius": 0,
               "maskPaths": [
                 {
                   "path": "M0 0 L73.921471 0 L73.921471 67.709267 L0 67.709267 L0 0 Z",
@@ -2051,29 +2780,60 @@ export const homeRenderEvidence = {
               ],
               "effects": [
                 {
-                  "type": "DROP_SHADOW",
-                  "offset": {
-                    "x": -5.732451438903809,
-                    "y": -1.4331128597259521
-                  },
-                  "radius": 11.464902877807617,
-                  "visible": true,
                   "blendMode": "NORMAL",
-                  "spread": 0,
-                  "showShadowBehindNode": false,
-                  "color": {
-                    "r": 0.34990984201431274,
-                    "g": 0.6424503922462463,
-                    "b": 1,
-                    "a": 0.25
+                  "color": "#59A4FF",
+                  "offset": {
+                    "x": -5.732451,
+                    "y": -1.433113
                   },
-                  "authoredColor": {
-                    "space": "DEFAULT",
-                    "c0": 0.34990984201431274,
-                    "c1": 0.6424503922462463,
-                    "c2": 1,
-                    "c3": 0.25
-                  }
+                  "opacity": 0.25,
+                  "radius": 11.464903,
+                  "rawFields": {
+                    "authoredColor": {
+                      "space": "DEFAULT",
+                      "c0": 0.34990984201431274,
+                      "c1": 0.6424503922462463,
+                      "c2": 1,
+                      "c3": 0.25
+                    }
+                  },
+                  "rawPayload": {
+                    "type": "DROP_SHADOW",
+                    "offset": {
+                      "x": -5.732451438903809,
+                      "y": -1.4331128597259521
+                    },
+                    "radius": 11.464902877807617,
+                    "visible": true,
+                    "blendMode": "NORMAL",
+                    "spread": 0,
+                    "showShadowBehindNode": false,
+                    "color": {
+                      "r": 0.34990984201431274,
+                      "g": 0.6424503922462463,
+                      "b": 1,
+                      "a": 0.25
+                    },
+                    "authoredColor": {
+                      "space": "DEFAULT",
+                      "c0": 0.34990984201431274,
+                      "c1": 0.6424503922462463,
+                      "c2": 1,
+                      "c3": 0.25
+                    }
+                  },
+                  "rawType": "DROP_SHADOW",
+                  "showShadowBehindNode": false,
+                  "sourceColor": {
+                    "a": 0.25,
+                    "b": 1,
+                    "g": 0.64245,
+                    "r": 0.34991
+                  },
+                  "sourceNodeId": "188:16342",
+                  "spread": 0,
+                  "type": "DROP_SHADOW",
+                  "visible": true
                 }
               ],
               "geometry": [],
@@ -2097,6 +2857,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M11.124519 0.235344 C9.530077 1.150729 4.279698 13.887672 4.279698 13.887672 C1.340786 19.04809 0.000007 29.622057 0 35.570862 C-0.000004 48.989868 15.101364 54.146152 33.259193 54.14616 C51.417042 54.146164 62.886147 49.438778 62.88615 36.019764 C62.886139 30.070955 58.506779 6.507565 53.704018 0.176152 C52.58482 -0.596756 50.596226 1.286648 48.997162 3.623989 L48.997139 3.62402 C47.423611 5.924037 45.807556 8.286211 44.522495 7.869281 C40.717709 6.634826 36.57386 6.094818 32.268143 6.094817 C28.60111 6.094819 24.862358 6.486507 21.298595 7.365287 C19.814308 7.731296 17.966301 5.655825 16.159418 3.626538 C14.286712 1.523303 12.45817 -0.530314 11.124519 0.235344 Z",
@@ -2105,29 +2867,60 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "INNER_SHADOW",
+                      "blendMode": "NORMAL",
+                      "color": "#FFFFFF",
                       "offset": {
                         "x": 0,
                         "y": 0
                       },
-                      "radius": 11.464898109436035,
-                      "visible": true,
-                      "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 1
+                      "opacity": 1,
+                      "radius": 11.464898,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
                       },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 1
-                      }
+                      "rawPayload": {
+                        "type": "INNER_SHADOW",
+                        "offset": {
+                          "x": 0,
+                          "y": 0
+                        },
+                        "radius": 11.464898109436035,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
+                      },
+                      "rawType": "INNER_SHADOW",
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 1,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "sourceNodeId": "188:16343",
+                      "spread": 0,
+                      "type": "INNER_SHADOW",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -2188,6 +2981,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": true,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M11.124519 0.235344 C9.530077 1.150729 4.279698 13.887672 4.279698 13.887672 C1.340786 19.04809 0.000007 29.622057 0 35.570862 C-0.000004 48.989868 15.101364 54.146152 33.259193 54.14616 C51.417042 54.146164 62.886147 49.438778 62.88615 36.019764 C62.886139 30.070955 58.506779 6.507565 53.704018 0.176152 C52.58482 -0.596756 50.596226 1.286648 48.997162 3.623989 L48.997139 3.62402 C47.423611 5.924037 45.807556 8.286211 44.522495 7.869281 C40.717709 6.634826 36.57386 6.094818 32.268143 6.094817 C28.60111 6.094819 24.862358 6.486507 21.298595 7.365287 C19.814308 7.731296 17.966301 5.655825 16.159418 3.626538 C14.286712 1.523303 12.45817 -0.530314 11.124519 0.235344 Z",
@@ -2196,29 +2991,60 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "INNER_SHADOW",
+                      "blendMode": "NORMAL",
+                      "color": "#FFFFFF",
                       "offset": {
                         "x": 0,
                         "y": 0
                       },
-                      "radius": 15.627524375915527,
-                      "visible": true,
-                      "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 1
+                      "opacity": 1,
+                      "radius": 15.627524,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
                       },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 1
-                      }
+                      "rawPayload": {
+                        "type": "INNER_SHADOW",
+                        "offset": {
+                          "x": 0,
+                          "y": 0
+                        },
+                        "radius": 15.627524375915527,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
+                      },
+                      "rawType": "INNER_SHADOW",
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 1,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "sourceNodeId": "188:16344",
+                      "spread": 0,
+                      "type": "INNER_SHADOW",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -2279,6 +3105,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M29.539673 14.769044 C29.539673 22.925762 22.926992 29.538088 14.769836 29.538088 C6.612681 29.538088 0 22.925762 0 14.769044 C0 6.612326 6.612681 0 14.769836 0 C22.926992 0 29.539673 6.612326 29.539673 14.769044 Z",
@@ -2287,50 +3115,103 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "FOREGROUND_BLUR",
-                      "offset": {
-                        "x": 0,
-                        "y": 4
-                      },
-                      "radius": 22.92980194091797,
-                      "visible": true,
                       "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 0,
-                        "g": 0,
-                        "b": 0,
-                        "a": 0.25
-                      },
-                      "secondaryColor": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 0.25
-                      },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 0,
-                        "c1": 0,
-                        "c2": 0,
-                        "c3": 0.25
-                      },
-                      "secondaryAuthoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 0.25
-                      },
+                      "color": "#000000",
+                      "density": 1,
                       "noiseSize": {
                         "x": 0.5,
                         "y": 0.5
                       },
-                      "seed": 8172,
-                      "density": 1,
                       "noiseType": "MONOTONE",
-                      "opacity": 0.15000000596046448
+                      "offset": {
+                        "x": 0,
+                        "y": 4
+                      },
+                      "opacity": 0.15,
+                      "radius": 22.929802,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        }
+                      },
+                      "rawPayload": {
+                        "type": "FOREGROUND_BLUR",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "radius": 22.92980194091797,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0,
+                          "a": 0.25
+                        },
+                        "secondaryColor": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 0.25
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        },
+                        "noiseSize": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "seed": 8172,
+                        "density": 1,
+                        "noiseType": "MONOTONE",
+                        "opacity": 0.15000000596046448
+                      },
+                      "rawType": "FOREGROUND_BLUR",
+                      "secondaryColor": "#FFFFFF",
+                      "secondaryOpacity": 0.25,
+                      "seed": 8172,
+                      "secondarySourceColor": {
+                        "a": 0.25,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 0.25,
+                        "b": 0,
+                        "g": 0,
+                        "r": 0
+                      },
+                      "sourceNodeId": "188:16345",
+                      "spread": 0,
+                      "type": "FOREGROUND_BLUR",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -2370,6 +3251,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M29.539673 14.769044 C29.539673 22.925762 22.926992 29.538088 14.769836 29.538088 C6.612681 29.538088 0 22.925762 0 14.769044 C0 6.612326 6.612681 0 14.769836 0 C22.926992 0 29.539673 6.612326 29.539673 14.769044 Z",
@@ -2378,50 +3261,103 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "FOREGROUND_BLUR",
-                      "offset": {
-                        "x": 0,
-                        "y": 4
-                      },
-                      "radius": 22.92980194091797,
-                      "visible": true,
                       "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 0,
-                        "g": 0,
-                        "b": 0,
-                        "a": 0.25
-                      },
-                      "secondaryColor": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 0.25
-                      },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 0,
-                        "c1": 0,
-                        "c2": 0,
-                        "c3": 0.25
-                      },
-                      "secondaryAuthoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 0.25
-                      },
+                      "color": "#000000",
+                      "density": 1,
                       "noiseSize": {
                         "x": 0.5,
                         "y": 0.5
                       },
-                      "seed": 8172,
-                      "density": 1,
                       "noiseType": "MONOTONE",
-                      "opacity": 0.15000000596046448
+                      "offset": {
+                        "x": 0,
+                        "y": 4
+                      },
+                      "opacity": 0.15,
+                      "radius": 22.929802,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        }
+                      },
+                      "rawPayload": {
+                        "type": "FOREGROUND_BLUR",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "radius": 22.92980194091797,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0,
+                          "a": 0.25
+                        },
+                        "secondaryColor": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 0.25
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        },
+                        "noiseSize": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "seed": 8172,
+                        "density": 1,
+                        "noiseType": "MONOTONE",
+                        "opacity": 0.15000000596046448
+                      },
+                      "rawType": "FOREGROUND_BLUR",
+                      "secondaryColor": "#FFFFFF",
+                      "secondaryOpacity": 0.25,
+                      "seed": 8172,
+                      "secondarySourceColor": {
+                        "a": 0.25,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 0.25,
+                        "b": 0,
+                        "g": 0,
+                        "r": 0
+                      },
+                      "sourceNodeId": "188:16346",
+                      "spread": 0,
+                      "type": "FOREGROUND_BLUR",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -2461,6 +3397,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M29.539673 14.769044 C29.539673 22.925762 22.926992 29.538088 14.769836 29.538088 C6.612681 29.538088 0 22.925762 0 14.769044 C0 6.612326 6.612681 0 14.769836 0 C22.926992 0 29.539673 6.612326 29.539673 14.769044 Z",
@@ -2469,50 +3407,103 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "FOREGROUND_BLUR",
-                      "offset": {
-                        "x": 0,
-                        "y": 4
-                      },
-                      "radius": 22.92980194091797,
-                      "visible": true,
                       "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 0,
-                        "g": 0,
-                        "b": 0,
-                        "a": 0.25
-                      },
-                      "secondaryColor": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 0.25
-                      },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 0,
-                        "c1": 0,
-                        "c2": 0,
-                        "c3": 0.25
-                      },
-                      "secondaryAuthoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 0.25
-                      },
+                      "color": "#000000",
+                      "density": 1,
                       "noiseSize": {
                         "x": 0.5,
                         "y": 0.5
                       },
-                      "seed": 8172,
-                      "density": 1,
                       "noiseType": "MONOTONE",
-                      "opacity": 0.15000000596046448
+                      "offset": {
+                        "x": 0,
+                        "y": 4
+                      },
+                      "opacity": 0.15,
+                      "radius": 22.929802,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        }
+                      },
+                      "rawPayload": {
+                        "type": "FOREGROUND_BLUR",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "radius": 22.92980194091797,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0,
+                          "a": 0.25
+                        },
+                        "secondaryColor": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 0.25
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        },
+                        "noiseSize": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "seed": 8172,
+                        "density": 1,
+                        "noiseType": "MONOTONE",
+                        "opacity": 0.15000000596046448
+                      },
+                      "rawType": "FOREGROUND_BLUR",
+                      "secondaryColor": "#FFFFFF",
+                      "secondaryOpacity": 0.25,
+                      "seed": 8172,
+                      "secondarySourceColor": {
+                        "a": 0.25,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 0.25,
+                        "b": 0,
+                        "g": 0,
+                        "r": 0
+                      },
+                      "sourceNodeId": "188:16347",
+                      "spread": 0,
+                      "type": "FOREGROUND_BLUR",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -2552,6 +3543,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M11.124519 0.235344 C9.530077 1.150729 4.279698 13.887672 4.279698 13.887672 C1.340786 19.04809 0.000007 29.622057 0 35.570862 C-0.000004 48.989868 15.101364 54.146152 33.259193 54.14616 C51.417042 54.146164 62.886147 49.438778 62.88615 36.019764 C62.886139 30.070955 58.506779 6.507565 53.704018 0.176152 C52.58482 -0.596756 50.596226 1.286648 48.997162 3.623989 L48.997139 3.62402 C47.423611 5.924037 45.807556 8.286211 44.522495 7.869281 C40.717709 6.634826 36.57386 6.094818 32.268143 6.094817 C28.60111 6.094819 24.862358 6.486507 21.298595 7.365287 C19.814308 7.731296 17.966301 5.655825 16.159418 3.626538 C14.286712 1.523303 12.45817 -0.530314 11.124519 0.235344 Z",
@@ -2560,29 +3553,60 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "INNER_SHADOW",
+                      "blendMode": "NORMAL",
+                      "color": "#FFFFFF",
                       "offset": {
                         "x": 0,
                         "y": 0
                       },
-                      "radius": 14.331123352050781,
-                      "visible": true,
-                      "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 1
+                      "opacity": 1,
+                      "radius": 14.331123,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
                       },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 1
-                      }
+                      "rawPayload": {
+                        "type": "INNER_SHADOW",
+                        "offset": {
+                          "x": 0,
+                          "y": 0
+                        },
+                        "radius": 14.331123352050781,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
+                      },
+                      "rawType": "INNER_SHADOW",
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 1,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "sourceNodeId": "188:16348",
+                      "spread": 0,
+                      "type": "INNER_SHADOW",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -2622,6 +3646,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M11.124519 0.235344 C9.530077 1.150729 4.279698 13.887672 4.279698 13.887672 C1.340786 19.04809 0.000007 29.622057 0 35.570862 C-0.000004 48.989868 15.101364 54.146152 33.259193 54.14616 C51.417042 54.146164 62.886147 49.438778 62.88615 36.019764 C62.886139 30.070955 58.506779 6.507565 53.704018 0.176152 C52.58482 -0.596756 50.596226 1.286648 48.997162 3.623989 L48.997139 3.62402 C47.423611 5.924037 45.807556 8.286211 44.522495 7.869281 C40.717709 6.634826 36.57386 6.094818 32.268143 6.094817 C28.60111 6.094819 24.862358 6.486507 21.298595 7.365287 C19.814308 7.731296 17.966301 5.655825 16.159418 3.626538 C14.286712 1.523303 12.45817 -0.530314 11.124519 0.235344 Z",
@@ -2630,29 +3656,60 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "INNER_SHADOW",
+                      "blendMode": "NORMAL",
+                      "color": "#FFFFFF",
                       "offset": {
                         "x": 0,
                         "y": 0
                       },
-                      "radius": 14.331123352050781,
-                      "visible": true,
-                      "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 1
+                      "opacity": 1,
+                      "radius": 14.331123,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
                       },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 1
-                      }
+                      "rawPayload": {
+                        "type": "INNER_SHADOW",
+                        "offset": {
+                          "x": 0,
+                          "y": 0
+                        },
+                        "radius": 14.331123352050781,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 1
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 1
+                        }
+                      },
+                      "rawType": "INNER_SHADOW",
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 1,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "sourceNodeId": "188:16349",
+                      "spread": 0,
+                      "type": "INNER_SHADOW",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -2692,6 +3749,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M38.452816 10.340825 C38.452816 13.127415 26.116373 18.109894 19.253504 18.109894 C12.390633 18.109894 0 15.912825 0 13.126236 C0 10.339646 13.5104 0 20.37327 0 C27.236139 0 38.452816 7.554236 38.452816 10.340825 Z",
@@ -2700,50 +3759,103 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "FOREGROUND_BLUR",
-                      "offset": {
-                        "x": 0,
-                        "y": 4
-                      },
-                      "radius": 8.598674774169922,
-                      "visible": true,
                       "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 0,
-                        "g": 0,
-                        "b": 0,
-                        "a": 0.25
-                      },
-                      "secondaryColor": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1,
-                        "a": 0.25
-                      },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 0,
-                        "c1": 0,
-                        "c2": 0,
-                        "c3": 0.25
-                      },
-                      "secondaryAuthoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 1,
-                        "c1": 1,
-                        "c2": 1,
-                        "c3": 0.25
-                      },
+                      "color": "#000000",
+                      "density": 1,
                       "noiseSize": {
                         "x": 0.5,
                         "y": 0.5
                       },
-                      "seed": 9231,
-                      "density": 1,
                       "noiseType": "MONOTONE",
-                      "opacity": 0.15000000596046448
+                      "offset": {
+                        "x": 0,
+                        "y": 4
+                      },
+                      "opacity": 0.15,
+                      "radius": 8.598675,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        }
+                      },
+                      "rawPayload": {
+                        "type": "FOREGROUND_BLUR",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "radius": 8.598674774169922,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0,
+                          "a": 0.25
+                        },
+                        "secondaryColor": {
+                          "r": 1,
+                          "g": 1,
+                          "b": 1,
+                          "a": 0.25
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        },
+                        "secondaryAuthoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 1,
+                          "c1": 1,
+                          "c2": 1,
+                          "c3": 0.25
+                        },
+                        "noiseSize": {
+                          "x": 0.5,
+                          "y": 0.5
+                        },
+                        "seed": 9231,
+                        "density": 1,
+                        "noiseType": "MONOTONE",
+                        "opacity": 0.15000000596046448
+                      },
+                      "rawType": "FOREGROUND_BLUR",
+                      "secondaryColor": "#FFFFFF",
+                      "secondaryOpacity": 0.25,
+                      "seed": 9231,
+                      "secondarySourceColor": {
+                        "a": 0.25,
+                        "b": 1,
+                        "g": 1,
+                        "r": 1
+                      },
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 0.25,
+                        "b": 0,
+                        "g": 0,
+                        "r": 0
+                      },
+                      "sourceNodeId": "188:16350",
+                      "spread": 0,
+                      "type": "FOREGROUND_BLUR",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -2783,6 +3895,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": true,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M0.24131 1.003964 C0.758536 0.061832 1.938496 -0.277556 2.877053 0.246151 L9.165138 3.755917 C9.287187 3.824042 9.398817 3.903645 9.500099 3.992245 C9.956345 4.247146 10.309373 4.683277 10.441505 5.23248 C10.693243 6.279041 10.049629 7.334298 9.004005 7.589901 L2.651467 9.143612 C1.605843 9.399216 0.553595 8.757556 0.301857 7.710995 C0.05027 6.664535 0.693858 5.609196 1.739357 5.353573 L3.339943 4.961972 L1.004006 3.658261 C0.065582 3.134374 -0.275837 1.946161 0.24131 1.003964 Z",
@@ -2826,6 +3940,8 @@ export const homeRenderEvidence = {
                       "clipsContent": false,
                       "mask": false,
                       "booleanOperation": false,
+                      "blendMode": "NORMAL",
+                      "cornerRadius": 5.209174156188965,
                       "maskPaths": [
                         {
                           "path": "M0 1.946266 C0 0.871373 0.871373 0 1.946266 0 L9.147264 0 C10.222157 0 11.09353 0.871373 11.09353 1.946266 L11.09353 1.946266 C11.09353 3.021159 10.222157 3.892532 9.147264 3.892532 L1.946265 3.892532 C0.871372 3.892532 0 3.021159 0 1.946266 L0 1.946266 Z",
@@ -2870,6 +3986,8 @@ export const homeRenderEvidence = {
                       "clipsContent": false,
                       "mask": false,
                       "booleanOperation": false,
+                      "blendMode": "NORMAL",
+                      "cornerRadius": 5.2091755867004395,
                       "maskPaths": [
                         {
                           "path": "M0 1.949016 C0 0.872604 0.872604 0 1.949016 0 L8.489361 0 C9.565773 0 10.438376 0.872604 10.438376 1.949016 L10.438376 1.949016 C10.438376 3.025428 9.565772 3.898032 8.48936 3.898032 L1.949015 3.898032 C0.872603 3.898032 0 3.025428 0 1.949016 L0 1.949016 Z",
@@ -2916,6 +4034,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 5.209174633026123,
                   "maskPaths": [
                     {
                       "path": "M0 2.559841 C0 1.146081 1.14608 0 2.55984 0 L2.55984 0 C3.973601 0 5.11968 1.146079 5.11968 2.55984 L5.11968 5.52511 C5.11968 6.938871 3.973601 8.084951 2.55984 8.084951 L2.55984 8.084951 C1.14608 8.084951 0 6.938872 0 5.525112 L0 2.559841 Z",
@@ -2960,6 +4080,8 @@ export const homeRenderEvidence = {
                   "clipsContent": false,
                   "mask": false,
                   "booleanOperation": false,
+                  "blendMode": "NORMAL",
+                  "cornerRadius": 0,
                   "maskPaths": [
                     {
                       "path": "M3.69242 1.846209 C3.69242 2.865843 2.865843 3.692419 1.84621 3.692419 C0.826576 3.692419 0 2.865843 0 1.846209 C0 0.826576 0.826576 0 1.84621 0 C2.865843 0 3.69242 0.826576 3.69242 1.846209 Z",
@@ -2968,29 +4090,60 @@ export const homeRenderEvidence = {
                   ],
                   "effects": [
                     {
-                      "type": "FOREGROUND_BLUR",
+                      "blendMode": "NORMAL",
+                      "color": "#000000",
                       "offset": {
                         "x": 0,
                         "y": 4
                       },
-                      "radius": 7.384837627410889,
-                      "visible": true,
-                      "blendMode": "NORMAL",
-                      "spread": 0,
-                      "showShadowBehindNode": false,
-                      "color": {
-                        "r": 0,
-                        "g": 0,
-                        "b": 0,
-                        "a": 0.25
+                      "opacity": 0.25,
+                      "radius": 7.384838,
+                      "rawFields": {
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        }
                       },
-                      "authoredColor": {
-                        "space": "DEFAULT",
-                        "c0": 0,
-                        "c1": 0,
-                        "c2": 0,
-                        "c3": 0.25
-                      }
+                      "rawPayload": {
+                        "type": "FOREGROUND_BLUR",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "radius": 7.384837627410889,
+                        "visible": true,
+                        "blendMode": "NORMAL",
+                        "spread": 0,
+                        "showShadowBehindNode": false,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0,
+                          "a": 0.25
+                        },
+                        "authoredColor": {
+                          "space": "DEFAULT",
+                          "c0": 0,
+                          "c1": 0,
+                          "c2": 0,
+                          "c3": 0.25
+                        }
+                      },
+                      "rawType": "FOREGROUND_BLUR",
+                      "showShadowBehindNode": false,
+                      "sourceColor": {
+                        "a": 0.25,
+                        "b": 0,
+                        "g": 0,
+                        "r": 0
+                      },
+                      "sourceNodeId": "188:16355",
+                      "spread": 0,
+                      "type": "FOREGROUND_BLUR",
+                      "visible": true
                     }
                   ],
                   "geometry": [
@@ -5105,6 +6258,7 @@ export const homeRenderEvidence = {
           "height": 40,
           "width": 33
         },
+        "sourceClipsContent": false,
         "sourceKind": "node",
         "sourceNodeIds": [
           "270:26466"
@@ -5195,6 +6349,7 @@ export const homeRenderEvidence = {
           "height": 24,
           "width": 24
         },
+        "sourceClipsContent": true,
         "sourceKind": "node",
         "sourceNodeIds": [
           "270:26467",
@@ -5262,6 +6417,7 @@ export const homeRenderEvidence = {
           "height": 40,
           "width": 33
         },
+        "sourceClipsContent": false,
         "sourceKind": "node",
         "sourceNodeIds": [
           "270:26472"
@@ -5348,6 +6504,7 @@ export const homeRenderEvidence = {
           "height": 20,
           "width": 20
         },
+        "sourceClipsContent": true,
         "sourceKind": "node",
         "sourceNodeIds": [
           "270:26473",
@@ -5415,6 +6572,7 @@ export const homeRenderEvidence = {
           "height": 40,
           "width": 33
         },
+        "sourceClipsContent": false,
         "sourceKind": "node",
         "sourceNodeIds": [
           "270:26478"
@@ -5516,6 +6674,7 @@ export const homeRenderEvidence = {
           "height": 17,
           "width": 17
         },
+        "sourceClipsContent": true,
         "sourceKind": "node",
         "sourceNodeIds": [
           "270:26479",
@@ -5672,11 +6831,43 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "INNER_SHADOW",
+          "offset": {
+            "x": 1,
+            "y": 1
+          },
+          "radius": 2,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "sourceNodeId": "270:26311",
         "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "INNER_SHADOW",
+        "visible": true
       }
     ],
     "fills": [
@@ -5753,6 +6944,7 @@ export const homeRenderEvidence = {
       "height": 11,
       "width": 11.5
     },
+    "sourceClipsContent": false,
     "sourceKind": "node",
     "sourceNodeIds": [
       "270:26311"
@@ -5777,11 +6969,43 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "INNER_SHADOW",
+          "offset": {
+            "x": 1,
+            "y": 1
+          },
+          "radius": 2,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "sourceNodeId": "270:26311",
         "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "INNER_SHADOW",
+        "visible": true
       }
     ],
     "surfaceFills": [
@@ -7239,11 +8463,43 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 2,
+            "y": 2
+          },
+          "radius": 2,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.740159273147583,
+            "g": 0.740159273147583,
+            "b": 0.740159273147583,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.740159273147583,
+            "c1": 0.740159273147583,
+            "c2": 0.740159273147583,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0.740159,
+          "g": 0.740159,
+          "r": 0.740159
+        },
         "sourceNodeId": "270:26292",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "DROP_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -7263,11 +8519,43 @@ export const homeRenderEvidence = {
             "c3": 0.5
           }
         },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 5.139889717102051,
+            "y": 5.139889717102051
+          },
+          "radius": 20.559558868408203,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.9861647486686707,
+            "g": 0.7232947945594788,
+            "b": 1,
+            "a": 0.5
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.9861647486686707,
+            "c1": 0.7232947945594788,
+            "c2": 1,
+            "c3": 0.5
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.5,
+          "b": 1,
+          "g": 0.723295,
+          "r": 0.986165
+        },
         "sourceNodeId": "270:26293",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "DROP_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -7287,11 +8575,43 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": -2,
+            "y": -2
+          },
+          "radius": 13.899999618530273,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.9865372180938721,
+            "g": 0.7980581521987915,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.9865372180938721,
+            "c1": 0.7980581521987915,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 0.798058,
+          "r": 0.986537
+        },
         "sourceNodeId": "270:26293",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "DROP_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -7311,11 +8631,43 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": -5.057501316070557,
+            "y": -1.2643753290176392
+          },
+          "radius": 10.115002632141113,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.34990984201431274,
+            "g": 0.6424503922462463,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.34990984201431274,
+            "c1": 0.6424503922462463,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 0.64245,
+          "r": 0.34991
+        },
         "sourceNodeId": "270:26295",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "DROP_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -7335,11 +8687,43 @@ export const homeRenderEvidence = {
             "c3": 1
           }
         },
+        "rawPayload": {
+          "type": "INNER_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 10.114999771118164,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 1,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "sourceNodeId": "270:26296",
         "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "INNER_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -7359,11 +8743,43 @@ export const homeRenderEvidence = {
             "c3": 1
           }
         },
+        "rawPayload": {
+          "type": "INNER_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 12.643750190734863,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 1,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "sourceNodeId": "270:26302",
         "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "INNER_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -7383,11 +8799,43 @@ export const homeRenderEvidence = {
             "c3": 1
           }
         },
+        "rawPayload": {
+          "type": "INNER_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 13.787510871887207,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 1,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "sourceNodeId": "270:26297",
         "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "INNER_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -7420,14 +8868,73 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "FOREGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 7.586250305175781,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          },
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "seed": 9231,
+          "density": 1,
+          "noiseType": "MONOTONE",
+          "opacity": 0.15000000596046448
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 9231,
+        "secondarySourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
         "sourceNodeId": "270:26303",
         "spread": 0,
-        "type": "FOREGROUND_BLUR"
+        "type": "FOREGROUND_BLUR",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -7447,11 +8954,43 @@ export const homeRenderEvidence = {
             "c3": 1
           }
         },
+        "rawPayload": {
+          "type": "INNER_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 12.643750190734863,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 1,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "sourceNodeId": "270:26301",
         "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "INNER_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -7484,14 +9023,73 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "FOREGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 20.230003356933594,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          },
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "seed": 8172,
+          "density": 1,
+          "noiseType": "MONOTONE",
+          "opacity": 0.15000000596046448
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 8172,
+        "secondarySourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
         "sourceNodeId": "270:26298",
         "spread": 0,
-        "type": "FOREGROUND_BLUR"
+        "type": "FOREGROUND_BLUR",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -7524,14 +9122,73 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "FOREGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 20.230003356933594,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          },
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "seed": 8172,
+          "density": 1,
+          "noiseType": "MONOTONE",
+          "opacity": 0.15000000596046448
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 8172,
+        "secondarySourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
         "sourceNodeId": "270:26300",
         "spread": 0,
-        "type": "FOREGROUND_BLUR"
+        "type": "FOREGROUND_BLUR",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -7551,11 +9208,43 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "FOREGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 6.51533317565918,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          }
+        },
         "rawType": "FOREGROUND_BLUR",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
         "sourceNodeId": "270:26308",
         "spread": 0,
-        "type": "FOREGROUND_BLUR"
+        "type": "FOREGROUND_BLUR",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -7588,14 +9277,73 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "FOREGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 20.230003356933594,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          },
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "seed": 8172,
+          "density": 1,
+          "noiseType": "MONOTONE",
+          "opacity": 0.15000000596046448
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 8172,
+        "secondarySourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
         "sourceNodeId": "270:26299",
         "spread": 0,
-        "type": "FOREGROUND_BLUR"
+        "type": "FOREGROUND_BLUR",
+        "visible": true
       }
     ],
     "fills": [
@@ -7795,11 +9543,43 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "DROP_SHADOW",
+              "offset": {
+                "x": 2,
+                "y": 2
+              },
+              "radius": 2,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0.740159273147583,
+                "g": 0.740159273147583,
+                "b": 0.740159273147583,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.740159273147583,
+                "c1": 0.740159273147583,
+                "c2": 0.740159273147583,
+                "c3": 0.25
+              }
+            },
             "rawType": "DROP_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 0.740159,
+              "g": 0.740159,
+              "r": 0.740159
+            },
             "sourceNodeId": "270:26292",
             "spread": 0,
-            "type": "DROP_SHADOW"
+            "type": "DROP_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -7857,11 +9637,43 @@ export const homeRenderEvidence = {
                 "c3": 0.5
               }
             },
+            "rawPayload": {
+              "type": "DROP_SHADOW",
+              "offset": {
+                "x": 5.139889717102051,
+                "y": 5.139889717102051
+              },
+              "radius": 20.559558868408203,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0.9861647486686707,
+                "g": 0.7232947945594788,
+                "b": 1,
+                "a": 0.5
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.9861647486686707,
+                "c1": 0.7232947945594788,
+                "c2": 1,
+                "c3": 0.5
+              }
+            },
             "rawType": "DROP_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.5,
+              "b": 1,
+              "g": 0.723295,
+              "r": 0.986165
+            },
             "sourceNodeId": "270:26293",
             "spread": 0,
-            "type": "DROP_SHADOW"
+            "type": "DROP_SHADOW",
+            "visible": true
           },
           {
             "blendMode": "NORMAL",
@@ -7881,11 +9693,43 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "DROP_SHADOW",
+              "offset": {
+                "x": -2,
+                "y": -2
+              },
+              "radius": 13.899999618530273,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0.9865372180938721,
+                "g": 0.7980581521987915,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.9865372180938721,
+                "c1": 0.7980581521987915,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
             "rawType": "DROP_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 0.798058,
+              "r": 0.986537
+            },
             "sourceNodeId": "270:26293",
             "spread": 0,
-            "type": "DROP_SHADOW"
+            "type": "DROP_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -7947,11 +9791,43 @@ export const homeRenderEvidence = {
                 "c3": 0.5
               }
             },
+            "rawPayload": {
+              "type": "DROP_SHADOW",
+              "offset": {
+                "x": 5.139889717102051,
+                "y": 5.139889717102051
+              },
+              "radius": 20.559558868408203,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0.9861647486686707,
+                "g": 0.7232947945594788,
+                "b": 1,
+                "a": 0.5
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.9861647486686707,
+                "c1": 0.7232947945594788,
+                "c2": 1,
+                "c3": 0.5
+              }
+            },
             "rawType": "DROP_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.5,
+              "b": 1,
+              "g": 0.723295,
+              "r": 0.986165
+            },
             "sourceNodeId": "270:26293",
             "spread": 0,
-            "type": "DROP_SHADOW"
+            "type": "DROP_SHADOW",
+            "visible": true
           },
           {
             "blendMode": "NORMAL",
@@ -7971,11 +9847,43 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "DROP_SHADOW",
+              "offset": {
+                "x": -2,
+                "y": -2
+              },
+              "radius": 13.899999618530273,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0.9865372180938721,
+                "g": 0.7980581521987915,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.9865372180938721,
+                "c1": 0.7980581521987915,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
             "rawType": "DROP_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 0.798058,
+              "r": 0.986537
+            },
             "sourceNodeId": "270:26293",
             "spread": 0,
-            "type": "DROP_SHADOW"
+            "type": "DROP_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -8032,11 +9940,43 @@ export const homeRenderEvidence = {
                 "c3": 1
               }
             },
+            "rawPayload": {
+              "type": "INNER_SHADOW",
+              "offset": {
+                "x": 0,
+                "y": 0
+              },
+              "radius": 10.114999771118164,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 1
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
+            },
             "rawType": "INNER_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 1,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "sourceNodeId": "270:26296",
             "spread": 0,
-            "type": "INNER_SHADOW"
+            "type": "INNER_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -8093,11 +10033,43 @@ export const homeRenderEvidence = {
                 "c3": 1
               }
             },
+            "rawPayload": {
+              "type": "INNER_SHADOW",
+              "offset": {
+                "x": 0,
+                "y": 0
+              },
+              "radius": 13.787510871887207,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 1
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
+            },
             "rawType": "INNER_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 1,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "sourceNodeId": "270:26297",
             "spread": 0,
-            "type": "INNER_SHADOW"
+            "type": "INNER_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -8146,14 +10118,73 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "FOREGROUND_BLUR",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "radius": 20.230003356933594,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.25
+              },
+              "secondaryColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              },
+              "noiseSize": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "seed": 8172,
+              "density": 1,
+              "noiseType": "MONOTONE",
+              "opacity": 0.15000000596046448
+            },
             "rawType": "FOREGROUND_BLUR",
             "secondaryColor": "#FFFFFF",
             "secondaryOpacity": 0.25,
             "seed": 8172,
+            "secondarySourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
             "sourceNodeId": "270:26298",
             "spread": 0,
-            "type": "FOREGROUND_BLUR"
+            "type": "FOREGROUND_BLUR",
+            "visible": true
           }
         ]
       },
@@ -8202,14 +10233,73 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "FOREGROUND_BLUR",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "radius": 20.230003356933594,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.25
+              },
+              "secondaryColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              },
+              "noiseSize": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "seed": 8172,
+              "density": 1,
+              "noiseType": "MONOTONE",
+              "opacity": 0.15000000596046448
+            },
             "rawType": "FOREGROUND_BLUR",
             "secondaryColor": "#FFFFFF",
             "secondaryOpacity": 0.25,
             "seed": 8172,
+            "secondarySourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
             "sourceNodeId": "270:26299",
             "spread": 0,
-            "type": "FOREGROUND_BLUR"
+            "type": "FOREGROUND_BLUR",
+            "visible": true
           }
         ]
       },
@@ -8258,14 +10348,73 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "FOREGROUND_BLUR",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "radius": 20.230003356933594,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.25
+              },
+              "secondaryColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              },
+              "noiseSize": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "seed": 8172,
+              "density": 1,
+              "noiseType": "MONOTONE",
+              "opacity": 0.15000000596046448
+            },
             "rawType": "FOREGROUND_BLUR",
             "secondaryColor": "#FFFFFF",
             "secondaryOpacity": 0.25,
             "seed": 8172,
+            "secondarySourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
             "sourceNodeId": "270:26300",
             "spread": 0,
-            "type": "FOREGROUND_BLUR"
+            "type": "FOREGROUND_BLUR",
+            "visible": true
           }
         ]
       },
@@ -8301,11 +10450,43 @@ export const homeRenderEvidence = {
                 "c3": 1
               }
             },
+            "rawPayload": {
+              "type": "INNER_SHADOW",
+              "offset": {
+                "x": 0,
+                "y": 0
+              },
+              "radius": 12.643750190734863,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 1
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
+            },
             "rawType": "INNER_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 1,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "sourceNodeId": "270:26301",
             "spread": 0,
-            "type": "INNER_SHADOW"
+            "type": "INNER_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -8341,11 +10522,43 @@ export const homeRenderEvidence = {
                 "c3": 1
               }
             },
+            "rawPayload": {
+              "type": "INNER_SHADOW",
+              "offset": {
+                "x": 0,
+                "y": 0
+              },
+              "radius": 12.643750190734863,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 1
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
+            },
             "rawType": "INNER_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 1,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "sourceNodeId": "270:26302",
             "spread": 0,
-            "type": "INNER_SHADOW"
+            "type": "INNER_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -8394,14 +10607,73 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "FOREGROUND_BLUR",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "radius": 7.586250305175781,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.25
+              },
+              "secondaryColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              },
+              "noiseSize": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "seed": 9231,
+              "density": 1,
+              "noiseType": "MONOTONE",
+              "opacity": 0.15000000596046448
+            },
             "rawType": "FOREGROUND_BLUR",
             "secondaryColor": "#FFFFFF",
             "secondaryOpacity": 0.25,
             "seed": 9231,
+            "secondarySourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
             "sourceNodeId": "270:26303",
             "spread": 0,
-            "type": "FOREGROUND_BLUR"
+            "type": "FOREGROUND_BLUR",
+            "visible": true
           }
         ]
       },
@@ -8497,11 +10769,43 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "FOREGROUND_BLUR",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "radius": 6.51533317565918,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              }
+            },
             "rawType": "FOREGROUND_BLUR",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
             "sourceNodeId": "270:26308",
             "spread": 0,
-            "type": "FOREGROUND_BLUR"
+            "type": "FOREGROUND_BLUR",
+            "visible": true
           }
         ]
       }
@@ -8514,6 +10818,7 @@ export const homeRenderEvidence = {
       "height": 84.000069,
       "width": 83.814522
     },
+    "sourceClipsContent": true,
     "sourceKind": "node",
     "sourceNodeIds": [
       "270:26291",
@@ -8597,11 +10902,43 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 2.2669100761413574,
+            "y": 2.2669100761413574
+          },
+          "radius": 2.2669100761413574,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.740159273147583,
+            "g": 0.740159273147583,
+            "b": 0.740159273147583,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.740159273147583,
+            "c1": 0.740159273147583,
+            "c2": 0.740159273147583,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0.740159,
+          "g": 0.740159,
+          "r": 0.740159
+        },
         "sourceNodeId": "188:16339",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "DROP_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -8621,11 +10958,43 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 2.2669100761413574,
+            "y": 4.533820152282715
+          },
+          "radius": 11.334550857543945,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.8685020804405212,
+            "g": 0.5616737008094788,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.8685020804405212,
+            "c1": 0.5616737008094788,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 0.561674,
+          "r": 0.868502
+        },
         "sourceNodeId": "188:16340",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "DROP_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -8645,11 +11014,43 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": -2.2669100761413574,
+            "y": -4.533820152282715
+          },
+          "radius": 11.334550857543945,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.8685246109962463,
+            "g": 0.5069674253463745,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.8685246109962463,
+            "c1": 0.5069674253463745,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 0.506967,
+          "r": 0.868525
+        },
         "sourceNodeId": "188:16340",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "DROP_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -8669,11 +11070,43 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": -5.732451438903809,
+            "y": -1.4331128597259521
+          },
+          "radius": 11.464902877807617,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0.34990984201431274,
+            "g": 0.6424503922462463,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0.34990984201431274,
+            "c1": 0.6424503922462463,
+            "c2": 1,
+            "c3": 0.25
+          }
+        },
         "rawType": "DROP_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 0.64245,
+          "r": 0.34991
+        },
         "sourceNodeId": "188:16342",
         "spread": 0,
-        "type": "DROP_SHADOW"
+        "type": "DROP_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -8693,11 +11126,43 @@ export const homeRenderEvidence = {
             "c3": 1
           }
         },
+        "rawPayload": {
+          "type": "INNER_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 11.464898109436035,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 1,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "sourceNodeId": "188:16343",
         "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "INNER_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -8717,11 +11182,43 @@ export const homeRenderEvidence = {
             "c3": 1
           }
         },
+        "rawPayload": {
+          "type": "INNER_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 14.331123352050781,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 1,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "sourceNodeId": "188:16349",
         "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "INNER_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -8741,11 +11238,43 @@ export const homeRenderEvidence = {
             "c3": 1
           }
         },
+        "rawPayload": {
+          "type": "INNER_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 15.627524375915527,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 1,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "sourceNodeId": "188:16344",
         "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "INNER_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -8778,14 +11307,73 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "FOREGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 8.598674774169922,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          },
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "seed": 9231,
+          "density": 1,
+          "noiseType": "MONOTONE",
+          "opacity": 0.15000000596046448
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 9231,
+        "secondarySourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
         "sourceNodeId": "188:16350",
         "spread": 0,
-        "type": "FOREGROUND_BLUR"
+        "type": "FOREGROUND_BLUR",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -8805,11 +11393,43 @@ export const homeRenderEvidence = {
             "c3": 1
           }
         },
+        "rawPayload": {
+          "type": "INNER_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 14.331123352050781,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 1
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 1
+          }
+        },
         "rawType": "INNER_SHADOW",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 1,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "sourceNodeId": "188:16348",
         "spread": 0,
-        "type": "INNER_SHADOW"
+        "type": "INNER_SHADOW",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -8842,14 +11462,73 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "FOREGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 22.92980194091797,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          },
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "seed": 8172,
+          "density": 1,
+          "noiseType": "MONOTONE",
+          "opacity": 0.15000000596046448
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 8172,
+        "secondarySourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
         "sourceNodeId": "188:16345",
         "spread": 0,
-        "type": "FOREGROUND_BLUR"
+        "type": "FOREGROUND_BLUR",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -8882,14 +11561,73 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "FOREGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 22.92980194091797,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          },
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "seed": 8172,
+          "density": 1,
+          "noiseType": "MONOTONE",
+          "opacity": 0.15000000596046448
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 8172,
+        "secondarySourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
         "sourceNodeId": "188:16347",
         "spread": 0,
-        "type": "FOREGROUND_BLUR"
+        "type": "FOREGROUND_BLUR",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -8909,11 +11647,43 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "FOREGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 7.384837627410889,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          }
+        },
         "rawType": "FOREGROUND_BLUR",
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
         "sourceNodeId": "188:16355",
         "spread": 0,
-        "type": "FOREGROUND_BLUR"
+        "type": "FOREGROUND_BLUR",
+        "visible": true
       },
       {
         "blendMode": "NORMAL",
@@ -8946,14 +11716,73 @@ export const homeRenderEvidence = {
             "c3": 0.25
           }
         },
+        "rawPayload": {
+          "type": "FOREGROUND_BLUR",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 22.92980194091797,
+          "visible": true,
+          "blendMode": "NORMAL",
+          "spread": 0,
+          "showShadowBehindNode": false,
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.25
+          },
+          "secondaryColor": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.25
+          },
+          "authoredColor": {
+            "space": "DEFAULT",
+            "c0": 0,
+            "c1": 0,
+            "c2": 0,
+            "c3": 0.25
+          },
+          "secondaryAuthoredColor": {
+            "space": "DEFAULT",
+            "c0": 1,
+            "c1": 1,
+            "c2": 1,
+            "c3": 0.25
+          },
+          "noiseSize": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "seed": 8172,
+          "density": 1,
+          "noiseType": "MONOTONE",
+          "opacity": 0.15000000596046448
+        },
         "rawType": "FOREGROUND_BLUR",
         "secondaryColor": "#FFFFFF",
         "secondaryOpacity": 0.25,
         "seed": 8172,
+        "secondarySourceColor": {
+          "a": 0.25,
+          "b": 1,
+          "g": 1,
+          "r": 1
+        },
         "showShadowBehindNode": false,
+        "sourceColor": {
+          "a": 0.25,
+          "b": 0,
+          "g": 0,
+          "r": 0
+        },
         "sourceNodeId": "188:16346",
         "spread": 0,
-        "type": "FOREGROUND_BLUR"
+        "type": "FOREGROUND_BLUR",
+        "visible": true
       }
     ],
     "fills": [
@@ -9160,11 +11989,43 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "DROP_SHADOW",
+              "offset": {
+                "x": 2.2669100761413574,
+                "y": 2.2669100761413574
+              },
+              "radius": 2.2669100761413574,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0.740159273147583,
+                "g": 0.740159273147583,
+                "b": 0.740159273147583,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.740159273147583,
+                "c1": 0.740159273147583,
+                "c2": 0.740159273147583,
+                "c3": 0.25
+              }
+            },
             "rawType": "DROP_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 0.740159,
+              "g": 0.740159,
+              "r": 0.740159
+            },
             "sourceNodeId": "188:16339",
             "spread": 0,
-            "type": "DROP_SHADOW"
+            "type": "DROP_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -9212,11 +12073,43 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "DROP_SHADOW",
+              "offset": {
+                "x": 2.2669100761413574,
+                "y": 4.533820152282715
+              },
+              "radius": 11.334550857543945,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0.8685020804405212,
+                "g": 0.5616737008094788,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.8685020804405212,
+                "c1": 0.5616737008094788,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
             "rawType": "DROP_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 0.561674,
+              "r": 0.868502
+            },
             "sourceNodeId": "188:16340",
             "spread": 0,
-            "type": "DROP_SHADOW"
+            "type": "DROP_SHADOW",
+            "visible": true
           },
           {
             "blendMode": "NORMAL",
@@ -9236,11 +12129,43 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "DROP_SHADOW",
+              "offset": {
+                "x": -2.2669100761413574,
+                "y": -4.533820152282715
+              },
+              "radius": 11.334550857543945,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0.8685246109962463,
+                "g": 0.5069674253463745,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.8685246109962463,
+                "c1": 0.5069674253463745,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
             "rawType": "DROP_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 0.506967,
+              "r": 0.868525
+            },
             "sourceNodeId": "188:16340",
             "spread": 0,
-            "type": "DROP_SHADOW"
+            "type": "DROP_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -9275,11 +12200,43 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "DROP_SHADOW",
+              "offset": {
+                "x": 2.2669100761413574,
+                "y": 4.533820152282715
+              },
+              "radius": 11.334550857543945,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0.8685020804405212,
+                "g": 0.5616737008094788,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.8685020804405212,
+                "c1": 0.5616737008094788,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
             "rawType": "DROP_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 0.561674,
+              "r": 0.868502
+            },
             "sourceNodeId": "188:16340",
             "spread": 0,
-            "type": "DROP_SHADOW"
+            "type": "DROP_SHADOW",
+            "visible": true
           },
           {
             "blendMode": "NORMAL",
@@ -9299,11 +12256,43 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "DROP_SHADOW",
+              "offset": {
+                "x": -2.2669100761413574,
+                "y": -4.533820152282715
+              },
+              "radius": 11.334550857543945,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0.8685246109962463,
+                "g": 0.5069674253463745,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0.8685246109962463,
+                "c1": 0.5069674253463745,
+                "c2": 1,
+                "c3": 0.25
+              }
+            },
             "rawType": "DROP_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 0.506967,
+              "r": 0.868525
+            },
             "sourceNodeId": "188:16340",
             "spread": 0,
-            "type": "DROP_SHADOW"
+            "type": "DROP_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -9360,11 +12349,43 @@ export const homeRenderEvidence = {
                 "c3": 1
               }
             },
+            "rawPayload": {
+              "type": "INNER_SHADOW",
+              "offset": {
+                "x": 0,
+                "y": 0
+              },
+              "radius": 11.464898109436035,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 1
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
+            },
             "rawType": "INNER_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 1,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "sourceNodeId": "188:16343",
             "spread": 0,
-            "type": "INNER_SHADOW"
+            "type": "INNER_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -9421,11 +12442,43 @@ export const homeRenderEvidence = {
                 "c3": 1
               }
             },
+            "rawPayload": {
+              "type": "INNER_SHADOW",
+              "offset": {
+                "x": 0,
+                "y": 0
+              },
+              "radius": 15.627524375915527,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 1
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
+            },
             "rawType": "INNER_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 1,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "sourceNodeId": "188:16344",
             "spread": 0,
-            "type": "INNER_SHADOW"
+            "type": "INNER_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -9474,14 +12527,73 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "FOREGROUND_BLUR",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "radius": 22.92980194091797,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.25
+              },
+              "secondaryColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              },
+              "noiseSize": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "seed": 8172,
+              "density": 1,
+              "noiseType": "MONOTONE",
+              "opacity": 0.15000000596046448
+            },
             "rawType": "FOREGROUND_BLUR",
             "secondaryColor": "#FFFFFF",
             "secondaryOpacity": 0.25,
             "seed": 8172,
+            "secondarySourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
             "sourceNodeId": "188:16345",
             "spread": 0,
-            "type": "FOREGROUND_BLUR"
+            "type": "FOREGROUND_BLUR",
+            "visible": true
           }
         ]
       },
@@ -9530,14 +12642,73 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "FOREGROUND_BLUR",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "radius": 22.92980194091797,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.25
+              },
+              "secondaryColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              },
+              "noiseSize": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "seed": 8172,
+              "density": 1,
+              "noiseType": "MONOTONE",
+              "opacity": 0.15000000596046448
+            },
             "rawType": "FOREGROUND_BLUR",
             "secondaryColor": "#FFFFFF",
             "secondaryOpacity": 0.25,
             "seed": 8172,
+            "secondarySourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
             "sourceNodeId": "188:16346",
             "spread": 0,
-            "type": "FOREGROUND_BLUR"
+            "type": "FOREGROUND_BLUR",
+            "visible": true
           }
         ]
       },
@@ -9586,14 +12757,73 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "FOREGROUND_BLUR",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "radius": 22.92980194091797,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.25
+              },
+              "secondaryColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              },
+              "noiseSize": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "seed": 8172,
+              "density": 1,
+              "noiseType": "MONOTONE",
+              "opacity": 0.15000000596046448
+            },
             "rawType": "FOREGROUND_BLUR",
             "secondaryColor": "#FFFFFF",
             "secondaryOpacity": 0.25,
             "seed": 8172,
+            "secondarySourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
             "sourceNodeId": "188:16347",
             "spread": 0,
-            "type": "FOREGROUND_BLUR"
+            "type": "FOREGROUND_BLUR",
+            "visible": true
           }
         ]
       },
@@ -9629,11 +12859,43 @@ export const homeRenderEvidence = {
                 "c3": 1
               }
             },
+            "rawPayload": {
+              "type": "INNER_SHADOW",
+              "offset": {
+                "x": 0,
+                "y": 0
+              },
+              "radius": 14.331123352050781,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 1
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
+            },
             "rawType": "INNER_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 1,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "sourceNodeId": "188:16348",
             "spread": 0,
-            "type": "INNER_SHADOW"
+            "type": "INNER_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -9669,11 +12931,43 @@ export const homeRenderEvidence = {
                 "c3": 1
               }
             },
+            "rawPayload": {
+              "type": "INNER_SHADOW",
+              "offset": {
+                "x": 0,
+                "y": 0
+              },
+              "radius": 14.331123352050781,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 1
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 1
+              }
+            },
             "rawType": "INNER_SHADOW",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 1,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "sourceNodeId": "188:16349",
             "spread": 0,
-            "type": "INNER_SHADOW"
+            "type": "INNER_SHADOW",
+            "visible": true
           }
         ]
       },
@@ -9722,14 +13016,73 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "FOREGROUND_BLUR",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "radius": 8.598674774169922,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.25
+              },
+              "secondaryColor": {
+                "r": 1,
+                "g": 1,
+                "b": 1,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              },
+              "secondaryAuthoredColor": {
+                "space": "DEFAULT",
+                "c0": 1,
+                "c1": 1,
+                "c2": 1,
+                "c3": 0.25
+              },
+              "noiseSize": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "seed": 9231,
+              "density": 1,
+              "noiseType": "MONOTONE",
+              "opacity": 0.15000000596046448
+            },
             "rawType": "FOREGROUND_BLUR",
             "secondaryColor": "#FFFFFF",
             "secondaryOpacity": 0.25,
             "seed": 9231,
+            "secondarySourceColor": {
+              "a": 0.25,
+              "b": 1,
+              "g": 1,
+              "r": 1
+            },
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
             "sourceNodeId": "188:16350",
             "spread": 0,
-            "type": "FOREGROUND_BLUR"
+            "type": "FOREGROUND_BLUR",
+            "visible": true
           }
         ]
       },
@@ -9825,11 +13178,43 @@ export const homeRenderEvidence = {
                 "c3": 0.25
               }
             },
+            "rawPayload": {
+              "type": "FOREGROUND_BLUR",
+              "offset": {
+                "x": 0,
+                "y": 4
+              },
+              "radius": 7.384837627410889,
+              "visible": true,
+              "blendMode": "NORMAL",
+              "spread": 0,
+              "showShadowBehindNode": false,
+              "color": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0.25
+              },
+              "authoredColor": {
+                "space": "DEFAULT",
+                "c0": 0,
+                "c1": 0,
+                "c2": 0,
+                "c3": 0.25
+              }
+            },
             "rawType": "FOREGROUND_BLUR",
             "showShadowBehindNode": false,
+            "sourceColor": {
+              "a": 0.25,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
             "sourceNodeId": "188:16355",
             "spread": 0,
-            "type": "FOREGROUND_BLUR"
+            "type": "FOREGROUND_BLUR",
+            "visible": true
           }
         ]
       }
@@ -9842,6 +13227,7 @@ export const homeRenderEvidence = {
       "height": 95.210312,
       "width": 95
     },
+    "sourceClipsContent": true,
     "sourceKind": "node",
     "sourceNodeIds": [
       "188:16338",
@@ -10191,6 +13577,7 @@ export const homeRenderEvidence = {
       "height": 12.001001,
       "width": 147.500977
     },
+    "sourceClipsContent": false,
     "sourceKind": "node",
     "sourceNodeIds": [
       "270:26290"
@@ -10245,11 +13632,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26347",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -10269,11 +13688,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -2,
+              "y": -2
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0.9111515879631042,
+              "g": 0.9585373997688293,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 0.958537,
+            "r": 0.911152
+          },
           "sourceNodeId": "270:26347",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -10309,6 +13760,60 @@ export const homeRenderEvidence = {
               "c3": 0
             }
           },
+          "rawPayload": {
+            "type": "NOISE",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            },
+            "noiseSize": {
+              "x": 4,
+              "y": 4
+            },
+            "seed": 6469,
+            "clipToShape": false,
+            "density": 0.20000000298023224,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -10316,12 +13821,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0,
           "seed": 6469,
+          "secondarySourceColor": {
+            "a": 0,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26347",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "NOISE"
+          "type": "NOISE",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -10341,11 +13859,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -4,
+              "y": 4
+            },
+            "radius": 11.100000381469727,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26347",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -10381,6 +13931,60 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "GLASS",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0,
+              "g": 0,
+              "b": 0,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "noiseSize": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "seed": 3070,
+            "clipToShape": false,
+            "density": 1,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "GLASS",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -10388,12 +13992,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0.25,
           "seed": 3070,
+          "secondarySourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 0,
+            "g": 0,
+            "r": 0
+          },
           "sourceNodeId": "270:26347",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "GLASS"
+          "type": "GLASS",
+          "visible": true
         }
       ],
       "fills": [
@@ -10463,11 +14080,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26347",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -10487,11 +14136,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -2,
+                  "y": -2
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.9111515879631042,
+                  "g": 0.9585373997688293,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 0.958537,
+                "r": 0.911152
+              },
               "sourceNodeId": "270:26347",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -10527,6 +14208,60 @@ export const homeRenderEvidence = {
                   "c3": 0
                 }
               },
+              "rawPayload": {
+                "type": "NOISE",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                },
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "seed": 6469,
+                "clipToShape": false,
+                "density": 0.20000000298023224,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "NOISE",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -10534,12 +14269,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0,
               "seed": 6469,
+              "secondarySourceColor": {
+                "a": 0,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26347",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "NOISE"
+              "type": "NOISE",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -10559,11 +14307,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -4,
+                  "y": 4
+                },
+                "radius": 11.100000381469727,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26347",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -10599,6 +14379,60 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "GLASS",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "noiseSize": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "seed": 3070,
+                "clipToShape": false,
+                "density": 1,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "GLASS",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -10606,12 +14440,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0.25,
               "seed": 3070,
+              "secondarySourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 0,
+                "g": 0,
+                "r": 0
+              },
               "sourceNodeId": "270:26347",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "GLASS"
+              "type": "GLASS",
+              "visible": true
             }
           ]
         },
@@ -10669,11 +14516,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26347",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -10693,11 +14572,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -2,
+                  "y": -2
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.9111515879631042,
+                  "g": 0.9585373997688293,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 0.958537,
+                "r": 0.911152
+              },
               "sourceNodeId": "270:26347",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -10733,6 +14644,60 @@ export const homeRenderEvidence = {
                   "c3": 0
                 }
               },
+              "rawPayload": {
+                "type": "NOISE",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                },
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "seed": 6469,
+                "clipToShape": false,
+                "density": 0.20000000298023224,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "NOISE",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -10740,12 +14705,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0,
               "seed": 6469,
+              "secondarySourceColor": {
+                "a": 0,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26347",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "NOISE"
+              "type": "NOISE",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -10765,11 +14743,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -4,
+                  "y": 4
+                },
+                "radius": 11.100000381469727,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26347",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -10805,6 +14815,60 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "GLASS",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "noiseSize": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "seed": 3070,
+                "clipToShape": false,
+                "density": 1,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "GLASS",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -10812,12 +14876,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0.25,
               "seed": 3070,
+              "secondarySourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 0,
+                "g": 0,
+                "r": 0
+              },
               "sourceNodeId": "270:26347",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "GLASS"
+              "type": "GLASS",
+              "visible": true
             }
           ]
         }
@@ -10830,6 +14907,7 @@ export const homeRenderEvidence = {
         "height": 195,
         "width": 321
       },
+      "sourceClipsContent": false,
       "sourceKind": "node",
       "sourceNodeIds": [
         "270:26347"
@@ -10883,11 +14961,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26347",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -10907,11 +15017,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -2,
+              "y": -2
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0.9111515879631042,
+              "g": 0.9585373997688293,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 0.958537,
+            "r": 0.911152
+          },
           "sourceNodeId": "270:26347",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -10947,6 +15089,60 @@ export const homeRenderEvidence = {
               "c3": 0
             }
           },
+          "rawPayload": {
+            "type": "NOISE",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            },
+            "noiseSize": {
+              "x": 4,
+              "y": 4
+            },
+            "seed": 6469,
+            "clipToShape": false,
+            "density": 0.20000000298023224,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -10954,12 +15150,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0,
           "seed": 6469,
+          "secondarySourceColor": {
+            "a": 0,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26347",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "NOISE"
+          "type": "NOISE",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -10979,11 +15188,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -4,
+              "y": 4
+            },
+            "radius": 11.100000381469727,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26347",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -11019,6 +15260,60 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "GLASS",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0,
+              "g": 0,
+              "b": 0,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "noiseSize": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "seed": 3070,
+            "clipToShape": false,
+            "density": 1,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "GLASS",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -11026,12 +15321,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0.25,
           "seed": 3070,
+          "secondarySourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 0,
+            "g": 0,
+            "r": 0
+          },
           "sourceNodeId": "270:26347",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "GLASS"
+          "type": "GLASS",
+          "visible": true
         }
       ],
       "surfaceFills": [
@@ -11130,11 +15438,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26433",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -11154,11 +15494,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -2,
+              "y": -2
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0.9111515879631042,
+              "g": 0.9585373997688293,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 0.958537,
+            "r": 0.911152
+          },
           "sourceNodeId": "270:26433",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -11194,6 +15566,60 @@ export const homeRenderEvidence = {
               "c3": 0
             }
           },
+          "rawPayload": {
+            "type": "NOISE",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            },
+            "noiseSize": {
+              "x": 4,
+              "y": 4
+            },
+            "seed": 6469,
+            "clipToShape": false,
+            "density": 0.20000000298023224,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -11201,12 +15627,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0,
           "seed": 6469,
+          "secondarySourceColor": {
+            "a": 0,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26433",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "NOISE"
+          "type": "NOISE",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -11226,11 +15665,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -4,
+              "y": 4
+            },
+            "radius": 11.100000381469727,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26433",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -11266,6 +15737,60 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "GLASS",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0,
+              "g": 0,
+              "b": 0,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "noiseSize": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "seed": 8977,
+            "clipToShape": false,
+            "density": 1,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "GLASS",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -11273,12 +15798,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0.25,
           "seed": 8977,
+          "secondarySourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 0,
+            "g": 0,
+            "r": 0
+          },
           "sourceNodeId": "270:26433",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "GLASS"
+          "type": "GLASS",
+          "visible": true
         }
       ],
       "fills": [
@@ -11348,11 +15886,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26433",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -11372,11 +15942,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -2,
+                  "y": -2
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.9111515879631042,
+                  "g": 0.9585373997688293,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 0.958537,
+                "r": 0.911152
+              },
               "sourceNodeId": "270:26433",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -11412,6 +16014,60 @@ export const homeRenderEvidence = {
                   "c3": 0
                 }
               },
+              "rawPayload": {
+                "type": "NOISE",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                },
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "seed": 6469,
+                "clipToShape": false,
+                "density": 0.20000000298023224,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "NOISE",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -11419,12 +16075,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0,
               "seed": 6469,
+              "secondarySourceColor": {
+                "a": 0,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26433",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "NOISE"
+              "type": "NOISE",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -11444,11 +16113,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -4,
+                  "y": 4
+                },
+                "radius": 11.100000381469727,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26433",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -11484,6 +16185,60 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "GLASS",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "noiseSize": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "seed": 8977,
+                "clipToShape": false,
+                "density": 1,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "GLASS",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -11491,12 +16246,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0.25,
               "seed": 8977,
+              "secondarySourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 0,
+                "g": 0,
+                "r": 0
+              },
               "sourceNodeId": "270:26433",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "GLASS"
+              "type": "GLASS",
+              "visible": true
             }
           ]
         },
@@ -11554,11 +16322,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26433",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -11578,11 +16378,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -2,
+                  "y": -2
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.9111515879631042,
+                  "g": 0.9585373997688293,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 0.958537,
+                "r": 0.911152
+              },
               "sourceNodeId": "270:26433",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -11618,6 +16450,60 @@ export const homeRenderEvidence = {
                   "c3": 0
                 }
               },
+              "rawPayload": {
+                "type": "NOISE",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                },
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "seed": 6469,
+                "clipToShape": false,
+                "density": 0.20000000298023224,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "NOISE",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -11625,12 +16511,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0,
               "seed": 6469,
+              "secondarySourceColor": {
+                "a": 0,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26433",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "NOISE"
+              "type": "NOISE",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -11650,11 +16549,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -4,
+                  "y": 4
+                },
+                "radius": 11.100000381469727,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26433",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -11690,6 +16621,60 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "GLASS",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "noiseSize": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "seed": 8977,
+                "clipToShape": false,
+                "density": 1,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "GLASS",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -11697,12 +16682,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0.25,
               "seed": 8977,
+              "secondarySourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 0,
+                "g": 0,
+                "r": 0
+              },
               "sourceNodeId": "270:26433",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "GLASS"
+              "type": "GLASS",
+              "visible": true
             }
           ]
         }
@@ -11715,6 +16713,7 @@ export const homeRenderEvidence = {
         "height": 195,
         "width": 321
       },
+      "sourceClipsContent": false,
       "sourceKind": "node",
       "sourceNodeIds": [
         "270:26433"
@@ -11768,11 +16767,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26433",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -11792,11 +16823,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -2,
+              "y": -2
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0.9111515879631042,
+              "g": 0.9585373997688293,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 0.958537,
+            "r": 0.911152
+          },
           "sourceNodeId": "270:26433",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -11832,6 +16895,60 @@ export const homeRenderEvidence = {
               "c3": 0
             }
           },
+          "rawPayload": {
+            "type": "NOISE",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            },
+            "noiseSize": {
+              "x": 4,
+              "y": 4
+            },
+            "seed": 6469,
+            "clipToShape": false,
+            "density": 0.20000000298023224,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -11839,12 +16956,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0,
           "seed": 6469,
+          "secondarySourceColor": {
+            "a": 0,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26433",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "NOISE"
+          "type": "NOISE",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -11864,11 +16994,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -4,
+              "y": 4
+            },
+            "radius": 11.100000381469727,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26433",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -11904,6 +17066,60 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "GLASS",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0,
+              "g": 0,
+              "b": 0,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "noiseSize": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "seed": 8977,
+            "clipToShape": false,
+            "density": 1,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "GLASS",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -11911,12 +17127,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0.25,
           "seed": 8977,
+          "secondarySourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 0,
+            "g": 0,
+            "r": 0
+          },
           "sourceNodeId": "270:26433",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "GLASS"
+          "type": "GLASS",
+          "visible": true
         }
       ],
       "surfaceFills": [
@@ -12015,11 +17244,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26462",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -12039,11 +17300,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -2,
+              "y": -2
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0.9111515879631042,
+              "g": 0.9585373997688293,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 0.958537,
+            "r": 0.911152
+          },
           "sourceNodeId": "270:26462",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -12079,6 +17372,60 @@ export const homeRenderEvidence = {
               "c3": 0
             }
           },
+          "rawPayload": {
+            "type": "NOISE",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            },
+            "noiseSize": {
+              "x": 4,
+              "y": 4
+            },
+            "seed": 6469,
+            "clipToShape": false,
+            "density": 0.20000000298023224,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -12086,12 +17433,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0,
           "seed": 6469,
+          "secondarySourceColor": {
+            "a": 0,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26462",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "NOISE"
+          "type": "NOISE",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -12111,11 +17471,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -4,
+              "y": 4
+            },
+            "radius": 11.100000381469727,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26462",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -12149,6 +17541,57 @@ export const homeRenderEvidence = {
               "c3": 0
             }
           },
+          "rawPayload": {
+            "type": "GLASS",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0,
+              "g": 0,
+              "b": 0,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            },
+            "noiseSize": {
+              "x": 4,
+              "y": 4
+            },
+            "seed": 4940,
+            "clipToShape": false,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "GLASS",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -12156,12 +17599,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0,
           "seed": 4940,
+          "secondarySourceColor": {
+            "a": 0,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 0,
+            "g": 0,
+            "r": 0
+          },
           "sourceNodeId": "270:26462",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "GLASS"
+          "type": "GLASS",
+          "visible": true
         }
       ],
       "fills": [
@@ -12231,11 +17687,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26462",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -12255,11 +17743,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -2,
+                  "y": -2
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.9111515879631042,
+                  "g": 0.9585373997688293,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 0.958537,
+                "r": 0.911152
+              },
               "sourceNodeId": "270:26462",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -12295,6 +17815,60 @@ export const homeRenderEvidence = {
                   "c3": 0
                 }
               },
+              "rawPayload": {
+                "type": "NOISE",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                },
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "seed": 6469,
+                "clipToShape": false,
+                "density": 0.20000000298023224,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "NOISE",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -12302,12 +17876,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0,
               "seed": 6469,
+              "secondarySourceColor": {
+                "a": 0,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26462",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "NOISE"
+              "type": "NOISE",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -12327,11 +17914,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -4,
+                  "y": 4
+                },
+                "radius": 11.100000381469727,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26462",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -12365,6 +17984,57 @@ export const homeRenderEvidence = {
                   "c3": 0
                 }
               },
+              "rawPayload": {
+                "type": "GLASS",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                },
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "seed": 4940,
+                "clipToShape": false,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "GLASS",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -12372,12 +18042,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0,
               "seed": 4940,
+              "secondarySourceColor": {
+                "a": 0,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 0,
+                "g": 0,
+                "r": 0
+              },
               "sourceNodeId": "270:26462",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "GLASS"
+              "type": "GLASS",
+              "visible": true
             }
           ]
         },
@@ -12435,11 +18118,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26462",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -12459,11 +18174,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -2,
+                  "y": -2
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.9111515879631042,
+                  "g": 0.9585373997688293,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 0.958537,
+                "r": 0.911152
+              },
               "sourceNodeId": "270:26462",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -12499,6 +18246,60 @@ export const homeRenderEvidence = {
                   "c3": 0
                 }
               },
+              "rawPayload": {
+                "type": "NOISE",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                },
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "seed": 6469,
+                "clipToShape": false,
+                "density": 0.20000000298023224,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "NOISE",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -12506,12 +18307,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0,
               "seed": 6469,
+              "secondarySourceColor": {
+                "a": 0,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26462",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "NOISE"
+              "type": "NOISE",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -12531,11 +18345,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -4,
+                  "y": 4
+                },
+                "radius": 11.100000381469727,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26462",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -12569,6 +18415,57 @@ export const homeRenderEvidence = {
                   "c3": 0
                 }
               },
+              "rawPayload": {
+                "type": "GLASS",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                },
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "seed": 4940,
+                "clipToShape": false,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "GLASS",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -12576,12 +18473,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0,
               "seed": 4940,
+              "secondarySourceColor": {
+                "a": 0,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 0,
+                "g": 0,
+                "r": 0
+              },
               "sourceNodeId": "270:26462",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "GLASS"
+              "type": "GLASS",
+              "visible": true
             }
           ]
         }
@@ -12594,6 +18504,7 @@ export const homeRenderEvidence = {
         "height": 195,
         "width": 321
       },
+      "sourceClipsContent": false,
       "sourceKind": "node",
       "sourceNodeIds": [
         "270:26462"
@@ -12647,11 +18558,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26462",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -12671,11 +18614,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -2,
+              "y": -2
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0.9111515879631042,
+              "g": 0.9585373997688293,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 0.958537,
+            "r": 0.911152
+          },
           "sourceNodeId": "270:26462",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -12711,6 +18686,60 @@ export const homeRenderEvidence = {
               "c3": 0
             }
           },
+          "rawPayload": {
+            "type": "NOISE",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            },
+            "noiseSize": {
+              "x": 4,
+              "y": 4
+            },
+            "seed": 6469,
+            "clipToShape": false,
+            "density": 0.20000000298023224,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -12718,12 +18747,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0,
           "seed": 6469,
+          "secondarySourceColor": {
+            "a": 0,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26462",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "NOISE"
+          "type": "NOISE",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -12743,11 +18785,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -4,
+              "y": 4
+            },
+            "radius": 11.100000381469727,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26462",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -12781,6 +18855,57 @@ export const homeRenderEvidence = {
               "c3": 0
             }
           },
+          "rawPayload": {
+            "type": "GLASS",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0,
+              "g": 0,
+              "b": 0,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            },
+            "noiseSize": {
+              "x": 4,
+              "y": 4
+            },
+            "seed": 4940,
+            "clipToShape": false,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "GLASS",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -12788,12 +18913,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0,
           "seed": 4940,
+          "secondarySourceColor": {
+            "a": 0,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 0,
+            "g": 0,
+            "r": 0
+          },
           "sourceNodeId": "270:26462",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "GLASS"
+          "type": "GLASS",
+          "visible": true
         }
       ],
       "surfaceFills": [
@@ -12892,11 +19030,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26506",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -12916,11 +19086,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -2,
+              "y": -2
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0.9111515879631042,
+              "g": 0.9585373997688293,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 0.958537,
+            "r": 0.911152
+          },
           "sourceNodeId": "270:26506",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -12956,6 +19158,60 @@ export const homeRenderEvidence = {
               "c3": 0
             }
           },
+          "rawPayload": {
+            "type": "NOISE",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            },
+            "noiseSize": {
+              "x": 4,
+              "y": 4
+            },
+            "seed": 6469,
+            "clipToShape": false,
+            "density": 0.5,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -12963,12 +19219,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0,
           "seed": 6469,
+          "secondarySourceColor": {
+            "a": 0,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26506",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "NOISE"
+          "type": "NOISE",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -13004,6 +19273,60 @@ export const homeRenderEvidence = {
               "c3": 0
             }
           },
+          "rawPayload": {
+            "type": "GLASS",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0,
+              "g": 0,
+              "b": 0,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            },
+            "noiseSize": {
+              "x": 4,
+              "y": 4
+            },
+            "seed": 9861,
+            "clipToShape": false,
+            "density": 1,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "GLASS",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -13011,12 +19334,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0,
           "seed": 9861,
+          "secondarySourceColor": {
+            "a": 0,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 0,
+            "g": 0,
+            "r": 0
+          },
           "sourceNodeId": "270:26506",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "GLASS"
+          "type": "GLASS",
+          "visible": true
         }
       ],
       "fills": [
@@ -13086,11 +19422,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26506",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -13110,11 +19478,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -2,
+                  "y": -2
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.9111515879631042,
+                  "g": 0.9585373997688293,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 0.958537,
+                "r": 0.911152
+              },
               "sourceNodeId": "270:26506",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -13150,6 +19550,60 @@ export const homeRenderEvidence = {
                   "c3": 0
                 }
               },
+              "rawPayload": {
+                "type": "NOISE",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                },
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "seed": 6469,
+                "clipToShape": false,
+                "density": 0.5,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "NOISE",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -13157,12 +19611,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0,
               "seed": 6469,
+              "secondarySourceColor": {
+                "a": 0,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26506",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "NOISE"
+              "type": "NOISE",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -13198,6 +19665,60 @@ export const homeRenderEvidence = {
                   "c3": 0
                 }
               },
+              "rawPayload": {
+                "type": "GLASS",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                },
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "seed": 9861,
+                "clipToShape": false,
+                "density": 1,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "GLASS",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -13205,12 +19726,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0,
               "seed": 9861,
+              "secondarySourceColor": {
+                "a": 0,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 0,
+                "g": 0,
+                "r": 0
+              },
               "sourceNodeId": "270:26506",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "GLASS"
+              "type": "GLASS",
+              "visible": true
             }
           ]
         },
@@ -13268,11 +19802,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26506",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "blendMode": "NORMAL",
@@ -13292,11 +19858,43 @@ export const homeRenderEvidence = {
                   "c3": 0.25
                 }
               },
+              "rawPayload": {
+                "type": "INNER_SHADOW",
+                "offset": {
+                  "x": -2,
+                  "y": -2
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0.9111515879631042,
+                  "g": 0.9585373997688293,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0.9111515879631042,
+                  "c1": 0.9585373997688293,
+                  "c2": 1,
+                  "c3": 0.25
+                }
+              },
               "rawType": "INNER_SHADOW",
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 0.958537,
+                "r": 0.911152
+              },
               "sourceNodeId": "270:26506",
               "spread": 0,
-              "type": "INNER_SHADOW"
+              "type": "INNER_SHADOW",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -13332,6 +19930,60 @@ export const homeRenderEvidence = {
                   "c3": 0
                 }
               },
+              "rawPayload": {
+                "type": "NOISE",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                },
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "seed": 6469,
+                "clipToShape": false,
+                "density": 0.5,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "NOISE",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -13339,12 +19991,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0,
               "seed": 6469,
+              "secondarySourceColor": {
+                "a": 0,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "sourceNodeId": "270:26506",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "NOISE"
+              "type": "NOISE",
+              "visible": true
             },
             {
               "bevelSize": 1,
@@ -13380,6 +20045,60 @@ export const homeRenderEvidence = {
                   "c3": 0
                 }
               },
+              "rawPayload": {
+                "type": "GLASS",
+                "offset": {
+                  "x": 0,
+                  "y": 4
+                },
+                "radius": 4,
+                "visible": true,
+                "blendMode": "NORMAL",
+                "spread": 0,
+                "showShadowBehindNode": false,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0,
+                  "a": 0.25
+                },
+                "secondaryColor": {
+                  "r": 1,
+                  "g": 1,
+                  "b": 1,
+                  "a": 0
+                },
+                "authoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 0,
+                  "c1": 0,
+                  "c2": 0,
+                  "c3": 0.25
+                },
+                "secondaryAuthoredColor": {
+                  "space": "DEFAULT",
+                  "c0": 1,
+                  "c1": 1,
+                  "c2": 1,
+                  "c3": 0
+                },
+                "noiseSize": {
+                  "x": 4,
+                  "y": 4
+                },
+                "seed": 9861,
+                "clipToShape": false,
+                "density": 1,
+                "noiseType": "MONOTONE",
+                "opacity": 0.15000000596046448,
+                "refractionRadius": 20,
+                "specularAngle": -45,
+                "specularIntensity": 0.800000011920929,
+                "bevelSize": 1,
+                "chromaticAberration": 0.5,
+                "reflectionDistance": 0,
+                "refractionIntensity": 0.800000011920929
+              },
               "rawType": "GLASS",
               "reflectionDistance": 0,
               "refractionIntensity": 0.8,
@@ -13387,12 +20106,25 @@ export const homeRenderEvidence = {
               "secondaryColor": "#FFFFFF",
               "secondaryOpacity": 0,
               "seed": 9861,
+              "secondarySourceColor": {
+                "a": 0,
+                "b": 1,
+                "g": 1,
+                "r": 1
+              },
               "showShadowBehindNode": false,
+              "sourceColor": {
+                "a": 0.25,
+                "b": 0,
+                "g": 0,
+                "r": 0
+              },
               "sourceNodeId": "270:26506",
               "spread": 0,
               "specularAngle": -45,
               "specularIntensity": 0.8,
-              "type": "GLASS"
+              "type": "GLASS",
+              "visible": true
             }
           ]
         }
@@ -13405,6 +20137,7 @@ export const homeRenderEvidence = {
         "height": 195,
         "width": 321
       },
+      "sourceClipsContent": false,
       "sourceKind": "node",
       "sourceNodeIds": [
         "270:26506"
@@ -13458,11 +20191,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26506",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "blendMode": "NORMAL",
@@ -13482,11 +20247,43 @@ export const homeRenderEvidence = {
               "c3": 0.25
             }
           },
+          "rawPayload": {
+            "type": "INNER_SHADOW",
+            "offset": {
+              "x": -2,
+              "y": -2
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0.9111515879631042,
+              "g": 0.9585373997688293,
+              "b": 1,
+              "a": 0.25
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0.9111515879631042,
+              "c1": 0.9585373997688293,
+              "c2": 1,
+              "c3": 0.25
+            }
+          },
           "rawType": "INNER_SHADOW",
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 0.958537,
+            "r": 0.911152
+          },
           "sourceNodeId": "270:26506",
           "spread": 0,
-          "type": "INNER_SHADOW"
+          "type": "INNER_SHADOW",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -13522,6 +20319,60 @@ export const homeRenderEvidence = {
               "c3": 0
             }
           },
+          "rawPayload": {
+            "type": "NOISE",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            },
+            "noiseSize": {
+              "x": 4,
+              "y": 4
+            },
+            "seed": 6469,
+            "clipToShape": false,
+            "density": 0.5,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "NOISE",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -13529,12 +20380,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0,
           "seed": 6469,
+          "secondarySourceColor": {
+            "a": 0,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "sourceNodeId": "270:26506",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "NOISE"
+          "type": "NOISE",
+          "visible": true
         },
         {
           "bevelSize": 1,
@@ -13570,6 +20434,60 @@ export const homeRenderEvidence = {
               "c3": 0
             }
           },
+          "rawPayload": {
+            "type": "GLASS",
+            "offset": {
+              "x": 0,
+              "y": 4
+            },
+            "radius": 4,
+            "visible": true,
+            "blendMode": "NORMAL",
+            "spread": 0,
+            "showShadowBehindNode": false,
+            "color": {
+              "r": 0,
+              "g": 0,
+              "b": 0,
+              "a": 0.25
+            },
+            "secondaryColor": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 0
+            },
+            "authoredColor": {
+              "space": "DEFAULT",
+              "c0": 0,
+              "c1": 0,
+              "c2": 0,
+              "c3": 0.25
+            },
+            "secondaryAuthoredColor": {
+              "space": "DEFAULT",
+              "c0": 1,
+              "c1": 1,
+              "c2": 1,
+              "c3": 0
+            },
+            "noiseSize": {
+              "x": 4,
+              "y": 4
+            },
+            "seed": 9861,
+            "clipToShape": false,
+            "density": 1,
+            "noiseType": "MONOTONE",
+            "opacity": 0.15000000596046448,
+            "refractionRadius": 20,
+            "specularAngle": -45,
+            "specularIntensity": 0.800000011920929,
+            "bevelSize": 1,
+            "chromaticAberration": 0.5,
+            "reflectionDistance": 0,
+            "refractionIntensity": 0.800000011920929
+          },
           "rawType": "GLASS",
           "reflectionDistance": 0,
           "refractionIntensity": 0.8,
@@ -13577,12 +20495,25 @@ export const homeRenderEvidence = {
           "secondaryColor": "#FFFFFF",
           "secondaryOpacity": 0,
           "seed": 9861,
+          "secondarySourceColor": {
+            "a": 0,
+            "b": 1,
+            "g": 1,
+            "r": 1
+          },
           "showShadowBehindNode": false,
+          "sourceColor": {
+            "a": 0.25,
+            "b": 0,
+            "g": 0,
+            "r": 0
+          },
           "sourceNodeId": "270:26506",
           "spread": 0,
           "specularAngle": -45,
           "specularIntensity": 0.8,
-          "type": "GLASS"
+          "type": "GLASS",
+          "visible": true
         }
       ],
       "surfaceFills": [
@@ -13698,11 +20629,43 @@ export const homeRenderEvidence = {
                     "c3": 0.25
                   }
                 },
+                "rawPayload": {
+                  "type": "INNER_SHADOW",
+                  "offset": {
+                    "x": 0,
+                    "y": 4
+                  },
+                  "radius": 4,
+                  "visible": true,
+                  "blendMode": "NORMAL",
+                  "spread": 0,
+                  "showShadowBehindNode": false,
+                  "color": {
+                    "r": 1,
+                    "g": 1,
+                    "b": 1,
+                    "a": 0.25
+                  },
+                  "authoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 1,
+                    "c1": 1,
+                    "c2": 1,
+                    "c3": 0.25
+                  }
+                },
                 "rawType": "INNER_SHADOW",
                 "showShadowBehindNode": false,
+                "sourceColor": {
+                  "a": 0.25,
+                  "b": 1,
+                  "g": 1,
+                  "r": 1
+                },
                 "sourceNodeId": "270:26319",
                 "spread": 0,
-                "type": "INNER_SHADOW"
+                "type": "INNER_SHADOW",
+                "visible": true
               },
               {
                 "blendMode": "NORMAL",
@@ -13722,11 +20685,43 @@ export const homeRenderEvidence = {
                     "c3": 0.25
                   }
                 },
+                "rawPayload": {
+                  "type": "INNER_SHADOW",
+                  "offset": {
+                    "x": -2,
+                    "y": -2
+                  },
+                  "radius": 4,
+                  "visible": true,
+                  "blendMode": "NORMAL",
+                  "spread": 0,
+                  "showShadowBehindNode": false,
+                  "color": {
+                    "r": 0.9111515879631042,
+                    "g": 0.9585373997688293,
+                    "b": 1,
+                    "a": 0.25
+                  },
+                  "authoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 0.9111515879631042,
+                    "c1": 0.9585373997688293,
+                    "c2": 1,
+                    "c3": 0.25
+                  }
+                },
                 "rawType": "INNER_SHADOW",
                 "showShadowBehindNode": false,
+                "sourceColor": {
+                  "a": 0.25,
+                  "b": 1,
+                  "g": 0.958537,
+                  "r": 0.911152
+                },
                 "sourceNodeId": "270:26319",
                 "spread": 0,
-                "type": "INNER_SHADOW"
+                "type": "INNER_SHADOW",
+                "visible": true
               },
               {
                 "bevelSize": 1,
@@ -13762,6 +20757,60 @@ export const homeRenderEvidence = {
                     "c3": 0
                   }
                 },
+                "rawPayload": {
+                  "type": "NOISE",
+                  "offset": {
+                    "x": 0,
+                    "y": 4
+                  },
+                  "radius": 4,
+                  "visible": true,
+                  "blendMode": "NORMAL",
+                  "spread": 0,
+                  "showShadowBehindNode": false,
+                  "color": {
+                    "r": 1,
+                    "g": 1,
+                    "b": 1,
+                    "a": 0.25
+                  },
+                  "secondaryColor": {
+                    "r": 1,
+                    "g": 1,
+                    "b": 1,
+                    "a": 0
+                  },
+                  "authoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 1,
+                    "c1": 1,
+                    "c2": 1,
+                    "c3": 0.25
+                  },
+                  "secondaryAuthoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 1,
+                    "c1": 1,
+                    "c2": 1,
+                    "c3": 0
+                  },
+                  "noiseSize": {
+                    "x": 4,
+                    "y": 4
+                  },
+                  "seed": 6469,
+                  "clipToShape": false,
+                  "density": 0.5,
+                  "noiseType": "MONOTONE",
+                  "opacity": 0.15000000596046448,
+                  "refractionRadius": 20,
+                  "specularAngle": -45,
+                  "specularIntensity": 0.800000011920929,
+                  "bevelSize": 1,
+                  "chromaticAberration": 0.5,
+                  "reflectionDistance": 0,
+                  "refractionIntensity": 0.800000011920929
+                },
                 "rawType": "NOISE",
                 "reflectionDistance": 0,
                 "refractionIntensity": 0.8,
@@ -13769,12 +20818,25 @@ export const homeRenderEvidence = {
                 "secondaryColor": "#FFFFFF",
                 "secondaryOpacity": 0,
                 "seed": 6469,
+                "secondarySourceColor": {
+                  "a": 0,
+                  "b": 1,
+                  "g": 1,
+                  "r": 1
+                },
                 "showShadowBehindNode": false,
+                "sourceColor": {
+                  "a": 0.25,
+                  "b": 1,
+                  "g": 1,
+                  "r": 1
+                },
                 "sourceNodeId": "270:26319",
                 "spread": 0,
                 "specularAngle": -45,
                 "specularIntensity": 0.8,
-                "type": "NOISE"
+                "type": "NOISE",
+                "visible": true
               }
             ]
           },
@@ -13832,11 +20894,43 @@ export const homeRenderEvidence = {
                     "c3": 0.25
                   }
                 },
+                "rawPayload": {
+                  "type": "INNER_SHADOW",
+                  "offset": {
+                    "x": 0,
+                    "y": 4
+                  },
+                  "radius": 4,
+                  "visible": true,
+                  "blendMode": "NORMAL",
+                  "spread": 0,
+                  "showShadowBehindNode": false,
+                  "color": {
+                    "r": 1,
+                    "g": 1,
+                    "b": 1,
+                    "a": 0.25
+                  },
+                  "authoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 1,
+                    "c1": 1,
+                    "c2": 1,
+                    "c3": 0.25
+                  }
+                },
                 "rawType": "INNER_SHADOW",
                 "showShadowBehindNode": false,
+                "sourceColor": {
+                  "a": 0.25,
+                  "b": 1,
+                  "g": 1,
+                  "r": 1
+                },
                 "sourceNodeId": "270:26319",
                 "spread": 0,
-                "type": "INNER_SHADOW"
+                "type": "INNER_SHADOW",
+                "visible": true
               },
               {
                 "blendMode": "NORMAL",
@@ -13856,11 +20950,43 @@ export const homeRenderEvidence = {
                     "c3": 0.25
                   }
                 },
+                "rawPayload": {
+                  "type": "INNER_SHADOW",
+                  "offset": {
+                    "x": -2,
+                    "y": -2
+                  },
+                  "radius": 4,
+                  "visible": true,
+                  "blendMode": "NORMAL",
+                  "spread": 0,
+                  "showShadowBehindNode": false,
+                  "color": {
+                    "r": 0.9111515879631042,
+                    "g": 0.9585373997688293,
+                    "b": 1,
+                    "a": 0.25
+                  },
+                  "authoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 0.9111515879631042,
+                    "c1": 0.9585373997688293,
+                    "c2": 1,
+                    "c3": 0.25
+                  }
+                },
                 "rawType": "INNER_SHADOW",
                 "showShadowBehindNode": false,
+                "sourceColor": {
+                  "a": 0.25,
+                  "b": 1,
+                  "g": 0.958537,
+                  "r": 0.911152
+                },
                 "sourceNodeId": "270:26319",
                 "spread": 0,
-                "type": "INNER_SHADOW"
+                "type": "INNER_SHADOW",
+                "visible": true
               },
               {
                 "bevelSize": 1,
@@ -13896,6 +21022,60 @@ export const homeRenderEvidence = {
                     "c3": 0
                   }
                 },
+                "rawPayload": {
+                  "type": "NOISE",
+                  "offset": {
+                    "x": 0,
+                    "y": 4
+                  },
+                  "radius": 4,
+                  "visible": true,
+                  "blendMode": "NORMAL",
+                  "spread": 0,
+                  "showShadowBehindNode": false,
+                  "color": {
+                    "r": 1,
+                    "g": 1,
+                    "b": 1,
+                    "a": 0.25
+                  },
+                  "secondaryColor": {
+                    "r": 1,
+                    "g": 1,
+                    "b": 1,
+                    "a": 0
+                  },
+                  "authoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 1,
+                    "c1": 1,
+                    "c2": 1,
+                    "c3": 0.25
+                  },
+                  "secondaryAuthoredColor": {
+                    "space": "DEFAULT",
+                    "c0": 1,
+                    "c1": 1,
+                    "c2": 1,
+                    "c3": 0
+                  },
+                  "noiseSize": {
+                    "x": 4,
+                    "y": 4
+                  },
+                  "seed": 6469,
+                  "clipToShape": false,
+                  "density": 0.5,
+                  "noiseType": "MONOTONE",
+                  "opacity": 0.15000000596046448,
+                  "refractionRadius": 20,
+                  "specularAngle": -45,
+                  "specularIntensity": 0.800000011920929,
+                  "bevelSize": 1,
+                  "chromaticAberration": 0.5,
+                  "reflectionDistance": 0,
+                  "refractionIntensity": 0.800000011920929
+                },
                 "rawType": "NOISE",
                 "reflectionDistance": 0,
                 "refractionIntensity": 0.8,
@@ -13903,12 +21083,25 @@ export const homeRenderEvidence = {
                 "secondaryColor": "#FFFFFF",
                 "secondaryOpacity": 0,
                 "seed": 6469,
+                "secondarySourceColor": {
+                  "a": 0,
+                  "b": 1,
+                  "g": 1,
+                  "r": 1
+                },
                 "showShadowBehindNode": false,
+                "sourceColor": {
+                  "a": 0.25,
+                  "b": 1,
+                  "g": 1,
+                  "r": 1
+                },
                 "sourceNodeId": "270:26319",
                 "spread": 0,
                 "specularAngle": -45,
                 "specularIntensity": 0.8,
-                "type": "NOISE"
+                "type": "NOISE",
+                "visible": true
               }
             ]
           }
