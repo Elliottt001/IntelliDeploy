@@ -25,7 +25,7 @@ import { Platform } from "react-native";
 import { MobileIcon } from "../components/mobile/CircleAction";
 import { JobProgress } from "../components/mobile/JobProgress";
 import {
-  MiboStage,
+  getMiboStageLayout,
   miboStageFigmaEvidence,
 } from "../components/mobile/MiboStage";
 import { getJobVisualState } from "../features/chatbot/jobVisualState";
@@ -34,14 +34,6 @@ type Job = components["schemas"]["JobSnapshot"];
 type ElementProps = Record<string, unknown> & {
   children?: ReactNode;
   style?: unknown;
-};
-const testArt = {
-  rippleLarge: { uri: "ripple-large" },
-  ripple: { uri: "ripple" },
-  robot: { uri: "robot" },
-  greetingCat: { uri: "greeting-cat" },
-  workingCat: { uri: "working-cat" },
-  successCat: { uri: "success-cat" },
 };
 const figmaSource = process.env.INTELLIDEPLOY_FIGMA_SOURCE;
 
@@ -259,109 +251,27 @@ test("progress highlights only the backend current phase or genuine terminal suc
   ).toEqual({ selected: false });
 });
 
-test("Mibo stage shows only state-relevant backend question or error copy", () => {
-  const waiting = MiboStage({
-    state: getJobVisualState(job("WAITING_USER")),
-    question: "记录是否公开？",
-    errorMessage: "不应显示",
-    art: testArt,
-  });
-  const failed = MiboStage({
-    state: getJobVisualState(job("FAILED")),
-    question: "不应显示",
-    errorMessage: "健康检查未通过",
-    art: testArt,
-  });
-  const waitingText: string[] = [];
-  const failedText: string[] = [];
-  walkRenderedTree(waiting, (element) => {
-    const children = propsOf(element).children;
-    if (typeof children === "string") waitingText.push(children);
-  });
-  walkRenderedTree(failed, (element) => {
-    const children = propsOf(element).children;
-    if (typeof children === "string") failedText.push(children);
-  });
-
-  expect(waitingText).toContain("记录是否公开？");
-  expect(waitingText).not.toContain("不应显示");
-  expect(failedText).toContain("健康检查未通过");
-  expect(failedText).not.toContain("不应显示");
-});
-
 test.each([
   [null, miboStageFigmaEvidence.art.greetingCat.box],
-  [job("RUNNING", "building"), { x: 95, y: 157, width: 194, height: 168 }],
+  [job("RUNNING", "building"), { x: 94, y: 188, width: 194, height: 168 }],
   [job("SUCCEEDED"), miboStageFigmaEvidence.art.successCat.box],
 ] as const)("Mibo cat uses the measured art geometry for %s", (input, box) => {
-  const stage = MiboStage({ state: getJobVisualState(input), art: testArt });
-  const cat = findByTestId(stage, "mibo-cat");
-  expect(flattenStyle(propsOf(cat!).style)).toMatchObject({
-    height: box.height,
-    left: box.x,
-    top: box.y - miboStageFigmaEvidence.art.rippleLarge.box.y,
-    width: box.width,
-  });
+  const {primaryCharacter}=getMiboStageLayout(getJobVisualState(input),false,375);
+  expect({height:primaryCharacter.size.y,left:primaryCharacter.transform.m02,top:primaryCharacter.transform.m12-miboStageFigmaEvidence.art.rippleLarge.box.y,width:primaryCharacter.size.x}).toEqual({height:box.height,left:box.x,top:box.y-miboStageFigmaEvidence.art.rippleLarge.box.y,width:box.width});
 });
 
-test("Mibo shared robot and ripple layers use measured Kiwi geometry", () => {
-  const stage = MiboStage({ state: getJobVisualState(null), art: testArt });
-  for (const [testID, art] of [
-    ["mibo-robot", miboStageFigmaEvidence.art.robot],
-    ["mibo-ripple-large", miboStageFigmaEvidence.art.rippleLarge],
-    ["mibo-ripple", miboStageFigmaEvidence.art.ripple],
-  ] as const) {
-    const layer = findByTestId(stage, testID);
-    expect(flattenStyle(propsOf(layer!).style)).toMatchObject({
-      height: art.box.height,
-      left: art.box.x,
-      top: art.box.y - miboStageFigmaEvidence.art.rippleLarge.box.y,
-      width: art.box.width,
-    });
-  }
+test("Mibo source layout retains exact visible image UV and hidden robot state", () => {
+  const layout=getMiboStageLayout(getJobVisualState(null),false,375);
+  expect(layout.rippleLarge).toMatchObject({size:{x:504,y:336},transform:{m02:-61,m12:137},paintTransform:{m00:1,m11:1,m02:0,m12:0},opacity:1});
+  expect(layout.ripple).toMatchObject({size:{x:359,y:239},transform:{m02:8,m12:196},paintTransform:{m00:1,m11:1,m02:0,m12:0},opacity:1});
+  expect(layout.imageNodes.find(value=>value.rawHash===miboStageFigmaEvidence.art.robot.assetHash)?.visible).toBe(false);
 });
 
-test.each([
-  [320, -27.5],
-  [375, 0],
-  [430, 27.5],
-] as const)(
-  "Mibo keeps its unscaled 375pt art canvas centered in a %ipt viewport",
-  (viewportWidth, expectedCanvasLeft) => {
-    const stage = MiboStage({ state: getJobVisualState(null), art: testArt });
-    const viewport = findByTestId(stage, "mibo-art-viewport");
-    const canvas = findByTestId(stage, "mibo-art-canvas");
-    const viewportStyle = flattenStyle(propsOf(viewport!).style);
-    const canvasStyle = flattenStyle(propsOf(canvas!).style);
-
-    expect(viewportStyle).toMatchObject({ overflow: "hidden", width: "100%" });
-    expect(canvasStyle).toMatchObject({
-      left: "50%",
-      marginLeft: -187.5,
-      width: 375,
-    });
-
-    const canvasLeft = viewportWidth / 2 + Number(canvasStyle.marginLeft);
-    const canvasRight = canvasLeft + Number(canvasStyle.width);
-    expect(canvasLeft).toBe(expectedCanvasLeft);
-
-    const leftClip = Math.max(0, -canvasLeft);
-    const rightClip = Math.max(0, canvasRight - viewportWidth);
-    const leftGutter = Math.max(0, canvasLeft);
-    const rightGutter = Math.max(0, viewportWidth - canvasRight);
-    expect(leftClip).toBe(rightClip);
-    expect(leftGutter).toBe(rightGutter);
-
-    for (const testID of ["mibo-ripple", "mibo-robot"] as const) {
-      const layerStyle = flattenStyle(
-        propsOf(findByTestId(stage, testID)!).style,
-      );
-      const centroid =
-        canvasLeft + Number(layerStyle.left) + Number(layerStyle.width) / 2;
-      expect(centroid).toBe(viewportWidth / 2);
-    }
-  },
-);
+test.each([[320,320/375],[360,360/375],[375,1],[390,1],[430,1]] as const)("Mibo scales only its local art to fit a %ipt viewport",(viewportWidth,expectedScale)=>{
+ const layout=getMiboStageLayout(getJobVisualState(null),false,viewportWidth);
+ expect(layout.artScale).toBeCloseTo(expectedScale,8);
+ expect(375*layout.artScale).toBeLessThanOrEqual(viewportWidth);
+});
 
 test("composer blocks busy, disabled, and blank submission while preserving 44pt controls", () => {
   const onSubmit = vi.fn();

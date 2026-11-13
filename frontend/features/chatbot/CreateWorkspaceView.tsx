@@ -23,7 +23,7 @@ import {
 } from "../../components/mobile/ChatComposer";
 import { mobileColors } from "../../theme/tokens";
 import { mobileFontFamilies } from "../../theme/typography";
-import { getJobVisualState } from "./jobVisualState";
+import { getJobVisualState, type JobVisualState } from "./jobVisualState";
 
 // Direct Kiwi composition: the approved 845:3479 subtree has no Instance/Symbol.
 export const chatbotLayoutEvidence = {
@@ -190,9 +190,11 @@ export function CreateWorkspaceView({
   onContinue,
 }: CreateWorkspaceViewProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const initialState=getJobVisualState(null);
+  const pendingState:JobVisualState={...initialState,kind:'thinking',title:'Mibo 正在思考中'};
   return (
     <View style={{ flexGrow: 1 }}>
-      <MiboStage state={getJobVisualState(null)} />
+      <MiboStage state={busy?pendingState:initialState} sourceFrameHint={busy?'846:3544':'845:3479'} snapshotKey={busy?'create:submitting':'create:idle'} transitionReason="interaction" />
       <View style={viewStyles.suggestions}>
         {chatbotLayoutEvidence.suggestions.map((suggestion) => {const text=miboRenderEvidence.text[`${suggestion.nodeId.split(':')[0]}:${Number(suggestion.nodeId.split(':')[1])+1}` as keyof typeof miboRenderEvidence.text];return (
           <Pressable

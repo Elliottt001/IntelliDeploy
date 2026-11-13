@@ -58,12 +58,10 @@ test('expanded Gallery retains its editable source folded front independently of
  await page.getByTestId('home-card-store').click();
  const front = page.locator('path[data-source-node="268:23090"]');
  await expect(front).toHaveCount(2); // Actual Kiwi fill15617 and stroke15618.
- const origin = await front.first().evaluate(element => {
+ await expect.poll(async()=>front.first().evaluate(element => {
   const m = (element as SVGPathElement).getScreenCTM()!;
   return { x: m.e, y: m.f };
- });
- expect(origin.x).toBeCloseTo(28, 1);
- expect(origin.y).toBeCloseTo(414, 1); // Card328 + bag56 + front30.
+ })).toMatchObject({x:expect.closeTo(28,1),y:expect.closeTo(414,1)}); // Card328 + bag56 + front30 after the source transition.
  await expect(page.getByTestId('home-card-store-open')).toBeVisible();
 });
 test('home static question uses its actual ten native source glyphs while the greeting retains API username',async({page})=>{
@@ -110,7 +108,7 @@ test('actual conversation bytes remain raw even with doubled FEFF and long multi
 test('working Mibo artwork follows the actual phase and multiline public reply geometry',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'owner',email:'fixture@test'}}));
  let app=makeVisualApp(49,'RUNNING','clarifying');await page.route('**/api/apps/app',r=>r.fulfill({json:app}));await page.route('**/api/jobs/job',r=>r.fulfill({json:app.latest_job}));
- for(const [phase,reply,x,y] of [['clarifying','',92,184],['building','',95,157],['building','真实回复第一行\n真实回复第二行\n真实回复第三行',95,157],['building','真实回复第一行\n真实回复第二行\n真实回复第三行\n真实回复第四行',94,174]] as const){app=makeVisualApp(49,'RUNNING',phase);app.conversation=reply?[{id:'reply',role:'assistant',sequence:1,content:reply,created_at:'2026-11-10T00:00:00Z'}]:[];await page.goto('/app-detail/app');const cat=page.getByTestId('mibo-cat');await expect(cat).toBeVisible();const box=await cat.boundingBox(),canvas=await page.getByTestId('mibo-art-canvas').boundingBox();expect(box!.x-canvas!.x).toBe(x);expect(box!.y-canvas!.y+137).toBe(y);}
+ for(const [phase,reply,x,y] of [['clarifying','',94,154],['building','',94,188],['building','真实回复第一行\n真实回复第二行\n真实回复第三行',94,188],['building','真实回复第一行\n真实回复第二行\n真实回复第三行\n真实回复第四行',101,164]] as const){app=makeVisualApp(49,'RUNNING',phase);app.conversation=reply?[{id:'reply',role:'assistant',sequence:1,content:reply,created_at:'2026-11-10T00:00:00Z'}]:[];await page.goto('/app-detail/app');const cat=page.getByTestId('mibo-cat');await expect(cat).toBeVisible();const box=await cat.boundingBox(),canvas=await page.getByTestId('mibo-art-canvas').boundingBox();expect(box!.x-canvas!.x).toBe(x);expect(box!.y-canvas!.y+137).toBe(y);}
 });
 test('short public Mibo replies use source readable 14pt copy while detailed replies retain their 12pt surface',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'owner',email:'fixture@test'}}));let app=makeVisualApp(49,'RUNNING','clarifying');await page.route('**/api/apps/app',r=>r.fulfill({json:app}));await page.route('**/api/jobs/job',r=>r.fulfill({json:app.latest_job}));
@@ -317,6 +315,17 @@ test('Mibo greeting and suggestion source origins preserve the measured asymmetr
 });
 test('Mibo composer keeps source text paint and microphone origin inside the preserved 44pt controls',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'owner',email:'fixture@test'}}));await page.route('**/api/quota/**',r=>r.fulfill({json:{available_units:10,failed_usage_rule:'按实际使用结算'}}));await page.goto('/chatbot');const input=page.getByTestId('create-prompt');await input.fill('真实用户输入');await input.blur();await expect(input).toHaveCSS('color','rgba(107, 114, 128, 0.8)');await expect(input).toHaveCSS('text-align','center');const box=await input.boundingBox();expect(box!.x).toBeCloseTo(34.684925,1);expect(box!.height).toBeGreaterThanOrEqual(44);const mic=await page.getByTestId('chat-composer-microphone').locator('path').first().boundingBox();expect(mic!.x).toBeCloseTo(274.379749,1);
+});
+
+test('Mibo renders all eleven formal source frames from actual UI and Job states',async({page})=>{
+ await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'owner',email:'fixture@test'}}));await page.route('**/api/quota/**',r=>r.fulfill({json:{available_units:10,failed_usage_rule:'按实际使用结算'}}));
+ await page.route('**/api/apps',()=>new Promise(()=>{}));await page.goto('/chatbot');await expect(page.getByTestId('mibo-stage')).toHaveAttribute('data-source-frame','845:3479');await page.getByTestId('create-prompt').fill('真实需求');await page.getByTestId('create-app').click();await expect(page.getByTestId('mibo-stage')).toHaveAttribute('data-source-frame','846:3544');
+ const states=[
+  [48,'QUEUED','clarifying','849:3608'],[49,'RUNNING','clarifying','849:3705'],[50,'RUNNING','retrieving','849:3794'],
+  [51,'RUNNING','implementing','849:3883'],[52,'RUNNING','building','849:3972'],[53,'RUNNING','validating','852:4061'],
+  [54,'RUNNING','deploying','852:4150'],[55,'RUNNING','building','852:4242'],[58,'SUCCEEDED','verifying_live','852:4391'],
+ ] as const;
+ for(const [number,status,phase,frame] of states){const app=makeVisualApp(number,status,phase);await page.unroute('**/api/apps/app');await page.unroute('**/api/jobs/job');await page.route('**/api/apps/app',r=>r.fulfill({json:app}));await page.route('**/api/jobs/job',r=>r.fulfill({json:app.latest_job}));await page.goto('/app-detail/app');await expect(page.getByTestId('mibo-stage')).toHaveAttribute('data-source-frame',frame);}
 });
 
 test('actual public assistant reply is visible with normal menu access to history and management',async({page})=>{

@@ -13,6 +13,7 @@ export type ChatComposerProps = {
   submitTestID?: string;
   inputLabel?: string;
   submitLabel?: string;
+  testID?: string;
   onChangeText: (value: string) => void;
   onSubmit: () => void;
 };
@@ -44,6 +45,7 @@ export function ChatComposer({
   submitTestID = "send-message",
   inputLabel = "继续对话",
   submitLabel = "发送",
+  testID = "chat-composer",
   onChangeText,
   onSubmit,
 }: ChatComposerProps) {
@@ -53,7 +55,7 @@ export function ChatComposer({
   };
 
   return (
-    <View style={styles.composer}>
+    <View style={styles.composer} testID={testID}>
       <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:chatComposerFigmaEvidence.borderWidth,borderColor:'#FFFFFF',borderRadius:chatComposerFigmaEvidence.cornerRadius}]}/>
       <TextInput
         accessibilityLabel={inputLabel}

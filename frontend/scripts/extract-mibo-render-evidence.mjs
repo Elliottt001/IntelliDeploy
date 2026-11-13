@@ -8,25 +8,19 @@ const node = (id) =>
   document.nodeChanges.find(
     (n) => `${n.guid.sessionID}:${n.guid.localID}` === id,
   );
+const nodeId=(value)=>`${value.guid.sessionID}:${value.guid.localID}`;
+const parentId=(value)=>value.parentIndex?.guid?`${value.parentIndex.guid.sessionID}:${value.parentIndex.guid.localID}`:null;
+const frameIds=["845:3479","846:3544","849:3608","849:3705","849:3794","849:3883","849:3972","852:4061","852:4150","852:4242","852:4391"];
+const children=new Map();
+for(const value of document.nodeChanges){const parent=parentId(value);if(parent)children.set(parent,[...(children.get(parent)??[]),value]);}
+for(const values of children.values())values.sort((left,right)=>(left.parentIndex.position<right.parentIndex.position?-1:1));
+const subtree=(root)=>{const values=[node(root)];for(let index=0;index<values.length;index++)values.push(...(children.get(nodeId(values[index]))??[]));return values;};
 const images = {};
-for (const id of [
-  "845:3518",
-  "845:3519",
-  "845:3520",
-  "845:3522",
-  "846:3587",
-  "849:3651",
-  "849:3748",
-  "849:3837",
-  "849:3926",
-  "849:4015",
-  "852:4104",
-  "852:4193",
-  "852:4285",
-  "852:4435",
-]) {
-  const n = node(id),
-    p = n.fillPaints.find((p) => p.type === "IMAGE" && p.visible !== false);
+const frames={};
+for(const frameId of frameIds){
+ const values=subtree(frameId),imageNodes=values.filter(value=>value.fillPaints?.some(paint=>paint.type==='IMAGE'&&paint.visible!==false));
+ for(const n of imageNodes) {
+  const id=nodeId(n),p=n.fillPaints.find((paint)=>paint.type==='IMAGE'&&paint.visible!==false);
   images[id] = {
     sourceNodeId: id,
     visible: n.visible !== false,
@@ -37,6 +31,18 @@ for (const id of [
     opacity: (n.opacity ?? 1) * (p.opacity ?? 1),
     rawHash: Buffer.from(p.image.hash.data, "base64").toString("hex"),
   };
+ }
+ const interactions=values.flatMap(value=>(value.prototypeInteractions??[]).map(interaction=>({sourceNodeId:nodeId(value),rawInteraction:interaction})));
+ const effectTypes=Object.fromEntries([...new Set(values.flatMap(value=>(value.effects??[]).filter(effect=>effect.visible!==false).map(effect=>effect.type)))].sort().map(type=>[type,values.reduce((count,value)=>count+(value.effects??[]).filter(effect=>effect.visible!==false&&effect.type===type).length,0)]));
+ frames[frameId]={
+  sourceFrameId:frameId,size:node(frameId).size,nodeCount:values.length,
+  instanceNodeIds:values.filter(value=>value.type==='INSTANCE').map(nodeId),
+  symbolNodeIds:values.filter(value=>value.type==='SYMBOL').map(nodeId),
+  geometryNodeCount:values.filter(value=>value.fillGeometry?.length||value.strokeGeometry?.length).length,
+  paintNodeCount:values.filter(value=>value.fillPaints?.length||value.strokePaints?.length).length,
+  effectTypes,imageNodeIds:imageNodes.map(nodeId),
+  interactions:interactions.map(({sourceNodeId,rawInteraction})=>{const action=rawInteraction.actions?.[0];return {sourceNodeId,interactionId:`${rawInteraction.id.sessionID}:${rawInteraction.id.localID}`,event:rawInteraction.event,transitionNodeId:action?.transitionNodeID?`${action.transitionNodeID.sessionID}:${action.transitionNodeID.localID}`:null,transitionType:action?.transitionType??null,transitionDuration:action?.transitionDuration??0,easingType:action?.easingType??null,easingFunction:action?.easingFunction??[]};}),
+ };
 }
 function glyphPath(index) {
   const bytes = Buffer.from(document.blobs[index].bytes.data, "base64");
@@ -111,5 +117,5 @@ if(!successText.textData.lines.some(line=>line.lineType==='UNORDERED_LIST'))thro
 const replyListBullet={sourceNodeId:'852:4519',sourceLineType:'UNORDERED_LIST',fontSize:listGlyph.fontSize,indent:listTextGlyph.position.x,x:listGlyph.position.x,path:glyphPath(listGlyph.commandsBlob),fill:color(successText.fillPaints[0].color)};
 await fs.writeFile(
   new URL("../design/miboRenderEvidence.ts", import.meta.url),
-  `// Actual formal Kiwi image UV and derived glyph geometry.\nexport const miboRenderEvidence = ${JSON.stringify({ images, text, replyStyles, shortReplyLayout, lateShortReplyLayout, replyPanel, successReplyPanel, replyListBullet }, null, 2)} as const;\n`,
+  `// Actual formal Kiwi frame audit, image UV and derived glyph geometry.\nexport const miboRenderEvidence = ${JSON.stringify({ frames, images, text, replyStyles, shortReplyLayout, lateShortReplyLayout, replyPanel, successReplyPanel, replyListBullet }, null, 2)} as const;\n`,
 );

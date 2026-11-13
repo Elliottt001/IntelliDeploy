@@ -1,5 +1,615 @@
-// Actual formal Kiwi image UV and derived glyph geometry.
+// Actual formal Kiwi frame audit, image UV and derived glyph geometry.
 export const miboRenderEvidence = {
+  "frames": {
+    "845:3479": {
+      "sourceFrameId": "845:3479",
+      "size": {
+        "x": 375,
+        "y": 812
+      },
+      "nodeCount": 45,
+      "instanceNodeIds": [],
+      "symbolNodeIds": [],
+      "geometryNodeCount": 21,
+      "paintNodeCount": 29,
+      "effectTypes": {
+        "DROP_SHADOW": 7,
+        "FOREGROUND_BLUR": 2,
+        "GLASS": 6
+      },
+      "imageNodeIds": [
+        "845:3518",
+        "845:3519",
+        "845:3520",
+        "845:3522"
+      ],
+      "interactions": [
+        {
+          "sourceNodeId": "845:3503",
+          "interactionId": "392:4025",
+          "event": {
+            "interactionType": "ON_CLICK"
+          },
+          "transitionNodeId": "266:21147",
+          "transitionType": "SLIDE_FROM_TOP",
+          "transitionDuration": 1.0220937728881836,
+          "easingType": "GENTLE_SPRING",
+          "easingFunction": [
+            1,
+            100,
+            15,
+            0
+          ]
+        },
+        {
+          "sourceNodeId": "845:3539",
+          "interactionId": "852:4336",
+          "event": {
+            "interactionType": "ON_CLICK"
+          },
+          "transitionNodeId": "846:3544",
+          "transitionType": "SMART_ANIMATE",
+          "transitionDuration": 1.2501229047775269,
+          "easingType": "SPRING_PRESET_THREE",
+          "easingFunction": [
+            1,
+            80,
+            20,
+            0
+          ]
+        }
+      ]
+    },
+    "846:3544": {
+      "sourceFrameId": "846:3544",
+      "size": {
+        "x": 375,
+        "y": 812
+      },
+      "nodeCount": 45,
+      "instanceNodeIds": [],
+      "symbolNodeIds": [],
+      "geometryNodeCount": 21,
+      "paintNodeCount": 29,
+      "effectTypes": {
+        "DROP_SHADOW": 7,
+        "FOREGROUND_BLUR": 2,
+        "GLASS": 6
+      },
+      "imageNodeIds": [
+        "846:3583",
+        "846:3584",
+        "846:3585",
+        "846:3587"
+      ],
+      "interactions": [
+        {
+          "sourceNodeId": "846:3544",
+          "interactionId": "852:4337",
+          "event": {
+            "interactionType": "AFTER_TIMEOUT",
+            "transitionTimeout": 0.30000001192092896
+          },
+          "transitionNodeId": "849:3608",
+          "transitionType": "SMART_ANIMATE",
+          "transitionDuration": 1.2501229047775269,
+          "easingType": "SPRING_PRESET_THREE",
+          "easingFunction": [
+            1,
+            80,
+            20,
+            0
+          ]
+        },
+        {
+          "sourceNodeId": "846:3568",
+          "interactionId": "392:4025",
+          "event": {
+            "interactionType": "ON_CLICK"
+          },
+          "transitionNodeId": "266:21147",
+          "transitionType": "SLIDE_FROM_TOP",
+          "transitionDuration": 1.0220937728881836,
+          "easingType": "GENTLE_SPRING",
+          "easingFunction": [
+            1,
+            100,
+            15,
+            0
+          ]
+        }
+      ]
+    },
+    "849:3608": {
+      "sourceFrameId": "849:3608",
+      "size": {
+        "x": 375,
+        "y": 812
+      },
+      "nodeCount": 70,
+      "instanceNodeIds": [],
+      "symbolNodeIds": [],
+      "geometryNodeCount": 38,
+      "paintNodeCount": 50,
+      "effectTypes": {
+        "DROP_SHADOW": 7,
+        "FOREGROUND_BLUR": 2,
+        "GLASS": 6
+      },
+      "imageNodeIds": [
+        "849:3647",
+        "849:3648",
+        "849:3649",
+        "849:3651"
+      ],
+      "interactions": [
+        {
+          "sourceNodeId": "849:3608",
+          "interactionId": "852:4338",
+          "event": {
+            "interactionType": "AFTER_TIMEOUT",
+            "transitionTimeout": 0.30000001192092896
+          },
+          "transitionNodeId": "849:3705",
+          "transitionType": "SMART_ANIMATE",
+          "transitionDuration": 1.2501229047775269,
+          "easingType": "SPRING_PRESET_THREE",
+          "easingFunction": [
+            1,
+            80,
+            20,
+            0
+          ]
+        },
+        {
+          "sourceNodeId": "849:3632",
+          "interactionId": "392:4025",
+          "event": {
+            "interactionType": "ON_CLICK"
+          },
+          "transitionNodeId": "266:21147",
+          "transitionType": "SLIDE_FROM_TOP",
+          "transitionDuration": 1.0220937728881836,
+          "easingType": "GENTLE_SPRING",
+          "easingFunction": [
+            1,
+            100,
+            15,
+            0
+          ]
+        }
+      ]
+    },
+    "849:3705": {
+      "sourceFrameId": "849:3705",
+      "size": {
+        "x": 375,
+        "y": 812
+      },
+      "nodeCount": 70,
+      "instanceNodeIds": [],
+      "symbolNodeIds": [],
+      "geometryNodeCount": 38,
+      "paintNodeCount": 50,
+      "effectTypes": {
+        "DROP_SHADOW": 7,
+        "FOREGROUND_BLUR": 2,
+        "GLASS": 6
+      },
+      "imageNodeIds": [
+        "849:3744",
+        "849:3745",
+        "849:3746",
+        "849:3748"
+      ],
+      "interactions": [
+        {
+          "sourceNodeId": "849:3705",
+          "interactionId": "852:4339",
+          "event": {
+            "interactionType": "AFTER_TIMEOUT",
+            "transitionTimeout": 0.30000001192092896
+          },
+          "transitionNodeId": "849:3794",
+          "transitionType": "SMART_ANIMATE",
+          "transitionDuration": 1.2501229047775269,
+          "easingType": "SPRING_PRESET_THREE",
+          "easingFunction": [
+            1,
+            80,
+            20,
+            0
+          ]
+        },
+        {
+          "sourceNodeId": "849:3729",
+          "interactionId": "392:4025",
+          "event": {
+            "interactionType": "ON_CLICK"
+          },
+          "transitionNodeId": "266:21147",
+          "transitionType": "SLIDE_FROM_TOP",
+          "transitionDuration": 1.0220937728881836,
+          "easingType": "GENTLE_SPRING",
+          "easingFunction": [
+            1,
+            100,
+            15,
+            0
+          ]
+        }
+      ]
+    },
+    "849:3794": {
+      "sourceFrameId": "849:3794",
+      "size": {
+        "x": 375,
+        "y": 812
+      },
+      "nodeCount": 70,
+      "instanceNodeIds": [],
+      "symbolNodeIds": [],
+      "geometryNodeCount": 38,
+      "paintNodeCount": 50,
+      "effectTypes": {
+        "DROP_SHADOW": 7,
+        "FOREGROUND_BLUR": 2,
+        "GLASS": 6
+      },
+      "imageNodeIds": [
+        "849:3833",
+        "849:3834",
+        "849:3835",
+        "849:3837"
+      ],
+      "interactions": [
+        {
+          "sourceNodeId": "849:3794",
+          "interactionId": "852:4340",
+          "event": {
+            "interactionType": "AFTER_TIMEOUT",
+            "transitionTimeout": 0.30000001192092896
+          },
+          "transitionNodeId": "849:3883",
+          "transitionType": "SMART_ANIMATE",
+          "transitionDuration": 1.2501229047775269,
+          "easingType": "SPRING_PRESET_THREE",
+          "easingFunction": [
+            1,
+            80,
+            20,
+            0
+          ]
+        },
+        {
+          "sourceNodeId": "849:3818",
+          "interactionId": "392:4025",
+          "event": {
+            "interactionType": "ON_CLICK"
+          },
+          "transitionNodeId": "266:21147",
+          "transitionType": "SLIDE_FROM_TOP",
+          "transitionDuration": 1.0220937728881836,
+          "easingType": "GENTLE_SPRING",
+          "easingFunction": [
+            1,
+            100,
+            15,
+            0
+          ]
+        }
+      ]
+    },
+    "849:3883": {
+      "sourceFrameId": "849:3883",
+      "size": {
+        "x": 375,
+        "y": 812
+      },
+      "nodeCount": 70,
+      "instanceNodeIds": [],
+      "symbolNodeIds": [],
+      "geometryNodeCount": 38,
+      "paintNodeCount": 50,
+      "effectTypes": {
+        "DROP_SHADOW": 7,
+        "FOREGROUND_BLUR": 2,
+        "GLASS": 6
+      },
+      "imageNodeIds": [
+        "849:3922",
+        "849:3923",
+        "849:3924",
+        "849:3926"
+      ],
+      "interactions": [
+        {
+          "sourceNodeId": "849:3883",
+          "interactionId": "852:4341",
+          "event": {
+            "interactionType": "AFTER_TIMEOUT",
+            "transitionTimeout": 0.30000001192092896
+          },
+          "transitionNodeId": "849:3972",
+          "transitionType": "SMART_ANIMATE",
+          "transitionDuration": 1.2501229047775269,
+          "easingType": "SPRING_PRESET_THREE",
+          "easingFunction": [
+            1,
+            80,
+            20,
+            0
+          ]
+        },
+        {
+          "sourceNodeId": "849:3907",
+          "interactionId": "392:4025",
+          "event": {
+            "interactionType": "ON_CLICK"
+          },
+          "transitionNodeId": "266:21147",
+          "transitionType": "SLIDE_FROM_TOP",
+          "transitionDuration": 1.0220937728881836,
+          "easingType": "GENTLE_SPRING",
+          "easingFunction": [
+            1,
+            100,
+            15,
+            0
+          ]
+        }
+      ]
+    },
+    "849:3972": {
+      "sourceFrameId": "849:3972",
+      "size": {
+        "x": 375,
+        "y": 812
+      },
+      "nodeCount": 70,
+      "instanceNodeIds": [],
+      "symbolNodeIds": [],
+      "geometryNodeCount": 38,
+      "paintNodeCount": 50,
+      "effectTypes": {
+        "DROP_SHADOW": 7,
+        "FOREGROUND_BLUR": 2,
+        "GLASS": 6
+      },
+      "imageNodeIds": [
+        "849:4011",
+        "849:4012",
+        "849:4013",
+        "849:4015"
+      ],
+      "interactions": [
+        {
+          "sourceNodeId": "849:3972",
+          "interactionId": "852:4342",
+          "event": {
+            "interactionType": "AFTER_TIMEOUT",
+            "transitionTimeout": 0.30000001192092896
+          },
+          "transitionNodeId": "852:4061",
+          "transitionType": "SMART_ANIMATE",
+          "transitionDuration": 1.2501229047775269,
+          "easingType": "SPRING_PRESET_THREE",
+          "easingFunction": [
+            1,
+            80,
+            20,
+            0
+          ]
+        },
+        {
+          "sourceNodeId": "849:3996",
+          "interactionId": "392:4025",
+          "event": {
+            "interactionType": "ON_CLICK"
+          },
+          "transitionNodeId": "266:21147",
+          "transitionType": "SLIDE_FROM_TOP",
+          "transitionDuration": 1.0220937728881836,
+          "easingType": "GENTLE_SPRING",
+          "easingFunction": [
+            1,
+            100,
+            15,
+            0
+          ]
+        }
+      ]
+    },
+    "852:4061": {
+      "sourceFrameId": "852:4061",
+      "size": {
+        "x": 375,
+        "y": 812
+      },
+      "nodeCount": 70,
+      "instanceNodeIds": [],
+      "symbolNodeIds": [],
+      "geometryNodeCount": 38,
+      "paintNodeCount": 50,
+      "effectTypes": {
+        "DROP_SHADOW": 7,
+        "FOREGROUND_BLUR": 2,
+        "GLASS": 6
+      },
+      "imageNodeIds": [
+        "852:4100",
+        "852:4101",
+        "852:4102",
+        "852:4104"
+      ],
+      "interactions": [
+        {
+          "sourceNodeId": "852:4061",
+          "interactionId": "852:4343",
+          "event": {
+            "interactionType": "AFTER_TIMEOUT",
+            "transitionTimeout": 0.30000001192092896
+          },
+          "transitionNodeId": "852:4150",
+          "transitionType": "SLIDE_FROM_BOTTOM",
+          "transitionDuration": 0.800000011920929,
+          "easingType": "INOUT_CUBIC",
+          "easingFunction": [
+            0.41999998688697815,
+            0,
+            0.5799999833106995,
+            1
+          ]
+        },
+        {
+          "sourceNodeId": "852:4085",
+          "interactionId": "392:4025",
+          "event": {
+            "interactionType": "ON_CLICK"
+          },
+          "transitionNodeId": "266:21147",
+          "transitionType": "SLIDE_FROM_TOP",
+          "transitionDuration": 1.0220937728881836,
+          "easingType": "GENTLE_SPRING",
+          "easingFunction": [
+            1,
+            100,
+            15,
+            0
+          ]
+        }
+      ]
+    },
+    "852:4150": {
+      "sourceFrameId": "852:4150",
+      "size": {
+        "x": 375,
+        "y": 812
+      },
+      "nodeCount": 95,
+      "instanceNodeIds": [],
+      "symbolNodeIds": [],
+      "geometryNodeCount": 53,
+      "paintNodeCount": 71,
+      "effectTypes": {
+        "DROP_SHADOW": 8,
+        "FOREGROUND_BLUR": 2,
+        "GLASS": 6
+      },
+      "imageNodeIds": [
+        "852:4189",
+        "852:4190",
+        "852:4191",
+        "852:4193",
+        "852:4383"
+      ],
+      "interactions": [
+        {
+          "sourceNodeId": "852:4150",
+          "interactionId": "852:4364",
+          "event": {
+            "interactionType": "AFTER_TIMEOUT",
+            "transitionTimeout": 1
+          },
+          "transitionNodeId": "852:4391",
+          "transitionType": "SLIDE_FROM_BOTTOM",
+          "transitionDuration": 0.800000011920929,
+          "easingType": "INOUT_CUBIC",
+          "easingFunction": [
+            0.41999998688697815,
+            0,
+            0.5799999833106995,
+            1
+          ]
+        },
+        {
+          "sourceNodeId": "852:4174",
+          "interactionId": "392:4025",
+          "event": {
+            "interactionType": "ON_CLICK"
+          },
+          "transitionNodeId": "266:21147",
+          "transitionType": "SLIDE_FROM_TOP",
+          "transitionDuration": 1.0220937728881836,
+          "easingType": "GENTLE_SPRING",
+          "easingFunction": [
+            1,
+            100,
+            15,
+            0
+          ]
+        }
+      ]
+    },
+    "852:4242": {
+      "sourceFrameId": "852:4242",
+      "size": {
+        "x": 375,
+        "y": 812
+      },
+      "nodeCount": 80,
+      "instanceNodeIds": [],
+      "symbolNodeIds": [],
+      "geometryNodeCount": 42,
+      "paintNodeCount": 58,
+      "effectTypes": {
+        "DROP_SHADOW": 9,
+        "FOREGROUND_BLUR": 2,
+        "GLASS": 6
+      },
+      "imageNodeIds": [
+        "852:4281",
+        "852:4282",
+        "852:4283",
+        "852:4381",
+        "852:4285"
+      ],
+      "interactions": []
+    },
+    "852:4391": {
+      "sourceFrameId": "852:4391",
+      "size": {
+        "x": 375,
+        "y": 812
+      },
+      "nodeCount": 100,
+      "instanceNodeIds": [],
+      "symbolNodeIds": [],
+      "geometryNodeCount": 55,
+      "paintNodeCount": 76,
+      "effectTypes": {
+        "DROP_SHADOW": 10,
+        "FOREGROUND_BLUR": 2,
+        "GLASS": 6
+      },
+      "imageNodeIds": [
+        "852:4430",
+        "852:4431",
+        "852:4432",
+        "852:4434",
+        "852:4435"
+      ],
+      "interactions": [
+        {
+          "sourceNodeId": "852:4415",
+          "interactionId": "392:4025",
+          "event": {
+            "interactionType": "ON_CLICK"
+          },
+          "transitionNodeId": "266:21147",
+          "transitionType": "SLIDE_FROM_TOP",
+          "transitionDuration": 1.0220937728881836,
+          "easingType": "GENTLE_SPRING",
+          "easingFunction": [
+            1,
+            100,
+            15,
+            0
+          ]
+        }
+      ]
+    }
+  },
   "images": {
     "845:3518": {
       "sourceNodeId": "845:3518",
@@ -109,6 +719,87 @@ export const miboRenderEvidence = {
       "opacity": 1,
       "rawHash": "42811159c4b77210f20cb8dd8611c49872975bd9"
     },
+    "846:3583": {
+      "sourceNodeId": "846:3583",
+      "visible": true,
+      "size": {
+        "x": 504,
+        "y": 336
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": -61,
+        "m10": 0,
+        "m11": 1,
+        "m12": 137
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "DARKEN",
+      "opacity": 1,
+      "rawHash": "1949e95938c28d6e69b0614f6df7cf5faf0e15df"
+    },
+    "846:3584": {
+      "sourceNodeId": "846:3584",
+      "visible": true,
+      "size": {
+        "x": 359,
+        "y": 239
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 8,
+        "m10": 0,
+        "m11": 1,
+        "m12": 196
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "cd9473e69b1bbe6ca3a605ad61dbe66e1a5753c2"
+    },
+    "846:3585": {
+      "sourceNodeId": "846:3585",
+      "visible": false,
+      "size": {
+        "x": 231,
+        "y": 154
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 72,
+        "m10": 0,
+        "m11": 1,
+        "m12": 233
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "61e75e928c998d78da3702299dfa112e9f577bd3"
+    },
     "846:3587": {
       "sourceNodeId": "846:3587",
       "visible": true,
@@ -135,6 +826,87 @@ export const miboRenderEvidence = {
       "blendMode": "NORMAL",
       "opacity": 1,
       "rawHash": "17d82ba16376f25db33866ff5dc8c189dcadade3"
+    },
+    "849:3647": {
+      "sourceNodeId": "849:3647",
+      "visible": true,
+      "size": {
+        "x": 504,
+        "y": 336
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": -61,
+        "m10": 0,
+        "m11": 1,
+        "m12": 137
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "DARKEN",
+      "opacity": 1,
+      "rawHash": "1949e95938c28d6e69b0614f6df7cf5faf0e15df"
+    },
+    "849:3648": {
+      "sourceNodeId": "849:3648",
+      "visible": true,
+      "size": {
+        "x": 359,
+        "y": 239
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 8,
+        "m10": 0,
+        "m11": 1,
+        "m12": 196
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "cd9473e69b1bbe6ca3a605ad61dbe66e1a5753c2"
+    },
+    "849:3649": {
+      "sourceNodeId": "849:3649",
+      "visible": false,
+      "size": {
+        "x": 231,
+        "y": 154
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 72,
+        "m10": 0,
+        "m11": 1,
+        "m12": 233
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "61e75e928c998d78da3702299dfa112e9f577bd3"
     },
     "849:3651": {
       "sourceNodeId": "849:3651",
@@ -163,6 +935,87 @@ export const miboRenderEvidence = {
       "opacity": 1,
       "rawHash": "17d82ba16376f25db33866ff5dc8c189dcadade3"
     },
+    "849:3744": {
+      "sourceNodeId": "849:3744",
+      "visible": true,
+      "size": {
+        "x": 504,
+        "y": 336
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": -61,
+        "m10": 0,
+        "m11": 1,
+        "m12": 137
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "DARKEN",
+      "opacity": 1,
+      "rawHash": "1949e95938c28d6e69b0614f6df7cf5faf0e15df"
+    },
+    "849:3745": {
+      "sourceNodeId": "849:3745",
+      "visible": true,
+      "size": {
+        "x": 359,
+        "y": 239
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 8,
+        "m10": 0,
+        "m11": 1,
+        "m12": 196
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "cd9473e69b1bbe6ca3a605ad61dbe66e1a5753c2"
+    },
+    "849:3746": {
+      "sourceNodeId": "849:3746",
+      "visible": false,
+      "size": {
+        "x": 231,
+        "y": 154
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 72,
+        "m10": 0,
+        "m11": 1,
+        "m12": 233
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "61e75e928c998d78da3702299dfa112e9f577bd3"
+    },
     "849:3748": {
       "sourceNodeId": "849:3748",
       "visible": true,
@@ -189,6 +1042,87 @@ export const miboRenderEvidence = {
       "blendMode": "NORMAL",
       "opacity": 1,
       "rawHash": "17d82ba16376f25db33866ff5dc8c189dcadade3"
+    },
+    "849:3833": {
+      "sourceNodeId": "849:3833",
+      "visible": true,
+      "size": {
+        "x": 504,
+        "y": 336
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": -61,
+        "m10": 0,
+        "m11": 1,
+        "m12": 137
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "DARKEN",
+      "opacity": 1,
+      "rawHash": "1949e95938c28d6e69b0614f6df7cf5faf0e15df"
+    },
+    "849:3834": {
+      "sourceNodeId": "849:3834",
+      "visible": true,
+      "size": {
+        "x": 359,
+        "y": 239
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 8,
+        "m10": 0,
+        "m11": 1,
+        "m12": 196
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "cd9473e69b1bbe6ca3a605ad61dbe66e1a5753c2"
+    },
+    "849:3835": {
+      "sourceNodeId": "849:3835",
+      "visible": false,
+      "size": {
+        "x": 231,
+        "y": 154
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 72,
+        "m10": 0,
+        "m11": 1,
+        "m12": 233
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "61e75e928c998d78da3702299dfa112e9f577bd3"
     },
     "849:3837": {
       "sourceNodeId": "849:3837",
@@ -217,6 +1151,87 @@ export const miboRenderEvidence = {
       "opacity": 1,
       "rawHash": "17d82ba16376f25db33866ff5dc8c189dcadade3"
     },
+    "849:3922": {
+      "sourceNodeId": "849:3922",
+      "visible": true,
+      "size": {
+        "x": 504,
+        "y": 336
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": -61,
+        "m10": 0,
+        "m11": 1,
+        "m12": 137
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "DARKEN",
+      "opacity": 1,
+      "rawHash": "1949e95938c28d6e69b0614f6df7cf5faf0e15df"
+    },
+    "849:3923": {
+      "sourceNodeId": "849:3923",
+      "visible": true,
+      "size": {
+        "x": 359,
+        "y": 239
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 8,
+        "m10": 0,
+        "m11": 1,
+        "m12": 196
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "cd9473e69b1bbe6ca3a605ad61dbe66e1a5753c2"
+    },
+    "849:3924": {
+      "sourceNodeId": "849:3924",
+      "visible": false,
+      "size": {
+        "x": 231,
+        "y": 154
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 72,
+        "m10": 0,
+        "m11": 1,
+        "m12": 233
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "61e75e928c998d78da3702299dfa112e9f577bd3"
+    },
     "849:3926": {
       "sourceNodeId": "849:3926",
       "visible": true,
@@ -243,6 +1258,87 @@ export const miboRenderEvidence = {
       "blendMode": "NORMAL",
       "opacity": 1,
       "rawHash": "17d82ba16376f25db33866ff5dc8c189dcadade3"
+    },
+    "849:4011": {
+      "sourceNodeId": "849:4011",
+      "visible": true,
+      "size": {
+        "x": 504,
+        "y": 336
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": -61,
+        "m10": 0,
+        "m11": 1,
+        "m12": 137
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "DARKEN",
+      "opacity": 1,
+      "rawHash": "1949e95938c28d6e69b0614f6df7cf5faf0e15df"
+    },
+    "849:4012": {
+      "sourceNodeId": "849:4012",
+      "visible": true,
+      "size": {
+        "x": 359,
+        "y": 239
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 8,
+        "m10": 0,
+        "m11": 1,
+        "m12": 196
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "cd9473e69b1bbe6ca3a605ad61dbe66e1a5753c2"
+    },
+    "849:4013": {
+      "sourceNodeId": "849:4013",
+      "visible": false,
+      "size": {
+        "x": 231,
+        "y": 154
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 72,
+        "m10": 0,
+        "m11": 1,
+        "m12": 233
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "61e75e928c998d78da3702299dfa112e9f577bd3"
     },
     "849:4015": {
       "sourceNodeId": "849:4015",
@@ -271,6 +1367,87 @@ export const miboRenderEvidence = {
       "opacity": 1,
       "rawHash": "17d82ba16376f25db33866ff5dc8c189dcadade3"
     },
+    "852:4100": {
+      "sourceNodeId": "852:4100",
+      "visible": true,
+      "size": {
+        "x": 504,
+        "y": 336
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": -61,
+        "m10": 0,
+        "m11": 1,
+        "m12": 137
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "DARKEN",
+      "opacity": 1,
+      "rawHash": "1949e95938c28d6e69b0614f6df7cf5faf0e15df"
+    },
+    "852:4101": {
+      "sourceNodeId": "852:4101",
+      "visible": true,
+      "size": {
+        "x": 359,
+        "y": 239
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 8,
+        "m10": 0,
+        "m11": 1,
+        "m12": 196
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "cd9473e69b1bbe6ca3a605ad61dbe66e1a5753c2"
+    },
+    "852:4102": {
+      "sourceNodeId": "852:4102",
+      "visible": false,
+      "size": {
+        "x": 231,
+        "y": 154
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 72,
+        "m10": 0,
+        "m11": 1,
+        "m12": 233
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "61e75e928c998d78da3702299dfa112e9f577bd3"
+    },
     "852:4104": {
       "sourceNodeId": "852:4104",
       "visible": true,
@@ -298,8 +1475,224 @@ export const miboRenderEvidence = {
       "opacity": 1,
       "rawHash": "17d82ba16376f25db33866ff5dc8c189dcadade3"
     },
+    "852:4189": {
+      "sourceNodeId": "852:4189",
+      "visible": true,
+      "size": {
+        "x": 504,
+        "y": 336
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": -61,
+        "m10": 0,
+        "m11": 1,
+        "m12": 137
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "DARKEN",
+      "opacity": 1,
+      "rawHash": "1949e95938c28d6e69b0614f6df7cf5faf0e15df"
+    },
+    "852:4190": {
+      "sourceNodeId": "852:4190",
+      "visible": true,
+      "size": {
+        "x": 359,
+        "y": 239
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 8,
+        "m10": 0,
+        "m11": 1,
+        "m12": 196
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "cd9473e69b1bbe6ca3a605ad61dbe66e1a5753c2"
+    },
+    "852:4191": {
+      "sourceNodeId": "852:4191",
+      "visible": false,
+      "size": {
+        "x": 231,
+        "y": 154
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 72,
+        "m10": 0,
+        "m11": 1,
+        "m12": 233
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "61e75e928c998d78da3702299dfa112e9f577bd3"
+    },
     "852:4193": {
       "sourceNodeId": "852:4193",
+      "visible": true,
+      "size": {
+        "x": 194,
+        "y": 168
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 94,
+        "m10": 0,
+        "m11": 1,
+        "m12": 174
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "17d82ba16376f25db33866ff5dc8c189dcadade3"
+    },
+    "852:4383": {
+      "sourceNodeId": "852:4383",
+      "visible": true,
+      "size": {
+        "x": 178,
+        "y": 154
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 101,
+        "m10": 0,
+        "m11": 1,
+        "m12": 164
+      },
+      "paintTransform": {
+        "m00": 0.5964051485061646,
+        "m01": 0,
+        "m02": 0.19607843458652496,
+        "m10": 0,
+        "m11": 0.774509847164154,
+        "m12": 0.10049019753932953
+      },
+      "blendMode": "NORMAL",
+      "opacity": 0,
+      "rawHash": "42811159c4b77210f20cb8dd8611c49872975bd9"
+    },
+    "852:4281": {
+      "sourceNodeId": "852:4281",
+      "visible": true,
+      "size": {
+        "x": 504,
+        "y": 336
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": -61,
+        "m10": 0,
+        "m11": 1,
+        "m12": 137
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "DARKEN",
+      "opacity": 1,
+      "rawHash": "1949e95938c28d6e69b0614f6df7cf5faf0e15df"
+    },
+    "852:4282": {
+      "sourceNodeId": "852:4282",
+      "visible": true,
+      "size": {
+        "x": 359,
+        "y": 239
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 8,
+        "m10": 0,
+        "m11": 1,
+        "m12": 196
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "cd9473e69b1bbe6ca3a605ad61dbe66e1a5753c2"
+    },
+    "852:4283": {
+      "sourceNodeId": "852:4283",
+      "visible": false,
+      "size": {
+        "x": 231,
+        "y": 154
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 72,
+        "m10": 0,
+        "m11": 1,
+        "m12": 233
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "61e75e928c998d78da3702299dfa112e9f577bd3"
+    },
+    "852:4381": {
+      "sourceNodeId": "852:4381",
       "visible": true,
       "size": {
         "x": 194,
@@ -351,6 +1744,114 @@ export const miboRenderEvidence = {
       "blendMode": "NORMAL",
       "opacity": 1,
       "rawHash": "42811159c4b77210f20cb8dd8611c49872975bd9"
+    },
+    "852:4430": {
+      "sourceNodeId": "852:4430",
+      "visible": true,
+      "size": {
+        "x": 504,
+        "y": 336
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": -61,
+        "m10": 0,
+        "m11": 1,
+        "m12": 137
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "DARKEN",
+      "opacity": 1,
+      "rawHash": "1949e95938c28d6e69b0614f6df7cf5faf0e15df"
+    },
+    "852:4431": {
+      "sourceNodeId": "852:4431",
+      "visible": true,
+      "size": {
+        "x": 359,
+        "y": 239
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 8,
+        "m10": 0,
+        "m11": 1,
+        "m12": 196
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "cd9473e69b1bbe6ca3a605ad61dbe66e1a5753c2"
+    },
+    "852:4432": {
+      "sourceNodeId": "852:4432",
+      "visible": false,
+      "size": {
+        "x": 231,
+        "y": 154
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 72,
+        "m10": 0,
+        "m11": 1,
+        "m12": 233
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "61e75e928c998d78da3702299dfa112e9f577bd3"
+    },
+    "852:4434": {
+      "sourceNodeId": "852:4434",
+      "visible": true,
+      "size": {
+        "x": 194,
+        "y": 168
+      },
+      "transform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 94,
+        "m10": 0,
+        "m11": 1,
+        "m12": 174
+      },
+      "paintTransform": {
+        "m00": 1,
+        "m01": 0,
+        "m02": 0,
+        "m10": 0,
+        "m11": 1,
+        "m12": 0
+      },
+      "blendMode": "NORMAL",
+      "opacity": 1,
+      "rawHash": "17d82ba16376f25db33866ff5dc8c189dcadade3"
     },
     "852:4435": {
       "sourceNodeId": "852:4435",

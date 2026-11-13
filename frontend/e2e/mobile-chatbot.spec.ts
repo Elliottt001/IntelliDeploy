@@ -171,6 +171,56 @@ test('creation and conversation controls remain 44px and in bounds at mobile wid
   }
 });
 
+test('Mibo local art and composer remain in bounds at all required mobile widths and short screens', async ({page}) => {
+ const app=detail('WAITING_USER');
+ await page.route('**/api/apps/app',route=>route.fulfill({json:app}));
+ await page.route('**/api/jobs/job',route=>route.fulfill({json:app.latest_job}));
+ for(const width of [320,360,375,390,430]) for(const height of [640,812,932]) {
+  await page.setViewportSize({width,height});await page.goto('/app-detail/app');
+  const art=(await page.getByTestId('mibo-art-canvas').boundingBox())!;
+  const composer=(await page.getByTestId('chat-composer').boundingBox())!;
+  expect(art.x).toBeGreaterThanOrEqual(0);expect(art.x+art.width).toBeLessThanOrEqual(width);
+  expect(composer.x).toBeGreaterThanOrEqual(0);expect(composer.x+composer.width).toBeLessThanOrEqual(width);
+  expect(composer.y+composer.height).toBeLessThanOrEqual(height);
+  const input=(await page.getByTestId('message-input').boundingBox())!,send=(await page.getByTestId('send-message').boundingBox())!;
+  expect(input.x+input.width).toBeLessThanOrEqual(send.x);
+ }
+});
+
+test('matching question and latest assistant render once while the byte-exact history remains complete',async({page})=>{
+ const duplicate='\uFEFF记录是否公开？\r\n\r\n请确认';const app=detail('WAITING_USER');
+ app.latest_job!.question=duplicate;app.active_job!.question=duplicate;
+ app.conversation.push({id:'assistant',sequence:2,role:'assistant',content:duplicate,created_at:timestamp});
+ await page.route('**/api/apps/app',r=>r.fulfill({json:app}));await page.route('**/api/jobs/job',r=>r.fulfill({json:app.latest_job}));
+ await page.goto('/app-detail/app');await expect(page.getByTestId('mibo-question')).toHaveText(duplicate);await expect(page.getByTestId('latest-assistant-reply')).toHaveCount(0);
+ await page.getByTestId('chatbot-settings').click();await page.getByTestId('conversation-toggle').click();
+ // The focused presentation is deduplicated; opening full history deliberately reveals the retained assistant row.
+ await expect(page.getByText(duplicate,{exact:true})).toHaveCount(2);
+ expect(app.conversation.at(-1)?.content).toBe(duplicate);
+});
+
+test('a 500 app detail remains an honest retryable error with working return navigation',async({page})=>{
+ let attempts=0;await page.route('**/api/apps/app',route=>{attempts++;return attempts===1?route.fulfill({status:500,json:{error:{code:'INTERNAL_ERROR',message:'详情暂不可用',retryable:true}}}):route.fulfill({json:detail('FAILED')});});
+ await page.goto('/app-detail/app');await expect(page.getByTestId('workspace-error')).toBeVisible();await expect(page.getByTestId('retry-app-detail')).toBeVisible();await expect(page.getByTestId('chatbot-back')).toBeVisible();
+ await page.getByTestId('retry-app-detail').click();await expect(page.getByTestId('job-status')).toHaveText('本次调整未完成');expect(attempts).toBe(2);
+});
+
+test('only a real Job snapshot change starts its matching source transition',async({page})=>{
+ let app=detail('RUNNING'),reads=0;app.latest_job!.phase='clarifying';app.active_job!.phase='clarifying';
+ await page.route('**/api/apps/app',r=>r.fulfill({json:app}));
+ await page.route('**/api/jobs/job',r=>{reads++;if(reads>1){app=detail('RUNNING');app.latest_job!.phase='retrieving';app.active_job!.phase='retrieving';}return r.fulfill({json:app.latest_job});});
+ await page.clock.install();await page.goto('/app-detail/app');await expect(page.getByTestId('mibo-stage')).toHaveAttribute('data-source-frame','849:3705');
+ await page.clock.runFor(2999);await expect(page.getByTestId('mibo-stage')).toHaveAttribute('data-source-frame','849:3705');
+ await page.clock.runFor(1);await expect(page.getByTestId('mibo-stage')).toHaveAttribute('data-source-frame','849:3794');await expect(page.getByTestId('mibo-stage')).toHaveAttribute('data-source-motion','852:4339');
+});
+
+test('a 20k draft and long actual reply scroll above the anchored composer on a short screen',async({page})=>{
+ const app=detail('RUNNING');app.latest_job!.phase='building';app.active_job!.phase='building';app.conversation.push({id:'assistant',sequence:2,role:'assistant',content:Array.from({length:120},(_,index)=>`真实回复第${index+1}行`).join('\r\n'),created_at:timestamp});
+ await page.route('**/api/apps/app',r=>r.fulfill({json:app}));await page.route('**/api/jobs/job',r=>r.fulfill({json:app.latest_job}));await page.setViewportSize({width:320,height:640});await page.goto('/app-detail/app');
+ const input=page.getByTestId('message-input'),draft='字'.repeat(20001);await input.fill(draft);await expect(input).toHaveValue('字'.repeat(20000));
+ const reply=page.getByTestId('latest-assistant-reply');await reply.scrollIntoViewIfNeeded();const composerBox=(await page.getByTestId('chat-composer').boundingBox())!;const scroll=await reply.evaluate(element=>{let current=element.parentElement;while(current&&getComputedStyle(current).overflowY!=='auto'&&getComputedStyle(current).overflowY!=='scroll')current=current.parentElement;if(!current)throw Error('reply scroll container missing');const box=current.getBoundingClientRect();return{bottom:box.bottom,clientHeight:current.clientHeight,scrollHeight:current.scrollHeight};});expect(scroll.scrollHeight).toBeGreaterThan(scroll.clientHeight);expect(scroll.bottom).toBeLessThanOrEqual(composerBox.y+1);
+});
+
 
 test('chatbot layout binds source geometry from the provided Figma package', async ({ page }) => {
   const source = process.env.INTELLIDEPLOY_FIGMA_SOURCE;
