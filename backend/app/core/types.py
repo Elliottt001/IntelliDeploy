@@ -297,6 +297,7 @@ class RetrievalEvidenceRef(BaseModel):
 
 class RetrievalCandidate(BaseModel):
     repo_url: str
+    homepage: str | None = None
     commit: str | None = None
     description: str = ''
     stars: int = Field(default=0, ge=0)

@@ -23,6 +23,14 @@ def discover_deployment_assets(candidate):
             source_ref=f'{candidate.repo_url}@{candidate.commit}:{path}',
             source_digest=hashlib.sha256(content.encode()).hexdigest()))
 
+    if candidate.homepage:
+        homepage=urlsplit(candidate.homepage)
+        if homepage.scheme in {'https','http'} and homepage.hostname and not homepage.username and not homepage.password:
+            kind='INSTALL_DOC' if homepage.hostname.startswith('docs.') or homepage.hostname=='github.com' else 'OFFICIAL_SERVICE'
+            result.append(DeploymentAsset(kind=kind,location=candidate.homepage,
+                source_ref='github-api:'+candidate.repo_url+':homepage',
+                source_digest=hashlib.sha256(candidate.homepage.encode()).hexdigest()))
+
     for path, content in candidate.key_files.items():
         relative = PurePosixPath(path)
         if relative.is_absolute() or '..' in relative.parts:

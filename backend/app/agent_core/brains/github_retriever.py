@@ -5,6 +5,7 @@ import hashlib
 import itertools
 import json
 import logging
+import re
 import time
 from typing import Sequence
 
@@ -197,10 +198,19 @@ class GitHubRepositorySearchClient:
                 if branch:
                     candidate.default_branch = branch
 
+        if not branch:
+            raise GitHubSearchError('repository default branch is not resolved')
+        from urllib.parse import quote
+        commit_data = await self._request_json(f'/repos/{owner_repo}/commits/{quote(branch,safe="")}')
+        commit_sha = commit_data.get('sha') if isinstance(commit_data, dict) else None
+        if not isinstance(commit_sha,str) or not re.fullmatch(r'[0-9a-f]{40}',commit_sha):
+            raise GitHubSearchError('repository commit is not resolved')
+        candidate.commit = commit_sha
+
         # Root contents are cheap and give the hard-rule scorer quick evidence
         # for package managers, Dockerfiles, and common framework files.
         contents_path = f"/repos/{owner_repo}/contents"
-        params = {"ref": branch} if branch else None
+        params = {"ref": commit_sha}
         contents = await self._request_json(contents_path, params=params, allow_404=True)
         if isinstance(contents, list):
             candidate.files = sorted(
@@ -212,13 +222,11 @@ class GitHubRepositorySearchClient:
         # size for unusually large repositories.
         if branch:
             tree = await self._request_json(
-                f"/repos/{owner_repo}/git/trees/{branch}",
+                f"/repos/{owner_repo}/git/trees/{commit_sha}",
                 params={"recursive": "1"},
                 allow_404=True,
             )
             if isinstance(tree, dict) and isinstance(tree.get("tree"), list):
-                if tree.get("sha"):
-                    candidate.commit = tree["sha"]
                 candidate.file_tree = [
                     item["path"]
                     for item in tree["tree"][:500]
@@ -243,8 +251,8 @@ class GitHubRepositorySearchClient:
                 owner_repo,
             )
 
-        await self._attach_readme(owner_repo, branch, candidate)
-        await self._attach_key_files(owner_repo, branch, candidate)
+        await self._attach_readme(owner_repo, commit_sha, candidate)
+        await self._attach_key_files(owner_repo, commit_sha, candidate)
 
         return candidate
 
@@ -330,7 +338,7 @@ class GitHubRepositorySearchClient:
                     if token:
                         continue
                     break
-                if response.status_code == 409 and "/git/trees/" in path:
+                if response.status_code == 409 and ("/git/trees/" in path or '/commits/' in path):
                     try:
                         payload = response.json()
                     except ValueError:
@@ -352,6 +360,7 @@ class GitHubRepositorySearchClient:
             full_name=item.get("full_name", ""),
             repo_url=item.get("html_url", ""),
             html_url=item.get("html_url", ""),
+            homepage=item.get('homepage') or None,
             description=item.get("description") or "",
             stars=int(item.get("stargazers_count") or 0),
             forks=int(item.get("forks_count") or 0),

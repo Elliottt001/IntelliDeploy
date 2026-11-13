@@ -78,6 +78,7 @@ def _merge_rows(rows: list[tuple[str, dict]]) -> list[RetrievalCandidate]:
                 "repo_url": canonical,
                 "commit_values": set(),
                 "description": "",
+                "homepage": None,
                 "stars": 0,
                 "last_commit_at": None,
                 "sources": [],
@@ -99,6 +100,7 @@ def _merge_rows(rows: list[tuple[str, dict]]) -> list[RetrievalCandidate]:
         current["description"] = current["description"] or str(
             row.get("description") or ""
         )
+        current['homepage'] = current['homepage'] or row.get('homepage')
         current["stars"] = max(current["stars"], int(row.get("stars") or 0))
         current["last_commit_at"] = (
             current["last_commit_at"] or row.get("last_commit_at")

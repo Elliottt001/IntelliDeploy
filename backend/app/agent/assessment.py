@@ -38,6 +38,13 @@ def relevance(candidate, requirement):
     return sum(term in text for term in terms)
 
 
+def candidate_evidence(candidate):
+    evidence=dict(candidate.key_files)
+    if candidate.homepage:
+        evidence['github:homepage']=candidate.homepage
+    return evidence
+
+
 async def assess_candidates(requirement, candidates, profiles, model=None):
     by_url = {p.repo_url:p for p in profiles}
     selected = sorted((c for c in candidates if c.repo_url in by_url),
@@ -56,7 +63,7 @@ async def assess_candidates(requirement, candidates, profiles, model=None):
     if model is None or not selected:
         return result
     schema = TypeAdapter(list[CandidateAssessment]).json_schema()
-    material = [{'repo_url':c.repo_url,'commit':c.commit,'files':{k:v[:10000] for k,v in c.key_files.items()},
+    material = [{'repo_url':c.repo_url,'commit':c.commit,'files':{k:v[:10000] for k,v in candidate_evidence(c).items()},
                  'profile':by_url[c.repo_url].model_dump(mode='json')} for c in selected]
     feedback = None
     for _ in range(2):
@@ -77,7 +84,7 @@ async def assess_candidates(requirement, candidates, profiles, model=None):
             valid={v.repo_url:v for v in result}
             for v in proposed:
                 try:
-                    valid[v.repo_url]=validate_assessment(v,requirement,by_url[v.repo_url],sources[v.repo_url].key_files)
+                    valid[v.repo_url]=validate_assessment(v,requirement,by_url[v.repo_url],candidate_evidence(sources[v.repo_url]))
                 except ValueError as exc:
                     errors.append(v.repo_url+': '+str(exc))
                     valid[v.repo_url].validation_issues=[str(exc)]
