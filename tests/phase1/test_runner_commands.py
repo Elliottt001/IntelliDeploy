@@ -78,3 +78,17 @@ def test_real_composition_command_cannot_mutate_component_snapshot(tmp_path):
     assert "read-only" in result["content"]
     assert protected.read_text() == "original"
     assert (tmp_path / "app/result.txt").read_text() == "ok"
+
+
+def test_readonly_node_commands_use_writable_temporary_npm_cache(tmp_path,monkeypatch):
+    import subprocess
+    from app.runner.docker import ContainerCommands
+    captured=[]
+    monkeypatch.setattr('shutil.which',lambda _:'docker')
+    def run(args,**kwargs):
+        captured.append(args)
+        return subprocess.CompletedProcess(args,0,'done','')
+    monkeypatch.setattr(subprocess,'run',run)
+    ContainerCommands('image@sha256:'+'a'*64).run(str(tmp_path),['npm','ci'],60,'cache-test')
+    assert 'npm_config_cache=/tmp/npm-cache' in captured[0]
+    assert '--read-only' in captured[0]

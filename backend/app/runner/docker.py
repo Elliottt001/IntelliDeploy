@@ -71,6 +71,8 @@ class ContainerCommands:
             "10001:10001",
             "--tmpfs",
             "/tmp:rw,nosuid,size=256m",
+            "-e",
+            "npm_config_cache=/tmp/npm-cache",
             "-v",
             str(Path(workspace).resolve()) + ":/workspace:rw",
             "-w",
