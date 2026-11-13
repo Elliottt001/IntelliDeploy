@@ -135,3 +135,11 @@ def test_generation_advertises_only_tools_supported_by_default_worker():
         'list_files', 'read_file', 'write_file', 'apply_patch', 'run_command',
         'search_repositories', 'fetch_repository', 'ask_user', 'finish_implementation',
     }
+
+
+def test_command_schema_declares_seconds_and_matches_validated_arguments():
+    from app.agent.loop import TOOLS
+    from app.agent.tools import CommandArgs
+    schema = next(t['function']['parameters'] for t in TOOLS if t['function']['name'] == 'run_command')
+    assert schema == CommandArgs.model_json_schema()
+    assert 'seconds' in schema['properties']['timeout']['description']

@@ -976,6 +976,16 @@ class JobExecution:
                 ok=False,
                 content=f"生成阶段尚未接通 {call.name}；请读取工作区内的平台适配代码和已提供的接口契约。",
             )
+        from app.agent.tools import ARGUMENTS
+        from pydantic import ValidationError
+
+        argument_type = ARGUMENTS.get(call.name)
+        if argument_type is not None:
+            try:
+                argument_type.model_validate(call.arguments)
+            except ValidationError as exc:
+                self.job_check()
+                return ToolResult(call_id=call.id, ok=False, content=f"工具参数无效，请按Schema纠正：{exc}")
         if call.name=='run_command':
             from app.runtime.cleanup import register_resource
             operation=self.job_id+'-'+hashlib.sha256(call.id.encode()).hexdigest()

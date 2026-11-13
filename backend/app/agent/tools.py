@@ -50,7 +50,7 @@ class PatchArgs(BaseModel):
 
 class CommandArgs(BaseModel):
     argv: list[str] = Field(min_length=1)
-    timeout: int = Field(default=60, ge=1, le=600)
+    timeout: int = Field(default=60, ge=1, le=600, description="Timeout in seconds, not milliseconds")
 
 
 class SearchArgs(BaseModel):

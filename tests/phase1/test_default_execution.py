@@ -1108,3 +1108,20 @@ async def test_unavailable_generation_capability_returns_feedback_without_runner
     assert result.ok is False
     assert 'web_search' in result.content
     runner.tool.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_invalid_command_arguments_are_feedback_before_runner_or_resource(new_job, session_factory):
+    from app.jobs.execution import JobExecution
+    from app.core.types import ToolCall
+    from app.runtime.models import ResourceRecord
+
+    job_id, _, _, generation = new_job
+    runner = AsyncMock()
+    execution = JobExecution(job_id, 'worker', generation, session_factory=session_factory, runner=runner)
+    result = await execution.execute_tool(ToolCall(id='milliseconds', name='run_command', arguments={'argv':['npm','ci'],'timeout':300000}))
+    assert result.ok is False
+    assert 'timeout' in result.content
+    runner.tool.assert_not_awaited()
+    with session_factory() as session:
+        assert session.scalar(select(ResourceRecord).where(ResourceRecord.job_id == job_id, ResourceRecord.type == 'EXECUTION_CONTAINER')) is None

@@ -5,6 +5,7 @@ import inspect
 import json
 
 from app.billing.ledger import InsufficientQuota
+from app.agent.tools import CommandArgs
 from app.config import settings
 from app.core.types import AppManifest, Checkpoint, GenerationOutput, ToolCall, ToolResult, UsageInput
 
@@ -18,7 +19,7 @@ TOOLS = [
     {"type": "function", "function": {"name": "read_file", "description": "读取工作区文件", "parameters": {"type": "object", "required": ["path"], "properties": {"path": {"type": "string"}}}}},
     {"type": "function", "function": {"name": "write_file", "description": "写入工作区文件", "parameters": {"type": "object", "required": ["path", "content"], "properties": {"path": {"type": "string"}, "content": {"type": "string"}}}}},
     {"type": "function", "function": {"name": "apply_patch", "description": "精确替换文件内容", "parameters": {"type": "object", "required": ["path", "old_text", "new_text"], "properties": {"path": {"type": "string"}, "old_text": {"type": "string"}, "new_text": {"type": "string"}}}}},
-    {"type": "function", "function": {"name": "run_command", "description": "在隔离执行器运行命令", "parameters": {"type": "object", "required": ["argv"], "properties": {"argv": {"type": "array", "items": {"type": "string"}}, "timeout": {"type": "integer"}}}}},
+    {"type": "function", "function": {"name": "run_command", "description": "在隔离执行器运行命令，timeout单位为秒", "parameters": CommandArgs.model_json_schema()}},
     {"type": "function", "function": {"name": "search_repositories", "description": "通过受控代理检索公开GitHub仓库", "parameters": {"type": "object", "required": ["query"], "properties": {"query": {"type": "string"}, "limit": {"type": "integer"}}}}},
     {"type": "function", "function": {"name": "fetch_repository", "description": "获取已检索仓库的固定commit", "parameters": {"type": "object", "required": ["url", "commit", "destination"], "properties": {"url": {"type": "string"}, "commit": {"type": "string"}, "destination": {"type": "string"}}}}},
     {"type": "function", "function": {"name": "ask_user", "description": "追问必要的业务信息", "parameters": {"type": "object", "required": ["question"], "properties": {"question": {"type": "string"}}}}},
