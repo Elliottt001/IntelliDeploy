@@ -89,11 +89,12 @@ class OfficialServiceVerifier:
             else:
                 raise ValueError('external redirect limit exceeded')
             if status == 200:
-                from playwright.async_api import Error as BrowserError
+                from playwright.async_api import Error as BrowserError, TimeoutError as BrowserTimeout
                 try:
                     return await self._inspect_in_browser(current, client)
-                except BrowserError:
-                    return {'url':current,'status':status,'text':text,'service_kind':'UNKNOWN','core_checks':[]}
+                except BrowserError as exc:
+                    return {'url':current,'status':status,'text':text,'service_kind':'UNKNOWN','core_checks':[],
+                            'failure_code':'BROWSER_TIMEOUT' if isinstance(exc, BrowserTimeout) else 'BROWSER_UNAVAILABLE'}
         if status!=200:
             return {'url':current,'status':status,'text':text,'core_checks':[]}
 
@@ -139,7 +140,7 @@ class OfficialServiceVerifier:
                 await context.route_web_socket('**/*', block_socket)
                 page = await context.new_page()
                 page.set_default_timeout(5000)
-                response = await page.goto(url, wait_until='networkidle', timeout=30000)
+                response = await page.goto(url, wait_until='domcontentloaded', timeout=30000)
                 current = validate_external_url(page.url, resolve=False)
                 text = (await page.content())[:128000]
                 value = await self._assess_observation(current, text, response.status if response else 0)
@@ -195,7 +196,7 @@ async def verify_external_service(requirement, asset, verifier):
         if isinstance(verifier, OfficialServiceVerifier):
             check = executed.get(item.id, {})
             checks.append(CheckResult(id=item.id,status='PASS' if check.get('status') == 'PASS' else 'NOT_RUN',
-                evidence=str(check.get('evidence') or '核心功能尚未实际验证')))
+                evidence=str(check.get('evidence') or (value.get('failure_code','') + ' 核心功能尚未实际验证').strip())))
             continue
         check=by_id.get(item.id,{})
         quote=check.get('quote','')
