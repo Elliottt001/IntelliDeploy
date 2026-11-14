@@ -722,15 +722,45 @@ def _finish_cancelled(session_factory, job_id: str) -> None:
 
 async def complete_external_delivery(execution, decision, session_factory):
     job_id=execution.job_id
-    from app.runtime.external_delivery import verify_external_service, OfficialServiceVerifier, persist_external_delivery
+    import hashlib, json, socket
+    import httpx
+    from datetime import datetime, timezone
+    from app.agent.reuse import choose_reuse_decision
+    from app.runtime.external_delivery import verify_external_service, OfficialServiceVerifier, persist_external_delivery, ExternalVerification
     from app.core.types import ExternalLinkDelivery
     requirement=await execution.ensure_requirement()
-    verification=await verify_external_service(requirement,decision.deployment_asset,
-        OfficialServiceVerifier(requirement,execution.model(f'external:{requirement.revision}')))
+    choices = [decision]
+    checkpoint = execution.algorithm_checkpoint()
+    profiles = [p.model_copy(update={'deployment_assets':[a for a in p.deployment_assets
+        if a.kind != 'OFFICIAL_SERVICE' or a.location != decision.deployment_asset.location]}) for p in checkpoint.profiles]
+    try:
+        alternative = choose_reuse_decision(requirement, checkpoint.assessments, profiles)
+        if alternative.delivery_kind == 'EXTERNAL_LINK':
+            choices.append(alternative)
+    except NoReusableSolution:
+        pass
+    attempts = []
+    for decision in choices:
+        asset = decision.deployment_asset
+        operation = hashlib.sha256(json.dumps([asset.location,asset.source_ref]).encode()).hexdigest()
+        try:
+            verification=await verify_external_service(requirement,asset,
+                OfficialServiceVerifier(requirement,execution.model(f'external:{requirement.revision}:{operation}')))
+        except (httpx.RequestError, socket.gaierror):
+            verification=ExternalVerification(source_mode='real',service_kind='UNKNOWN',url=asset.location,
+                source_refs=[asset.source_ref],checked_at=datetime.now(timezone.utc),status='NOT_RUN',
+                core_checks=[{'id':a.id,'status':'NOT_RUN','evidence':'官方入口暂不可达，未验证核心功能'} for a in requirement.core_acceptance])
+        attempts.append({'url':asset.location,'source_ref':asset.source_ref,'status':verification.status})
+        execution.save(external_verification=verification.model_dump(mode='json'),external_service_attempts=attempts)
+        checkpoint.reuse_decision=decision
+        checkpoint.selected_sources=decision.selected_sources
+        checkpoint.route=None
+        execution.save_algorithm_checkpoint(checkpoint)
+        if verification.status == 'PASS':
+            break
     if verification.status != 'PASS':
-        execution.save(external_verification=verification.model_dump(mode='json'))
-        execution.wait_for_user('已找到官方服务 '+verification.url+'，核心用途仍需登录或实际确认；可先体验，或要求独立部署。')
-    delivery=ExternalLinkDelivery(app_id=execution.app_id,job_id=job_id,url=verification.url,
+        execution.wait_for_user('官方候选 '+verification.url+' 尚未通过访问或核心用途验证；可继续搜索，或明确要求独立部署。')
+    delivery=ExternalLinkDelivery(app_id=execution.app_id(),job_id=job_id,url=verification.url,
         repo_url=decision.selected_sources[0].url,source_ref=decision.deployment_asset.source_ref,
         summary='可使用的第三方官方服务',features=[a.action for a in requirement.acceptance if a.importance=='CORE'],
         differences=decision.differences,verified_at=verification.checked_at,

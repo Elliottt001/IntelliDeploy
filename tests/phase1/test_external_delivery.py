@@ -3,6 +3,70 @@ import pytest
 from test_default_execution import new_job as new_job
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize('first_failure', ['dns', 'not_run'])
+async def test_external_pipeline_tries_second_source_and_persists_its_identity(first_failure, new_job, session_factory, monkeypatch):
+    from app.jobs.execution import JobExecution
+    from app.jobs.pipeline import complete_external_delivery
+    from app.agent.reuse import choose_reuse_decision
+    from app.agent.contracts import CandidateAssessment, DeploymentAsset
+    from app.core.types import Requirement
+    from app.runtime.external_delivery import ExternalVerification
+    from app.apps.models import RequirementRecord, Instance, AppVersion
+    from app.jobs.models import Job
+    from sqlalchemy import select
+    from test_candidate_ranking import profile
+    from unittest.mock import AsyncMock
+    import socket
+
+    jid, aid, _, generation = new_job
+    req = Requirement(prompt='editor', acceptance=[{'id': 'edit', 'action': 'edit', 'expected': 'preview'}])
+    profiles = [profile('bad'), profile('good')]
+    for p in profiles:
+        p.deployment_assets = [DeploymentAsset(kind='OFFICIAL_SERVICE', location=f'https://{p.repo_url.rsplit("/",1)[-1]}.example/',
+            source_ref=f'{p.repo_url}@{p.commit}:README.md', source_digest='a' * 64)]
+    assessments = [CandidateAssessment(repo_url=p.repo_url, commit=p.commit, requirement_revision=1,
+        capabilities=[{'acceptance_id': 'edit', 'status': 'SUPPORTED', 'reason': 'editor', 'quote': 'editor', 'evidence_refs': ['README.md']}]) for p in profiles]
+    execution = JobExecution(jid, 'worker', generation, session_factory=session_factory, model_client=object())
+    execution.ensure_requirement = AsyncMock(return_value=req)
+    checkpoint = execution.algorithm_checkpoint()
+    checkpoint.profiles = profiles
+    checkpoint.assessments = assessments
+    decision = choose_reuse_decision(req, assessments, profiles)
+    checkpoint.reuse_decision = decision
+    checkpoint.selected_sources = decision.selected_sources
+    execution.save_algorithm_checkpoint(checkpoint)
+    with session_factory() as s:
+        s.get(Job, jid).requirement_revision = 1
+        s.add(RequirementRecord(app_id=aid, revision=1, requirement=req.model_dump(mode='json'), review={}))
+        s.commit()
+
+    visited = []
+    phases = []
+    async def verify(requirement, asset, verifier):
+        visited.append(asset.location)
+        phases.append(verifier.model.phase)
+        if len(visited) == 1 and first_failure == 'dns':
+            raise socket.gaierror('unresolved official service')
+        status = 'PASS' if len(visited) == 2 else 'NOT_RUN'
+        return ExternalVerification(service_kind='OFFICIAL_SERVICE', url=asset.location, source_refs=[asset.source_ref],
+            checked_at=datetime.now(timezone.utc), status=status,
+            core_checks=[{'id': 'edit', 'status': status, 'evidence': 'fixture editor interaction'}])
+    monkeypatch.setattr('app.runtime.external_delivery.verify_external_service', verify)
+    await complete_external_delivery(execution, decision, session_factory)
+    assert visited == ['https://bad.example/', 'https://good.example/']
+    assert len(set(phases)) == 2
+    with session_factory() as s:
+        job = s.get(Job, jid)
+        assert job.status == 'SUCCEEDED'
+        assert job.result['app_id'] == aid
+        assert job.result['repo_url'] == profiles[1].repo_url
+        assert job.checkpoint['algorithm']['selected_sources'][0]['url'] == profiles[1].repo_url
+        assert job.checkpoint['external_verification']['status'] == 'PASS'
+        assert s.scalar(select(Instance).where(Instance.app_id == aid)) is None
+        assert s.scalar(select(AppVersion).where(AppVersion.app_id == aid)) is None
+
+
 def test_external_result_never_fabricates_hosted_instance():
     from app.core.types import ExternalLinkDelivery
     result=ExternalLinkDelivery(app_id='app',job_id='job',url='https://notes.example/',repo_url='https://github.com/example/notes',
