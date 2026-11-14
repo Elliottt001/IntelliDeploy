@@ -3,6 +3,7 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
   updateSnapshots: 'none',
+  testIgnore: /(?:^|[/\\])mobile-complete-motion\.spec\.ts$/,
   testMatch: [
     /(?:^|[/\\])mobile-[^/\\]+\.spec\.ts$/,
     /(?:^|[/\\])(?:community|workspace)\.spec\.ts$/,

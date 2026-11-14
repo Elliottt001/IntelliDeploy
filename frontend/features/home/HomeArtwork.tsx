@@ -20,8 +20,8 @@ export const matrix = (m: {
   m02: number;
   m12: number;
 }) => `matrix(${m.m00} ${m.m10} ${m.m01} ${m.m11} ${m.m02} ${m.m12})`;
-export function HomeAvatar({pressed=false,hovered=false}:{pressed?:boolean;hovered?:boolean}) {
- return <View testID={pressed||hovered?'home-avatar-pressed':'home-avatar-default'} style={{position:'absolute',left:0,top:0}}><SourceAvatarMotion active={pressed||hovered} testID="home-avatar-source-motion"/></View>;
+export function HomeAvatar({pressed=false,hovered=false,presentationRef}:{pressed?:boolean;hovered?:boolean;presentationRef?:{current:{sourceNodeId:string}|null}}) {
+ return <View testID={pressed||hovered?'home-avatar-pressed':'home-avatar-default'} style={{position:'absolute',left:0,top:0}}><SourceAvatarMotion active={pressed||hovered} presentationRef={presentationRef} testID="home-avatar-source-motion"/></View>;
 }
 export function HomeCardArtwork({
   cardWidth,

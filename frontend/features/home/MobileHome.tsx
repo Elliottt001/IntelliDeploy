@@ -1,3 +1,4 @@
+import {getHomeMiboMotion} from './homeMotionPolicy';
 import {SourceRouteNode} from '../../components/mobile/sourceRouteShared';
 import {useSourceTreeMotion} from '../../components/mobile/useSourceTreeMotion';
 import {sourceControlStates} from '../../design/sourceControlMotionEvidence';
@@ -243,6 +244,7 @@ function HomeCard({
 
 export function MobileHome() {
   const sourceNavigate = useSourceRouteTransition();
+  const avatarPresentation=useRef<{sourceNodeId:string}|null>(null);
   const params=useLocalSearchParams<{sourceAvatar?:string}>();
   const router = useRouter(),
     insets = useSafeAreaInsets(),
@@ -270,7 +272,7 @@ export function MobileHome() {
     cloud = source.clouds[cloudIndex];
   const cloudMotion=useMemo(()=>getSourceMotion('266:21221','ON_PRESS'),[]);
   const cloudState=useSourceTreeMotion(sourceControlStates[cloudPressed?'188:16981':source.clouds[cloudIndex].sourceNodeId],cloudMotion);
-  const miboRouteMotion=getSourceMotion(({store:'268:22950',products:'268:23284',community:'268:23618',profile:'268:23952'} as Record<string,string>)[expandedCard??'']??'266:21193','ON_CLICK');
+  const miboRouteMotion=(avatarPressed=false)=>getHomeMiboMotion({avatarHovered,avatarPressed,avatarSourceNodeId:avatarPresentation.current?.sourceNodeId,cloudPressed,cloudSourceNodeId:cloudState.sourceNodeId,expandedCard});
   const usableWidth = viewport.width - insets.left - insets.right;
   const cardWidth = fitSourceWidth(
     sourceCardWidth,
@@ -319,19 +321,19 @@ export function MobileHome() {
           <View style={styles.avatar}><Pressable
             accessibilityRole="button"
             accessibilityLabel="与 Mibo AI 对话"
-            onPress={() => sourceNavigate(miboRouteMotion,()=>navigate("/chatbot"),"/chatbot")}
+            onPress={() => sourceNavigate(miboRouteMotion(true),()=>navigate("/chatbot"),"/chatbot")}
             onHoverIn={()=>setAvatarHovered(true)} onHoverOut={()=>setAvatarHovered(false)}
             testID="home-mibo-avatar"
             style={StyleSheet.absoluteFill}
           >
-            {({pressed})=><HomeAvatar pressed={pressed} hovered={avatarHovered}/>}
+            {({pressed})=><HomeAvatar pressed={pressed} hovered={avatarHovered} presentationRef={avatarPresentation}/>}
           </Pressable></View>
           <View style={styles.heroCopy}><SourceRouteNode sourceNodeId="270:26287" style={StyleSheet.absoluteFill}>
             <Text style={styles.greeting}>Hi！{username}✨</Text>
             <View style={{position:"absolute",top:source.question.transform.m12,left:source.question.transform.m02}}><FigmaText testID="home-question" evidence={source.question}/></View>
             </SourceRouteNode><SourceRouteNode sourceNodeId="270:26290" style={[styles.miboLink,{left:Math.min(76.2495,viewport.width-insets.right-layout.gutter-(layout.gutter+12+82)-147.501)}]}><Pressable
               accessibilityRole="button"
-              onPress={() => sourceNavigate(miboRouteMotion,()=>navigate("/chatbot"),"/chatbot")}
+              onPress={() => sourceNavigate(miboRouteMotion(),()=>navigate("/chatbot"),"/chatbot")}
               accessibilityLabel="与 Mibo AI 对话"
               testID="home-mibo-open"
               style={StyleSheet.absoluteFill}

@@ -4,10 +4,10 @@ import {createRoot,type Root} from 'react-dom/client';
 import {afterEach,beforeEach,expect,test,vi} from 'vitest';
 import {sampleSourceEasing} from '../features/navigation/sourceMotionPolicy';
 import {getSourceMotion} from '../design/sourceMotionEvidence';
-const driver=vi.hoisted(()=>({platform:{OS:'web'},animations:[] as Array<{value:any;config:any;complete?:(result:{finished:boolean})=>void;stop:ReturnType<typeof vi.fn>}>,app:new Set<(state:string)=>void>()}));
+const driver=vi.hoisted(()=>({platform:{OS:'web'},animations:[] as Array<{value:any;from:number;config:any;complete?:(result:{finished:boolean})=>void;stop:ReturnType<typeof vi.fn>}>,app:new Set<(state:string)=>void>()}));
 vi.mock('react-native',async()=>{
  const web=await vi.importActual<any>('react-native-web');
- return {...web,Platform:driver.platform,Animated:{...web.Animated,timing:(value:any,config:any)=>{const animation={value,config,stop:vi.fn(),complete:undefined as undefined|((r:{finished:boolean})=>void)};driver.animations.push(animation);return {stop:animation.stop,start:(complete:any)=>{animation.complete=complete;}};}},AccessibilityInfo:{isReduceMotionEnabled:()=>Promise.resolve(false),addEventListener:()=>({remove(){}})},AppState:{currentState:'active',addEventListener:(_event:string,listener:(state:string)=>void)=>{driver.app.add(listener);return {remove:()=>driver.app.delete(listener)};}}};
+ return {...web,Platform:driver.platform,Animated:{...web.Animated,timing:(value:any,config:any)=>{const animation={value,from:value.__getValue(),config,stop:vi.fn(),complete:undefined as undefined|((r:{finished:boolean})=>void)};driver.animations.push(animation);return {stop:animation.stop,start:(complete:any)=>{animation.complete=complete;}};}},AccessibilityInfo:{isReduceMotionEnabled:()=>Promise.resolve(false),addEventListener:()=>({remove(){}})},AppState:{currentState:'active',addEventListener:(_event:string,listener:(state:string)=>void)=>{driver.app.add(listener);return {remove:()=>driver.app.delete(listener)};}}};
 });
 vi.mock('../components/mobile/FigmaTree',()=>({FigmaTree:({node}:any)=>createElement('output',{'data-tree':JSON.stringify(node)})}));
 import {SourceAnimatedControl} from '../components/mobile/SourceAnimatedControl';
@@ -17,7 +17,7 @@ beforeEach(()=>{(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;driver.animati
 afterEach(()=>{act(()=>roots.forEach(root=>root.unmount()));roots.clear();document.body.innerHTML='';vi.useRealTimers();vi.unstubAllGlobals();});
 function mount(node:any){const host=document.createElement('div');document.body.append(host);const root=createRoot(host);roots.add(root);act(()=>root.render(node));return {host,root};}
 const animation=()=>driver.animations.at(-1)!;
-function sample(t:number){const a=animation();act(()=>a.value.setValue(a.config.easing(t)));}
+function sample(t:number){const a=animation();act(()=>a.value.setValue(a.from+(a.config.toValue-a.from)*a.config.easing(t)));}
 function finish(){const a=animation();act(()=>{a.value.setValue(a.config.toValue);a.complete?.({finished:true});});}
 function tree(host:HTMLElement){return JSON.parse(host.querySelector('output')!.getAttribute('data-tree')!);}
 test('actual control renders source start/mid/end and reverses from current presentation',()=>{
@@ -85,4 +85,19 @@ test('every source community avatar owner has a real visual consumer with its ow
   sample(.3);expect(tree(host).size.x).not.toBe(sourceControlStates[owner].size.x);finish();expect(tree(host).size).toEqual(sourceControlStates['188:16338'].size);
   act(()=>root.unmount());roots.delete(root);host.remove();
  }
+});
+
+test('completed settings hover leaves through a fresh timing channel without snapping the first frame',()=>{
+ const {host}=mount(createElement(SourceAnimatedControl,{kind:'settings',accessibilityLabel:'settings'}));const button=host.querySelector('[role="button"]')!;
+ act(()=>button.dispatchEvent(new PointerEvent('pointerenter',{pointerType:'mouse'})));finish();
+ const end=tree(host).size.x,count=driver.animations.length;
+ act(()=>button.dispatchEvent(new PointerEvent('pointerleave',{pointerType:'mouse'})));
+ expect(driver.animations).toHaveLength(count+1);expect(animation().from).toBe(0);expect(tree(host).size.x).toBe(end);
+ sample(.01);expect(tree(host).size.x).toBeCloseTo(end+(38-end)*sampleSourceEasing(getSourceMotion('248:20538','ON_HOVER')!,.01),6);finish();expect(tree(host).size.x).toBe(38);
+});
+test('mid settings reversal starts its new from/to pair at zero rather than the previous fraction',()=>{
+ const {host}=mount(createElement(SourceAnimatedControl,{kind:'settings',accessibilityLabel:'settings'}));const button=host.querySelector('[role="button"]')!;
+ act(()=>button.dispatchEvent(new PointerEvent('pointerenter',{pointerType:'mouse'})));sample(.15);const captured=tree(host).size.x;
+ act(()=>button.dispatchEvent(new PointerEvent('pointerleave',{pointerType:'mouse'})));
+ expect(animation().from).toBe(0);sample(.01);expect(tree(host).size.x).toBeCloseTo(captured+(38-captured)*sampleSourceEasing(getSourceMotion('248:20538','ON_HOVER')!,.01),6);
 });

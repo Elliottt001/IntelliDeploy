@@ -26,7 +26,7 @@ export function SourceAnimatedControl({ kind, accessibilityLabel, onPress, selec
     clearTimeoutChain(); api.cancel();
     const to=sourceControlStates[target]; if(!to)return;
     stateId.current=target;
-    setTransition({from:current.current,to,motion,generation:++generation.current});
+    setTransition({from:current.current,to,motion:{...motion},generation:++generation.current});
   },[api.cancel,clearTimeoutChain]);
   beginRef.current=begin;
   useEffect(()=>{const listener=api.progress.addListener(({value})=>{if(!transition||generation.current!==transition.generation)return;const presentation=interpolateSourceControl(transition.from,transition.to,value);current.current=presentation;setState(presentation);});return()=>api.progress.removeListener(listener);},[api.progress,transition]);

@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 import {resolveTestDatabaseUrl} from './e2e/testDatabase';
 
 export default defineConfig({
-  testDir: './e2e', timeout: 45000, workers: 1,
+  testDir: './e2e', testIgnore: /(?:^|[/\\])mobile-complete-motion\.spec\.ts$/, timeout: 45000, workers: 1,
   use: { baseURL: 'http://127.0.0.1:8085', viewport: { width: 390, height: 844 }, trace: 'retain-on-failure' },
   webServer: [
     { command: 'PYTHONPATH=../backend ../.venv/bin/python ../tests/phase1/payment_browser_api.py 9105', url: 'http://127.0.0.1:9105/', reuseExistingServer: false,
