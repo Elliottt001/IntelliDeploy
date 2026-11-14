@@ -1064,6 +1064,8 @@ export interface components {
             summary: string;
             /** Features */
             features: string[];
+            /** Differences */
+            differences?: string[];
             /** Report Url */
             report_url: string;
             /** Artifact Url */
@@ -1146,6 +1148,18 @@ export interface components {
             /** Quality Score */
             quality_score?: number | null;
         };
+        /** EvaluationCapability */
+        EvaluationCapability: {
+            /** Acceptance Id */
+            acceptance_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "SUPPORTED" | "MISSING" | "UNKNOWN";
+            /** Evidence Refs */
+            evidence_refs?: string[];
+        };
         /** EvaluationEvidenceGate */
         EvaluationEvidenceGate: {
             /**
@@ -1212,6 +1226,12 @@ export interface components {
             result?: components["schemas"]["DeliveryResult"] | components["schemas"]["ExternalLinkDelivery"] | null;
             /** Delivery Kind */
             delivery_kind?: ("EXTERNAL_LINK" | "HOSTED_INSTANCE") | null;
+            /** External Service Status */
+            external_service_status?: ("PASS" | "FAIL" | "NOT_RUN") | null;
+            /** Reuse Assessments */
+            reuse_assessments?: components["schemas"]["EvaluationReuseAssessment"][];
+            /** Selection Duration Ms */
+            selection_duration_ms?: number | null;
             report: components["schemas"]["JobReport"];
             /**
              * Created At
@@ -1252,6 +1272,23 @@ export interface components {
             index_version?: string | null;
             /** Candidates */
             candidates?: components["schemas"]["EvaluationCandidate"][];
+        };
+        /** EvaluationReuseAssessment */
+        EvaluationReuseAssessment: {
+            /** Repo Url */
+            repo_url: string;
+            /** Commit */
+            commit: string;
+            /** Requirement Revision */
+            requirement_revision: number;
+            /** Capabilities */
+            capabilities: components["schemas"]["EvaluationCapability"][];
+            /** Differences */
+            differences?: string[];
+            /** Adaptations */
+            adaptations?: string[];
+            /** Validation Issues */
+            validation_issues?: string[];
         };
         /** EvaluationRunRequest */
         EvaluationRunRequest: {
@@ -1717,6 +1754,12 @@ export interface components {
              * @enum {string}
              */
             status: "PASS" | "FAIL" | "NOT_RUN";
+            /**
+             * Importance
+             * @default CORE
+             * @enum {string}
+             */
+            importance: "CORE" | "PREFERENCE";
             /** Evidence Urls */
             evidence_urls?: string[];
         };

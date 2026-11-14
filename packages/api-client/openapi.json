@@ -3317,6 +3317,13 @@
             "type": "array",
             "title": "Features"
           },
+          "differences": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Differences"
+          },
           "report_url": {
             "type": "string",
             "title": "Report Url"
@@ -3577,6 +3584,36 @@
         ],
         "title": "EvaluationCandidate"
       },
+      "EvaluationCapability": {
+        "properties": {
+          "acceptance_id": {
+            "type": "string",
+            "title": "Acceptance Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUPPORTED",
+              "MISSING",
+              "UNKNOWN"
+            ],
+            "title": "Status"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Refs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "acceptance_id",
+          "status"
+        ],
+        "title": "EvaluationCapability"
+      },
       "EvaluationEvidenceGate": {
         "properties": {
           "status": {
@@ -3770,6 +3807,41 @@
             ],
             "title": "Delivery Kind"
           },
+          "external_service_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "NOT_RUN"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Service Status"
+          },
+          "reuse_assessments": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationReuseAssessment"
+            },
+            "type": "array",
+            "title": "Reuse Assessments"
+          },
+          "selection_duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selection Duration Ms"
+          },
           "report": {
             "$ref": "#/components/schemas/JobReport"
           },
@@ -3886,6 +3958,58 @@
         },
         "type": "object",
         "title": "EvaluationRetrieval"
+      },
+      "EvaluationReuseAssessment": {
+        "properties": {
+          "repo_url": {
+            "type": "string",
+            "title": "Repo Url"
+          },
+          "commit": {
+            "type": "string",
+            "title": "Commit"
+          },
+          "requirement_revision": {
+            "type": "integer",
+            "title": "Requirement Revision"
+          },
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationCapability"
+            },
+            "type": "array",
+            "title": "Capabilities"
+          },
+          "differences": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Differences"
+          },
+          "adaptations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Adaptations"
+          },
+          "validation_issues": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Validation Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo_url",
+          "commit",
+          "requirement_revision",
+          "capabilities"
+        ],
+        "title": "EvaluationReuseAssessment"
       },
       "EvaluationRunRequest": {
         "properties": {
@@ -5109,6 +5233,15 @@
               "NOT_RUN"
             ],
             "title": "Status"
+          },
+          "importance": {
+            "type": "string",
+            "enum": [
+              "CORE",
+              "PREFERENCE"
+            ],
+            "title": "Importance",
+            "default": "CORE"
           },
           "evidence_urls": {
             "items": {

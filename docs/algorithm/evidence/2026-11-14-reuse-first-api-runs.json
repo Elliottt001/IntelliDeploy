@@ -1,0 +1,1455 @@
+{
+  "snapshot_commit": "d6a6e8d9bd68aed73e04c603f4debccf67ed36aa",
+  "release_ready": false,
+  "hybrid_default_ready": false,
+  "notes": [
+    "Different prompts and delivery kinds do not form a Baseline/Hybrid timing pair.",
+    "Pending and UNKNOWN model costs are not zero.",
+    "Assistant audit is not human acceptance.",
+    "Extra minimal cases clarify session-only anonymous scope; they do not replace the original inputs."
+  ],
+  "verified_commit_correction": {
+    "repo_url": "https://github.com/leanote/markdown-editor-v2",
+    "commit": "4b72a7679c5853f21d83271e5fadbdccf4ea5b38",
+    "tree": "b8b659c90a993c13ddab2fff90d118ec9a0e0535",
+    "checked_via": "GitHub commits/master API"
+  },
+  "runs": [
+    {
+      "job_id": "e2ae5900-0aeb-4d7d-bea6-04df8ae69296",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。优先给官方服务链接，不需要自己部署。",
+      "case": "official-markdown",
+      "test_case_author": null,
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/evaluation/runs",
+      "expected_snapshot_commit": null,
+      "actual_snapshot_commit": null,
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "baseline",
+      "status": "WAITING_USER",
+      "phase": "clarifying",
+      "error": null,
+      "budget_units": 10000000,
+      "duration_ms": 243894,
+      "selection_duration_ms": null,
+      "candidate_count": 22,
+      "source_refs": [],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:e2ae5900-0aeb-4d7d-bea6-04df8ae69296:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:e2ae5900-0aeb-4d7d-bea6-04df8ae69296:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:e2ae5900-0aeb-4d7d-bea6-04df8ae69296:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:e2ae5900-0aeb-4d7d-bea6-04df8ae69296:assessment:1:0:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:e2ae5900-0aeb-4d7d-bea6-04df8ae69296:assessment:1:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:e2ae5900-0aeb-4d7d-bea6-04df8ae69296:assessment:1:1:1",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "d126f125-28f7-439b-871b-808494bc3f06",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。优先给官方服务链接，不需要自己部署。",
+      "case": "official-markdown",
+      "test_case_author": null,
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/evaluation/runs",
+      "expected_snapshot_commit": null,
+      "actual_snapshot_commit": null,
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "baseline",
+      "status": "WAITING_USER",
+      "phase": "clarifying",
+      "error": null,
+      "budget_units": 10000000,
+      "duration_ms": 335806,
+      "selection_duration_ms": null,
+      "candidate_count": 56,
+      "source_refs": [],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:d126f125-28f7-439b-871b-808494bc3f06:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:d126f125-28f7-439b-871b-808494bc3f06:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:d126f125-28f7-439b-871b-808494bc3f06:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:d126f125-28f7-439b-871b-808494bc3f06:assessment:1:0:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:d126f125-28f7-439b-871b-808494bc3f06:assessment:1:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:d126f125-28f7-439b-871b-808494bc3f06:assessment:1:1:1",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "8332edab-55e5-4708-9740-d6283b2508c4",
+      "prompt": "我要独立部署一个现成 Markdown 编辑器，可以编辑并实时预览 Markdown。外观不同可以接受，优先用仓库自带的部署方式，不要从头生成。",
+      "case": "self-hosted-markdown",
+      "test_case_author": null,
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/evaluation/runs",
+      "expected_snapshot_commit": null,
+      "actual_snapshot_commit": null,
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "hybrid",
+      "status": "FAILED",
+      "phase": "failed",
+      "error": {
+        "code": "TARGET_UNAVAILABLE",
+        "message": "执行节点结果待核对，不能盲目重放",
+        "retryable": true
+      },
+      "budget_units": 10000000,
+      "duration_ms": 204048,
+      "selection_duration_ms": null,
+      "candidate_count": 40,
+      "source_refs": [
+        {
+          "url": "https://github.com/leanote/markdown-editor-v2",
+          "role": "principal",
+          "commit": "4b72a7679c5853f21d83271e5fadbdccf4ea5b38"
+        }
+      ],
+      "route": "MODIFY_EXISTING",
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:8332edab-55e5-4708-9740-d6283b2508c4:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:8332edab-55e5-4708-9740-d6283b2508c4:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:8332edab-55e5-4708-9740-d6283b2508c4:query:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:8332edab-55e5-4708-9740-d6283b2508c4:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:8332edab-55e5-4708-9740-d6283b2508c4:assessment:1:0:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:8332edab-55e5-4708-9740-d6283b2508c4:gaps:1:03bab61d591371b5bb55079b028eec4a435875d823922ce48472b45b39d5c61d:0",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "8cf919bc-5792-4d3f-9644-cef85b2f99ff",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。优先给官方服务链接，不需要自己部署。",
+      "case": "official-markdown",
+      "test_case_author": null,
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/evaluation/runs",
+      "expected_snapshot_commit": null,
+      "actual_snapshot_commit": null,
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "baseline",
+      "status": "FAILED",
+      "phase": "failed",
+      "error": {
+        "code": "REQUIREMENT_INVALID",
+        "message": "系统未能完成需求核对，仍有2项验收问题；已保留本次需求。",
+        "retryable": true
+      },
+      "budget_units": 10000000,
+      "duration_ms": 13205,
+      "selection_duration_ms": null,
+      "candidate_count": 0,
+      "source_refs": [],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:8cf919bc-5792-4d3f-9644-cef85b2f99ff:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:8cf919bc-5792-4d3f-9644-cef85b2f99ff:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:8cf919bc-5792-4d3f-9644-cef85b2f99ff:requirements:1:2",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:8cf919bc-5792-4d3f-9644-cef85b2f99ff:requirements:1:3",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:8cf919bc-5792-4d3f-9644-cef85b2f99ff:requirements:1:4",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "075adda2-5af6-43cc-a8ab-24da7ce27405",
+      "prompt": "我要独立部署一个现成 Markdown 编辑器，可以编辑并实时预览 Markdown。外观不同可以接受，优先用仓库自带的部署方式，不要从头生成。",
+      "case": "self-hosted-markdown",
+      "test_case_author": null,
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/evaluation/runs",
+      "expected_snapshot_commit": null,
+      "actual_snapshot_commit": null,
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "hybrid",
+      "status": "FAILED",
+      "phase": "failed",
+      "error": {
+        "code": "PIPELINE_FAILED",
+        "message": "source was not retrieved at this commit",
+        "retryable": true
+      },
+      "budget_units": 10000000,
+      "duration_ms": 422718,
+      "selection_duration_ms": 396157,
+      "candidate_count": 91,
+      "source_refs": [
+        {
+          "url": "https://github.com/leanote/markdown-editor-v2",
+          "role": "principal",
+          "commit": "4b72a7679c5853f21d83271e5fadbdccf4ea5b38"
+        }
+      ],
+      "route": "MODIFY_EXISTING",
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:075adda2-5af6-43cc-a8ab-24da7ce27405:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:075adda2-5af6-43cc-a8ab-24da7ce27405:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:075adda2-5af6-43cc-a8ab-24da7ce27405:query:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:075adda2-5af6-43cc-a8ab-24da7ce27405:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:075adda2-5af6-43cc-a8ab-24da7ce27405:assessment:1:0:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:075adda2-5af6-43cc-a8ab-24da7ce27405:gaps:1:c5ff1e772d020225264655b2c434ac03ee688e32845cad377e74875b9a2aca4d:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:075adda2-5af6-43cc-a8ab-24da7ce27405:implementation:0:r1:0",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "0dca1c21-3b35-494a-9347-96e5e9003b44",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。优先给官方服务链接，不需要自己部署。",
+      "case": "official-markdown",
+      "test_case_author": null,
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/evaluation/runs",
+      "expected_snapshot_commit": null,
+      "actual_snapshot_commit": null,
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "baseline",
+      "status": "WAITING_USER",
+      "phase": "clarifying",
+      "error": null,
+      "budget_units": 10000000,
+      "duration_ms": 305734,
+      "selection_duration_ms": 134132,
+      "candidate_count": 41,
+      "source_refs": [],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:0dca1c21-3b35-494a-9347-96e5e9003b44:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:0dca1c21-3b35-494a-9347-96e5e9003b44:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:0dca1c21-3b35-494a-9347-96e5e9003b44:requirements:1:2",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:0dca1c21-3b35-494a-9347-96e5e9003b44:requirements:3:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:0dca1c21-3b35-494a-9347-96e5e9003b44:requirements:3:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:0dca1c21-3b35-494a-9347-96e5e9003b44:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:0dca1c21-3b35-494a-9347-96e5e9003b44:assessment:1:0:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:0dca1c21-3b35-494a-9347-96e5e9003b44:assessment:1:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:0dca1c21-3b35-494a-9347-96e5e9003b44:assessment:1:1:1",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [
+        {
+          "content": "只需当次会话内编辑和预览，不要求账号保存或刷新恢复。接受服务自身的注册登录方式；若需要本人注册，给出候选和说明，不能代替我创建第三方账号。仍优先官方链接，不需要自托管。",
+          "reason": "minimum interpretation; no persistence requirement added",
+          "response": {
+            "app_id": "080e6e56-78c4-409c-98eb-83a4cae5da83",
+            "job_id": "0dca1c21-3b35-494a-9347-96e5e9003b44",
+            "status": "QUEUED"
+          }
+        }
+      ],
+      "external_verification": null
+    },
+    {
+      "job_id": "3212b0bd-e146-4494-9b31-81892a97d83e",
+      "prompt": "我要独立部署一个现成 Markdown 编辑器，可以编辑并实时预览 Markdown。外观不同可以接受，优先用仓库自带的部署方式，不要从头生成。",
+      "case": "self-hosted-markdown",
+      "test_case_author": null,
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/evaluation/runs",
+      "expected_snapshot_commit": null,
+      "actual_snapshot_commit": null,
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "hybrid",
+      "status": "WAITING_USER",
+      "phase": "clarifying",
+      "error": null,
+      "budget_units": 10000000,
+      "duration_ms": 154722,
+      "selection_duration_ms": 149442,
+      "candidate_count": 41,
+      "source_refs": [],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:3212b0bd-e146-4494-9b31-81892a97d83e:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:3212b0bd-e146-4494-9b31-81892a97d83e:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:3212b0bd-e146-4494-9b31-81892a97d83e:query:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:3212b0bd-e146-4494-9b31-81892a97d83e:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:3212b0bd-e146-4494-9b31-81892a97d83e:assessment:1:0:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:3212b0bd-e146-4494-9b31-81892a97d83e:assessment:1:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:3212b0bd-e146-4494-9b31-81892a97d83e:assessment:1:1:1",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "fd13a0a2-4573-48bb-8ec4-29604bd4c6cd",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。优先给官方服务链接，不需要自己部署。",
+      "case": "official-markdown",
+      "test_case_author": null,
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/evaluation/runs",
+      "expected_snapshot_commit": null,
+      "actual_snapshot_commit": null,
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "baseline",
+      "status": "WAITING_USER",
+      "phase": "clarifying",
+      "error": null,
+      "budget_units": 10000000,
+      "duration_ms": 67860,
+      "selection_duration_ms": 57766,
+      "candidate_count": 39,
+      "source_refs": [
+        {
+          "url": "https://github.com/nico-martin/markdown-editor",
+          "role": "official service",
+          "commit": "2f209110e7dbaccecf6786a9cf05836c5fa9185c"
+        }
+      ],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:fd13a0a2-4573-48bb-8ec4-29604bd4c6cd:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:fd13a0a2-4573-48bb-8ec4-29604bd4c6cd:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:fd13a0a2-4573-48bb-8ec4-29604bd4c6cd:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:fd13a0a2-4573-48bb-8ec4-29604bd4c6cd:assessment:1:0:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:fd13a0a2-4573-48bb-8ec4-29604bd4c6cd:external:1:0",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": {
+        "url": "https://md.nico.dev/",
+        "status": "NOT_RUN",
+        "checked_at": "2026-11-13T16:12:00.585161Z",
+        "source_mode": "real",
+        "source_refs": [
+          "github-api:https://github.com/nico-martin/markdown-editor:homepage"
+        ],
+        "service_kind": "OFFICIAL_SERVICE",
+        "core_checks": [
+          {
+            "id": "A1",
+            "status": "NOT_RUN",
+            "evidence_sha256": "3f06ae53c40103e47d1ac2d2bf9cbb0ac2bf77a4b8f776d35e5e95c378662217"
+          },
+          {
+            "id": "A2",
+            "status": "NOT_RUN",
+            "evidence_sha256": "ce5bf197ee7faada52aac3813d110ce4986d89f153d478abf51805d85dd79191"
+          },
+          {
+            "id": "A3",
+            "status": "NOT_RUN",
+            "evidence_sha256": "62e929c370494e8ff90a50128830c31c705b5531cb2e9ba1c74adc8d8577cd67"
+          }
+        ]
+      }
+    },
+    {
+      "job_id": "c6415182-655e-4e74-b4cc-8b92d3eaabad",
+      "prompt": "我要独立部署一个现成 Markdown 编辑器，可以编辑并实时预览 Markdown。外观不同可以接受，优先用仓库自带的部署方式，不要从头生成。",
+      "case": "self-hosted-markdown",
+      "test_case_author": null,
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/evaluation/runs",
+      "expected_snapshot_commit": null,
+      "actual_snapshot_commit": null,
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "hybrid",
+      "status": "FAILED",
+      "phase": "failed",
+      "error": {
+        "code": "PIPELINE_FAILED",
+        "message": "unsupported compose options in desktop-build",
+        "retryable": true
+      },
+      "budget_units": 10000000,
+      "duration_ms": 104909,
+      "selection_duration_ms": 78651,
+      "candidate_count": 64,
+      "source_refs": [
+        {
+          "url": "https://github.com/ThisIs-Developer/Markdown-Viewer",
+          "role": "principal",
+          "commit": "6f2774044b5335ff2ce154792854ec6c374de5c9"
+        }
+      ],
+      "route": "DEPLOY_EXISTING",
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:c6415182-655e-4e74-b4cc-8b92d3eaabad:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:c6415182-655e-4e74-b4cc-8b92d3eaabad:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:c6415182-655e-4e74-b4cc-8b92d3eaabad:query:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:c6415182-655e-4e74-b4cc-8b92d3eaabad:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:c6415182-655e-4e74-b4cc-8b92d3eaabad:assessment:1:0:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:c6415182-655e-4e74-b4cc-8b92d3eaabad:gaps:1:ad07f69f5706025263c5b04c64be628d7b23e8d09a561865e2783fa2b5c9dd37:0",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "18da001b-e7ec-4e9f-a6f3-6a2b0d2df70e",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。只需要当次编辑和预览，不需要跨会话保存；优先给免注册的官方服务链接，不需要自己部署。",
+      "case": "official-external-before-alternative-fix",
+      "test_case_author": "assistant, explicit anonymous session-only acceptance",
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/apps",
+      "expected_snapshot_commit": "875afd3",
+      "actual_snapshot_commit": "be2e24c",
+      "old_worker_claimed": true,
+      "effective_algorithm_mode": "baseline",
+      "status": "FAILED",
+      "phase": "failed",
+      "error": {
+        "code": "EXTERNAL_VERIFICATION_FAILED",
+        "message": "官方服务验证未完成，已保留来源供重试",
+        "retryable": true
+      },
+      "budget_units": 100000,
+      "duration_ms": 79117,
+      "selection_duration_ms": 67227,
+      "candidate_count": 27,
+      "source_refs": [
+        {
+          "url": "https://github.com/corbindavenport/pluto-editor",
+          "role": "official service",
+          "commit": "e12f011f4cb2eddc3e44acc2de7d667d9f4d6d08"
+        }
+      ],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:18da001b-e7ec-4e9f-a6f3-6a2b0d2df70e:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:18da001b-e7ec-4e9f-a6f3-6a2b0d2df70e:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:18da001b-e7ec-4e9f-a6f3-6a2b0d2df70e:requirements:1:2",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:18da001b-e7ec-4e9f-a6f3-6a2b0d2df70e:requirements:1:3",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:18da001b-e7ec-4e9f-a6f3-6a2b0d2df70e:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:18da001b-e7ec-4e9f-a6f3-6a2b0d2df70e:assessment:1:0:1",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "cbdaa749-ac87-421d-8efd-ecb9fe475cba",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。只需要当次编辑和预览，不需要跨会话保存；优先给免注册的官方服务链接，不需要自己部署。",
+      "case": "official-external-before-fact-contract-fix",
+      "test_case_author": "assistant, explicit anonymous session-only acceptance",
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/apps",
+      "expected_snapshot_commit": "e4370f1c",
+      "actual_snapshot_commit": "be2e24c",
+      "old_worker_claimed": true,
+      "effective_algorithm_mode": "baseline",
+      "status": "FAILED",
+      "phase": "failed",
+      "error": {
+        "code": "REQUIREMENT_INVALID",
+        "message": "系统未能完成完整需求核对，已保存问题记录供排查。",
+        "retryable": true
+      },
+      "budget_units": 100000,
+      "duration_ms": 8474,
+      "selection_duration_ms": null,
+      "candidate_count": 0,
+      "source_refs": [],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:cbdaa749-ac87-421d-8efd-ecb9fe475cba:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:cbdaa749-ac87-421d-8efd-ecb9fe475cba:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:cbdaa749-ac87-421d-8efd-ecb9fe475cba:requirements:1:2",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "cb628cb8-6696-4839-8468-8ef4aa424b24",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。只需要当次编辑和预览，不需要跨会话保存；优先给免注册的官方服务链接，不需要自己部署。",
+      "case": "official-external-before-freeze-contract-fix",
+      "test_case_author": "assistant, explicit anonymous session-only acceptance",
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/apps",
+      "expected_snapshot_commit": "8c2f6d0",
+      "actual_snapshot_commit": "8c2f6d0",
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "baseline",
+      "status": "FAILED",
+      "phase": "failed",
+      "error": {
+        "code": "PIPELINE_FAILED",
+        "message": "frozen fact has an invalid source or mapping",
+        "retryable": true
+      },
+      "budget_units": 100000,
+      "duration_ms": 4353,
+      "selection_duration_ms": null,
+      "candidate_count": 0,
+      "source_refs": [],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:cb628cb8-6696-4839-8468-8ef4aa424b24:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:cb628cb8-6696-4839-8468-8ef4aa424b24:requirements:1:1",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "eecc9983-fcd6-4501-b464-fdbdc811deba",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。只需要当次编辑和预览，不需要跨会话保存；优先给免注册的官方服务链接，不需要自己部署。",
+      "case": "official-external-before-navigation-fix",
+      "test_case_author": "assistant, explicit anonymous session-only acceptance",
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/apps",
+      "expected_snapshot_commit": "9988075",
+      "actual_snapshot_commit": "9988075",
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "baseline",
+      "status": "WAITING_USER",
+      "phase": "clarifying",
+      "error": null,
+      "budget_units": 100000,
+      "duration_ms": 92212,
+      "selection_duration_ms": 49476,
+      "candidate_count": 20,
+      "source_refs": [
+        {
+          "url": "https://github.com/nico-martin/markdown-editor",
+          "role": "official service",
+          "commit": "2f209110e7dbaccecf6786a9cf05836c5fa9185c"
+        }
+      ],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:eecc9983-fcd6-4501-b464-fdbdc811deba:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:eecc9983-fcd6-4501-b464-fdbdc811deba:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:eecc9983-fcd6-4501-b464-fdbdc811deba:requirements:1:2",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:eecc9983-fcd6-4501-b464-fdbdc811deba:requirements:1:3",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:eecc9983-fcd6-4501-b464-fdbdc811deba:assessment:1:0:0",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": {
+        "url": "https://md.nico.dev/",
+        "status": "NOT_RUN",
+        "checked_at": "2026-11-13T16:44:58.071150Z",
+        "source_mode": "real",
+        "source_refs": [
+          "github-api:https://github.com/nico-martin/markdown-editor:homepage"
+        ],
+        "service_kind": "UNKNOWN",
+        "core_checks": [
+          {
+            "id": "A1",
+            "status": "NOT_RUN",
+            "evidence_sha256": "5733477c5a6e9b907e9c0f4b57904a0f26e0b40e9bd661c62692a86469c057c1"
+          },
+          {
+            "id": "A2",
+            "status": "NOT_RUN",
+            "evidence_sha256": "5733477c5a6e9b907e9c0f4b57904a0f26e0b40e9bd661c62692a86469c057c1"
+          },
+          {
+            "id": "A3",
+            "status": "NOT_RUN",
+            "evidence_sha256": "5733477c5a6e9b907e9c0f4b57904a0f26e0b40e9bd661c62692a86469c057c1"
+          }
+        ]
+      }
+    },
+    {
+      "job_id": "642f17c0-ded6-4515-8bb8-64e807de3eea",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。只需要当次编辑和预览，不需要跨会话保存；优先给免注册的官方服务链接，不需要自己部署。",
+      "case": "official-external-before-review-fix",
+      "test_case_author": "assistant, explicit anonymous session-only acceptance",
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/apps",
+      "expected_snapshot_commit": "3c9bdec",
+      "actual_snapshot_commit": "3c9bdec",
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "baseline",
+      "status": "FAILED",
+      "phase": "failed",
+      "error": {
+        "code": "REQUIREMENT_INVALID",
+        "message": "系统未能完成需求核对，仍有1项验收问题；已保留本次需求。",
+        "retryable": true
+      },
+      "budget_units": 100000,
+      "duration_ms": 10667,
+      "selection_duration_ms": null,
+      "candidate_count": 0,
+      "source_refs": [],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:642f17c0-ded6-4515-8bb8-64e807de3eea:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:642f17c0-ded6-4515-8bb8-64e807de3eea:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:642f17c0-ded6-4515-8bb8-64e807de3eea:requirements:1:2",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:642f17c0-ded6-4515-8bb8-64e807de3eea:requirements:1:3",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:642f17c0-ded6-4515-8bb8-64e807de3eea:requirements:1:4",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "713d0041-7baa-4516-b61f-0f3339aff719",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。只需要当次编辑和预览，不需要跨会话保存；优先给免注册的官方服务链接，不需要自己部署。",
+      "case": "official-external-final",
+      "test_case_author": "assistant, explicit anonymous session-only acceptance",
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/apps",
+      "expected_snapshot_commit": "2a54fff",
+      "actual_snapshot_commit": "2a54fff",
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "baseline",
+      "status": "SUCCEEDED",
+      "phase": "completed",
+      "error": null,
+      "budget_units": 100000,
+      "duration_ms": 71920,
+      "selection_duration_ms": 49305,
+      "candidate_count": 60,
+      "source_refs": [
+        {
+          "url": "https://github.com/doocs/md",
+          "role": "official service",
+          "commit": "ef72ea2d9d1581a4db383bf3f1a848fd60bc2f57"
+        }
+      ],
+      "route": null,
+      "delivery_kind": "EXTERNAL_LINK",
+      "core_report": "PASS",
+      "model_calls": [
+        {
+          "operation_id": "model:713d0041-7baa-4516-b61f-0f3339aff719:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:713d0041-7baa-4516-b61f-0f3339aff719:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:713d0041-7baa-4516-b61f-0f3339aff719:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:713d0041-7baa-4516-b61f-0f3339aff719:assessment:1:0:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:713d0041-7baa-4516-b61f-0f3339aff719:external:1:470214efe7c85b97e1df1d1324115cc24d45eb132b7b008cab200630f7168614:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:713d0041-7baa-4516-b61f-0f3339aff719:external:1:470214efe7c85b97e1df1d1324115cc24d45eb132b7b008cab200630f7168614:1",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": true,
+      "test_answers": [],
+      "external_verification": {
+        "url": "https://md.doocs.org/",
+        "status": "PASS",
+        "checked_at": "2026-11-14T02:35:08.224788Z",
+        "source_mode": "real",
+        "source_refs": [
+          "github-api:https://github.com/doocs/md:homepage"
+        ],
+        "service_kind": "OFFICIAL_SERVICE",
+        "core_checks": [
+          {
+            "id": "A1",
+            "status": "PASS",
+            "evidence_sha256": "98ffa9d488b3e5cba50ab9a93894508dd09d86c19de828962a8c5d5e10c6455c"
+          },
+          {
+            "id": "A2",
+            "status": "PASS",
+            "evidence_sha256": "0f8cd393d97af9e6128a039ff6e03c8744e16d498e7914faf31786ef35627e45"
+          },
+          {
+            "id": "A3",
+            "status": "PASS",
+            "evidence_sha256": "7f84c697ee198a02fc5a432281f4fb5d095521f6d15fc0c678200d3b59bd4f1d"
+          }
+        ]
+      }
+    },
+    {
+      "job_id": "f5b649b2-eead-4ece-af8f-a1c91a5717c1",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。只需要当次编辑和预览，不需要跨会话保存；优先给免注册的官方服务链接，不需要自己部署。",
+      "case": "official-external-old-worker-final",
+      "test_case_author": "assistant, explicit anonymous session-only acceptance",
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/apps",
+      "expected_snapshot_commit": "8c2f6d0",
+      "actual_snapshot_commit": "be2e24c",
+      "old_worker_claimed": true,
+      "effective_algorithm_mode": "baseline",
+      "status": "FAILED",
+      "phase": "failed",
+      "error": {
+        "code": "EXTERNAL_VERIFICATION_FAILED",
+        "message": "官方服务验证未完成，已保留来源供重试",
+        "retryable": true
+      },
+      "budget_units": 100000,
+      "duration_ms": 64919,
+      "selection_duration_ms": 55382,
+      "candidate_count": 27,
+      "source_refs": [
+        {
+          "url": "https://github.com/corbindavenport/pluto-editor",
+          "role": "official service",
+          "commit": "e12f011f4cb2eddc3e44acc2de7d667d9f4d6d08"
+        }
+      ],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:f5b649b2-eead-4ece-af8f-a1c91a5717c1:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:f5b649b2-eead-4ece-af8f-a1c91a5717c1:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:f5b649b2-eead-4ece-af8f-a1c91a5717c1:requirements:1:2",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:f5b649b2-eead-4ece-af8f-a1c91a5717c1:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:f5b649b2-eead-4ece-af8f-a1c91a5717c1:assessment:1:0:1",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "2d4fd93c-8038-4a02-80fc-04cd44040515",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。优先给官方服务链接，不需要自己部署。",
+      "case": "official-markdown",
+      "test_case_author": null,
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/evaluation/runs",
+      "expected_snapshot_commit": null,
+      "actual_snapshot_commit": null,
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "baseline",
+      "status": "WAITING_USER",
+      "phase": "clarifying",
+      "error": null,
+      "budget_units": 10000000,
+      "duration_ms": 60887,
+      "selection_duration_ms": 54753,
+      "candidate_count": 20,
+      "source_refs": [
+        {
+          "url": "https://github.com/pottekkat/markdown-editor",
+          "role": "principal",
+          "commit": "9f5213fd610d8856c9a254e8bbcc6f15e4f23c6a"
+        }
+      ],
+      "route": "MODIFY_EXISTING",
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:2d4fd93c-8038-4a02-80fc-04cd44040515:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:2d4fd93c-8038-4a02-80fc-04cd44040515:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:2d4fd93c-8038-4a02-80fc-04cd44040515:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:2d4fd93c-8038-4a02-80fc-04cd44040515:assessment:1:0:1",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "588214ca-681e-446b-a062-7fdb2bc2257c",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。只需要当次编辑和预览，不需要跨会话保存；优先给免注册的官方服务链接，不需要自己部署。",
+      "case": "official-minimal-final",
+      "test_case_author": "assistant, explicit anonymous session-only acceptance",
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/apps",
+      "expected_snapshot_commit": "be2e24c",
+      "actual_snapshot_commit": "be2e24c",
+      "old_worker_claimed": true,
+      "effective_algorithm_mode": "baseline",
+      "status": "WAITING_USER",
+      "phase": "clarifying",
+      "error": null,
+      "budget_units": 100000,
+      "duration_ms": 127945,
+      "selection_duration_ms": 118665,
+      "candidate_count": 28,
+      "source_refs": [],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:588214ca-681e-446b-a062-7fdb2bc2257c:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:588214ca-681e-446b-a062-7fdb2bc2257c:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:588214ca-681e-446b-a062-7fdb2bc2257c:requirements:1:2",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:588214ca-681e-446b-a062-7fdb2bc2257c:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:588214ca-681e-446b-a062-7fdb2bc2257c:assessment:1:0:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:588214ca-681e-446b-a062-7fdb2bc2257c:assessment:1:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:588214ca-681e-446b-a062-7fdb2bc2257c:assessment:1:1:1",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "9c4ab0e4-2726-4b2f-8cdc-f10c4309bf0b",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。只需要当次编辑和预览，不需要跨会话保存；优先给免注册的官方服务链接，不需要自己部署。",
+      "case": "ordinary-official-minimal-before-browser-action-fix",
+      "test_case_author": "assistant, explicit session-only acceptance case",
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/apps",
+      "expected_snapshot_commit": "96cb58a",
+      "actual_snapshot_commit": "96cb58a",
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "baseline",
+      "status": "WAITING_USER",
+      "phase": "clarifying",
+      "error": null,
+      "budget_units": 10000000,
+      "duration_ms": 72511,
+      "selection_duration_ms": 51067,
+      "candidate_count": 20,
+      "source_refs": [
+        {
+          "url": "https://github.com/nico-martin/markdown-editor",
+          "role": "official service",
+          "commit": "2f209110e7dbaccecf6786a9cf05836c5fa9185c"
+        }
+      ],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:9c4ab0e4-2726-4b2f-8cdc-f10c4309bf0b:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:9c4ab0e4-2726-4b2f-8cdc-f10c4309bf0b:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:9c4ab0e4-2726-4b2f-8cdc-f10c4309bf0b:requirements:1:2",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:9c4ab0e4-2726-4b2f-8cdc-f10c4309bf0b:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:9c4ab0e4-2726-4b2f-8cdc-f10c4309bf0b:external:1:0",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": {
+        "url": "https://md.nico.dev/",
+        "status": "NOT_RUN",
+        "checked_at": "2026-11-13T16:24:30.836958Z",
+        "source_mode": "real",
+        "source_refs": [
+          "github-api:https://github.com/nico-martin/markdown-editor:homepage"
+        ],
+        "service_kind": "OFFICIAL_SERVICE",
+        "core_checks": [
+          {
+            "id": "A1",
+            "status": "NOT_RUN",
+            "evidence_sha256": "5733477c5a6e9b907e9c0f4b57904a0f26e0b40e9bd661c62692a86469c057c1"
+          },
+          {
+            "id": "A2",
+            "status": "NOT_RUN",
+            "evidence_sha256": "5733477c5a6e9b907e9c0f4b57904a0f26e0b40e9bd661c62692a86469c057c1"
+          },
+          {
+            "id": "A3",
+            "status": "NOT_RUN",
+            "evidence_sha256": "5733477c5a6e9b907e9c0f4b57904a0f26e0b40e9bd661c62692a86469c057c1"
+          }
+        ]
+      }
+    },
+    {
+      "job_id": "da07ff41-862e-46a6-8d01-68ee995d2176",
+      "prompt": "找一个在线 Markdown 编辑器，能直接编辑和预览 Markdown。只需要当次编辑和预览，不需要跨会话保存；优先给免注册的官方服务链接，不需要自己部署。",
+      "case": "ordinary-official-minimal-before-optional-fix",
+      "test_case_author": "assistant, explicit session-only acceptance case",
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/apps",
+      "expected_snapshot_commit": null,
+      "actual_snapshot_commit": null,
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "baseline",
+      "status": "WAITING_USER",
+      "phase": "clarifying",
+      "error": null,
+      "budget_units": 10000000,
+      "duration_ms": 119298,
+      "selection_duration_ms": 115183,
+      "candidate_count": 41,
+      "source_refs": [],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:da07ff41-862e-46a6-8d01-68ee995d2176:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:da07ff41-862e-46a6-8d01-68ee995d2176:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:da07ff41-862e-46a6-8d01-68ee995d2176:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:da07ff41-862e-46a6-8d01-68ee995d2176:assessment:1:0:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:da07ff41-862e-46a6-8d01-68ee995d2176:assessment:1:1:0",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "462a6eb9-b674-4dad-9d82-e4f5a7b024f4",
+      "prompt": "我要独立部署一个现成 Markdown 编辑器，可以编辑并实时预览 Markdown。外观不同可以接受，优先用仓库自带的部署方式，不要从头生成。",
+      "case": "self-hosted-markdown",
+      "test_case_author": null,
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/evaluation/runs",
+      "expected_snapshot_commit": null,
+      "actual_snapshot_commit": null,
+      "old_worker_claimed": false,
+      "effective_algorithm_mode": "hybrid",
+      "status": "WAITING_USER",
+      "phase": "clarifying",
+      "error": null,
+      "budget_units": 10000000,
+      "duration_ms": 10284,
+      "selection_duration_ms": null,
+      "candidate_count": 0,
+      "source_refs": [],
+      "route": null,
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:462a6eb9-b674-4dad-9d82-e4f5a7b024f4:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:462a6eb9-b674-4dad-9d82-e4f5a7b024f4:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:462a6eb9-b674-4dad-9d82-e4f5a7b024f4:requirements:1:2",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    },
+    {
+      "job_id": "6e9bada3-56b3-4a3e-8c32-566ab5c1d848",
+      "prompt": "独立部署一个现成 Markdown 编辑器，只需要匿名的当次编辑和实时预览，不要求文档保存、跨会话恢复或应用账号。外观不同可以接受，优先仓库官方的Web部署方式，不要从头生成。",
+      "case": "self-hosted-minimal-final",
+      "test_case_author": "assistant, explicit anonymous session-only acceptance",
+      "evidence_origin": "real API / GitHub / provider model, no forced route",
+      "endpoint": "/api/evaluation/runs",
+      "expected_snapshot_commit": "be2e24c",
+      "actual_snapshot_commit": "be2e24c",
+      "old_worker_claimed": true,
+      "effective_algorithm_mode": "hybrid",
+      "status": "FAILED",
+      "phase": "failed",
+      "error": {
+        "code": "PIPELINE_FAILED",
+        "message": "生成未形成可验证的运行清单",
+        "retryable": true
+      },
+      "budget_units": 100000,
+      "duration_ms": 873829,
+      "selection_duration_ms": 70305,
+      "candidate_count": 54,
+      "source_refs": [
+        {
+          "url": "https://github.com/leanote/markdown-editor-v2",
+          "role": "principal",
+          "commit": "4b72a7679c5853f21d83271e5fadbdccf4ea5b38"
+        }
+      ],
+      "route": "DEPLOY_EXISTING",
+      "delivery_kind": null,
+      "core_report": "NOT_RUN",
+      "model_calls": [
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:requirements:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:requirements:1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:requirements:1:2",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:query:1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:assessment:1:0:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:assessment:1:0:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:gaps:1:89472f6b02dad1d345c6c0995c4b62887880da790a9d0a05adaa657d986a460c:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:1",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:2",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:3",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:4",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:5",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:6",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:7",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:8",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:9",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:10",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:11",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:12",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:13",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:14",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:15",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:16",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:17",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:18",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:19",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:20",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:21",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:22",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:23",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:24",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:25",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:implementation:0:r1:26",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:checks:0:r1:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:review:6e9bada3-1-e1a58ea6:5ff4ce8e0cee6af05e0061a0059daaeae986a85cf8732afbae2be18d01388a01:0",
+          "state": "METERED"
+        },
+        {
+          "operation_id": "model:6e9bada3-56b3-4a3e-8c32-566ab5c1d848:security:6e9bada3-1-e1a58ea6:4b72a7679c5853f21d83271e5fadbdccf4ea5b38:0",
+          "state": "METERED"
+        }
+      ],
+      "business_validation_pass": false,
+      "test_answers": [],
+      "external_verification": null
+    }
+  ]
+}
