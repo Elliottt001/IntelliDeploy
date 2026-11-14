@@ -4,7 +4,7 @@ from test_default_execution import new_job as new_job
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('first_failure', ['dns', 'not_run'])
+@pytest.mark.parametrize('first_failure', ['dns', 'not_run', 'none_pass'])
 async def test_external_pipeline_tries_second_source_and_persists_its_identity(first_failure, new_job, session_factory, monkeypatch):
     from app.jobs.execution import JobExecution
     from app.jobs.pipeline import complete_external_delivery
@@ -22,6 +22,8 @@ async def test_external_pipeline_tries_second_source_and_persists_its_identity(f
     jid, aid, _, generation = new_job
     req = Requirement(prompt='editor', acceptance=[{'id': 'edit', 'action': 'edit', 'expected': 'preview'}])
     profiles = [profile('bad'), profile('good')]
+    if first_failure == 'none_pass':
+        profiles.append(profile('unused'))
     for p in profiles:
         p.deployment_assets = [DeploymentAsset(kind='OFFICIAL_SERVICE', location=f'https://{p.repo_url.rsplit("/",1)[-1]}.example/',
             source_ref=f'{p.repo_url}@{p.commit}:README.md', source_digest='a' * 64)]
@@ -48,16 +50,26 @@ async def test_external_pipeline_tries_second_source_and_persists_its_identity(f
         phases.append(verifier.model.phase)
         if len(visited) == 1 and first_failure == 'dns':
             raise socket.gaierror('unresolved official service')
-        status = 'PASS' if len(visited) == 2 else 'NOT_RUN'
+        status = 'PASS' if len(visited) == 2 and first_failure != 'none_pass' else 'NOT_RUN'
         return ExternalVerification(service_kind='OFFICIAL_SERVICE', url=asset.location, source_refs=[asset.source_ref],
             checked_at=datetime.now(timezone.utc), status=status,
             core_checks=[{'id': 'edit', 'status': status, 'evidence': 'fixture editor interaction'}])
     monkeypatch.setattr('app.runtime.external_delivery.verify_external_service', verify)
-    await complete_external_delivery(execution, decision, session_factory)
+    if first_failure == 'none_pass':
+        from app.jobs.execution import WaitingForUser
+        with pytest.raises(WaitingForUser):
+            await complete_external_delivery(execution, decision, session_factory)
+    else:
+        await complete_external_delivery(execution, decision, session_factory)
     assert visited == ['https://bad.example/', 'https://good.example/']
     assert len(set(phases)) == 2
     with session_factory() as s:
         job = s.get(Job, jid)
+        if first_failure == 'none_pass':
+            assert job.status == 'WAITING_USER'
+            assert job.result is None
+            assert job.checkpoint['external_verification']['status'] == 'NOT_RUN'
+            return
         assert job.status == 'SUCCEEDED'
         assert job.result['app_id'] == aid
         assert job.result['repo_url'] == profiles[1].repo_url
