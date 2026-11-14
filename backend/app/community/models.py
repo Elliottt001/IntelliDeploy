@@ -1,4 +1,5 @@
-from sqlalchemy import BigInteger, Boolean, CheckConstraint, Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from app.database import Base
 from app.apps.models import new_id, utcnow
 
@@ -39,3 +40,15 @@ class SponsorReservation(Base):
     operation_id = Column(String, ForeignKey('quota_reservations.operation_id'), primary_key=True)
     publication_id = Column(String, ForeignKey('publications.id'), nullable=False, index=True)
     period_start = Column(DateTime(timezone=True), nullable=False)
+
+
+class CommunityPost(Base):
+    __tablename__ = 'community_posts'
+    __table_args__ = (CheckConstraint("visibility IN ('PUBLIC', 'HIDDEN')"),)
+    id = Column(String, primary_key=True, default=new_id)
+    author_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    title = Column(String)
+    body = Column(Text, nullable=False)
+    tags = Column(JSONB, nullable=False, default=list)
+    visibility = Column(String, nullable=False, default='PUBLIC')
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)

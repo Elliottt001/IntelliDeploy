@@ -19,6 +19,7 @@ TABLES |= {'admin_audits', 'platform_controls'}
 TABLES |= {'cleanup_actions'}
 TABLES |= {'app_login_codes', 'instance_credentials', 'instance_data_spaces', 'file_records'}
 TABLES |= {'publications', 'publication_favorites', 'publication_recent_uses', 'sponsor_reservations', 'instance_operations', 'resource_observations', 'resource_meter_windows', 'maintenance_leases'}
+TABLES |= {'community_posts'}
 
 
 def include_object(obj, name, type_, reflected, compare_to):
