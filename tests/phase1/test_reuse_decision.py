@@ -1,5 +1,6 @@
 import pytest
 from app.core.types import Requirement
+from test_default_execution import new_job
 
 
 def test_no_candidates_cannot_silently_generate():
@@ -35,3 +36,113 @@ def test_small_difference_does_not_block_direct_deployment():
     decision=choose_reuse_decision(req,[a],[p])
     assert decision.route=='DEPLOY_EXISTING'
     assert decision.differences==['界面不同']
+
+
+def test_external_service_does_not_require_permission_to_redistribute_code():
+    from app.agent.reuse import choose_reuse_decision
+    from app.agent.contracts import CandidateAssessment, DeploymentAsset
+    from test_candidate_ranking import profile
+    req=Requirement(prompt='在线编辑器',acceptance=[{'id':'A1','action':'编辑','expected':'可用'}])
+    p=profile('editor',license_status='UNKNOWN')
+    p.deployment_assets=[DeploymentAsset(kind='OFFICIAL_SERVICE',location='https://editor.example/',source_ref='github:homepage',source_digest='a'*64)]
+    a=CandidateAssessment(repo_url=p.repo_url,commit=p.commit,requirement_revision=1,
+        capabilities=[{'acceptance_id':'A1','status':'SUPPORTED','evidence_refs':['README.md'],'quote':'editor','reason':'editor'}])
+    assert choose_reuse_decision(req,[a],[p]).delivery_kind=='EXTERNAL_LINK'
+    req.delivery_policy.preference='SELF_HOSTED'
+    from app.agent.reuse import NoReusableSolution
+    with pytest.raises(NoReusableSolution): choose_reuse_decision(req,[a],[p])
+
+
+@pytest.mark.asyncio
+async def test_unknown_anonymous_access_is_verified_at_official_service_not_assumed():
+    from app.agent.reuse import choose_reuse_decision, NoReusableSolution
+    from app.agent.contracts import CandidateAssessment, DeploymentAsset
+    from app.runtime.external_delivery import verify_external_service
+    from test_candidate_ranking import profile
+    req = Requirement(prompt='online editor', acceptance=[
+        {'id': 'edit', 'action': 'edit', 'expected': 'preview'},
+        {'id': 'access', 'action': 'open anonymously', 'expected': 'no registration'}])
+    p = profile('editor')
+    p.deployment_assets = [DeploymentAsset(kind='OFFICIAL_SERVICE', location='https://editor.example/',
+        source_ref='github:homepage', source_digest='a' * 64)]
+    a = CandidateAssessment(repo_url=p.repo_url, commit=p.commit, requirement_revision=1, capabilities=[
+        {'acceptance_id': 'edit', 'status': 'SUPPORTED', 'reason': 'editor', 'evidence_refs': ['README.md'], 'quote': 'editor'},
+        {'acceptance_id': 'access', 'status': 'UNKNOWN', 'reason': 'actual public access not checked'}])
+    decision = choose_reuse_decision(req, [a], [p])
+    assert decision.delivery_kind == 'EXTERNAL_LINK'
+    class Verifier:
+        async def inspect(self, url):
+            return {'url': url, 'status': 200, 'text': 'editor', 'service_kind': 'OFFICIAL_SERVICE'}
+    assert (await verify_external_service(req, decision.deployment_asset, Verifier())).status == 'NOT_RUN'
+    req.delivery_policy.preference = 'SELF_HOSTED'
+    with pytest.raises(NoReusableSolution):
+        choose_reuse_decision(req, [a], [p])
+    req.delivery_policy.preference = 'EXISTING_SERVICE_FIRST'
+    a.capabilities[1].status = 'MISSING'
+    with pytest.raises(NoReusableSolution):
+        choose_reuse_decision(req, [a], [p])
+
+
+def test_equally_capable_principal_prefers_smaller_adaptation_scope():
+    from app.agent.reuse import choose_reuse_decision
+    from app.agent.contracts import CandidateAssessment
+    from test_candidate_ranking import profile
+    req=Requirement(prompt='笔记',acceptance=[{'id':'A1','action':'保存','expected':'可见'}],delivery_policy={'preference':'SELF_HOSTED'})
+    ps=[profile('popular'),profile('small')]
+    assessments=[CandidateAssessment(repo_url=p.repo_url,commit=p.commit,requirement_revision=1,
+        capabilities=[{'acceptance_id':'A1','status':'SUPPORTED','reason':'notes','evidence_refs':['README.md'],'quote':'notes'}],
+        adaptations=['rewrite auth','rewrite config','replace storage'] if i==0 else ['configure port']) for i,p in enumerate(ps)]
+    assert choose_reuse_decision(req,assessments,ps).selected_sources[0].url==ps[1].repo_url
+
+
+def test_unverified_preference_is_disclosed_without_blocking_a():
+    from app.agent.reuse import choose_reuse_decision
+    from app.agent.contracts import CandidateAssessment
+    from test_candidate_ranking import profile
+    req=Requirement(prompt='笔记，颜色可不同',acceptance=[{'id':'A1','action':'保存','expected':'可见'},
+        {'id':'color','action':'蓝色界面','expected':'蓝色','importance':'PREFERENCE'}],delivery_policy={'preference':'SELF_HOSTED'})
+    p=profile('notes')
+    a=CandidateAssessment(repo_url=p.repo_url,commit=p.commit,requirement_revision=1,capabilities=[
+        {'acceptance_id':'A1','status':'SUPPORTED','reason':'notes','evidence_refs':['README.md'],'quote':'notes'},
+        {'acceptance_id':'color','status':'UNKNOWN','reason':'not inspected'}])
+    decision=choose_reuse_decision(req,[a],[p])
+    assert decision.route=='DEPLOY_EXISTING'
+    assert any('蓝色界面' in difference for difference in decision.differences)
+
+
+@pytest.mark.asyncio
+async def test_real_orchestrator_entry_selects_repository_without_generation(new_job,session_factory,monkeypatch):
+    import json
+    from app.jobs.execution import JobExecution
+    from app.core.types import RetrievalResult, ModelTurn
+    from test_repository_profiler import retrieval_candidate
+    candidate=retrieval_candidate(repo_url='https://github.com/example/notes',description='private notes web app',
+        file_tree=['README.md','LICENSE','package.json','app/page.tsx','Dockerfile'],
+        key_files={'README.md':'Create private notes','LICENSE':'MIT License',
+            'package.json':'{"scripts":{"build":"next build","start":"next start"},"dependencies":{"next":"16.4.6"}}',
+            'Dockerfile':'FROM node:24\nEXPOSE 3000\nCMD ["npm","start"]','app/page.tsx':'export default function Page(){return "notes";}'})
+    async def retrieve(*args,**kwargs):
+        return RetrievalResult(queries=['private notes'],completed=True,candidates=[candidate])
+    monkeypatch.setattr('app.agent.retrieval.retrieve_sources',retrieve)
+    class Model:
+        async def complete(self,messages,tools,model):
+            assert model != 'generate'
+            from app.jobs.models import Job
+            with session_factory() as session:
+                assert session.get(Job,jid).phase=='retrieving'
+            return ModelTurn(assistant_message={'content':json.dumps([{'repo_url':candidate.repo_url,'commit':candidate.commit,
+                'requirement_revision':1,'capabilities':[{'acceptance_id':'A1','status':'SUPPORTED','evidence_refs':['README.md'],
+                    'quote':'Create private notes','reason':'notes functionality'}],'differences':['界面不同']}])},input_tokens=1,output_tokens=1)
+    jid,_,_,generation=new_job
+    execution=JobExecution(jid,'worker',generation,session_factory=session_factory,model_client=Model())
+    route=await execution.choose_sources(Requirement(prompt='私人笔记',acceptance=[{'id':'A1','action':'创建笔记','expected':'保存'}]))
+    assert route.route=='DEPLOY_EXISTING'
+    assert route.sources[0].url==candidate.repo_url
+    assert execution.algorithm_checkpoint().reuse_decision.differences==['界面不同']
+    assert execution.checkpoint()['selection_duration_ms']>=0
+    from app.jobs.diagnostics import build_evaluation_record
+    from app.jobs.models import Job
+    with session_factory() as session:
+        record=build_evaluation_record(session,session.get(Job,jid))
+        assert record.reuse_assessments[0].capabilities[0].status=='SUPPORTED'
+        assert record.selection_duration_ms>=0

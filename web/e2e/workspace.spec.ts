@@ -1,6 +1,23 @@
 import { expect, test } from '@playwright/test';
 
 const timestamp='2026-11-10T01:00:00Z';
+test('official service opens directly without platform login code',async({page})=>{
+ let identityCalls=0;
+ await page.route('**/api/instances/**/login-code',route=>{identityCalls++;return route.abort();});
+ const app={...detail('FAILED'),active_job:null,latest_job:null,instance:null,instance_status:null,
+  delivery:{kind:'EXTERNAL_LINK',app_id:'example',job_id:'job',url:'https://official.example/',repo_url:'https://github.com/example/editor',
+   source_ref:'repo:README.md',summary:'官方编辑器',features:['编辑文本'],differences:['界面不同'],verified_at:timestamp,
+   verification_refs:['external:job'],report_url:'/api/jobs/job/report'}};
+ await page.route('**/api/apps/example',route=>route.fulfill({json:app}));
+ await page.context().route('https://official.example/',route=>route.fulfill({body:'<h1>官方编辑器</h1>',contentType:'text/html'}));
+ await page.goto('/apps/example');
+ await expect(page.getByRole('heading',{name:'第三方官方服务'})).toBeVisible();
+ const opened=page.waitForEvent('popup');
+ await page.getByRole('link',{name:'打开官方服务'}).click();
+ const popup=await opened;await expect(popup).toHaveURL('https://official.example/');
+ expect(identityCalls).toBe(0);
+ await expect(page.getByText('下载源码')).toHaveCount(0);
+});
 function detail(status: string) {
   const delivery={app_id:'example',version_id:'v1',instance_id:'i1',url:'https://fixture-app.example',summary:'保存和读取私有笔记',features:['保存笔记'],report_url:'/api/jobs/job/report',artifact_url:'/api/apps/example/versions/v1/artifact',published_at:timestamp};
   const job={id:'job',app_id:'example',kind:'ADJUST',status,phase:'implementing',event_cursor:0,question:status==='WAITING_USER'?'记录是否公开？':null,usage_units:10,result:null,error:status==='FAILED'?{code:'CHECK_FAILED',message:'本次调整未完成',retryable:false}:null,created_at:timestamp,updated_at:timestamp};

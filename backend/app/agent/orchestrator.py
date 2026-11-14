@@ -160,6 +160,12 @@ class AlgorithmOrchestrator:
             )
         if calls:
             reports.extend(await asyncio.gather(*calls))
+        preferences = {a.id for a in requirement.acceptance if a.importance == 'PREFERENCE'}
+        for report in reports:
+            for finding in report.findings:
+                if (finding.severity == 'BLOCKING' and finding.category == 'REQUIREMENT'
+                        and finding.acceptance_ids and set(finding.acceptance_ids) <= preferences):
+                    finding.severity = 'WARNING'
         return reports
 
     def choose_healing(

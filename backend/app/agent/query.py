@@ -9,6 +9,7 @@ from app.core.types import Requirement
 
 
 _CATEGORIES = (
+    (("markdown",), "markdown_editor", "markdown editor web app", ("markdown editor",)),
     (("活动", "报名"), "event_registration", "event registration web app", ("event registration",)),
     (("私人笔记",), "private_notes", "private notes web app", ("private notes",)),
     (("私有笔记",), "private_notes", "private notes web app", ("private notes",)),
@@ -31,9 +32,10 @@ def deterministic_queries(requirement: Requirement) -> QueryPlan:
     category_queries: list[str] = []
     translated_terms: list[str] = []
     for phrases, category, query, terms in _CATEGORIES:
-        if all(phrase in text for phrase in phrases):
+        if all(phrase.lower() in text.lower() for phrase in phrases):
             categories.append(category)
             category_queries.append(query)
+            category_queries.extend(terms)
             translated_terms.extend(terms)
 
     capabilities: list[str] = []

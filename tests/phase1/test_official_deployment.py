@@ -32,3 +32,24 @@ def test_official_command_and_nonsecret_environment_survive_rendering():
     rendered=render_compose(manifest,'test-instance',{})
     assert rendered['services']['web']['command']==['node','server.js']
     assert rendered['services']['web']['environment']['NODE_ENV']=='production'
+
+
+def test_missing_deployment_material_uses_config_builder_not_from_scratch(tmp_path):
+    from app.runtime.official_deployment import can_execute_official_plan
+    from app.agent.contracts import DeploymentPlan
+    p=profile('notes')
+    plan=DeploymentPlan(kind='SOURCE_BUILD',location='Dockerfile',source_ref='source',digest='a'*40)
+    assert can_execute_official_plan(plan,tmp_path,p) is False
+
+
+def test_preference_is_not_a_required_browser_check_or_review_blocker(tmp_path):
+    from app.core.types import Requirement, RoutePlan
+    from app.runtime.check_plan import _validate_plan
+    from app.agent.review import review_deterministic
+    from test_candidate_review import draft
+    req=Requirement(prompt='笔记，颜色随意',acceptance=[{'id':'save-note','action':'保存','expected':'可见'},
+        {'id':'color','action':'蓝色界面','expected':'蓝色','importance':'PREFERENCE'}])
+    checks=[{'item_id':'save-note','actor':'owner','actions':[{'type':'expect_text','selector':'main','text':'saved'}],'expected':'可见'}]
+    assert len(_validate_plan(req,checks))==1
+    report=review_deterministic('attempt',draft(tmp_path),req,RoutePlan(route='DEPLOY_EXISTING',steps=['部署'],reason='test'))
+    assert not any(f.id=='missing:color' and f.severity=='BLOCKING' for f in report.findings)

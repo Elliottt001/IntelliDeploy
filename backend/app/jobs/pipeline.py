@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from app.agent.reuse import NoReusableSolution
+from app.agent.reuse import NoReusableSolution, ExternalServiceSelected
 from pathlib import Path
 from dataclasses import dataclass, replace
 from typing import Any, Awaitable, Callable
@@ -627,10 +627,13 @@ def _create_verified_version(
         job = session.get(Job, job_id)
         app = session.scalar(select(App).where(App.id == job.app_id).with_for_update())
         requirement=session.scalar(select(RequirementRecord).where(RequirementRecord.app_id==app.id,RequirementRecord.revision==job.requirement_revision))
+        from app.agent.checkpoint import load_algorithm_checkpoint
+        algorithm = load_algorithm_checkpoint(job.checkpoint,job.requirement_revision)
         version = AppVersion(
             app_id=app.id,
             requirement_revision=job.requirement_revision,
-            sources=(session.get(AppVersion,app.source_version_id).sources if job.kind=='COPY' else job.checkpoint.get('sources',[])),
+            sources=(session.get(AppVersion,app.source_version_id).sources if job.kind=='COPY' else
+                     [s.model_dump(mode='json') for s in algorithm.selected_sources] or job.checkpoint.get('sources',[])),
             template_version=(session.get(AppVersion,app.source_version_id).template_version if job.kind=='COPY' else job.checkpoint.get('template_version')),
             manifest=candidate.manifest.model_dump(mode="json"),
             validation=report.model_dump(mode="json"),
@@ -638,7 +641,8 @@ def _create_verified_version(
             immutable=True,
             delivery={
                 "summary": app.name,
-                "features": [item['action'] for item in requirement.requirement['acceptance']] if requirement else [],
+                "features": [item.action for item in Requirement.model_validate(requirement.requirement).core_acceptance] if requirement else [],
+                "differences": algorithm.reuse_decision.differences if algorithm.reuse_decision else [],
                 "browser_checks": [
                     item.model_dump(mode="json") for item in candidate.browser_checks
                 ],
@@ -713,6 +717,57 @@ def _finish_cancelled(session_factory, job_id: str) -> None:
         job.lease_owner = None
         job.lease_until = None
         _event(session, job, "任务已在安全点取消")
+        session.commit()
+
+
+async def complete_external_delivery(execution, decision, session_factory):
+    job_id=execution.job_id
+    import hashlib, json, socket
+    import httpx
+    from datetime import datetime, timezone
+    from app.agent.reuse import choose_reuse_decision
+    from app.runtime.external_delivery import verify_external_service, OfficialServiceVerifier, persist_external_delivery, ExternalVerification
+    from app.core.types import ExternalLinkDelivery
+    requirement=await execution.ensure_requirement()
+    choices = [decision]
+    checkpoint = execution.algorithm_checkpoint()
+    profiles = [p.model_copy(update={'deployment_assets':[a for a in p.deployment_assets
+        if a.kind != 'OFFICIAL_SERVICE' or a.location != decision.deployment_asset.location]}) for p in checkpoint.profiles]
+    try:
+        alternative = choose_reuse_decision(requirement, checkpoint.assessments, profiles)
+        if alternative.delivery_kind == 'EXTERNAL_LINK':
+            choices.append(alternative)
+    except NoReusableSolution:
+        pass
+    attempts = []
+    for decision in choices:
+        asset = decision.deployment_asset
+        operation = hashlib.sha256(json.dumps([asset.location,asset.source_ref]).encode()).hexdigest()
+        try:
+            verification=await verify_external_service(requirement,asset,
+                OfficialServiceVerifier(requirement,execution.model(f'external:{requirement.revision}:{operation}')))
+        except (httpx.RequestError, socket.gaierror):
+            verification=ExternalVerification(source_mode='real',service_kind='UNKNOWN',url=asset.location,
+                source_refs=[asset.source_ref],checked_at=datetime.now(timezone.utc),status='NOT_RUN',
+                core_checks=[{'id':a.id,'status':'NOT_RUN','evidence':'官方入口暂不可达，未验证核心功能'} for a in requirement.core_acceptance])
+        attempts.append({'url':asset.location,'source_ref':asset.source_ref,'status':verification.status})
+        execution.save(external_verification=verification.model_dump(mode='json'),external_service_attempts=attempts)
+        checkpoint.reuse_decision=decision
+        checkpoint.selected_sources=decision.selected_sources
+        checkpoint.route=None
+        execution.save_algorithm_checkpoint(checkpoint)
+        if verification.status == 'PASS':
+            break
+    if verification.status != 'PASS':
+        execution.wait_for_user('官方候选 '+verification.url+' 尚未通过访问或核心用途验证；可继续搜索，或明确要求独立部署。')
+    delivery=ExternalLinkDelivery(app_id=execution.app_id(),job_id=job_id,url=verification.url,
+        repo_url=decision.selected_sources[0].url,source_ref=decision.deployment_asset.source_ref,
+        summary='可使用的第三方官方服务',features=[a.action for a in requirement.acceptance if a.importance=='CORE'],
+        differences=decision.differences,verified_at=verification.checked_at,
+        verification_refs=['external:'+job_id],report_url=f'/api/jobs/{job_id}/report')
+    with session_factory() as session:
+        current=execution.job(session)
+        persist_external_delivery(session,current,delivery,verification)
         session.commit()
 
 
@@ -868,6 +923,16 @@ async def run_pipeline(
             except WaitingForUser:
                 return
         _finish_failure(session_factory, job_id, 'REUSE_UNCONFIRMED', str(exc))
+        return
+    except ExternalServiceSelected as exc:
+        try:
+            await complete_external_delivery(execution, exc.decision, session_factory)
+        except WaitingForUser:
+            return
+        except LeaseLost:
+            raise
+        except Exception:
+            _finish_failure(session_factory, job_id, 'EXTERNAL_VERIFICATION_FAILED', '官方服务验证未完成，已保留来源供重试')
         return
     except RequirementInvalid as exc:
         count = len(exc.details.get("unresolved_issues") or [])

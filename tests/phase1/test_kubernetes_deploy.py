@@ -45,6 +45,18 @@ def manifest_fixture(image: str | None = None) -> AppManifest:
     )
 
 
+def test_official_command_preserves_image_entrypoint_on_kubernetes():
+    manifest=manifest_fixture()
+    manifest.services[0].command=['node','server.js']
+    manifest.services[0].env_values={'NODE_ENV':'production'}
+    resources=render_resources(manifest,'instance','test-ns',{'database-password':'test-only'})
+    deployment=next(r for r in resources if r['kind']=='Deployment' and r['spec']['template']['spec']['containers'][0]['name']=='web')
+    container=deployment['spec']['template']['spec']['containers'][0]
+    assert container['args']==['node','server.js']
+    assert 'command' not in container
+    assert {'name':'NODE_ENV','value':'production'} in container['env']
+
+
 def target() -> dict:
     return {
         "id": "kube-test",

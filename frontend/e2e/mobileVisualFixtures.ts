@@ -50,6 +50,7 @@ const conversationReplies: Record<number, string> = {
 };
 export function makeVisualApp(number: number, status: Schema['JobStatus'], phase: string): Schema['AppDetail'] {
  const delivery: Schema['DeliveryResult'] | null = status === 'SUCCEEDED' ? {
+  kind: 'HOSTED_INSTANCE',
   app_id: 'app', version_id: 'fixture-v1', instance_id: 'fixture-instance', url: 'http://127.0.0.1:9199/fixture/app',
   summary: '本地夹具：保存和查看笔记', features: ['保存笔记', '查看笔记'],
   report_url: 'http://127.0.0.1:9199/fixture/report', artifact_url: 'http://127.0.0.1:9199/fixture/artifact', published_at: visualStamp,

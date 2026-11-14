@@ -118,7 +118,8 @@ class CandidateAssessment(BaseModel):
     capabilities: list[CapabilityEvidence]
     differences: list[str] = Field(default_factory=list)
     adaptations: list[str] = Field(default_factory=list)
-    route_verdicts: dict[str, RouteVerdict] = Field(default_factory=dict)
+    route_verdicts: dict[Literal['A', 'B', 'C'], RouteVerdict] = Field(default_factory=dict)
+    validation_issues: list[str] = Field(default_factory=list)
 
     def rejects_all_reuse(self):
         return all(route in self.route_verdicts and self.route_verdicts[route].status == 'INELIGIBLE'

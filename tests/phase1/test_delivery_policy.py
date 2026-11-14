@@ -38,3 +38,91 @@ def test_private_acceptance_cannot_be_downgraded_to_preference():
     value.acceptance[0].importance='PREFERENCE'
     with pytest.raises(RequirementCoverageError,match='core'):
         validate_revision(None,value,rows('保存私人笔记'))
+
+
+def test_delivery_and_waived_storage_facts_do_not_become_software_checks():
+    text = '编辑预览。只需要当次编辑和预览，不需要跨会话保存。不需要自己部署。'
+    value = RequirementDraft(prompt=text, acceptance=[{'id': 'edit', 'action': '编辑预览', 'expected': '当次可用'}],
+        facts=[{'id': 'function', 'source_message_id': 'm', 'quote': '编辑预览', 'kind': 'FUNCTION', 'acceptance_ids': ['edit']},
+            {'id': 'scope', 'source_message_id': 'm', 'quote': '只需要当次编辑和预览，不需要跨会话保存', 'kind': 'DATA', 'acceptance_ids': []},
+            {'id': 'delivery', 'source_message_id': 'm', 'quote': '不需要自己部署。', 'kind': 'EXTERNAL', 'acceptance_ids': []}])
+    req = validate_revision(None, value, rows(text))
+    assert [a.id for a in req.core_acceptance] == ['edit']
+    assert len(req.facts) == 3
+    assert req.delivery_policy.preference == 'EXISTING_SERVICE_FIRST'
+    assert req.delivery_policy.allow_generation is False
+
+
+@pytest.mark.parametrize('quote,kind', [('必须跨会话保存', 'DATA'), ('必须账号隔离', 'ACCESS'), ('真实调用AI', 'EXTERNAL')])
+def test_actual_business_facts_still_need_acceptance_mapping(quote, kind):
+    value = RequirementDraft(prompt=quote, acceptance=[{'id': 'A1', 'action': quote, 'expected': '实际生效'}],
+        facts=[{'id': 'F1', 'source_message_id': 'm', 'quote': quote, 'kind': kind, 'acceptance_ids': []}])
+    with pytest.raises(RequirementCoverageError, match='acceptance mapping'):
+        validate_revision(None, value, rows(quote))
+
+
+def test_delivery_fact_cannot_replace_business_coverage():
+    text = '编辑预览，不需要自己部署'
+    value = RequirementDraft(prompt=text, acceptance=[{'id': 'edit', 'action': '编辑预览', 'expected': '可用'}],
+        facts=[{'id': 'delivery', 'source_message_id': 'm', 'quote': '不需要自己部署', 'kind': 'EXTERNAL', 'acceptance_ids': []}])
+    with pytest.raises(RequirementCoverageError, match='business fact'):
+        validate_revision(None, value, rows(text))
+
+
+def test_waived_storage_cannot_hide_an_access_requirement():
+    text = '编辑预览。不需要保存，但须账号隔离'
+    value = RequirementDraft(prompt=text, acceptance=[{'id': 'edit', 'action': '编辑预览', 'expected': '可用'}],
+        facts=[{'id': 'edit-fact', 'source_message_id': 'm', 'quote': '编辑预览', 'kind': 'FUNCTION', 'acceptance_ids': ['edit']},
+            {'id': 'mixed', 'source_message_id': 'm', 'quote': '不需要保存，但须账号隔离', 'kind': 'DATA', 'acceptance_ids': []}])
+    with pytest.raises(RequirementCoverageError, match='acceptance mapping'):
+        validate_revision(None, value, rows(text))
+
+
+def test_non_business_facts_survive_requirement_freezing(job_factory, session_factory):
+    from app.agent.requirements import persist_requirement
+    from app.apps.models import Message, RequirementRecord
+    from app.jobs.store import claim_job
+    from sqlalchemy import select
+    job = job_factory()
+    text = '编辑预览。不需要自己部署。'
+    source = [{'id': 'scope-message', 'role': 'user', 'sequence': 1, 'content': text}]
+    value = RequirementDraft(prompt=text, acceptance=[{'id': 'edit', 'action': '编辑预览', 'expected': '可用'}],
+        facts=[{'id': 'edit-fact', 'source_message_id': 'scope-message', 'quote': '编辑预览', 'kind': 'FUNCTION', 'acceptance_ids': ['edit']},
+            {'id': 'delivery-fact', 'source_message_id': 'scope-message', 'quote': '不需要自己部署。', 'kind': 'EXTERNAL', 'acceptance_ids': []}])
+    req = validate_revision(None, value, source)
+    with session_factory() as s:
+        s.add(Message(id='scope-message', app_id=job.app_id, role='user', sequence=1, content=text))
+        s.commit()
+        leased = claim_job(s, 'worker')
+        persist_requirement(s, job.id, req, worker_id='worker', generation=leased.lease_generation)
+        s.commit()
+        saved = s.scalar(select(RequirementRecord).where(RequirementRecord.app_id == job.app_id))
+        assert [a['id'] for a in saved.requirement['acceptance']] == ['edit']
+        assert saved.requirement['facts'][1]['acceptance_ids'] == []
+
+
+def test_confirmation_is_bound_to_the_actual_deployment_question():
+    from app.agent.requirements import delivery_policy_from_messages
+    messages=[{'id':'q','role':'assistant','sequence':1,'content':'是否部署独立实例？'},
+              {'id':'a','role':'user','sequence':2,'content':'同意'}]
+    assert delivery_policy_from_messages(messages).preference=='SELF_HOSTED'
+    assert delivery_policy_from_messages(rows('同意')).preference=='EXISTING_SERVICE_FIRST'
+
+
+@pytest.mark.asyncio
+async def test_requirement_review_does_not_demand_delivery_before_search():
+    import json
+    from app.agent.requirements import compile_requirement
+    from app.core.types import ModelTurn
+    text='找一个私人笔记软件，先给官方服务链接'
+    value=draft(text)
+    class Model:
+        calls=0
+        async def complete(self,messages,tools,model):
+            self.calls+=1
+            if self.calls%2==0:
+                scope=json.loads(messages[1]['content'])['review_scope']
+                assert scope['requires_delivery_evidence'] is False
+                return ModelTurn(assistant_message={'content':'{"missing":[]}'})
+            return ModelTurn(assistant_message={'content':json.dumps(value.model_dump(mode='json'),ensure_ascii=False)})
+    assert (await compile_requirement(rows(text),None,Model())).acceptance[0].id=='A1'

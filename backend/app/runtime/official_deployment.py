@@ -1,5 +1,4 @@
 """Adapt supported official deployment material without regenerating business code."""
-import json
 import re
 import shlex
 from pathlib import Path
@@ -22,6 +21,10 @@ def plan_official_deployment(profile, decision):
         return DeploymentPlan(kind=asset.kind,source_ref=asset.source_ref,digest=asset.source_digest,location=asset.location)
     return DeploymentPlan(kind='SOURCE_BUILD',source_ref=profile.repo_url+'@'+profile.commit+':Dockerfile',
         digest=profile.commit,location='Dockerfile')
+
+
+def can_execute_official_plan(plan, workspace, profile):
+    return plan.kind != 'SOURCE_BUILD' or (len(profile.ports)==1 and checked_path(workspace,'Dockerfile').is_file())
 
 
 def compose_manifest(body):

@@ -58,7 +58,8 @@ def validate_gap_plan(gaps, requirement, provisional, profiles, evaluations):
                 raise ValueError("gap coverage lacks source-bound evidence")
         if not set(gap.preserve) <= {a.id for a in requirement.acceptance}:
             raise ValueError("unknown preserved acceptance")
-    gaps.complete = not any(g.status == "BLOCKED" for g in gaps.gaps)
+    core_ids = {a.id for a in requirement.core_acceptance}
+    gaps.complete = not any(g.status == "BLOCKED" and g.acceptance_id in core_ids for g in gaps.gaps)
     return gaps
 
 
@@ -106,7 +107,8 @@ def finalize_route_with_gaps(provisional, gaps, retrieval, profiles, evaluations
     validate_gap_plan(gaps, requirement, provisional, profiles, evaluations)
     if not gaps.complete:
         raise ValueError("gap planning is blocked")
-    if provisional.route == "DEPLOY_EXISTING" and any(g.status != "SATISFIED" for g in gaps.gaps):
+    core = {a.id for a in requirement.acceptance if a.importance == 'CORE'}
+    if provisional.route == "DEPLOY_EXISTING" and any(g.status != "SATISFIED" and g.acceptance_id in core for g in gaps.gaps):
         principal = gaps.principal_source.model_copy(update={"role": "principal"})
         provisional = provisional.model_copy(update={"route": "MODIFY_EXISTING", "sources": [principal],
             "reason": "bound gap evidence requires local implementation"})

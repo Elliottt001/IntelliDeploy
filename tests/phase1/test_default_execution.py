@@ -148,7 +148,7 @@ async def test_shadow_evidence_uses_deterministic_query_without_model_or_runner(
     )
 
     route = await execution.select_sources_hybrid(
-        Requirement(prompt="私人笔记", acceptance=[])
+        Requirement(prompt="私人笔记", acceptance=[],delivery_policy={'allow_generation':True})
     )
 
     assert route.route == "GENERATE_APP"
@@ -1344,6 +1344,39 @@ async def test_runner_retries_once_when_reconciliation_confirms_tool_never_start
     execution.record_resource.assert_called_once_with('tool:write','execution.millis',7)
 
 
+@pytest.mark.asyncio
+async def test_fetch_repository_accepts_algorithm_retrieval_and_rejects_other_commit(new_job, session_factory, tmp_path, monkeypatch):
+    from app.jobs.execution import JobExecution
+    from app.core.types import ToolCall, RetrievalResult, RetrievalCandidate
+    from app.config import settings
+    from pathlib import Path
+
+    job_id, _, _, generation = new_job
+    runner = AsyncMock()
+    execution = JobExecution(job_id, 'worker', generation, session_factory=session_factory, runner=runner)
+    checkpoint = execution.algorithm_checkpoint()
+    url = 'https://github.com/example/editor'
+    checkpoint.retrieval = RetrievalResult(queries=['editor'], completed=True, candidates=[
+        RetrievalCandidate(repo_url=url, commit='a' * 40)])
+    execution.save_algorithm_checkpoint(checkpoint)
+    monkeypatch.setattr(settings, 'AGENT_WORKSPACE_ROOT', str(tmp_path))
+
+    def prepare(destination, route):
+        assert route.sources[0].commit == 'a' * 40
+        Path(destination, 'README.md').write_text('fixed source')
+
+    monkeypatch.setattr('app.agent.routing.prepare_sources', prepare)
+    result = await execution.execute_tool(ToolCall(id='fetch', name='fetch_repository', arguments={
+        'url': url, 'commit': 'a' * 40, 'destination': 'component'}))
+    assert result.ok is True
+    assert (tmp_path / job_id / 'component' / 'README.md').read_text() == 'fixed source'
+    assert execution.checkpoint()['sources'][0]['commit'] == 'a' * 40
+    with pytest.raises(ValueError, match='source was not retrieved at this commit'):
+        await execution.execute_tool(ToolCall(id='wrong', name='fetch_repository', arguments={
+            'url': url, 'commit': 'b' * 40, 'destination': 'other'}))
+    assert not (tmp_path / job_id / 'other').exists()
+
+
 def test_generation_budget_replays_uncheckpointed_received_turn(new_job,session_factory):
     from app.jobs.execution import JobExecution
     from app.runtime.models import ResourceRecord
@@ -1355,3 +1388,24 @@ def test_generation_budget_replays_uncheckpointed_received_turn(new_job,session_
         session.commit()
     execution=JobExecution(job_id,'worker',generation,session_factory=session_factory,model_client=RequirementModel())
     assert execution.generation_round_budget(execution.model('implementation'))==1
+
+
+@pytest.mark.asyncio
+async def test_deployment_confirmation_after_freeze_resumes_same_job_revision(new_job,session_factory):
+    from app.jobs.execution import JobExecution
+    from app.jobs.pipeline import WaitingForUser
+    from app.apps.service import add_message
+    jid,aid,owner,generation=new_job
+    execution=JobExecution(jid,'worker',generation,session_factory=session_factory,model_client=RequirementModel())
+    assert (await execution.ensure_requirement()).revision==1
+    with pytest.raises(WaitingForUser): execution.wait_for_user('是否部署独立实例？')
+    with session_factory() as session:
+        resumed=add_message(session,aid,owner,'同意','confirm-deployment')
+        assert resumed.job_id==jid
+        claimed=claim_job(session,'worker')
+        generation=claimed.lease_generation
+    execution=JobExecution(jid,'worker',generation,session_factory=session_factory,model_client=RequirementModel())
+    requirement=await execution.ensure_requirement()
+    assert requirement.revision==2
+    assert requirement.delivery_policy.preference=='SELF_HOSTED'
+    assert execution.algorithm_checkpoint().requirement_revision==2

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import inspect
 from pathlib import Path
 from typing import Any
@@ -155,7 +154,7 @@ async def validate_application(
         pages: dict[str, Page] = {}
         errors: dict[str, list[str]] = {}
         try:
-            for item in requirement.acceptance:
+            for item in requirement.core_acceptance:
                 check = checks_by_id.get(item.id)
                 if check is None:
                     results.append(
@@ -200,7 +199,7 @@ async def validate_application(
 
     return ValidationReport(
         checks=results,
-        required_ids=[item.id for item in requirement.acceptance],
+        required_ids=[item.id for item in requirement.core_acceptance],
         requirement_revision=requirement.revision,
         attempt_id=attempt_id,
         manifest_hash=manifest_hash,

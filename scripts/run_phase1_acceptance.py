@@ -100,6 +100,8 @@ def evaluate_record(
     known_repositories: list[str] | None = None,
 ) -> dict:
     reasons = []
+    if record.get('delivery_kind') == 'EXTERNAL_LINK' or (record.get('result') or {}).get('kind') == 'EXTERNAL_LINK':
+        reasons.append('external_link_not_hosted_deployment')
     if record.get("source_mode") != "real":
         reasons.append("source_mode_not_real")
     if record.get("status") != "SUCCEEDED":

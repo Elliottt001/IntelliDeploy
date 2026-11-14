@@ -63,6 +63,17 @@ def finish_job(session, job_id, worker_id, status, *, generation, result=None, e
         raise ValueError('invalid terminal or waiting state')
     job = leased_job(session, job_id, worker_id, generation)
     if status == 'SUCCEEDED':
+        if (result or {}).get('kind') == 'EXTERNAL_LINK':
+            from app.core.types import ExternalLinkDelivery
+            from app.runtime.models import ResourceRecord
+            delivery = ExternalLinkDelivery.model_validate(result)
+            row = session.scalar(select(ResourceRecord).where(ResourceRecord.type=='EXTERNAL_LINK',
+                ResourceRecord.job_id==job.id,ResourceRecord.app_id==job.app_id,ResourceRecord.state=='VERIFIED'))
+            if not row or row.metadata_json.get('delivery') != delivery.model_dump(mode='json'):
+                raise ValueError('success requires verified external delivery')
+            job.result=delivery.model_dump(mode='json');job.status=status;job.phase='completed'
+            job.lease_owner=None;job.lease_until=None;session.commit()
+            return
         from app.apps.models import App, AppVersion, Instance
         from app.core.types import DeliveryResult
         delivery = DeliveryResult.model_validate(result) if result else None

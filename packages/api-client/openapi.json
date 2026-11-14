@@ -2802,6 +2802,15 @@
             "type": "boolean",
             "title": "Private Data",
             "default": false
+          },
+          "importance": {
+            "type": "string",
+            "enum": [
+              "CORE",
+              "PREFERENCE"
+            ],
+            "title": "Importance",
+            "default": "CORE"
           }
         },
         "type": "object",
@@ -2903,9 +2912,13 @@
                 "$ref": "#/components/schemas/DeliveryResult"
               },
               {
+                "$ref": "#/components/schemas/ExternalLinkDelivery"
+              },
+              {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Delivery"
           },
           "candidate_version_id": {
             "anyOf": [
@@ -3246,8 +3259,37 @@
         ],
         "title": "DeleteInstanceRequest"
       },
+      "DeliveryPolicy": {
+        "properties": {
+          "preference": {
+            "type": "string",
+            "enum": [
+              "EXISTING_SERVICE_FIRST",
+              "SELF_HOSTED"
+            ],
+            "title": "Preference",
+            "default": "EXISTING_SERVICE_FIRST"
+          },
+          "allow_generation": {
+            "type": "boolean",
+            "title": "Allow Generation",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "DeliveryPolicy"
+      },
       "DeliveryResult": {
         "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "HOSTED_INSTANCE"
+            ],
+            "const": "HOSTED_INSTANCE",
+            "title": "Kind",
+            "default": "HOSTED_INSTANCE"
+          },
           "app_id": {
             "type": "string",
             "title": "App Id"
@@ -3274,6 +3316,13 @@
             },
             "type": "array",
             "title": "Features"
+          },
+          "differences": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Differences"
           },
           "report_url": {
             "type": "string",
@@ -3535,6 +3584,36 @@
         ],
         "title": "EvaluationCandidate"
       },
+      "EvaluationCapability": {
+        "properties": {
+          "acceptance_id": {
+            "type": "string",
+            "title": "Acceptance Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUPPORTED",
+              "MISSING",
+              "UNKNOWN"
+            ],
+            "title": "Status"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Refs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "acceptance_id",
+          "status"
+        ],
+        "title": "EvaluationCapability"
+      },
       "EvaluationEvidenceGate": {
         "properties": {
           "status": {
@@ -3705,9 +3784,63 @@
                 "$ref": "#/components/schemas/DeliveryResult"
               },
               {
+                "$ref": "#/components/schemas/ExternalLinkDelivery"
+              },
+              {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Result"
+          },
+          "delivery_kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "EXTERNAL_LINK",
+                  "HOSTED_INSTANCE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Kind"
+          },
+          "external_service_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "NOT_RUN"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Service Status"
+          },
+          "reuse_assessments": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationReuseAssessment"
+            },
+            "type": "array",
+            "title": "Reuse Assessments"
+          },
+          "selection_duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selection Duration Ms"
           },
           "report": {
             "$ref": "#/components/schemas/JobReport"
@@ -3826,6 +3959,58 @@
         "type": "object",
         "title": "EvaluationRetrieval"
       },
+      "EvaluationReuseAssessment": {
+        "properties": {
+          "repo_url": {
+            "type": "string",
+            "title": "Repo Url"
+          },
+          "commit": {
+            "type": "string",
+            "title": "Commit"
+          },
+          "requirement_revision": {
+            "type": "integer",
+            "title": "Requirement Revision"
+          },
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationCapability"
+            },
+            "type": "array",
+            "title": "Capabilities"
+          },
+          "differences": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Differences"
+          },
+          "adaptations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Adaptations"
+          },
+          "validation_issues": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Validation Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo_url",
+          "commit",
+          "requirement_revision",
+          "capabilities"
+        ],
+        "title": "EvaluationReuseAssessment"
+      },
       "EvaluationRunRequest": {
         "properties": {
           "prompt": {
@@ -3919,6 +4104,88 @@
           "kind"
         ],
         "title": "EvaluationTarget"
+      },
+      "ExternalLinkDelivery": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "EXTERNAL_LINK"
+            ],
+            "const": "EXTERNAL_LINK",
+            "title": "Kind",
+            "default": "EXTERNAL_LINK"
+          },
+          "app_id": {
+            "type": "string",
+            "title": "App Id"
+          },
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "repo_url": {
+            "type": "string",
+            "title": "Repo Url"
+          },
+          "source_ref": {
+            "type": "string",
+            "title": "Source Ref"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Features"
+          },
+          "differences": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Differences"
+          },
+          "verified_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Verified At"
+          },
+          "verification_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Verification Refs"
+          },
+          "report_url": {
+            "type": "string",
+            "title": "Report Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_id",
+          "job_id",
+          "url",
+          "repo_url",
+          "source_ref",
+          "summary",
+          "features",
+          "verified_at",
+          "verification_refs",
+          "report_url"
+        ],
+        "title": "ExternalLinkDelivery"
       },
       "FetchRequest": {
         "properties": {
@@ -4305,9 +4572,13 @@
                 "$ref": "#/components/schemas/DeliveryResult"
               },
               {
+                "$ref": "#/components/schemas/ExternalLinkDelivery"
+              },
+              {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Result"
           },
           "error": {
             "anyOf": [
@@ -4963,6 +5234,15 @@
             ],
             "title": "Status"
           },
+          "importance": {
+            "type": "string",
+            "enum": [
+              "CORE",
+              "PREFERENCE"
+            ],
+            "title": "Importance",
+            "default": "CORE"
+          },
           "evidence_urls": {
             "items": {
               "type": "string"
@@ -5012,6 +5292,9 @@
             },
             "type": "array",
             "title": "Source Message Ids"
+          },
+          "delivery_policy": {
+            "$ref": "#/components/schemas/DeliveryPolicy"
           }
         },
         "type": "object",

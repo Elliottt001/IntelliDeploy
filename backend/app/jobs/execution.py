@@ -314,6 +314,14 @@ class JobExecution:
             self.raw_model = DeepSeekClient()
         return DurableModel(self, phase, start)
 
+    async def ensure_hosted_dependencies(self):
+        if self.runner is not None:
+            return
+        _, hosted = await build_hosted_dependencies(self.job_id,self.worker_id,self.generation,self.sessions)
+        self.runner = hosted.runner
+        self.candidates = hosted.candidates
+        self.candidates.execution = self
+
     def reservation(self, session, job):
         parent = (
             session.get(Reservation, job.reservation_id) if job.reservation_id else None
@@ -404,10 +412,16 @@ class JobExecution:
                 "\n".join(draft.questions or ["一期支持Web应用，是否接受以Web交付？"])
             )
         requirement = validate_revision(previous, draft, messages)
-        if requirement.revision != self.algorithm_checkpoint().requirement_revision:
-            raise ValueError(
-                "compiled requirement revision differs from algorithm checkpoint"
-            )
+        algorithm = self.algorithm_checkpoint()
+        if requirement.revision != algorithm.requirement_revision:
+            if previous is None or algorithm.requirement_revision != previous.revision:
+                raise ValueError('compiled requirement revision differs from algorithm checkpoint')
+            from app.agent.contracts import AlgorithmCheckpoint
+            fresh = AlgorithmCheckpoint.empty(requirement.revision, algorithm.mode, algorithm.algorithm_version)
+            if self.checkpoint().get('workspace_uploaded'):
+                for name in ('profiles','retrieval','selected_sources','route','component_workspaces','integration_contract'):
+                    setattr(fresh,name,getattr(algorithm,name))
+            self.save_algorithm_checkpoint(fresh)
         with self.sessions() as session:
             job = self.job(session)
             persist_requirement(
@@ -567,7 +581,13 @@ class JobExecution:
         from app.agent.checkpoint import stage_input_hash
         from app.agent_core.brains.github_retriever import GitHubRepositorySearchClient
         import base64
+        selection_started = time.monotonic()
+        with self.sessions() as session:
+            job = self.job(session)
+            job.phase = 'retrieving'
+            session.commit()
         checkpoint = self.algorithm_checkpoint()
+        checkpoint.algorithm_version = 'reuse-v1'
         query = await plan_queries(requirement, self.model(f'query:{requirement.revision}')
             if checkpoint.mode == 'hybrid' else None)
         checkpoint.query_plan = query
@@ -575,6 +595,7 @@ class JobExecution:
         for search_round in range(2):
             started = time.monotonic()
             retrieval = await retrieve_sources(requirement, query, github_client=client,
+                enrichment_limit=5,
                 repository_index=load_index(Path(settings.REPOSITORY_INDEX_PATH)))
             checkpoint.retrieval = retrieval
             self.save_algorithm_checkpoint(checkpoint)
@@ -594,7 +615,7 @@ class JobExecution:
                             params={'ref':c.commit})
                         if value.get('encoding') == 'base64' and value.get('size',0) <= 50000:
                             c.key_files[path] = base64.b64decode(value['content']).decode(errors='replace')[:20000]
-                    except Exception as exc:
+                    except Exception:
                         # Unknown evidence does not become a negative capability claim.
                         c.enrichment_status = 'PARTIAL'
             profiles = [profile_repository(c,requirement) for c in candidates if c.commit]
@@ -618,6 +639,7 @@ class JobExecution:
                 decision = choose_reuse_decision(requirement,assessments,profiles)
             except NoReusableSolution:
                 if search_round == 1:
+                    self.save(selection_duration_ms=int((time.monotonic()-selection_started)*1000))
                     raise
                 query = query.model_copy(update={'github_queries':list(dict.fromkeys([
                     *query.github_queries,*[term+' self hosted web application' for term in query.translated_terms[:2]]]))})
@@ -625,6 +647,7 @@ class JobExecution:
             checkpoint.reuse_decision = decision
             checkpoint.selected_sources = decision.selected_sources
             self.save_algorithm_checkpoint(checkpoint)
+            self.save(selection_duration_ms=int((time.monotonic()-selection_started)*1000))
             route = route_from_decision(decision)
             if checkpoint.mode == 'hybrid' and route.sources:
                 from app.agent.orchestrator import AlgorithmOrchestrator
@@ -633,6 +656,7 @@ class JobExecution:
                 checkpoint = self.algorithm_checkpoint()
             checkpoint.route = route
             self.save_algorithm_checkpoint(checkpoint)
+            self.save(selection_duration_ms=int((time.monotonic()-selection_started)*1000))
             return route
 
     async def select_sources_hybrid(self, requirement):
@@ -922,6 +946,8 @@ class JobExecution:
             from app.agent.integration import verify_component_workspaces
             verify_component_workspaces(str(workspace), self.algorithm_checkpoint().component_workspaces)
             checkpoint = Checkpoint.model_validate(saved.get("loop") or {})
+            if checkpoint.requirement_revision != requirement.revision:
+                checkpoint.messages.append({'role':'user','content':'用户已确认新一版需求。保留已有源码和此前核心功能，按此修正：'+requirement.model_dump_json()})
         else:
             with self.sessions() as session:
                 app = session.get(App, job.app_id)
@@ -959,6 +985,10 @@ class JobExecution:
                     plan.route = "COMPOSE_COMPONENTS"
             else:
                 plan = await self.choose_sources(requirement)
+                selected = self.algorithm_checkpoint().reuse_decision
+                if selected and selected.delivery_kind == 'HOSTED_INSTANCE' and plan.route != 'GENERATE_APP' and requirement.delivery_policy.preference != 'SELF_HOSTED':
+                    self.wait_for_user('已找到可复用主体 '+plan.sources[0].url+'，尚未确认满足需求的官方在线服务。是否部署独立实例？也可以继续搜索官方服务。'
+                        if plan.sources else '尚未确认官方服务，是否明确要求从头生成并部署独立实例？')
                 if plan.route == "GENERATE_APP":
                     root = (
                         Path(__file__).resolve().parents[3] / "scaffolds/nextjs-prisma"
@@ -976,13 +1006,16 @@ class JobExecution:
                     await __import__("asyncio").to_thread(
                         prepare_sources, str(workspace), plan
                     )
-            self.prepare_algorithm_inputs(requirement, plan, workspace)
+            await self.ensure_hosted_dependencies()
             if plan.route == 'DEPLOY_EXISTING' and attempt_index == 0 and not repair_evidence:
-                from app.runtime.official_deployment import plan_official_deployment, execute_official_deployment
+                from app.runtime.official_deployment import plan_official_deployment, execute_official_deployment, can_execute_official_plan
                 algorithm = self.algorithm_checkpoint()
                 profile = next((p for p in algorithm.profiles if plan.sources and p.repo_url == plan.sources[0].url), None)
                 if profile is not None and algorithm.reuse_decision is not None:
-                    return await execute_official_deployment(self, plan_official_deployment(profile, algorithm.reuse_decision))
+                    official_plan=plan_official_deployment(profile, algorithm.reuse_decision)
+                    if can_execute_official_plan(official_plan,workspace,profile):
+                        return await execute_official_deployment(self, official_plan)
+            self.prepare_algorithm_inputs(requirement, plan, workspace)
             algorithm = self.algorithm_checkpoint()
             policy = None
             if algorithm.component_workspaces:
@@ -1019,7 +1052,8 @@ class JobExecution:
                     + "\n只提交实际源码对应的AppManifest。应用身份/数据/文件/AI/搜索使用平台服务端适配；不得生成演示数据代替业务。"
                     + "\n完成源码后必须调用finish_implementation提交候选；平台负责后续构建和业务验证。"
                     + "源代码服务必须在builds里声明真实BuildSpec，image可用待构建标签，不得编造digest。"
-                    + "平台内置环境引用和数据库按platform_contract处理；使用批量工具调用减少重复读取。",
+                    + "平台内置环境引用和数据库按platform_contract处理；使用批量工具调用减少重复读取。"
+                    + "\nCORE验收必须实现；PREFERENCE可保留差异并说明，不为小偏好重写已有业务。",
                 },
                 {
                     "role": "user",
@@ -1154,6 +1188,7 @@ class JobExecution:
 
         if call.name in {"search_repositories", "fetch_repository"}:
             saved = self.checkpoint()
+            retrieval = (saved.get('algorithm') or {}).get('retrieval') or saved.get('retrieval') or {}
             if call.name == "search_repositories":
                 client = GitHubRepositorySearchClient()
                 rows = await client.search_repositories(
@@ -1166,15 +1201,19 @@ class JobExecution:
                 ]
                 known = {
                     item["repo_url"]: item
-                    for item in (saved.get("retrieval") or {}).get("candidates", [])
+                    for item in retrieval.get("candidates", [])
                 }
                 known.update({item["repo_url"]: item for item in candidates})
                 self.save(
                     retrieval={
-                        **(saved.get("retrieval") or {}),
+                        **retrieval,
                         "candidates": list(known.values()),
                     }
                 )
+                checkpoint = self.algorithm_checkpoint()
+                from app.core.types import RetrievalResult
+                checkpoint.retrieval = RetrievalResult.model_validate({**retrieval, 'candidates': list(known.values())})
+                self.save_algorithm_checkpoint(checkpoint)
                 return ToolResult(
                     call_id=call.id,
                     ok=True,
@@ -1182,7 +1221,7 @@ class JobExecution:
                 )
             known = {
                 item["repo_url"]: item
-                for item in (saved.get("retrieval") or {}).get("candidates", [])
+                for item in retrieval.get("candidates", [])
             }
             url = call.arguments["url"]
             commit = call.arguments["commit"]
@@ -1671,7 +1710,7 @@ class JobExecution:
         }
 
 
-async def build_default_dependencies(job_id, worker_id, generation, session_factory):
+async def build_hosted_dependencies(job_id, worker_id, generation, session_factory):
     from app.jobs.pipeline import TargetUnavailable
     from app.runner.client import RunnerClient, RunnerUnavailable
     from app.runtime.candidate_execution import CandidateExecution
@@ -1739,3 +1778,26 @@ async def build_default_dependencies(job_id, worker_id, generation, session_fact
         if runner:
             await runner.close()
         raise TargetUnavailable(str(exc)) from exc
+
+
+async def build_default_dependencies(job_id, worker_id, generation, session_factory):
+    from app.jobs.pipeline import PipelineDependencies, TargetUnavailable
+    from app.runtime.validation import validate_application
+    if not worker_id or generation is None:
+        raise TargetUnavailable('默认执行需要有效Worker租约')
+    with session_factory() as session:
+        job=leased_job(session,job_id,worker_id,generation)
+        if job.kind=='COPY':
+            return await build_hosted_dependencies(job_id,worker_id,generation,session_factory)
+        if not settings.DEEPSEEK_API_KEY:
+            raise TargetUnavailable('模型服务尚未配置')
+    execution=JobExecution(job_id,worker_id,generation,session_factory=session_factory)
+    async def start(*args):
+        await execution.ensure_hosted_dependencies()
+        return await execution.candidates.start(*args)
+    async def stop(*args,**kwargs):
+        return await execution.candidates.stop(*args,**kwargs)
+    return PipelineDependencies(generate_candidate=execution.generate_candidate,review_candidate=execution.review_candidate,
+        compile_checks=execution.compile_checks,build_candidate=execution.build_candidate,start_candidate=start,stop_candidate=stop,
+        validate_candidate=validate_application,
+        runtime_controller=lambda id:execution.candidates.controller(id),deployer=execution.deploy,migration_runner=execution.migrate),execution

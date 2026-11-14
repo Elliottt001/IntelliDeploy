@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.core.types import DeliveryResult, JobReport, JobStatus
+from app.core.types import DeliveryOutcome, JobReport, JobStatus
 
 
 AlgorithmMode = Literal["baseline", "shadow", "hybrid"]
@@ -86,6 +86,20 @@ class EvaluationRequirementCompilation(BaseModel):
     unresolved_issues: list[str] = Field(default_factory=list)
 
 
+class EvaluationCapability(BaseModel):
+    acceptance_id: str
+    status: Literal['SUPPORTED', 'MISSING', 'UNKNOWN']
+    evidence_refs: list[str] = Field(default_factory=list)
+
+class EvaluationReuseAssessment(BaseModel):
+    repo_url: str
+    commit: str
+    requirement_revision: int
+    capabilities: list[EvaluationCapability]
+    differences: list[str] = Field(default_factory=list)
+    adaptations: list[str] = Field(default_factory=list)
+    validation_issues: list[str] = Field(default_factory=list)
+
 class EvaluationRecord(BaseModel):
     job_id: str
     app_id: str
@@ -108,7 +122,11 @@ class EvaluationRecord(BaseModel):
     sources: list[EvaluationSource] = Field(default_factory=list)
     retrieval: EvaluationRetrieval
     requirement_compilation: EvaluationRequirementCompilation | None = None
-    result: DeliveryResult | None = None
+    result: DeliveryOutcome | None = None
+    delivery_kind: Literal['EXTERNAL_LINK', 'HOSTED_INSTANCE'] | None = None
+    external_service_status: Literal['PASS', 'FAIL', 'NOT_RUN'] | None = None
+    reuse_assessments: list[EvaluationReuseAssessment] = Field(default_factory=list)
+    selection_duration_ms: int | None = Field(default=None, ge=0)
     report: JobReport
     created_at: datetime
     updated_at: datetime

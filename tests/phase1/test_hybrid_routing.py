@@ -14,9 +14,10 @@ from app.core.types import (
 )
 
 
-def notes_requirement(prompt="创建并保存私人笔记"):
+def notes_requirement(prompt="创建并保存私人笔记", *, allow_generation=False):
     return Requirement(
         prompt=prompt,
+        delivery_policy={'allow_generation':allow_generation},
         acceptance=[
             AcceptanceItem(id="create-note", action="创建笔记", expected="可查看"),
             AcceptanceItem(id="persist-note", action="保存笔记", expected="刷新保留"),
@@ -112,7 +113,7 @@ def test_route_a_requires_complete_application_evidence():
 
 def test_route_d_requires_explicit_generation_or_reuse_rejections():
     item = source()
-    with pytest.raises(ValueError, match="generation requires rejection evidence"):
+    with pytest.raises(ValueError, match="从头生成"):
         validate_route_plan(
             route_plan("GENERATE_APP"),
             retrieval(item),
@@ -128,7 +129,7 @@ def test_user_requested_generation_can_select_d_without_candidates():
         retrieval(),
         [],
         [],
-        notes_requirement("不要复用仓库，直接从零生成私人笔记"),
+        notes_requirement("不要复用仓库，直接从零生成私人笔记",allow_generation=True),
     )
     assert plan.route == "GENERATE_APP"
 
@@ -206,7 +207,7 @@ async def test_route_model_receives_schema_and_corrects_invalid_route():
             return ModelTurn(assistant_message={"content": json.dumps(value)}, calls=[])
 
     model = RouteModel()
-    plan = await choose_route(notes_requirement(), retrieval(rejections=[{"reason": "no candidates"}]), [], [], model)
+    plan = await choose_route(notes_requirement(allow_generation=True), retrieval(rejections=[{"reason": "no candidates"}]), [], [], model)
     assert plan.route == "GENERATE_APP"
     assert len(model.requests) == 2
     payload = json.loads(model.requests[0][1]["content"])
@@ -254,7 +255,7 @@ async def test_route_payload_compacts_material_without_changing_source_evidence(
             self.payload=json.loads(messages[1]['content'])
             return ModelTurn(assistant_message={'content':route_plan('GENERATE_APP').model_dump_json()})
     model=CapturingModel()
-    result=await choose_route(notes_requirement(),search,[profile(item)],[evaluation(item,eligible=False)],model)
+    result=await choose_route(notes_requirement(allow_generation=True),search,[profile(item)],[evaluation(item,eligible=False)],model)
     assert result.route=='GENERATE_APP'
     compact=model.payload['candidates'][0]
     assert len(compact['key_files']['README.md']) <= 4096

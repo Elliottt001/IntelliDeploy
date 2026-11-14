@@ -26,6 +26,7 @@ class RepositoryCandidate(BaseModel):
         description="Canonical GitHub repository URL expected by API consumers.",
     )
     html_url: str = ""
+    homepage: str | None = None
     description: str = ""
     stars: int = 0
     forks: int = 0

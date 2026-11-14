@@ -113,3 +113,22 @@ async def test_invalid_known_model_overlay_keeps_deterministic_queries_and_recor
     plan = await plan_queries(value, Model())
     assert 'private notes web app' in plan.github_queries
     assert plan.constraints['planning_mode'] == 'deterministic_model_invalid'
+def test_markdown_requirement_uses_application_category_query():
+    from app.agent.query import deterministic_queries
+    from app.core.types import Requirement
+    value=deterministic_queries(Requirement(prompt='找一个在线 Markdown 编辑器',acceptance=[]))
+    assert 'markdown editor web app' in value.github_queries
+
+
+@pytest.mark.asyncio
+async def test_category_retrieves_editor_without_web_app_words_in_repository_description():
+    from app.agent.retrieval import retrieve_sources
+    from app.agent_core.brains.context_rag_agent import RepositoryCandidate
+    entry = RepositoryCandidate(full_name='example/editor', repo_url='https://github.com/example/editor',
+        html_url='https://github.com/example/editor', description='The last Markdown editor, ever.', commit='a' * 40)
+    class GitHub:
+        async def search_repositories(self, query, **kwargs):
+            return [entry] if all(word.lower() in entry.description.lower() for word in query.split()) else []
+    result = await retrieve_sources(Requirement(prompt='找一个在线 Markdown 编辑器', acceptance=[]), github_client=GitHub())
+    assert result.completed is True
+    assert [c.repo_url for c in result.candidates] == ['https://github.com/example/editor']

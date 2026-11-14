@@ -91,7 +91,7 @@ export default function EvaluationResult({ appId, jobId }: { appId: string; jobI
       {diagnostics.status === 'SUCCEEDED' && diagnostics.result && <div className="evaluation-links">
         <a href={diagnostics.result.url} rel="noreferrer" target="_blank">打开交付 URL</a>
         <a href={diagnostics.result.report_url}>查看验证报告</a>
-        <a href={diagnostics.result.artifact_url}>下载交付产物</a>
+        {diagnostics.result.kind!=='EXTERNAL_LINK'&&<a href={diagnostics.result.artifact_url}>下载交付产物</a>}
       </div>}
       {(diagnostics.phase_durations ?? []).length > 0 && <div>
         <h3>阶段耗时</h3>

@@ -1,6 +1,7 @@
 """Reuse route decisions separated from raw keyword scores."""
 from app.agent.contracts import ReuseDecision
 from app.core.types import RepoSource, RoutePlan
+from app.agent.ranking import _WEB_TYPES
 
 
 class NoReusableSolution(ValueError):
@@ -20,6 +21,22 @@ def core_supported(requirement, assessment):
                for a in requirement.acceptance if a.importance == 'CORE')
 
 
+def external_core_can_be_verified(requirement, assessment):
+    known = {c.acceptance_id:c.status for c in assessment.capabilities}
+    statuses = [known.get(a.id) for a in requirement.core_acceptance]
+    return bool(statuses) and 'SUPPORTED' in statuses and all(s in {'SUPPORTED','UNKNOWN'} for s in statuses)
+
+
+def disclosed_differences(requirement, assessment):
+    known={c.acceptance_id:c.status for c in assessment.capabilities}
+    differences=list(assessment.differences)
+    for item in requirement.acceptance:
+        if item.importance=='PREFERENCE' and known.get(item.id)!='SUPPORTED':
+            label='未确认偏好：' if known.get(item.id)!='MISSING' else '偏好差异：'
+            differences.append(label+item.action)
+    return list(dict.fromkeys(differences))
+
+
 def validate_reuse_decision(decision, requirement, assessments):
     if decision.route == 'GENERATE_APP':
         if not requirement.delivery_policy.allow_generation:
@@ -33,7 +50,7 @@ def validate_reuse_decision(decision, requirement, assessments):
             raise ValueError('reuse assessment revision differs')
     primary = known[(decision.selected_sources[0].url,decision.selected_sources[0].commit)]
     if decision.delivery_kind == 'EXTERNAL_LINK':
-        if requirement.delivery_policy.preference == 'SELF_HOSTED' or not core_supported(requirement,primary):
+        if requirement.delivery_policy.preference == 'SELF_HOSTED' or not external_core_can_be_verified(requirement,primary):
             raise ValueError('external service does not satisfy delivery policy or core requirements')
         if decision.deployment_asset is None or decision.deployment_asset.kind != 'OFFICIAL_SERVICE':
             raise ValueError('external delivery requires official service evidence')
@@ -44,19 +61,26 @@ def validate_reuse_decision(decision, requirement, assessments):
 
 def choose_reuse_decision(requirement, assessments, profiles):
     facts = {(p.repo_url,p.commit):p for p in profiles}
+    core_ids={a.id for a in requirement.acceptance if a.importance=='CORE'}
+    assessments=sorted(assessments,key=lambda a:(
+        not core_supported(requirement,a),
+        -sum(c.status=='SUPPORTED' and c.acceptance_id in core_ids for c in a.capabilities),
+        len(a.adaptations)))
     usable = [a for a in assessments if (a.repo_url,a.commit) in facts
               and facts[(a.repo_url,a.commit)].license_status == 'ALLOWED']
     if requirement.delivery_policy.preference == 'EXISTING_SERVICE_FIRST':
-        for a in usable:
+        # Using a public official service does not distribute its source code.
+        # Its actual availability/account/payment conditions are checked separately.
+        for a in (a for a in assessments if (a.repo_url,a.commit) in facts):
             p = facts[(a.repo_url,a.commit)]
             asset = next((x for x in p.deployment_assets if x.kind=='OFFICIAL_SERVICE'),None)
-            if asset and core_supported(requirement,a):
+            if asset and external_core_can_be_verified(requirement,a):
                 return validate_reuse_decision(ReuseDecision(delivery_kind='EXTERNAL_LINK',
                     selected_sources=[RepoSource(url=a.repo_url,commit=a.commit,role='official service')],
-                    assessment_refs=[a.repo_url+'@'+a.commit],deployment_asset=asset,differences=a.differences),requirement,assessments)
+                    assessment_refs=[a.repo_url+'@'+a.commit],deployment_asset=asset,differences=disclosed_differences(requirement,a)),requirement,assessments)
     for a in usable:
         p = facts[(a.repo_url,a.commit)]
-        if p.compatibility.status != 'SUPPORTED' or p.project_type in {'unknown','library'}:
+        if p.compatibility.status != 'SUPPORTED' or p.project_type not in _WEB_TYPES:
             continue
         direct = core_supported(requirement,a)
         b = a.route_verdicts.get('B')
@@ -67,7 +91,7 @@ def choose_reuse_decision(requirement, assessments, profiles):
                 route='DEPLOY_EXISTING' if direct else 'MODIFY_EXISTING',
                 selected_sources=[RepoSource(url=a.repo_url,commit=a.commit,role='principal')],
                 assessment_refs=[a.repo_url+'@'+a.commit],deployment_asset=asset,
-                differences=a.differences,adaptations=a.adaptations),requirement,assessments)
+                differences=disclosed_differences(requirement,a),adaptations=a.adaptations),requirement,assessments)
     # C remains the evidence-bound gap/integration route after a usable principal is selected.
     if requirement.delivery_policy.allow_generation:
         return ReuseDecision(delivery_kind='HOSTED_INSTANCE',route='GENERATE_APP')

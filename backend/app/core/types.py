@@ -24,6 +24,16 @@ class Requirement(BaseModel):
     source_message_ids: list[str] = Field(default_factory=list)
     delivery_policy: DeliveryPolicy = Field(default_factory=DeliveryPolicy)
 
+    @property
+    def core_acceptance(self):
+        return [item for item in self.acceptance if item.importance == 'CORE']
+
+    def for_core_validation(self):
+        ids = {item.id for item in self.core_acceptance}
+        facts = [f.model_copy(update={'acceptance_ids':[id for id in f.acceptance_ids if id in ids]})
+                 for f in self.facts if any(id in ids for id in f.acceptance_ids)]
+        return self.model_copy(update={'acceptance':self.core_acceptance,'facts':facts})
+
 class RequirementDraft(BaseModel):
     prompt: str
     acceptance: list[AcceptanceItem]
@@ -297,6 +307,7 @@ class RetrievalEvidenceRef(BaseModel):
 
 class RetrievalCandidate(BaseModel):
     repo_url: str
+    homepage: str | None = None
     commit: str | None = None
     description: str = ''
     stars: int = Field(default=0, ge=0)
@@ -440,15 +451,33 @@ class JobRef(CreateAppResponse):
 
 
 class DeliveryResult(BaseModel):
+    kind: Literal['HOSTED_INSTANCE'] = 'HOSTED_INSTANCE'
     app_id: str
     version_id: str
     instance_id: str
     url: str
     summary: str
     features: list[str]
+    differences: list[str] = Field(default_factory=list)
     report_url: str
     artifact_url: str
     published_at: datetime
+
+class ExternalLinkDelivery(BaseModel):
+    kind: Literal['EXTERNAL_LINK'] = 'EXTERNAL_LINK'
+    app_id: str
+    job_id: str
+    url: str
+    repo_url: str
+    source_ref: str
+    summary: str
+    features: list[str]
+    differences: list[str] = Field(default_factory=list)
+    verified_at: datetime
+    verification_refs: list[str] = Field(min_length=1)
+    report_url: str
+
+DeliveryOutcome = DeliveryResult | ExternalLinkDelivery
 
 
 class JobSnapshot(BaseModel):
@@ -460,7 +489,7 @@ class JobSnapshot(BaseModel):
     event_cursor: int = Field(ge=0)
     question: str | None = None
     usage_units: int = Field(ge=0)
-    result: DeliveryResult | None = None
+    result: DeliveryOutcome | None = None
     error: PublicError | None = None
     created_at: datetime
     updated_at: datetime
@@ -479,6 +508,7 @@ class ReportCheck(BaseModel):
     action: str
     expected: str
     status: Literal['PASS', 'FAIL', 'NOT_RUN']
+    importance: Literal['CORE', 'PREFERENCE'] = 'CORE'
     evidence_urls: list[str] = Field(default_factory=list)
 
 
@@ -513,7 +543,7 @@ class AppDetail(AppSummary):
     conversation: list[ConversationMessage]
     active_job: JobSnapshot | None = None
     latest_job: JobSnapshot | None = None
-    delivery: DeliveryResult | None = None
+    delivery: DeliveryOutcome | None = None
     candidate_version_id: str | None = None
     instance: InstanceSnapshot | None = None
     publication: PublicationResponse | None = None

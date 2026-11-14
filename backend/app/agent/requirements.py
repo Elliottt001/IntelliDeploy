@@ -43,10 +43,17 @@ class RequirementNeedsAnswer(ValueError):
 
 def delivery_policy_from_messages(messages, previous=None):
     policy = previous.delivery_policy.model_copy() if previous else DeliveryPolicy()
+    deployment_question = False
     for message in sorted(messages, key=lambda m: m['sequence']):
+        if message.get('role') == 'assistant':
+            deployment_question = '是否部署独立实例' in message['content']
+            continue
         if message.get('role') != 'user' or (previous and message['id'] in previous.source_message_ids):
             continue
         text = message['content'].lower()
+        if deployment_question and text.strip('！!。 .') in {'同意','确认','可以','是','yes','ok'}:
+            policy.preference = 'SELF_HOSTED'
+        deployment_question = False
         if any(x in text for x in ('自托管', '独立部署', '平台管理', 'self-host', 'self host')):
             policy.preference = 'SELF_HOSTED'
         if any(x in text for x in ('直接给链接', '官方服务链接', 'use official service')):
@@ -56,6 +63,19 @@ def delivery_policy_from_messages(messages, previous=None):
         elif any(x in text for x in ('从零生成', '直接生成', '不要复用', 'from scratch', '允许从头生成', '接受从头生成')):
             policy.allow_generation = True
     return policy
+
+
+def _valid_fact_mapping(fact, ids):
+    if fact.acceptance_ids:
+        return set(fact.acceptance_ids) <= set(ids)
+    quote = fact.quote.strip(' 。；，,;.\n')
+    delivery_fact = fact.kind == 'EXTERNAL' and bool(re.fullmatch(
+        r'[^，。；\n]{0,30}(?:官方.{0,6}服务链接|自己部署|独立部署|自托管|从头生成|从零生成|(?:官方|仓库).{0,12}部署方式)[^，。；\n]{0,15}', quote)) \
+        and not re.search(r'AI|搜索|上传|账号|隔离|持久', quote, re.I)
+    waived_storage = fact.kind == 'DATA' and bool(re.fullmatch(
+        r'(?:只(?:需要|需|要)当次[^，,。；]{0,20}[，,]\s*)?(?:不要求|不需要|不必)[^。；]{0,30}(?:保存|恢复|存储|持久化)[^。；]{0,15}', quote)) \
+        and not re.search(r'必须|仍需|保留已有|保留现有|账号|登录|权限|隔离|不能丢|重启后仍', quote)
+    return bool(delivery_fact or waived_storage)
 
 
 def validate_revision(previous, draft, messages):
@@ -84,8 +104,10 @@ def validate_revision(previous, draft, messages):
             raise RequirementCoverageError(
                 "fact quote is not in the original user message"
             )
-        if not fact.acceptance_ids or not set(fact.acceptance_ids) <= set(ids):
+        if not _valid_fact_mapping(fact, ids):
             raise RequirementCoverageError("fact has no valid acceptance mapping")
+    if not any(fact.acceptance_ids for fact in draft.facts):
+        raise RequirementCoverageError('business fact has no valid acceptance mapping')
     if previous:
         old = {i.id: i for i in previous.acceptance}
         new = {i.id: i for i in draft.acceptance}
@@ -250,6 +272,10 @@ async def compile_requirement(messages, previous, model_client, *, persist=None)
                         "role": "system",
                         "content": (
                             "按用户原文和上版要求审阅draft，逐项核对历史遗漏与当前草稿。只输出所附schema的JSON。"
+                            "当前尚未检索仓库或运行应用，只核对需求定义是否完整，不能要求草稿提供实际软件名称、交付链接、源码或运行验证。"
+                            "交付偏好由delivery_policy和原始消息保留，不要求重复列为软件业务验收。"
+                            "不要求某能力不是禁止软件具备该能力；检查草稿没有把不要求保存改成必须不保存，不主动给当次编辑预览增加持久化验收。明确保存、隔离和隐私禁止要求仍为核心。"
+                            "不要求项由原文和facts保留、映射到已有相关功能验收即可；没有单独无需保存验收不是missing。当次编辑预览验收且未要求跨会话保存已符合范围，不要求重复新增负向验收或改写expected。"
                             "仍有遗漏填写missing；resolved仅填写当前草稿已实际解决的原样issue、具体验收ID及证据。"
                             "检查全部原始功能、数据、权限、删除后刷新/重启持久性；不能因旧标记仍在就判未修，"
                             "也不能因为草稿声称修复就通过。不要加入用户未要求的业务。"
@@ -260,6 +286,7 @@ async def compile_requirement(messages, previous, model_client, *, persist=None)
                         "content": json.dumps({
                             **source,
                             "schema": RequirementReview.model_json_schema(),
+                            "review_scope": {"phase": "REQUIREMENT_ONLY", "requires_delivery_evidence": False},
                             "draft": draft.model_dump(mode="json"),
                             "draft_hash": draft_hash,
                             "review_history": list(history),
@@ -312,6 +339,7 @@ def persist_requirement(
         not ids
         or len(ids) != len(requirement.acceptance)
         or not requirement.facts
+        or not any(fact.acceptance_ids for fact in requirement.facts)
         or not set(requirement.source_message_ids) <= set(known)
     ):
         raise RequirementCoverageError("frozen sources or acceptance are incomplete")
@@ -320,8 +348,7 @@ def persist_requirement(
             not fact.quote
             or fact.source_message_id not in known
             or fact.quote not in known[fact.source_message_id].content
-            or not fact.acceptance_ids
-            or not set(fact.acceptance_ids) <= ids
+            or not _valid_fact_mapping(fact, ids)
         ):
             raise RequirementCoverageError(
                 "frozen fact has an invalid source or mapping"

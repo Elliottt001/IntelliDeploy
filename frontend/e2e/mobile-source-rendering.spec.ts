@@ -360,7 +360,7 @@ test('a complete local delivery opens its reachable app, report and artifact wit
  await page.route('**/api/apps/app',r=>r.fulfill({json:app}));
  await page.route('**/api/jobs/job',r=>r.fulfill({json:app.latest_job}));
  await page.route('**/api/instances/fixture-instance/login-code',r=>r.fulfill({json:{code:'local-fixture-code',expires_in:60}}));
- for(const url of [app.delivery!.url,app.delivery!.report_url,app.delivery!.artifact_url])expect((await page.request.get(url)).status()).toBe(200);
+ for(const url of [app.delivery!.url,app.delivery!.report_url,(app.delivery && 'artifact_url' in app.delivery ? app.delivery.artifact_url : '')])expect((await page.request.get(url)).status()).toBe(200);
  expect(await (await page.request.get(app.delivery!.report_url)).json()).toMatchObject({job_id:'job',overall:'NOT_RUN',checks:[]});
  await page.goto('/app-detail/app');await page.getByTestId('open-app').click();
  await expect(page).toHaveURL('http://127.0.0.1:9199/api/platform/callback?code=local-fixture-code');

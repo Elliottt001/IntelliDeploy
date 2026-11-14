@@ -20,6 +20,7 @@ from app.evaluation.schemas import (
     EvaluationRecord,
     EvaluationRetrieval,
     EvaluationRequirementCompilation,
+    EvaluationReuseAssessment,
     EvaluationSource,
     PhaseDuration,
 )
@@ -236,6 +237,9 @@ def build_evaluation_record(session, job: Job) -> EvaluationRecord:
     checkpoint = dict(job.checkpoint or {})
     report = service.job_report(session, job)
     result = job.result or None
+    delivery_kind = (result or {}).get('kind') or ('HOSTED_INSTANCE' if result else None)
+    external = session.scalar(select(ResourceRecord).where(ResourceRecord.type=='EXTERNAL_LINK',
+        ResourceRecord.job_id==job.id,ResourceRecord.app_id==job.app_id,ResourceRecord.state=='VERIFIED'))
     version_id = (result or {}).get("version_id")
     release = session.scalar(
         select(ResourceRecord)
@@ -261,6 +265,10 @@ def build_evaluation_record(session, job: Job) -> EvaluationRecord:
         and release.state == "SUCCEEDED"
         and release.target_id
     )
+    external_verification = (external.metadata_json.get('verification') or {}) if external else {}
+    if delivery_kind == 'EXTERNAL_LINK':
+        is_real = bool(job.status=='SUCCEEDED' and external_verification.get('status')=='PASS'
+            and external_verification.get('source_mode')=='real')
     cost_units, cost_status, price_version, model = _cost(session, job)
     app = session.get(App, job.app_id)
     if app is None:
@@ -273,6 +281,8 @@ def build_evaluation_record(session, job: Job) -> EvaluationRecord:
         gate_reasons.append("JOB_NOT_TERMINAL")
     if not is_real:
         gate_reasons.append("REAL_RELEASE_EVIDENCE_MISSING")
+    if delivery_kind == 'EXTERNAL_LINK':
+        gate_reasons.append('EXTERNAL_LINK_NOT_HOSTED_RELEASE')
     if job.status in {"SUCCEEDED", "FAILED", "CANCELLED"} and report.overall != "PASS":
         gate_reasons.append("BUSINESS_VALIDATION_NOT_PASS")
     if cost_status != "known":
@@ -288,6 +298,14 @@ def build_evaluation_record(session, job: Job) -> EvaluationRecord:
         app_id=job.app_id,
         version_id=version_id,
         status=job.status,
+        delivery_kind=delivery_kind,
+        external_service_status=external_verification.get('status'),
+        selection_duration_ms=checkpoint.get('selection_duration_ms'),
+        reuse_assessments=[EvaluationReuseAssessment(repo_url=a.repo_url,commit=a.commit,
+            requirement_revision=a.requirement_revision,
+            capabilities=[{'acceptance_id':c.acceptance_id,'status':c.status,'evidence_refs':c.evidence_refs} for c in a.capabilities],
+            differences=a.differences,adaptations=a.adaptations,validation_issues=a.validation_issues)
+            for a in load_algorithm_checkpoint(checkpoint,job.requirement_revision or 1).assessments],
         route=_route(checkpoint),
         algorithm=_algorithm(checkpoint),
         source_mode="real" if is_real else "fixture",

@@ -59,6 +59,7 @@ function detail(status: Status | null): App {
       },
     ],
     delivery: {
+      kind: "HOSTED_INSTANCE",
       app_id: "app",
       version_id: "old",
       instance_id: "instance",

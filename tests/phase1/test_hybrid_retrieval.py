@@ -299,3 +299,21 @@ async def test_parallel_enrichment_partial_mutation_cannot_hide_fetch_failure():
     assert result.completed is False
     assert len(result.errors)==1
     assert not result.reuse_rejections
+@pytest.mark.asyncio
+async def test_bounded_enrichment_keeps_unread_candidates_unknown():
+    from app.agent.retrieval import retrieve_sources
+    from app.core.types import Requirement
+    class Client:
+        enriched=[]
+        async def search_repositories(self,*args,**kwargs):
+            return [{'repo_url':f'https://github.com/example/notes-{i}','description':'notes web app',
+                     'default_branch':'main','stars':i} for i in range(20)]
+        async def enrich_repository(self,row):
+            self.enriched.append(row['repo_url'])
+            return {**row,'commit':'a'*40,'key_files':{'README.md':'notes'},'file_tree':['README.md']}
+    client=Client()
+    result=await retrieve_sources(Requirement(prompt='私人笔记',acceptance=[]),github_client=client,enrichment_limit=5)
+    assert len(client.enriched)==5
+    assert len(result.candidates)==20
+    assert sum(c.commit is None for c in result.candidates)==15
+    assert result.completed is True

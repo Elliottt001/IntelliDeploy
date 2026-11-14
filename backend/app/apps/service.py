@@ -1,5 +1,6 @@
 import hashlib
 import json
+from pydantic import TypeAdapter
 from pathlib import Path
 
 from sqlalchemy import func, select, text
@@ -23,7 +24,7 @@ from app.core.types import (
     AppPage,
     AppSummary,
     ConversationMessage,
-    DeliveryResult,
+    DeliveryOutcome,
     JobRef,
     JobReport,
     JobSnapshot,
@@ -359,9 +360,9 @@ def app_detail(session, app):
         ],
         active_job=job_snapshot(session, active) if active else None,
         latest_job=job_snapshot(session, jobs[0]) if jobs else None,
-        delivery=DeliveryResult.model_validate(version.delivery)
-        if version and version.delivery
-        else None,
+        delivery=TypeAdapter(DeliveryOutcome).validate_python(version.delivery)
+        if version and version.delivery else next((TypeAdapter(DeliveryOutcome).validate_python(j.result)
+            for j in jobs if j.status=='SUCCEEDED' and (j.result or {}).get('kind')=='EXTERNAL_LINK'), None),
         candidate_version_id=app.candidate_version_id,
         publication=public_response(session,publication) if publication else None,
         instance=(
@@ -388,6 +389,20 @@ def app_detail(session, app):
 
 
 def job_report(session, job):
+    if (job.result or {}).get('kind') == 'EXTERNAL_LINK':
+        from app.runtime.models import ResourceRecord
+        resource = session.scalar(select(ResourceRecord).where(ResourceRecord.type=='EXTERNAL_LINK',
+            ResourceRecord.job_id==job.id,ResourceRecord.app_id==job.app_id,ResourceRecord.state=='VERIFIED'))
+        if resource:
+            record = session.scalar(select(RequirementRecord).where(RequirementRecord.app_id==job.app_id,
+                RequirementRecord.revision==job.requirement_revision))
+            checks = {c['id']:c for c in resource.metadata_json['verification']['core_checks']}
+            req = Requirement.model_validate(record.requirement)
+            return JobReport(job_id=job.id,overall='PASS',requirement_revision=job.requirement_revision,
+                checks=[ReportCheck(id=a.id,action=a.action,expected=a.expected,
+                    importance=a.importance,
+                    status=checks.get(a.id,{}).get('status','NOT_RUN'),evidence_urls=[])
+                    for a in req.acceptance])
     req = session.scalar(
         select(RequirementRecord).where(
             RequirementRecord.app_id == job.app_id,
@@ -404,7 +419,7 @@ def job_report(session, job):
         else None
     )
     checkpoint = job.checkpoint or {}
-    required = {i.id for i in requirement.acceptance} if requirement else set()
+    required = {i.id for i in requirement.core_acceptance} if requirement else set()
     bound = bool(
         report
         and requirement
@@ -426,6 +441,7 @@ def job_report(session, job):
                 id=i.id,
                 action=i.action,
                 expected=i.expected,
+                importance=i.importance,
                 status=results[i.id].status if i.id in results else "NOT_RUN",
             )
             for i in requirement.acceptance
@@ -452,11 +468,12 @@ def job_report(session, job):
                 if r.metadata_json.get("check_id") == check.id
                 and r.metadata_json.get("attempt_id") == report.attempt_id
             ]
+    core_checks = [c for c in checks if c.importance == 'CORE']
     overall = (
         "FAIL"
-        if any(c.status == "FAIL" for c in checks)
+        if any(c.status == "FAIL" for c in core_checks)
         else "PASS"
-        if checks and all(c.status == "PASS" for c in checks)
+        if core_checks and all(c.status == "PASS" for c in core_checks)
         else "NOT_RUN"
     )
     return JobReport(
