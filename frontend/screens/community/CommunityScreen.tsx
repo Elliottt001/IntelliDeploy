@@ -38,7 +38,7 @@ export default function CommunityScreen({library}:{library?:'favorites'|'recent'
   <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
    <View style={styles.heading}><CommunitySourceHeading kind="title"/><CommunitySourceHeading kind="subtitle"/></View>
    <View style={styles.railWrap}>
-    <CommunitySourceRail cards={[{id:'primary',copy:unavailablePostCopy},{id:'standard',copy:unavailablePostCopy,kind:'standard'},{id:'square',copy:unavailablePostCopy,kind:'square'}]}/>
+    <CommunitySourceRail onAvatarNavigateHome={()=>router.push({pathname:'/',params:{sourceAvatar:'hover'}})} cards={[{id:'primary',copy:unavailablePostCopy},{id:'standard',copy:unavailablePostCopy,kind:'standard'},{id:'square',copy:unavailablePostCopy,kind:'square'}]}/>
    </View>
    <View testID="community-content-unavailable" style={styles.unavailable}>
     <Text style={styles.unavailableTitle}>帖子内容暂未开放</Text>

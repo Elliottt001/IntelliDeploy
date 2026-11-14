@@ -11,3 +11,5 @@ export async function captureRoutePresentation(root:RefObject<View|null>):Promis
 export function RouteSnapshotView({snapshot,x,y,width,height}:{snapshot:RouteSnapshot;x:number;y:number;width:number;height:number}){
  return <Canvas pointerEvents="none" accessibilityElementsHidden style={{position:'absolute',left:x,top:y,width,height}}><Image image={snapshot.image} x={0} y={0} width={width} height={height} fit="fill"/></Canvas>;
 }
+
+export async function measureRouteNode(ref:RefObject<View|null>):Promise<{x:number;y:number;width:number;height:number}|null>{return new Promise(resolve=>{if(!ref.current){resolve(null);return;}ref.current.measureInWindow((x,y,width,height)=>resolve({x,y,width,height}));});}

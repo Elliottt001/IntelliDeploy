@@ -92,8 +92,9 @@ export default function RootLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <SourceRouteTransition><Stack
+      <SourceRouteTransition currentPath={pathname}><Stack
         screenOptions={{
+          animation: 'none', // The source presentation owns slide/SMART timing on native too.
           headerStyle: { backgroundColor: '#4A90D9' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: '600' },

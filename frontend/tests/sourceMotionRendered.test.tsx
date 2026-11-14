@@ -60,3 +60,29 @@ test('route freezes actual prior presentation and releases inert old DOM after t
  sample(.5);expect(Number(host.querySelector('[data-source-route-progress]')!.getAttribute('data-source-route-progress'))).toBeCloseTo(sampleSourceEasing(motion,.5),6);
  finish();expect(host.querySelector('[data-source-route-snapshot]')).toBeNull();expect(host.textContent).toContain('new');
 });
+
+test('avatar and cloud source trees animate matched properties and preserve the sampled pose during reversal',async()=>{
+ const {SourceAvatarMotion}=await import('../components/mobile/SourceAvatarMotion');
+ const {sourceControlStates}=await import('../design/sourceControlMotionEvidence');
+ const {useSourceTreeMotion}=await import('../components/mobile/useSourceTreeMotion');
+ const avatar=mount(createElement(SourceAvatarMotion,{active:false}));
+ act(()=>avatar.root.render(createElement(SourceAvatarMotion,{active:true})));
+ sample(.3);const width=tree(avatar.host).size.x;expect(width).not.toBe(sourceControlStates['270:26291'].size.x);
+ act(()=>avatar.root.render(createElement(SourceAvatarMotion,{active:false})));
+ expect(tree(avatar.host).size.x).toBe(width);finish();expect(tree(avatar.host).size).toEqual(sourceControlStates['270:26291'].size);
+ function Cloud({pressed}:{pressed:boolean}){const value=useSourceTreeMotion(sourceControlStates[pressed?'188:16981':'270:26318'],getSourceMotion('266:21221','ON_PRESS'));return createElement('output',{'data-tree':JSON.stringify(value)});}
+ const cloud=mount(createElement(Cloud,{pressed:false}));act(()=>cloud.root.render(createElement(Cloud,{pressed:true})));
+ sample(.3);expect(tree(cloud.host).children.length).toBeGreaterThan(0);finish();expect(tree(cloud.host)).toEqual(sourceControlStates['188:16981']);
+});
+test('every source community avatar owner has a real visual consumer with its own initial geometry and raw hover action',async()=>{
+ const {SourceAvatarMotion}=await import('../components/mobile/SourceAvatarMotion');
+ const {sourceControlStates}=await import('../design/sourceControlMotionEvidence');
+ for(const owner of ['825:6080','825:6100','825:6133','825:6153','825:6434','825:6491','825:6532','825:6588','825:6606','825:6640']){
+  const {host,root}=mount(createElement(SourceAvatarMotion,{sourceNodeId:owner,interactive:true}));
+  expect(tree(host).size).toEqual(sourceControlStates[owner].size);
+  act(()=>host.querySelector('[role="button"]')!.dispatchEvent(new PointerEvent('pointerenter',{pointerType:'mouse'})));
+  expect(animation().config.duration).toBe(getSourceMotion(owner,'ON_HOVER')!.durationMs);
+  sample(.3);expect(tree(host).size.x).not.toBe(sourceControlStates[owner].size.x);finish();expect(tree(host).size).toEqual(sourceControlStates['188:16338'].size);
+  act(()=>root.unmount());roots.delete(root);host.remove();
+ }
+});

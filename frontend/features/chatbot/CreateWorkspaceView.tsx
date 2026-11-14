@@ -1,3 +1,4 @@
+import {SourceRouteNode} from '../../components/mobile/sourceRouteShared';
 import { getSourceMotion } from '../../design/sourceMotionEvidence';
 import {SourceGlassSurface,sourceSurfacePaintStyle} from '../../components/mobile/glass/SourceGlassSurface';
 import { useEffect, useRef, useState, type PropsWithChildren } from "react";
@@ -157,7 +158,7 @@ export function ChatbotPage({
         style={viewStyles.page}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View
+        <SourceRouteNode sourceNodeId="845:3502"
           style={[
             viewStyles.header,
             {
@@ -190,7 +191,7 @@ export function ChatbotPage({
             onPress={() => setActionsOpen((value) => !value)}
             testID="chatbot-settings"
           />
-        </View>
+        </SourceRouteNode>
         {actionsOpen && (
           <View style={viewStyles.actionsMenu}>
             {detailActions?.map((action) => (
@@ -377,7 +378,7 @@ export function CreateWorkspaceView({
           {error}
         </Text>
       )}
-      <View style={{ marginTop: "auto", paddingTop: 16 }}>
+      <SourceRouteNode sourceNodeId="845:3530" style={{ marginTop: "auto", paddingTop: 16 }}>
         <ChatComposer
           value={prompt}
           editable={editable}
@@ -389,7 +390,7 @@ export function CreateWorkspaceView({
           inputLabel="你想做什么应用"
           submitLabel="开始创建"
         />
-      </View>
+      </SourceRouteNode>
       {lastApp && (
         <Pressable
           accessibilityRole="button"

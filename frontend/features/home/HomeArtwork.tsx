@@ -1,3 +1,4 @@
+import {SourceAvatarMotion} from '../../components/mobile/SourceAvatarMotion';
 import {
   Animated,
   Platform,
@@ -19,9 +20,8 @@ export const matrix = (m: {
   m02: number;
   m12: number;
 }) => `matrix(${m.m00} ${m.m10} ${m.m01} ${m.m11} ${m.m02} ${m.m12})`;
-export function HomeAvatar({pressed=false}:{pressed?:boolean}) {
- const definition=pressed?source.avatarPressed:source.avatar;
- return <View testID={pressed?'home-avatar-pressed':'home-avatar-default'} style={{position:'absolute',left:pressed?source.avatarPressedTransform.m02-36:0,top:pressed?source.avatarPressedTransform.m12-107:0,width:definition.size.width,height:definition.size.height}}><FigmaTree node={pressed?source.avatarTrees.pressed:source.avatarTrees.normal} prefix={pressed?'home-avatar-pressed':'home-avatar'}/></View>;
+export function HomeAvatar({pressed=false,hovered=false}:{pressed?:boolean;hovered?:boolean}) {
+ return <View testID={pressed||hovered?'home-avatar-pressed':'home-avatar-default'} style={{position:'absolute',left:0,top:0}}><SourceAvatarMotion active={pressed||hovered} testID="home-avatar-source-motion"/></View>;
 }
 export function HomeCardArtwork({
   cardWidth,

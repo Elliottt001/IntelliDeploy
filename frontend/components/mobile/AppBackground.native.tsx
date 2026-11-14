@@ -1,3 +1,4 @@
+import {SourceRouteNode} from './sourceRouteShared';
 import {LiveGlassBackdrop} from './glass/LiveGlassBackdrop';
 import type { PropsWithChildren } from 'react';
 import Svg from 'react-native-svg';
@@ -39,9 +40,9 @@ export function AppBackground({
 
   return (
     <View style={[styles.background, style]} testID={testID}>
-      <LiveGlassBackdrop underlay={<Svg testID="mobile-source-atmosphere" pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={StyleSheet.absoluteFill} width="100%" height="100%">
+      <LiveGlassBackdrop underlay={<SourceRouteNode sourceNodeId={atmosphere==='chatbot'?'845:3499':'270:26264'} style={StyleSheet.absoluteFill}><Svg testID="mobile-source-atmosphere" pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={StyleSheet.absoluteFill} width="100%" height="100%">
         <MobileBackdrop width={viewportWidth} height={viewportHeight} variant={atmosphere}/>
-      </Svg>}>
+      </Svg></SourceRouteNode>}>
       <View
         style={[
           styles.safeArea,

@@ -1,3 +1,4 @@
+import {SourceAvatarMotion} from '../../components/mobile/SourceAvatarMotion';
 import {SourceGlassSurface,sourceSurfacePaintStyle} from '../../components/mobile/glass/SourceGlassSurface';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { Animated, Image, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderHandlers, type ImageSourcePropType, type ViewStyle } from 'react-native';
@@ -37,14 +38,14 @@ export function PublicationPreview({card,tall=false}:{card:DiscoveryCardModel;ta
  const [failed,setFailed]=useState(false);
  return <Image key={card.previewUrl} accessibilityLabel={card.previewUrl&&!failed?`${card.title}预览`:`${card.title}暂无预览`} source={card.previewUrl&&!failed?{uri:card.previewUrl}:neutralArtwork} onError={()=>setFailed(true)} resizeMode={card.previewUrl&&!failed?'cover':'contain'} style={tall?{width:source.preview.size.x,height:source.preview.size.y,borderRadius:source.preview.cornerRadius}:styles.preview} />;
 }
-export function CommunitySourceCard({copy,id,kind='tall'}:{copy:CommunityCardCopy;id:string;kind?:'tall'|'standard'|'square'}) {
+export function CommunitySourceCard({copy,id,kind='tall',onAvatarNavigateHome}:{copy:CommunityCardCopy;id:string;onAvatarNavigateHome?:()=>void;kind?:'tall'|'standard'|'square'}) {
  const definition=source[kind],surface=communitySurface(definition),tall=kind==='tall';
  const glass=definition.surfaceEffects.some(effect=>effect.rawType==='BACKGROUND_BLUR')?'NOT_IMPLEMENTED':'NONE';
  return <WebDataView testID={`community-source-card-${id}`} dataSet={{sourceGlass:glass}} style={[surface,styles.card,{width:definition.size.width,height:definition.size.height},tall&&{padding:0,borderWidth:0}]}>
   <SourceGlassSurface sourceNodeId={definition.surfaceNodeId}/>
   {tall?<>
    <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:sourceSurfacePaintStyle(definition.surfaceNodeId)?0:surface.borderWidth,borderColor:surface.borderColor,borderRadius:surface.borderRadius}]} />
-   <View pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={{position:'absolute',left:slots.avatar.x,top:slots.avatar.y,width:slots.avatar.width,height:slots.avatar.height}}><FigmaTree node={mascot.tree as unknown as FigmaTreeNode} prefix={`community-source-mascot-${id}`} testID={`community-source-mascot-${id}`}/></View>
+   <View style={{position:'absolute',left:slots.avatar.x,top:slots.avatar.y,width:slots.avatar.width,height:slots.avatar.height}}><SourceAvatarMotion sourceNodeId="825:6080" interactive onNavigateHome={onAvatarNavigateHome} testID={`community-source-mascot-${id}`}/></View>
    {copy.author!==null&&<Text testID="community-card-author" numberOfLines={1} style={[communityCardStyles.creator,{position:'absolute',left:slots.copy.x,top:slots.copy.y+slots.creator.y,width:slots.header.width-slots.copy.x}]}>{copy.author}</Text>}
    {copy.time!==null&&<Text testID="community-card-time" numberOfLines={1} style={[communityCardStyles.creator,{position:'absolute',left:slots.summary.x,top:slots.copy.y+slots.creator.y,width:slots.summary.width,textAlign:'right'}]}>{copy.time}</Text>}
    {copy.body!==null&&<ScrollView testID="community-card-body" style={{position:'absolute',left:slots.summary.x,top:slots.summary.y,width:slots.summary.width,maxHeight:slots.summary.height}}><Text style={communityCardStyles.summary}>{copy.body}</Text></ScrollView>}
@@ -55,7 +56,7 @@ export function CommunitySourceCard({copy,id,kind='tall'}:{copy:CommunityCardCop
   </>}
  </WebDataView>;
 }
-export function CommunitySourceRail({cards}:{cards:readonly {id:string;copy:CommunityCardCopy;kind?:'tall'|'standard'|'square'}[]}) {
+export function CommunitySourceRail({cards,onAvatarNavigateHome}:{onAvatarNavigateHome?:()=>void;cards:readonly {id:string;copy:CommunityCardCopy;kind?:'tall'|'standard'|'square'}[]}) {
  const motion=useMemo(()=>getSourceMotion('825:5887','DRAG','825:6452'),[]);
  const reverse=useMemo(()=>getSourceMotion('825:6488','DRAG','168:6358'),[]);
  const {animateTo,progress,settle}=useSourceMotion(motion);
@@ -129,9 +130,9 @@ export function CommunitySourceRail({cards}:{cards:readonly {id:string;copy:Comm
  const panHandlers=nativePanHandlers(responder.panHandlers);
  return <WebWheelView testID="community-source-drag-responder" dataSet={{sourceResponder:'pan'}} style={{height:source.rail.size.y,overflow:'hidden',...(Platform.OS==='web'?{touchAction:'pan-y'}:{})}} onWheel={handleWheel} {...(Platform.OS==='web'?{onPointerDown:pointerDown,onLostPointerCapture:pointerCancel}:{})} {...panHandlers}>
   <WebAnimatedView testID="community-source-rail" dataSet={{sourceMotion:`${motion?.nodeId}->${motion?.targetNodeId}`,sourceReverseMotion:`${reverse?.nodeId}->${reverse?.targetNodeId}`,sourceDurationMs:String(motion?.durationMs),sourceEasing:motion?.easingType??'',sourceProgress:position>.5?'1':'0'}} style={{position:'absolute',left:0,top:0,width:source.rail.size.x,height:source.rail.size.y,transform:[{translateX:offset}]}} {...panHandlers}>
-   <View style={{position:'absolute',left:0,top:0}}><CommunitySourceCard id={cards[0]?.id??'primary'} copy={cards[0]?.copy??{author:null,time:null,body:null}} kind={cards[0]?.kind}/></View>
-   <View style={{position:'absolute',left:source.standardNode.transform.m02,top:0}}><CommunitySourceCard id={cards[1]?.id??'standard'} copy={cards[1]?.copy??{author:null,time:null,body:null}} kind={cards[1]?.kind??'standard'}/></View>
-   <View style={{position:'absolute',left:source.squareNode.transform.m02,top:source.standard.size.height+(source.squareNode.transform.m12-source.standard.size.height)}}><CommunitySourceCard id={cards[2]?.id??'square'} copy={cards[2]?.copy??{author:null,time:null,body:null}} kind={cards[2]?.kind??'square'}/></View>
+   <View style={{position:'absolute',left:0,top:0}}><CommunitySourceCard onAvatarNavigateHome={onAvatarNavigateHome} id={cards[0]?.id??'primary'} copy={cards[0]?.copy??{author:null,time:null,body:null}} kind={cards[0]?.kind}/></View>
+   <View style={{position:'absolute',left:source.standardNode.transform.m02,top:0}}><CommunitySourceCard onAvatarNavigateHome={onAvatarNavigateHome} id={cards[1]?.id??'standard'} copy={cards[1]?.copy??{author:null,time:null,body:null}} kind={cards[1]?.kind??'standard'}/></View>
+   <View style={{position:'absolute',left:source.squareNode.transform.m02,top:source.standard.size.height+(source.squareNode.transform.m12-source.standard.size.height)}}><CommunitySourceCard onAvatarNavigateHome={onAvatarNavigateHome} id={cards[2]?.id??'square'} copy={cards[2]?.copy??{author:null,time:null,body:null}} kind={cards[2]?.kind??'square'}/></View>
   </WebAnimatedView>
  </WebWheelView>;
 }
@@ -143,7 +144,7 @@ export default function DiscoveryCard({card,kind='tall',onOpen}:{card:DiscoveryC
   {tall?<>
    <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:sourceSurfacePaintStyle(definition.surfaceNodeId)?0:surface.borderWidth,borderColor:surface.borderColor,borderRadius:surface.borderRadius}]} />
    <View style={{position:'absolute',left:slots.header.x,top:slots.header.y,width:slots.header.width,height:slots.header.height}}>
-    <View pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={{position:'absolute',left:slots.avatar.x,top:slots.avatar.y,width:slots.avatar.width,height:slots.avatar.height}}><FigmaTree node={mascot.tree as unknown as FigmaTreeNode} prefix={`community-brand-mascot-${card.id}`} testID={`community-brand-mascot-${card.id}`}/></View>
+    <View style={{position:'absolute',left:slots.avatar.x,top:slots.avatar.y,width:slots.avatar.width,height:slots.avatar.height}}><SourceAvatarMotion sourceNodeId="825:6080" interactive testID={`community-brand-mascot-${card.id}`}/></View>
     <View style={{position:'absolute',left:slots.copy.x,top:slots.copy.y,width:slots.header.width-slots.copy.x,height:slots.copy.height}}>
      <Text numberOfLines={1} style={communityCardStyles.title}>{card.title}</Text>
      <Text numberOfLines={1} style={[communityCardStyles.creator,{position:'absolute',top:slots.creator.y,width:'100%'}]}>{card.creator}</Text>

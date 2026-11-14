@@ -19,6 +19,7 @@ export function SourceAnimatedControl({ kind, accessibilityLabel, onPress, selec
   const [transition,setTransition] = useState<Transition|null>(null);
   const current = useRef(state), stateId = useRef(resting), generation = useRef(0), timeout = useRef<ReturnType<typeof setTimeout>|null>(null), foreground = useRef(AppState.currentState !== 'background');
   const api = useSourceMotion(transition?.motion ?? null);
+  const previousSelected=useRef(selected);
   const clearTimeoutChain = useCallback(() => { if(timeout.current !== null) clearTimeout(timeout.current); timeout.current=null; },[]);
   const beginRef = useRef<(target:string,motion:SourceMotion)=>void>(()=>{});
   const begin = useCallback((target:string,motion:SourceMotion) => {
@@ -43,9 +44,9 @@ export function SourceAnimatedControl({ kind, accessibilityLabel, onPress, selec
   },[transition,api.start,kind]);
   useEffect(()=>{
     if(kind!=='reaction'||visualOnly)return;
-    clearTimeoutChain(); generation.current++; api.cancel();
-    const stable=sourceControlStates[resting]; current.current=stable;stateId.current=resting;setState(stable);setTransition(null);
-  },[selected,kind,visualOnly,resting,api.cancel,clearTimeoutChain]);
+    if(previousSelected.current!==selected){previousSelected.current=selected;const click=getSourceMotion(selected?'228:19794':'228:19791','ON_CLICK');if(click?.targetNodeId){begin(click.targetNodeId,click);return;}}
+  },[selected,kind,visualOnly,begin]);
+  useEffect(()=>{if(!disabled)return;clearTimeoutChain();generation.current++;api.cancel();const stable=sourceControlStates[resting];current.current=stable;stateId.current=resting;setState(stable);setTransition(null);},[disabled,resting,api.cancel,clearTimeoutChain]);
   useEffect(()=>{
     const subscription=AppState.addEventListener('change',next=>{
       foreground.current=next==='active';

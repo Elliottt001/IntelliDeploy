@@ -21,10 +21,10 @@ export async function captureRoutePresentation(root:RefObject<View|null>):Promis
    }
    if(element.id)element.id=ids.get(element.id)!;
    for(const attribute of Array.from(element.attributes)){
-     let value=attribute.value.replace(/url\(#([^)]*)\)/g,(_,id)=>`url(#${ids.get(id)??id})`);
+     let value=attribute.value.replace(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*))\s*\)/g,(full,double,single,plain)=>{const url=double??single??plain;const id=url.slice(url.lastIndexOf('#')+1);return ids.has(id)?`url("#${ids.get(id)}")`:full;});
      if((attribute.name==='href'||attribute.name==='xlink:href')&&value.startsWith('#'))value='#'+(ids.get(value.slice(1))??value.slice(1));
      if(value!==attribute.value)element.setAttribute(attribute.name,value);
-     if(attribute.name.startsWith('on')||attribute.name.startsWith('data-source-route-'))element.removeAttribute(attribute.name);
+     if(attribute.name.startsWith('on')||attribute.name.startsWith('data-source-route-')||attribute.name.startsWith('data-source-smart-'))element.removeAttribute(attribute.name);
    }
    element.removeAttribute('data-testid');element.removeAttribute('autofocus');element.setAttribute('tabindex','-1');
  }
@@ -34,6 +34,8 @@ export async function captureRoutePresentation(root:RefObject<View|null>):Promis
 }
 export function RouteSnapshotView({snapshot,x,y}:{snapshot:RouteSnapshot;x:number;y:number;width:number;height:number}){
  const host=useRef<HTMLDivElement>(null);
- useLayoutEffect(()=>{host.current?.appendChild(snapshot.element);snapshot.restore();return()=>snapshot.element.remove();},[snapshot]);
+ useLayoutEffect(()=>{host.current?.appendChild(snapshot.element);snapshot.element.style.width='100%';snapshot.element.style.height='100%';snapshot.restore();return()=>snapshot.element.remove();},[snapshot]);
  return createElement('div',{ref:host,'aria-hidden':true,inert:true,'data-source-route-snapshot':true,style:{position:'absolute',inset:0,pointerEvents:'none',transform:`translate(${x}px,${y}px)`}});
 }
+
+export async function measureRouteNode(ref:RefObject<View|null>){const element=ref.current as unknown as HTMLElement|null;if(!element)return null;const b=element.getBoundingClientRect();return {x:b.x,y:b.y,width:b.width,height:b.height};}

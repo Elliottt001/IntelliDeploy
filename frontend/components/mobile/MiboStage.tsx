@@ -1,3 +1,4 @@
+import {SourceRouteNode} from './sourceRouteShared';
 import {
   Animated,
   Image,
@@ -356,7 +357,7 @@ function SourceArt({
   const node = miboRenderEvidence.images[nodeId],
     uv = node.paintTransform;
   return (
-    <Animated.View
+    <SourceRouteNode sourceNodeId={nodeId}
       style={[
         {
           display: node.visible ? "flex" : "none",
@@ -380,7 +381,7 @@ function SourceArt({
           top: (-node.size.y * uv.m12) / uv.m11,
         }}
       />
-    </Animated.View>
+    </SourceRouteNode>
   );
 }
 
@@ -541,7 +542,7 @@ function MiboComposition({
       </View>
       <View style={styles.stateContent}>
         {snapshot.state.kind === "greeting" && !titleTestID ? (
-          <View style={{ marginTop: -85, left: 4 }}>
+          <SourceRouteNode sourceNodeId="845:3521" style={{ marginTop: -85, left: 4 }}>
             <FigmaText
               evidence={miboRenderEvidence.text["845:3521"]}
               testID={
@@ -550,7 +551,7 @@ function MiboComposition({
                   : undefined
               }
             />
-          </View>
+          </SourceRouteNode>
         ) : (
           <Animated.Text
             testID={visualOnly ? undefined : titleTestID}

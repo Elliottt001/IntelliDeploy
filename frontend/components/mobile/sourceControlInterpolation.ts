@@ -26,12 +26,20 @@ function geometry(a: readonly FigmaVectorLayer[], b: readonly FigmaVectorLayer[]
     const paint = target.paint && from.paint && target.paint.type === from.paint.type ? {
       ...target.paint, color:color(from.paint.color,target.paint.color,t),
       opacity:mix(from.paint.opacity,target.paint.opacity,t),
+      transform:from.paint.transform&&target.paint.transform?(interpolateSourcePath(from.paint.transform,target.paint.transform,t)??target.paint.transform):target.paint.transform,
       start:target.paint.start && from.paint.start ? {x:mix(from.paint.start.x,target.paint.start.x,t),y:mix(from.paint.start.y,target.paint.start.y,t)}:target.paint.start,
       end:target.paint.end && from.paint.end ? {x:mix(from.paint.end.x,target.paint.end.x,t),y:mix(from.paint.end.y,target.paint.end.y,t)}:target.paint.end,
       gradientStops:target.paint.gradientStops?.map((stop,i)=>{const old=from.paint?.gradientStops?.[i];return old?{...stop,color:color(old.color,stop.color,t),opacity:mix(old.opacity,stop.opacity,t),position:mix(old.position,stop.position,t)}:stop;}),
     }:target.paint;
-    return [{...target,path,fill:color(from.fill,target.fill,t),opacity:mix(from.opacity,target.opacity,t),paint}];
+    return [{...target,path,transform:from.transform&&target.transform?(interpolateSourcePath(from.transform,target.transform,t)??target.transform):target.transform,fill:color(from.fill,target.fill,t),opacity:mix(from.opacity,target.opacity,t),paint}];
   }).concat(a.slice(b.length).map(layer=>({...layer,opacity:layer.opacity*(1-Math.max(0,Math.min(1,t)))})));
+}
+function effectValue(a: unknown,b: unknown,t:number,key=''):unknown {
+  if(key==='rawPayload'||key==='rawFields'||key==='seed')return b;
+  if(typeof a==='number'&&typeof b==='number')return mix(a,b,t);
+  if(typeof a==='string'&&typeof b==='string')return color(a,b,t);
+  if(a&&b&&typeof a==='object'&&typeof b==='object'&&!Array.isArray(a)&&!Array.isArray(b))return Object.fromEntries(Object.entries(b).map(([key,value])=>[key,effectValue((a as Record<string,unknown>)[key],value,t,key)]));
+  return b;
 }
 /** Correspondence is original name/type/sibling occurrence, not arbitrary node IDs. */
 export function interpolateSourceControl(a: SourceControlState, b: SourceControlState, t: number): SourceControlState {
@@ -44,5 +52,5 @@ export function interpolateSourceControl(a: SourceControlState, b: SourceControl
     return from?interpolateSourceControl(from,child,t):{...child,opacity:child.opacity*Math.max(0,Math.min(1,t))};
   });
   for(const child of a.children) if(!b.children.some(candidate=>candidate.matchKey===child.matchKey)) children.push({...child,opacity:child.opacity*(1-Math.max(0,Math.min(1,t)))});
-  return {...b,size:{x:mix(a.size.x,b.size.x,t),y:mix(a.size.y,b.size.y,t)},transform,opacity:mix(a.opacity,b.opacity,t),geometry:geometry(a.geometry,b.geometry,t),children};
+  return {...b,size:{x:mix(a.size.x,b.size.x,t),y:mix(a.size.y,b.size.y,t)},transform,visible:a.visible||b.visible,opacity:mix(a.visible?a.opacity:0,b.visible?b.opacity:0,t),cornerRadius:mix(a.cornerRadius??0,b.cornerRadius??0,t),effects:b.effects.map((effect,index)=>a.effects[index]?.type===effect.type?effectValue(a.effects[index],effect,t) as typeof effect:effect),maskPaths:b.maskPaths.map((path,index)=>({...path,path:a.maskPaths[index]?(interpolateSourcePath(a.maskPaths[index].path,path.path,t)??path.path):path.path})),geometry:geometry(a.geometry,b.geometry,t),children};
 }

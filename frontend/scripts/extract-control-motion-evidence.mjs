@@ -49,6 +49,15 @@ export async function extractControlMotionEvidence({ source = process.env.INTELL
         });
       }
     }
+    // Text is the original outlined glyph geometry, not a system-font guess.
+    if (n.type === 'TEXT') for (const glyph of n.derivedTextData?.glyphs ?? []) {
+      const styleId=n.textData?.characterStyleIDs?.[glyph.firstCharacter]??0;
+      const style=n.textData?.styleOverrideTable?.find(s=>s.styleID===styleId);
+      const paint=(style?.fillPaints??n.fillPaints??[]).find(p=>p.visible!==false);
+      if (!paint) continue;
+      geometry.push({sourceNodeId:nodeId,path:decode(glyph.commandsBlob),fillRule:'nonzero',fill:color(paint.color),opacity:(paint.opacity??1)*(paint.color?.a??1),rawPaint:paint,
+        transform:`matrix(${glyph.fontSize} 0 0 ${-glyph.fontSize} ${glyph.position.x} ${glyph.position.y})`});
+    }
     const siblings = (children.get(nodeId) ?? []).sort((a,b) => a.parentIndex.position < b.parentIndex.position ? -1 : 1);
     const occurrence = new Map();
     return {
@@ -64,10 +73,17 @@ export async function extractControlMotionEvidence({ source = process.env.INTELL
       }),
     };
   };
-  const states = Object.fromEntries(['248:20538','248:20537','228:19794','228:19793','228:19791','228:19792'].map(k => [k,tree(k)]));
+  const states = Object.fromEntries(['248:20538','248:20537','228:19794','228:19793','228:19791','228:19792','270:26291','188:16338','270:26318','188:16981','825:6080','825:6100','825:6133','825:6153','825:6434','825:6491','825:6532','825:6588','825:6606','825:6640'].map(k => [k,tree(k)]));
+  const pageRoots=['270:26263','188:16287','188:16759','266:21147','268:22904','268:23238','268:23572','268:23906','845:3479','168:6358','825:6452'];
+  const routeNodes={};
+  for(const pageRoot of pageRoots){const counts=new Map();for(const n of (children.get(pageRoot)??[]).sort((a,b)=>a.parentIndex.position<b.parentIndex.position?-1:1)){
+    const semantic=`${n.name}:${n.type}`,occurrence=counts.get(semantic)??0;counts.set(semantic,occurrence+1);
+    routeNodes[id(n.guid)]={key:`${semantic}:${occurrence}`,pageRoot,size:n.size,transform:n.transform,opacity:n.opacity??1,visible:n.visible!==false};
+  }}
+  for(const state of Object.values(states)) if(state.name==='头像'&&!routeNodes[state.sourceNodeId])routeNodes[state.sourceNodeId]={key:'头像:FRAME:0',pageRoot:'168:6358',size:state.size,transform:state.transform,opacity:state.opacity,visible:state.visible};
   await mkdir(path.dirname(output), { recursive: true });
   const temporary = `${output}.tmp-${process.pid}`;
-  await writeFile(temporary, `// Original Symbol states; root transform is component-set placement, retained as evidence.\nimport type { SourceControlState } from '../components/mobile/sourceControlInterpolation';\nexport const sourceControlStates: Record<string, SourceControlState> = ${JSON.stringify(states)};\n`);
+  await writeFile(temporary, `// Original Symbol states; root transform is component-set placement, retained as evidence.\nimport type { SourceControlState } from '../components/mobile/sourceControlInterpolation';\nexport const sourceControlStates: Record<string, SourceControlState> = ${JSON.stringify(states)};\nexport const sourceRouteNodes = ${JSON.stringify(routeNodes)} as const;\n`);
   await rename(temporary,output);
   return Object.keys(states).length;
 }

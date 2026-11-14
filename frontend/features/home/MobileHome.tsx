@@ -1,3 +1,7 @@
+import {SourceRouteNode} from '../../components/mobile/sourceRouteShared';
+import {useSourceTreeMotion} from '../../components/mobile/useSourceTreeMotion';
+import {sourceControlStates} from '../../design/sourceControlMotionEvidence';
+import {FigmaTree} from '../../components/mobile/FigmaTree';
 import {HomeFooterBackdrop,HomeControlBackdrop} from './HomeMotionBackdrop';
 import { useSourceRouteTransition } from '../../components/mobile/SourceRouteTransition';
 import {OrderedHomeCards} from './OrderedHomeCards';
@@ -14,7 +18,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import {
   AppBackground,
   BottomNav,
@@ -110,7 +114,7 @@ function HomeCard({
       ]}
     >
       <Animated.View style={[styles.card, animatedStyle]}>
-        <Pressable
+        <SourceRouteNode sourceNodeId={({store:"270:26345",products:"270:26431",community:"270:26460",profile:"270:26504"} as Record<string,string>)[card.key]} captureHeight={e.expandedSurface.height} contentHeight={animatedStyle.height} style={StyleSheet.absoluteFill}><Pressable
           accessibilityRole="button"
           accessibilityLabel={`${sourceCopy?.title.characters ?? card.title}，${sourceCopy?.description.characters ?? card.description}`}
           accessibilityState={{ expanded }}
@@ -231,6 +235,7 @@ function HomeCard({
             探索公开应用，收藏灵感与工具
           </Text>
         )}
+        </SourceRouteNode>
       </Animated.View>
     </View>
   );
@@ -238,13 +243,14 @@ function HomeCard({
 
 export function MobileHome() {
   const sourceNavigate = useSourceRouteTransition();
+  const params=useLocalSearchParams<{sourceAvatar?:string}>();
   const router = useRouter(),
     insets = useSafeAreaInsets(),
     viewport = useWindowDimensions(),
     layout = getMobileLayout(viewport.width, insets);
   const [expandedCard, setExpandedCard] = useState<HomeCardKey | null>(null),
     [username, setUsername] = useState("你好"),
-    [cloudIndex, setCloudIndex] = useState(0);
+    [cloudIndex, setCloudIndex] = useState(0),[cloudPressed,setCloudPressed]=useState(false),[avatarHovered,setAvatarHovered]=useState(params.sourceAvatar==='hover');
   useEffect(() => {
     let alive = true;
     authAPI
@@ -262,6 +268,9 @@ export function MobileHome() {
   }, []);
   const navigate = (href: string) => router.push(href as never),
     cloud = source.clouds[cloudIndex];
+  const cloudMotion=useMemo(()=>getSourceMotion('266:21221','ON_PRESS'),[]);
+  const cloudState=useSourceTreeMotion(sourceControlStates[cloudPressed?'188:16981':source.clouds[cloudIndex].sourceNodeId],cloudMotion);
+  const miboRouteMotion=getSourceMotion(({store:'268:22950',products:'268:23284',community:'268:23618',profile:'268:23952'} as Record<string,string>)[expandedCard??'']??'266:21193','ON_CLICK');
   const usableWidth = viewport.width - insets.left - insets.right;
   const cardWidth = fitSourceWidth(
     sourceCardWidth,
@@ -284,7 +293,7 @@ export function MobileHome() {
           paddingBottom: 100,
         }}
       >
-        <View
+        <SourceRouteNode sourceNodeId="270:26267"
           style={{
             width: Math.min(
               347,
@@ -304,33 +313,34 @@ export function MobileHome() {
               />
             }
           />
-        </View>
+        </SourceRouteNode>
         <LiveGlassBackdrop mode="flow" underlay={<>
         <View style={styles.hero}>
-          <Pressable
+          <View style={styles.avatar}><Pressable
             accessibilityRole="button"
             accessibilityLabel="与 Mibo AI 对话"
-            onPress={() => sourceNavigate(getSourceMotion("266:21193","ON_CLICK"),()=>navigate("/chatbot"),"/chatbot")}
+            onPress={() => sourceNavigate(miboRouteMotion,()=>navigate("/chatbot"),"/chatbot")}
+            onHoverIn={()=>setAvatarHovered(true)} onHoverOut={()=>setAvatarHovered(false)}
             testID="home-mibo-avatar"
-            style={styles.avatar}
+            style={StyleSheet.absoluteFill}
           >
-            {({pressed})=><HomeAvatar pressed={pressed}/>}
-          </Pressable>
-          <View style={styles.heroCopy}>
+            {({pressed})=><HomeAvatar pressed={pressed} hovered={avatarHovered}/>}
+          </Pressable></View>
+          <View style={styles.heroCopy}><SourceRouteNode sourceNodeId="270:26287" style={StyleSheet.absoluteFill}>
             <Text style={styles.greeting}>Hi！{username}✨</Text>
             <View style={{position:"absolute",top:source.question.transform.m12,left:source.question.transform.m02}}><FigmaText testID="home-question" evidence={source.question}/></View>
-            <Pressable
+            </SourceRouteNode><SourceRouteNode sourceNodeId="270:26290" style={[styles.miboLink,{left:Math.min(76.2495,viewport.width-insets.right-layout.gutter-(layout.gutter+12+82)-147.501)}]}><Pressable
               accessibilityRole="button"
-              onPress={() => sourceNavigate(getSourceMotion("266:21193","ON_CLICK"),()=>navigate("/chatbot"),"/chatbot")}
+              onPress={() => sourceNavigate(miboRouteMotion,()=>navigate("/chatbot"),"/chatbot")}
               accessibilityLabel="与 Mibo AI 对话"
               testID="home-mibo-open"
-              style={[styles.miboLink,{left:Math.min(76.2495,viewport.width-insets.right-layout.gutter-(layout.gutter+12+82)-147.501)}]}
+              style={StyleSheet.absoluteFill}
             >
               <FigmaGeometry geometry={source.miboLink.geometry as readonly FigmaVectorLayer[]} width={source.miboLink.size.width} height={source.miboLink.size.height} prefix="home-mibo-link"/>
-            </Pressable>
+            </Pressable></SourceRouteNode>
           </View>
         </View>
-        <View style={styles.inspirationHeader}>
+        <SourceRouteNode sourceNodeId="270:26309" style={styles.inspirationHeader}>
           <View style={{width:source.sectionIcon.size.width,height:source.sectionIcon.size.height}}><FigmaGeometry geometry={source.sectionIcon.geometry as readonly FigmaVectorLayer[]} width={source.sectionIcon.size.width} height={source.sectionIcon.size.height} prefix="home-inspiration-icon"/></View>
           <FigmaText evidence={source.sectionLabels.inspiration}/>
           <Pressable
@@ -342,24 +352,14 @@ export function MobileHome() {
           >
             <FigmaText evidence={source.sectionLabels.refresh}/>
           </Pressable>
-        </View>
-        <View style={styles.wordCloud} testID="home-suggestions" nativeID={cloud.sourceNodeId}>
-          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            <FigmaGeometry
-              geometry={
-                cloud.background.geometry as readonly FigmaVectorLayer[]
-              }
-              width={303}
-              height={111}
-              prefix="home-cloud"
-              transform={matrix(cloud.background.nodeTransform)}
-            />
-          </View>
+        </SourceRouteNode>
+        <SourceRouteNode sourceNodeId="270:26318" style={styles.wordCloud}><Pressable style={StyleSheet.absoluteFill} testID="home-suggestions" nativeID={cloud.sourceNodeId} accessibilityLabel="词云源按压状态" onPressIn={()=>setCloudPressed(true)} onPressOut={()=>setCloudPressed(false)}>
+          <View pointerEvents="none" accessibilityElementsHidden style={StyleSheet.absoluteFill}><FigmaTree node={cloudState} prefix="home-cloud-source-motion"/></View>
           {cloud.items.map((item) => {
             const suggestion = homeSuggestions.find(
               (s) => s.label === item.characters,
             );
-            const glyph = <FigmaText evidence={item} />;
+            const glyph = <View pointerEvents="none" style={{opacity:0}}><FigmaText evidence={item} /></View>;
             return suggestion ? (
               <Pressable
                 key={item.sourceNodeId}
@@ -396,11 +396,11 @@ export function MobileHome() {
               </View>
             );
           })}
-        </View>
-        <View style={styles.functionHeader}>
+        </Pressable></SourceRouteNode>
+        <SourceRouteNode sourceNodeId="270:26314" style={styles.functionHeader}>
           <View style={{width:source.sectionIcon.size.width,height:source.sectionIcon.size.height}}><FigmaGeometry geometry={source.sectionIcon.geometry as readonly FigmaVectorLayer[]} width={source.sectionIcon.size.width} height={source.sectionIcon.size.height} prefix="home-functions-icon"/></View>
           <FigmaText evidence={source.sectionLabels.functions}/>
-        </View>
+        </SourceRouteNode>
         </>}>
         <OrderedHomeCards style={styles.cards} expandedKey={expandedCard}>
           {homeCards.map((card) => {
@@ -423,7 +423,7 @@ export function MobileHome() {
         </OrderedHomeCards>
         </LiveGlassBackdrop>
       </ScrollView>}>
-      <View
+      <SourceRouteNode sourceNodeId="270:26530"
         style={{
           position: "absolute",
           left: 20 - layout.gutter,
@@ -438,7 +438,7 @@ export function MobileHome() {
           onNavigate={navigate}
           testID="home-bottom-nav"
         />
-      </View>
+      </SourceRouteNode>
       </HomeFooterBackdrop>
     </AppBackground>
   );
