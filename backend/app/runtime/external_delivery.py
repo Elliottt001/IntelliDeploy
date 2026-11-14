@@ -134,6 +134,7 @@ class OfficialServiceVerifier:
 
         async with async_playwright() as playwright:
             browser = await playwright.chromium.launch(headless=True)
+            context = None
             try:
                 context = await browser.new_context(service_workers='block', accept_downloads=False)
                 await context.route('**/*', public_request)
@@ -169,6 +170,8 @@ class OfficialServiceVerifier:
                     value['executed_core_checks'].append({'id':check.item_id,'status':status,'evidence':str(evidence)})
                 return value
             finally:
+                if context is not None:
+                    await context.unroute_all(behavior='ignoreErrors')
                 await browser.close()
 
     async def _assess_observation(self, current, text, status):
