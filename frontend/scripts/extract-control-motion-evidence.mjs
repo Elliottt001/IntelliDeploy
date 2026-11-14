@@ -63,7 +63,7 @@ export async function extractControlMotionEvidence({ source = process.env.INTELL
     return {
       sourceNodeId: nodeId, matchKey, name: n.name, type: n.type,
       size: n.size, transform: n.transform ?? identity, opacity: n.opacity ?? 1, visible: n.visible !== false,
-      clipsContent: n.frameMaskDisabled === false, mask: !!n.isMask, booleanOperation: n.type === 'BOOLEAN_OPERATION',
+      clipsContent: n.frameMaskDisabled === false, mask: !!(n.mask ?? n.isMask), booleanOperation: n.type === 'BOOLEAN_OPERATION',
       cornerRadius: n.cornerRadius, blendMode: n.blendMode, maskPaths: geometry.map(g => ({path:g.path,fillRule:g.fillRule})),
       geometry, effects: (n.effects ?? []).map(e => normalizeSourceEffect(e,nodeId)).filter(Boolean),
       children: siblings.map(c => {

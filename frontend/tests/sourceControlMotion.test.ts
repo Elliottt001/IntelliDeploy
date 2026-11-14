@@ -42,3 +42,19 @@ test('control state geometry carries original local matrices, node opacity and r
  };
  Object.values(sourceControlStates).forEach(check);
 });
+
+test('all twenty source trees retain canonical Kiwi mask and geometry visibility/clip flags',async()=>{
+ const {sourceControlStates}=await import('../design/sourceControlMotionEvidence');let masks=0;
+ const visit=(state:typeof sourceControlStates[string])=>{
+  const raw=sourceNode(state.sourceNodeId),canonicalMask=raw.mask===undefined?Boolean(raw.isMask):raw.mask;
+  expect(state.mask,state.sourceNodeId).toBe(canonicalMask);if(canonicalMask)masks++;
+  expect(state.visible,state.sourceNodeId).toBe(raw.visible!==false);
+  expect(state.booleanOperation,state.sourceNodeId).toBe(raw.type==='BOOLEAN_OPERATION');
+  expect(state.clipsContent,state.sourceNodeId).toBe(raw.frameMaskDisabled===false);
+  for(const layer of state.geometry)expect(['nonzero','evenodd']).toContain(layer.fillRule);
+  for(const path of state.maskPaths)expect(['nonzero','evenodd']).toContain(path.fillRule);
+  if([...(raw.fillGeometry??[]),...(raw.strokeGeometry??[])].some((g:{windingRule?:string})=>g.windingRule==='ODD'))expect(state.geometry.some(g=>g.fillRule==='evenodd')).toBe(true);
+  state.children.forEach(visit);
+ };
+ expect(Object.keys(sourceControlStates)).toHaveLength(20);Object.values(sourceControlStates).forEach(visit);expect(masks).toBeGreaterThan(0);
+});
