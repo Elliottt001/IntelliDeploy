@@ -10,7 +10,7 @@ export function liveBackdropCapture<T extends {dispose():void}>(capture:()=>Prom
    const image=await capture();
    if(!active||started!==generation){image?.dispose();return;}
    const old=current;current=image;publish(image);if(old)retire(old);
-  }catch(error){publish(null);if(current)retire(current);current=null;onError(error);}
+  }catch(error){if(!active||started!==generation)return;publish(null);if(current)retire(current);current=null;onError(error);}
   finally{busy=false;if(active&&dirty)void update();}
  };
  return {update,invalidate,clear(){generation++;publish(null);if(current)retire(current);current=null;},stop(){active=false;generation++;publish(null);if(current)retire(current);current=null;},get busy(){return busy;}};

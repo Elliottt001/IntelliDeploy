@@ -20,3 +20,10 @@ it('reports producer failure and clears stale input rather than claiming a live 
  await owner.update();fail=true;await owner.update();
  expect(output.at(-1)).toBeNull();expect(String(errors[0])).toContain('native capture failed');owner.stop();
 });
+it.each(['stop','clear','invalidate'] as const)('ignores obsolete capture rejection after %s',async(operation)=>{
+ let reject!:(e:Error)=>void;const output:unknown[]=[],errors:unknown[]=[];
+ const owner=liveBackdropCapture(()=>new Promise((_resolve,fail)=>{reject=fail;}),value=>output.push(value),image=>image.dispose(),error=>errors.push(error));
+ const pending=owner.update();owner[operation]();const count=output.length;
+ reject(Error('late rejected capture'));await pending;
+ expect(output).toHaveLength(count);expect(errors).toEqual([]);owner.stop();
+});

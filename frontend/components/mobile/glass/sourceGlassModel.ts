@@ -1,5 +1,6 @@
 import type {FigmaSourceEffect} from '../FigmaEffects';
-export type GlassSourceNode={type:string;size:{x:number;y:number};cornerRadius:number;paths?:readonly {path:string;fillRule?:'evenodd'|'nonzero'}[];effects:readonly FigmaSourceEffect[]};
+export type RawShellPaint={ [key:string]:unknown; type:string;visible?:boolean;opacity?:number;color?:{r:number;g:number;b:number;a:number};transform?:{m00:number;m01:number;m02:number;m10:number;m11:number;m12:number};stops?:readonly {color:{r:number;g:number;b:number;a:number};position:number;[key:string]:unknown}[]};
+export type GlassSourceNode={type:string;size:{x:number;y:number};cornerRadius:number;fillPaints?:readonly RawShellPaint[];strokePaints?:readonly RawShellPaint[];strokePaths?:readonly {path:string;fillRule?:'evenodd'|'nonzero'}[];paths?:readonly {path:string;fillRule?:'evenodd'|'nonzero'}[];effects:readonly FigmaSourceEffect[]};
 export type FieldPoint={x:number;y:number;width:number;height:number;distance:number;normal:{x:number;y:number}};
 const clamp=(v:number)=>Math.max(0,Math.min(1,v));
 // Source points are Figma logical units. Normal/distance come from the actual

@@ -407,9 +407,11 @@ test.skipIf(!process.env.INTELLIDEPLOY_FIGMA_SOURCE)('store source audit (NOT_RU
   );
   for (const audit of [storeCardSourceAudit, rankingSourceAudit]) {
     const instance = audit.instances[0];
-    expect(instance.semanticScope).toBe('shared-bottom-navigation-state-control');
-    expect(instance.runtimeSupport).toBe('NOT_IMPLEMENTED');
-    expect(instance.runtimeReason).toContain('BottomNav');
+    expect(instance.semanticScope).toBe('body-footer-reaction-visual-control');
+    expect(instance.runtimeSupport).toBe('VISUAL_ONLY_API_UNAVAILABLE');
+    expect(instance.runtimeReason).toContain('SourceAnimatedControl');
+    expect(instance.runtimeReason).toContain('no likes API');
+    expect((nodes.get('228:19795') as {name?:string}|undefined)?.name).toBe('点赞特效');
     expect(instance.runtimeReason).not.toContain('PublicationResponse');
     expect(instance.ancestors.map((ancestor) => ancestor.name)).toEqual(
       expect.arrayContaining(['CONTAINER', '设置', 'Frame 2147238705', '底部文字框']),

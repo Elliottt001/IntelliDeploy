@@ -1,4 +1,7 @@
-import {SourceGlassSurface} from './glass/SourceGlassSurface';
+import { SourceAnimatedControl } from './SourceAnimatedControl';
+import { SourceRouteAction } from './SourceRouteTransition';
+import type { SourceMotion } from '../../design/sourceMotionEvidence';
+import {SourceGlassSurface,sourceSurfacePaintStyle} from './glass/SourceGlassSurface';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Platform,
@@ -136,6 +139,8 @@ export type CircleActionProps = {
   decorative?:boolean;
   surfaceOffset?:{x:number;y:number};
   iconOffset?:{x:number;y:number};
+  sourceMotion?: SourceMotion | null;
+  canonicalTarget?: string;
 };
 
 export function CircleAction({
@@ -146,8 +151,11 @@ export function CircleAction({
   style,
   testID,
   variant = 'glass',
-  surfaceOffset,iconOffset,decorative=false,
+  surfaceOffset,iconOffset,decorative=false,sourceMotion,canonicalTarget,
 }: CircleActionProps) {
+  if (sourceMotion) return <SourceRouteAction motion={sourceMotion} onPress={onPress} canonicalTarget={canonicalTarget}>{press=><CircleAction accessibilityLabel={accessibilityLabel} disabled={disabled} icon={icon} onPress={press} style={style} testID={testID} variant={variant} surfaceOffset={surfaceOffset} iconOffset={iconOffset} decorative={decorative}/>}</SourceRouteAction>;
+  const press = onPress;
+  if (icon === 'home-arrow' && !decorative) return <SourceAnimatedControl kind="settings" accessibilityLabel={accessibilityLabel} disabled={disabled} onPress={press} style={style} testID={testID}/>;
   const primary = variant === 'primary';
   const Container=decorative?View:Pressable;
   const shellEvidence = (primary
@@ -193,7 +201,7 @@ export function CircleAction({
       accessibilityLabel={decorative?undefined:accessibilityLabel}
       accessibilityRole={decorative?undefined:"button"}
       disabled={decorative?undefined:disabled}
-      onPress={decorative?undefined:onPress}
+      onPress={decorative?undefined:press}
       style={[
         styles.target,
         disabled && !primary && styles.disabled,
@@ -203,7 +211,7 @@ export function CircleAction({
       testID={testID}
     >
       <LinearGradient
-        colors={gradientColors}
+        colors={sourceSurfacePaintStyle(shellEvidence.surfaceNodeId)?['transparent','transparent']:gradientColors}
         end={figmaLinearGradientEndpoints(gradient).end}
         locations={gradientLocations}
         start={figmaLinearGradientEndpoints(gradient).start}
@@ -226,6 +234,7 @@ export function CircleAction({
             width: surfaceSize,
             transform:surfaceOffset?[{translateX:surfaceOffset.x},{translateY:surfaceOffset.y}]:undefined,
           },
+          sourceSurfacePaintStyle(shellEvidence.surfaceNodeId),
         ]}
       >
         <SourceGlassSurface sourceNodeId={shellEvidence.surfaceNodeId} canvasSize={{width:surfaceSize,height:surfaceSize}} transform={shellEvidence.geometry.find(layer=>layer.sourceNodeId===shellEvidence.surfaceNodeId)?.transform}/>

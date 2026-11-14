@@ -1,3 +1,4 @@
+import { SourceRouteTransition } from '../components/mobile/SourceRouteTransition';
 import '../global.css';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
@@ -91,7 +92,7 @@ export default function RootLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack
+      <SourceRouteTransition><Stack
         screenOptions={{
           headerStyle: { backgroundColor: '#4A90D9' },
           headerTintColor: '#fff',
@@ -113,7 +114,7 @@ export default function RootLayout() {
         <Stack.Screen name="chatbot" options={{ title: 'Mibo', headerShown: false }} />
         <Stack.Screen name="app-detail/[id]" options={{ title: '应用与对话', headerShown: false }} />
         <Stack.Screen name="billing" options={{ title: '额度与用量', headerShown: false }} />
-      </Stack>
+      </Stack></SourceRouteTransition>
 
       {shouldShowAuthOverlay && (
         <View

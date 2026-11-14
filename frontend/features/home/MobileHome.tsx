@@ -1,3 +1,5 @@
+import {HomeFooterBackdrop,HomeControlBackdrop} from './HomeMotionBackdrop';
+import { useSourceRouteTransition } from '../../components/mobile/SourceRouteTransition';
 import {OrderedHomeCards} from './OrderedHomeCards';
 import {LiveGlassBackdrop} from '../../components/mobile/glass/LiveGlassBackdrop';
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -54,6 +56,7 @@ function HomeCard({
   onOpen: () => void;
   onToggle: () => void;
 }) {
+  const sourceNavigate = useSourceRouteTransition();
   const e = homeFigmaEvidence.cards.find((item) => item.key === card.key)!;
   const target = homeFigmaEvidence.homeStateTargets.find(
     (item) => item.card === card.key,
@@ -129,6 +132,7 @@ function HomeCard({
           }}
           style={StyleSheet.absoluteFill}
         />
+        <HomeControlBackdrop artwork={<>
         <HomeCardArtwork
           cardWidth={cardWidth}
           kind={card.key}
@@ -182,6 +186,7 @@ function HomeCard({
             </Text>
           )}
         </View>
+        </>}>
         {!expanded && (
           <View
             pointerEvents="none"
@@ -206,6 +211,8 @@ function HomeCard({
             accessibilityLabel={`进入${card.title}`}
             icon="home-arrow"
             testID={`home-card-${card.key}-open`}
+            sourceMotion={getSourceMotion(({store:'268:23006',products:'268:23426',community:'268:23789'} as Record<string,string>)[card.key]??'','ON_CLICK')}
+            canonicalTarget={card.href}
             onPress={() => navigate(card.href)}
             style={[
               styles.arrow,
@@ -213,6 +220,7 @@ function HomeCard({
             ]}
           />
         )}
+        </HomeControlBackdrop>
         {expanded && card.key === "store" && (
           <Text pointerEvents="none" style={styles.detail}>
             探索公开应用，发现适合你的工具
@@ -229,6 +237,7 @@ function HomeCard({
 }
 
 export function MobileHome() {
+  const sourceNavigate = useSourceRouteTransition();
   const router = useRouter(),
     insets = useSafeAreaInsets(),
     viewport = useWindowDimensions(),
@@ -268,7 +277,7 @@ export function MobileHome() {
       contentStyle={{ position: "relative" }}
     >
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView
+      <HomeFooterBackdrop scrollContent={<ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingTop: Math.max(insets.top, 44),
@@ -301,7 +310,7 @@ export function MobileHome() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="与 Mibo AI 对话"
-            onPress={() => navigate("/chatbot")}
+            onPress={() => sourceNavigate(getSourceMotion("266:21193","ON_CLICK"),()=>navigate("/chatbot"),"/chatbot")}
             testID="home-mibo-avatar"
             style={styles.avatar}
           >
@@ -312,7 +321,7 @@ export function MobileHome() {
             <View style={{position:"absolute",top:source.question.transform.m12,left:source.question.transform.m02}}><FigmaText testID="home-question" evidence={source.question}/></View>
             <Pressable
               accessibilityRole="button"
-              onPress={() => navigate("/chatbot")}
+              onPress={() => sourceNavigate(getSourceMotion("266:21193","ON_CLICK"),()=>navigate("/chatbot"),"/chatbot")}
               accessibilityLabel="与 Mibo AI 对话"
               testID="home-mibo-open"
               style={[styles.miboLink,{left:Math.min(76.2495,viewport.width-insets.right-layout.gutter-(layout.gutter+12+82)-147.501)}]}
@@ -413,7 +422,7 @@ export function MobileHome() {
           })}
         </OrderedHomeCards>
         </LiveGlassBackdrop>
-      </ScrollView>
+      </ScrollView>}>
       <View
         style={{
           position: "absolute",
@@ -430,6 +439,7 @@ export function MobileHome() {
           testID="home-bottom-nav"
         />
       </View>
+      </HomeFooterBackdrop>
     </AppBackground>
   );
 }

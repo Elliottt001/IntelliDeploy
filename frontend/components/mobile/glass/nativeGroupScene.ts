@@ -14,7 +14,7 @@ const parse=(t?:string):Matrix=>(t?.match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi)?.ma
 const columns=([a,b,c,d,x,y]:Matrix)=>[a,b,0,c,d,0,x,y,1];
 const inverse=([a,b,c,d,x,y]:Matrix):Matrix=>{const det=a*d-b*c;return [d/det,-b/det,-c/det,a/det,(c*y-d*x)/det,(b*x-a*y)/det];};
 const matrix=(sk:typeof Skia,[a,b,c,d,x,y]:Matrix)=>sk.Matrix([a,c,x,b,d,y,0,0,1]);
-export type NativeGroupSceneOptions={width:number;height:number;dpr:number;world?:Matrix;backdrops:readonly {image:SkImage;x:number;y:number;width:number;height:number}[]};
+export type NativeGroupSceneOptions={width:number;height:number;dpr:number;world?:Matrix;includeBackdrop?:boolean;backdrops:readonly {image:SkImage;x:number;y:number;width:number;height:number}[]};
 const shaders=new Map<string,SkRuntimeEffect>();
 const staticGroups=new Map<string,SkPicture>();
 const visible=(e:FigmaSourceEffect)=>e.visible!==false;
@@ -137,6 +137,7 @@ export function renderNativeGroupScene(nativeApi:typeof Skia,node:FigmaTreeNode,
  };
  const parent=surface();for(const b of o.backdrops){const p=sk.Paint();canvasOf(parent).drawImageRect(b.image,sk.XYWHRect(0,0,b.image.width(),b.image.height()),sk.XYWHRect((b.x+pad)*o.dpr,(b.y+pad)*o.dpr,b.width*o.dpr,b.height*o.dpr),p);release(p);}
  const prefix=snapshot(parent),world=multiply([o.dpr,0,0,o.dpr,pad*o.dpr,pad*o.dpr],o.world??identity),image=paintNode(node,prefix,world,true);
+ if(o.includeBackdrop===false)canvasOf(parent).clear(sk.Color('transparent'));
  drawImage(parent,image,node.opacity,effectFilter(sk,node.effects,world),node.blendMode);release(prefix);release(image);parent.flush();const result=parent.makeImageSnapshot(sk.XYWHRect(pad*o.dpr,pad*o.dpr,Math.ceil(o.width*o.dpr),Math.ceil(o.height*o.dpr)));release(parent);return result;
  }finally{lastNativeFrameResources=frame.finish();}
 }

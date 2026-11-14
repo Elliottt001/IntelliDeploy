@@ -104,8 +104,7 @@ function eventType(interaction) {
   return interaction.event?.interactionType;
 }
 
-function toMotion(nodeId, interaction) {
-  const action = interaction.actions?.[0] ?? {};
+function toMotion(nodeId, interaction, action = interaction.actions?.[0] ?? {}) {
   return {
     nodeId,
     interactionId: interactionKey(interaction),
@@ -149,7 +148,7 @@ function collectMotions({ frameIds, nodes, nodesById, childrenByParent }) {
           .flatMap((override) => override.interactions),
       );
       for (const interaction of rootInteractions) {
-        motions.push(toMotion(nodeId, interaction));
+        for (const action of interaction.actions ?? []) motions.push(toMotion(nodeId, interaction, action));
       }
 
       for (const { interactions: overrideInteractions, pathIds } of overrideGroups) {
@@ -163,19 +162,46 @@ function collectMotions({ frameIds, nodes, nodesById, childrenByParent }) {
           overrideInteractions,
         );
         for (const interaction of interactions) {
-          motions.push(
-            toMotion(effectiveOwnerId(nodeId, pathIds), interaction),
-          );
+          for (const action of interaction.actions ?? []) motions.push(toMotion(effectiveOwnerId(nodeId, pathIds), interaction, action));
         }
       }
       continue;
     }
 
     for (const interaction of own) {
-      motions.push(toMotion(nodeId, interaction));
+      for (const action of interaction.actions ?? []) motions.push(toMotion(nodeId, interaction, action));
     }
   }
 
+  // Preserve all effective approved records, then add only component-state
+  // dependencies. Old prototype page targets are not new product pages.
+  const dependencies = new Set();
+  const initialSymbols = new Set();
+  for (const id of approved) {
+    const symbol = nodesById.get(id)?.symbolData?.symbolID;
+    if (symbol) { dependencies.add(guid(symbol)); initialSymbols.add(guid(symbol)); }
+  }
+  for (const motion of motions) {
+    if (motion.navigation === 'SWAP_STATE' && motion.targetNodeId) dependencies.add(motion.targetNodeId);
+  }
+  const visited = new Set();
+  const visit = (id) => {
+    if (visited.has(id) || approved.has(id)) return;
+    visited.add(id);
+    const node = nodesById.get(id);
+    if (!node) return;
+    for (const interaction of mergeInteractions([], node.prototypeInteractions ?? [], [])) {
+      for (const action of interaction.actions ?? []) {
+        const motion = toMotion(id, interaction, action);
+        if (motion.navigation === 'SWAP_STATE') motions.push(motion);
+        if (motion.navigation === 'SWAP_STATE' && motion.targetNodeId) dependencies.add(motion.targetNodeId);
+      }
+    }
+    // Instance child overrides remain authoritative; raw child actions must not
+    // resurrect interactions deleted on the approved instance.
+    if (!initialSymbols.has(id)) for (const child of childrenByParent.get(id) ?? []) visit(guid(child.guid));
+  };
+  for (const id of dependencies) visit(id);
   return motions.filter(
     (motion) =>
       motion.event &&
@@ -199,7 +225,7 @@ function moduleText(frameIds, motions) {
 
 export const sourceMotionFrameIds = ${JSON.stringify(frameIds, null, 2)} as const;
 
-const sourceMotions = ${JSON.stringify(motions, null, 2)} as const satisfies readonly SourceMotion[];
+export const sourceMotions = ${JSON.stringify(motions, null, 2)} as const satisfies readonly SourceMotion[];
 
 export function getSourceMotion(
   nodeId: string,

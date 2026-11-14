@@ -214,6 +214,8 @@ export function useSourceMotion(motion: SourceMotion | null): {
     };
   }, []);
 
+  const runToRef = useRef(runTo);
+  runToRef.current = runTo;
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state !== "active") {
@@ -224,14 +226,14 @@ export function useSourceMotion(motion: SourceMotion | null): {
       }
       if (appStateCancelledRef.current) {
         appStateCancelledRef.current = false;
-        runTo(targetValueRef.current);
+        runToRef.current(targetValueRef.current);
       }
     });
     return () => {
       subscription.remove();
       cancel();
     };
-  }, [cancel, runTo, stop, syncProgressValue]);
+  }, [cancel, stop, syncProgressValue]);
 
   const getCurrentValue = useCallback(() => {
     let current = progressValueRef.current;

@@ -113,7 +113,7 @@ export function ProductPage({ title, subtitle, insets, onBack, testID, children,
   const textShadow = source.collection.effects.find(effect => effect.type === 'DROP_SHADOW');
   return <AppBackground insets={insets} testID={testID} contentStyle={{ paddingTop: Math.max(insets.top,44), paddingBottom: Math.max(insets.bottom, 12) }}>
     <View style={[styles.header,{alignSelf:'flex-start',width:headerWidth,maxWidth:headerWidth,marginLeft:headerLeft-pageLayout.gutter-insets.left}]} testID="products-header">
-      <CircleAction accessibilityLabel={title === '我的产品' ? '返回首页' : '返回我的产品'} icon="back" onPress={onBack} surfaceOffset={headerSource.back.surfaceOffset} iconOffset={headerSource.back.iconOffset} />
+      <CircleAction accessibilityLabel={title === '我的产品' ? '返回首页' : '返回我的产品'} icon="back" sourceMotion={getSourceMotion("825:5828","ON_CLICK")} canonicalTarget="/" onPress={onBack} surfaceOffset={headerSource.back.surfaceOffset} iconOffset={headerSource.back.iconOffset} />
       <Text accessibilityRole="header" style={styles.headerTitle}>{title}</Text>
       <CircleAction accessibilityLabel={actions?"产品分类与操作":"分享暂未开放"} disabled={!actions} icon="share" surfaceOffset={headerSource.share.surfaceOffset} iconOffset={headerSource.share.iconOffset} onPress={()=>onToggleActions?.()} testID={actions?"products-actions-open":undefined}/>
     </View>

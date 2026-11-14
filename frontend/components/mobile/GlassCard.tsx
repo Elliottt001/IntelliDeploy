@@ -1,4 +1,4 @@
-import {SourceGlassSurface} from './glass/SourceGlassSurface';
+import {SourceGlassSurface,sourceSurfacePaintStyle} from './glass/SourceGlassSurface';
 import type { PropsWithChildren } from 'react';
 import {
   Platform,
@@ -87,6 +87,7 @@ export function GlassCard({ children, style, testID }: GlassCardProps) {
         sourcePadding,
         style,
         sourceClipping,
+        sourceSurfacePaintStyle(shell.surfaceNodeId),
       ]}
       testID={testID}
     >

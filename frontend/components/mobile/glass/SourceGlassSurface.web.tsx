@@ -8,3 +8,5 @@ export function SourceGlassSurface({sourceNodeId,canvasSize,transform}:{sourceNo
  const paths=source.paths?.length?source.paths:[{path:`M0 0 H${source.size.x} V${source.size.y} H0 Z`}];
  return <View pointerEvents="none" style={StyleSheet.absoluteFill}><Svg width="100%" height="100%" viewBox={`0 0 ${size.width} ${size.height}`} preserveAspectRatio="none" aria-hidden><SourceGlassLayer effects={source.effects} width={source.size.x} height={source.size.y} paths={paths} sourceNodeId={sourceNodeId} transform={transform}/></Svg></View>;
 }
+
+export const sourceSurfacePaintStyle=(_sourceNodeId?:string):import('react-native').ViewStyle|undefined=>undefined;

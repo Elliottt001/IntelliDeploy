@@ -40,7 +40,7 @@ export const sourceMotionFrameIds = [
   "825:6452"
 ] as const;
 
-const sourceMotions = [
+export const sourceMotions = [
   {
     "nodeId": "188:16337",
     "interactionId": "180:14868",
@@ -1609,6 +1609,91 @@ const sourceMotions = [
       1,
       100,
       15,
+      0
+    ]
+  },
+  {
+    "nodeId": "248:20538",
+    "interactionId": "248:20540",
+    "event": "ON_HOVER",
+    "navigation": "SWAP_STATE",
+    "targetNodeId": "248:20537",
+    "transition": "SMART_ANIMATE",
+    "durationMs": 1287.339210510254,
+    "prototypeDelayMs": 0,
+    "easingType": "CUSTOM_SPRING",
+    "easingFunction": [
+      1,
+      145,
+      11.399999618530273,
+      0
+    ]
+  },
+  {
+    "nodeId": "228:19794",
+    "interactionId": "228:19806",
+    "event": "ON_CLICK",
+    "navigation": "SWAP_STATE",
+    "targetNodeId": "228:19793",
+    "transition": "SMART_ANIMATE",
+    "durationMs": 63.307903707027435,
+    "prototypeDelayMs": 0,
+    "easingType": "CUSTOM_SPRING",
+    "easingFunction": [
+      1,
+      29030,
+      240,
+      0
+    ]
+  },
+  {
+    "nodeId": "228:19793",
+    "interactionId": "228:19805",
+    "event": "AFTER_TIMEOUT",
+    "navigation": "SWAP_STATE",
+    "targetNodeId": "228:19791",
+    "transition": "SMART_ANIMATE",
+    "durationMs": 585.6190323829651,
+    "prototypeDelayMs": 1.0000000474974513,
+    "easingType": "CUSTOM_SPRING",
+    "easingFunction": [
+      1,
+      9054,
+      24,
+      0
+    ]
+  },
+  {
+    "nodeId": "228:19791",
+    "interactionId": "228:19807",
+    "event": "ON_CLICK",
+    "navigation": "SWAP_STATE",
+    "targetNodeId": "228:19792",
+    "transition": "SMART_ANIMATE",
+    "durationMs": 63.307903707027435,
+    "prototypeDelayMs": 0,
+    "easingType": "CUSTOM_SPRING",
+    "easingFunction": [
+      1,
+      29030,
+      240,
+      0
+    ]
+  },
+  {
+    "nodeId": "228:19792",
+    "interactionId": "228:19808",
+    "event": "AFTER_TIMEOUT",
+    "navigation": "SWAP_STATE",
+    "targetNodeId": "228:19794",
+    "transition": "SMART_ANIMATE",
+    "durationMs": 602.0301580429077,
+    "prototypeDelayMs": 1.0000000474974513,
+    "easingType": "CUSTOM_SPRING",
+    "easingFunction": [
+      1,
+      1182,
+      24,
       0
     ]
   }

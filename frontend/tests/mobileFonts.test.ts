@@ -18,7 +18,8 @@ vi.mock('expo-router', () => {
     useRouter: () => ({ replace: vi.fn() }),
   };
 });
-vi.mock('react', () => ({
+vi.mock('react', async () => ({
+  ...await vi.importActual<typeof import('react')>('react'),
   useEffect: () => undefined,
   useState: <T,>(initial: T) => [initial, vi.fn()],
 }));

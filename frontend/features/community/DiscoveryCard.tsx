@@ -1,4 +1,4 @@
-import {SourceGlassSurface} from '../../components/mobile/glass/SourceGlassSurface';
+import {SourceGlassSurface,sourceSurfacePaintStyle} from '../../components/mobile/glass/SourceGlassSurface';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { Animated, Image, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderHandlers, type ImageSourcePropType, type ViewStyle } from 'react-native';
 import Svg, { Defs, FeDropShadow, Filter, G, Path } from 'react-native-svg';
@@ -22,7 +22,7 @@ const rgba=(color:string,opacity:number)=>{const hex=color.slice(1);return `rgba
 export function communitySurface(definition:FigmaPrimitiveEvidence):ViewStyle {
  const fill=definition.surfaceFills?.find(p=>p.type==='SOLID');const stroke=definition.surfaceStrokes?.find(p=>p.type==='SOLID');
  const shadow=definition.surfaceEffects?.find(e=>e.type==='DROP_SHADOW');const blur=definition.surfaceEffects?.find(e=>e.type==='BACKGROUND_BLUR');
- return {backgroundColor:fill?.color?rgba(fill.color,fill.opacity):undefined,borderColor:stroke?.color?rgba(stroke.color,stroke.opacity):undefined,borderWidth:definition.borderWidths?.top,borderRadius:definition.cornerRadii?.topLeft,shadowColor:shadow?.color,shadowOpacity:shadow?.opacity,shadowRadius:shadow?.radius,shadowOffset:shadow?.offset?{width:shadow.offset.x,height:shadow.offset.y}:undefined,...(Platform.OS==='web'&&blur?{backdropFilter:`blur(${blur.radius}px)`}: {})};
+ return {backgroundColor:fill?.color?rgba(fill.color,fill.opacity):undefined,borderColor:stroke?.color?rgba(stroke.color,stroke.opacity):undefined,borderWidth:definition.borderWidths?.top,borderRadius:definition.cornerRadii?.topLeft,shadowColor:shadow?.color,shadowOpacity:shadow?.opacity,shadowRadius:shadow?.radius,shadowOffset:shadow?.offset?{width:shadow.offset.x,height:shadow.offset.y}:undefined,...(Platform.OS==='web'&&blur?{backdropFilter:`blur(${blur.radius}px)`}: {}),...sourceSurfacePaintStyle(definition.surfaceNodeId)};
 }
 export function CommunitySourceHeading({kind}:{kind:'title'|'subtitle'}) {
  const evidence=source[kind];const shadow=evidence.effects.find(effect=>effect.type==='DROP_SHADOW');
@@ -43,7 +43,7 @@ export function CommunitySourceCard({copy,id,kind='tall'}:{copy:CommunityCardCop
  return <WebDataView testID={`community-source-card-${id}`} dataSet={{sourceGlass:glass}} style={[surface,styles.card,{width:definition.size.width,height:definition.size.height},tall&&{padding:0,borderWidth:0}]}>
   <SourceGlassSurface sourceNodeId={definition.surfaceNodeId}/>
   {tall?<>
-   <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:surface.borderWidth,borderColor:surface.borderColor,borderRadius:surface.borderRadius}]} />
+   <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:sourceSurfacePaintStyle(definition.surfaceNodeId)?0:surface.borderWidth,borderColor:surface.borderColor,borderRadius:surface.borderRadius}]} />
    <View pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={{position:'absolute',left:slots.avatar.x,top:slots.avatar.y,width:slots.avatar.width,height:slots.avatar.height}}><FigmaTree node={mascot.tree as unknown as FigmaTreeNode} prefix={`community-source-mascot-${id}`} testID={`community-source-mascot-${id}`}/></View>
    {copy.author!==null&&<Text testID="community-card-author" numberOfLines={1} style={[communityCardStyles.creator,{position:'absolute',left:slots.copy.x,top:slots.copy.y+slots.creator.y,width:slots.header.width-slots.copy.x}]}>{copy.author}</Text>}
    {copy.time!==null&&<Text testID="community-card-time" numberOfLines={1} style={[communityCardStyles.creator,{position:'absolute',left:slots.summary.x,top:slots.copy.y+slots.creator.y,width:slots.summary.width,textAlign:'right'}]}>{copy.time}</Text>}
@@ -141,7 +141,7 @@ export default function DiscoveryCard({card,kind='tall',onOpen}:{card:DiscoveryC
  return <Pressable accessibilityRole="button" accessibilityLabel={`查看${card.title}，${card.creator}，${card.summary}，${card.availability}`} onPress={onOpen} testID={`discovery-publication-${card.id}`} style={[surface,styles.card,{width:definition.size.width,height:definition.size.height},tall&&{padding:0,borderWidth:0}]}>
   <SourceGlassSurface sourceNodeId={definition.surfaceNodeId}/>
   {tall?<>
-   <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:surface.borderWidth,borderColor:surface.borderColor,borderRadius:surface.borderRadius}]} />
+   <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:sourceSurfacePaintStyle(definition.surfaceNodeId)?0:surface.borderWidth,borderColor:surface.borderColor,borderRadius:surface.borderRadius}]} />
    <View style={{position:'absolute',left:slots.header.x,top:slots.header.y,width:slots.header.width,height:slots.header.height}}>
     <View pointerEvents="none" {...(Platform.OS==='web'?{'aria-hidden':true}:{accessibilityElementsHidden:true})} style={{position:'absolute',left:slots.avatar.x,top:slots.avatar.y,width:slots.avatar.width,height:slots.avatar.height}}><FigmaTree node={mascot.tree as unknown as FigmaTreeNode} prefix={`community-brand-mascot-${card.id}`} testID={`community-brand-mascot-${card.id}`}/></View>
     <View style={{position:'absolute',left:slots.copy.x,top:slots.copy.y,width:slots.header.width-slots.copy.x,height:slots.copy.height}}>

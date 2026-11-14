@@ -1,1 +1,1 @@
-export {SourceGlassSurface} from './SourceGlassSurface.web';
+export {SourceGlassSurface,sourceSurfacePaintStyle} from './SourceGlassSurface.web';

@@ -136,13 +136,13 @@ const auditEntry = (value) => ({
   ancestors: ancestors(value),
   raw: value,
 });
-const sharedBottomNavInstance = (value) => ({
+const reactionInstance = (value) => ({
   ...auditEntry(value),
-  semanticScope: 'shared-bottom-navigation-state-control',
-  sharedPrimitive: 'BottomNav',
-  runtimeSupport: 'NOT_IMPLEMENTED',
+  semanticScope: 'body-footer-reaction-visual-control',
+  sharedPrimitive: 'SourceAnimatedControl',
+  runtimeSupport: 'VISUAL_ONLY_API_UNAVAILABLE',
   runtimeReason:
-    'BottomNav switches selected route state immediately; source SWAP_STATE SMART_ANIMATE is not implemented by the shared BottomNav primitive',
+    'Original 点赞特效 Symbol click/timeout chain is implemented by SourceAnimatedControl in an isolated fixture; no likes API or DTO exists, so production cannot claim persistent reaction success',
 });
 const sourceAudit = {
   sourceFrameId: '270:26597',
@@ -152,7 +152,7 @@ const sourceAudit = {
   descendants: pageDescendants.map(auditEntry),
   instances: pageDescendants
     .filter((value) => value.type === 'INSTANCE')
-    .map(sharedBottomNavInstance),
+    .map(reactionInstance),
   prototypeInteractions: pageDescendants
     .filter((value) => value.prototypeInteractions?.length)
     .map((value) => ({

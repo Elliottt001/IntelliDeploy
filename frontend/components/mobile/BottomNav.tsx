@@ -1,4 +1,4 @@
-import {SourceGlassSurface} from './glass/SourceGlassSurface';
+import {SourceGlassSurface,sourceSurfacePaintStyle} from './glass/SourceGlassSurface';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -80,11 +80,12 @@ export function BottomNav({ active, onNavigate, testID }: BottomNavProps) {
           shadowOpacity: shadow?.opacity ?? 0.25,
           shadowRadius: shadow?.radius ?? 3,
         },
+        sourceSurfacePaintStyle(shell.surfaceNodeId),
       ]}
       testID={testID}
     >
       <SourceGlassSurface sourceNodeId={shell.surfaceNodeId}/>
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:shellBorderWidth,borderColor:shellStroke?.color??'#FFFFFF',borderRadius:shell.cornerRadii?.topLeft??27}]} />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill,{borderWidth:sourceSurfacePaintStyle(shell.surfaceNodeId)?0:shellBorderWidth,borderColor:shellStroke?.color??'#FFFFFF',borderRadius:shell.cornerRadii?.topLeft??27}]} />
       {bottomNavItems.map((item,index) => {
         const selected = item.key === active;
         const art=source.items[index];

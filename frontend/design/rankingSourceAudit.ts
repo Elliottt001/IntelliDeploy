@@ -47994,10 +47994,10 @@ export const rankingSourceAudit={
           "createdAt": 1778748223
         }
       },
-      "semanticScope": "shared-bottom-navigation-state-control",
-      "sharedPrimitive": "BottomNav",
-      "runtimeSupport": "NOT_IMPLEMENTED",
-      "runtimeReason": "BottomNav switches selected route state immediately; source SWAP_STATE SMART_ANIMATE is not implemented by the shared BottomNav primitive"
+      "semanticScope": "body-footer-reaction-visual-control",
+      "sharedPrimitive": "SourceAnimatedControl",
+      "runtimeSupport": "VISUAL_ONLY_API_UNAVAILABLE",
+      "runtimeReason": "Original 点赞特效 Symbol click/timeout chain is implemented by SourceAnimatedControl in an isolated fixture; no likes API or DTO exists, so production cannot claim persistent reaction success"
     }
   ],
   "prototypeInteractions": [
@@ -48250,7 +48250,7 @@ export const rankingSourceAudit={
         "createdAt": 1778748223
       }
     },
-    "runtimeSupport": "NOT_IMPLEMENTED",
+    "runtimeSupport": "VISUAL_ONLY_API_UNAVAILABLE",
     "runtimeReason": "Expo Router navigation remains immediate; no source-timed visual route transition is available"
   }
 } as const;

@@ -34,3 +34,26 @@ it('repeated CPU frames reclaim all temporary native factory resources with boun
  const api=await import('../components/mobile/glass/nativeGroupScene');
  for(let i=0;i<40;i++){const image=renderNativeGroupScene(sk,makeNode(i%2?'#ff0000':'#00ff00'),{width:24,height:16,dpr:1,backdrops:[]});image.dispose();expect(api.lastNativeFrameResources.live).toBe(0);expect(api.lastNativeFrameResources.released).toBeLessThanOrEqual(api.lastNativeFrameResources.created);}
 });
+it('shared shell output preserves authored 70 percent fill and is transparent outside the source shape',async()=>{
+ const init=require('canvaskit-wasm/bin/full/canvaskit.js'),ck=await init({locateFile:(f:string)=>require.resolve(`canvaskit-wasm/bin/full/${f}`)});
+ const {JsiSkApi}=require('@shopify/react-native-skia/lib/commonjs/skia/web/JsiSkia'),sk=JsiSkApi(ck);
+ const base=sk.Surface.Make(24,16);base.getCanvas().clear(sk.Color('#0000ff'));base.flush();const input=base.makeImageSnapshot();
+ const node:FigmaTreeNode={sourceNodeId:'991:1',size:{x:24,y:16},transform:{m00:1,m01:0,m02:0,m10:0,m11:1,m12:0},opacity:1,visible:true,clipsContent:false,mask:false,booleanOperation:false,maskPaths:[],children:[],effects:[{type:'GLASS',radius:0,refractionRadius:0,refractionIntensity:0,specularIntensity:0,chromaticAberration:0,bevelSize:0,reflectionDistance:0}],geometry:[{sourceNodeId:'991:1',path:'M4 2 H20 V14 H4 Z',fill:'#ffffff',opacity:.7,stroke:'#ff0000',strokeWidth:1}]};
+ const image=renderNativeGroupScene(sk,node,{width:24,height:16,dpr:1,backdrops:[{image:input,x:0,y:0,width:24,height:16}],includeBackdrop:false} as any);
+ const pixels=image.readPixels(0,0,{width:24,height:16,colorType:4,alphaType:3})!;
+ const at=(x:number,y:number)=>Array.from(pixels.slice((y*24+x)*4,(y*24+x)*4+4));
+ expect(at(12,8)).toEqual([179,179,255,255]);expect(at(0,0)).toEqual([0,0,0,0]);expect(at(4,8)[0]).toBeGreaterThan(179);
+ image.dispose();input.dispose();base.dispose();
+});
+it('actual native shared shell adapter paints original Kiwi fill/stroke after identity optics',async()=>{
+ const {sourceShellNode}=await import('../components/mobile/glass/sourceShellNode');const {glassEvidence}=await import('../design/glassEvidence');
+ const source=glassEvidence['266:21452'];expect(source.fillPaints?.[0].opacity).toBeCloseTo(.7,6);
+ const init=require('canvaskit-wasm/bin/full/canvaskit.js'),ck=await init({locateFile:(f:string)=>require.resolve(`canvaskit-wasm/bin/full/${f}`)});
+ const {JsiSkApi}=require('@shopify/react-native-skia/lib/commonjs/skia/web/JsiSkia'),sk=JsiSkApi(ck),width=335,height=54;
+ const base=sk.Surface.Make(width,height);base.getCanvas().clear(sk.Color('#0000ff'));base.flush();const input=base.makeImageSnapshot();
+ const zero={...source,effects:source.effects.filter(e=>e.type==='GLASS').map(e=>({...e,radius:0,refractionRadius:0,refractionIntensity:0,specularIntensity:0,chromaticAberration:0,bevelSize:0,reflectionDistance:0}))};
+ const image=renderNativeGroupScene(sk,sourceShellNode(zero,'266:21452'),{width,height,dpr:1,includeBackdrop:false,backdrops:[{image:input,x:0,y:0,width,height}]});
+ const pixels=image.readPixels(0,0,{width,height,colorType:4,alphaType:3})!;const at=(x:number,y:number)=>Array.from(pixels.slice((y*width+x)*4,(y*width+x)*4+4));
+ expect(at(167,27)).toEqual([179,179,255,255]);expect(at(0,0)).toEqual([0,0,0,0]);expect(at(167,0)[0]).toBeGreaterThan(179);
+ image.dispose();input.dispose();base.dispose();
+});

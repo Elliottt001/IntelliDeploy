@@ -1,3 +1,4 @@
+import { getSourceMotion } from '../../design/sourceMotionEvidence';
 import type { components } from '@intellideploy/api-client';
 import { Stack, useRouter, type Href } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -107,6 +108,7 @@ export default function StoreRankingScreen() {
             accessibilityLabel="返回应用商店"
             icon="back"
             surfaceOffset={headerSource.back.surfaceOffset} iconOffset={headerSource.back.iconOffset}
+            sourceMotion={getSourceMotion("825:6984","ON_CLICK")} canonicalTarget="/store"
             onPress={() => router.replace('/store')}
           />
           <View style={styles.headerCopy}>

@@ -1,3 +1,4 @@
+import { getSourceMotion } from '../../design/sourceMotionEvidence';
 import {useCallback,useRef,useState} from 'react';
 import {ScrollView,StyleSheet,Text,View} from 'react-native';
 import {Stack,useFocusEffect,useRouter} from 'expo-router';
@@ -33,7 +34,7 @@ export default function CommunityScreen({library}:{library?:'favorites'|'recent'
  if(library)return <WorkspacePage title={library==='favorites'?'我的收藏':'最近使用'}>{!!error&&<ErrorState message={error} onRetry={retry}/>} {!data&&!error&&<Text style={workspaceStyles.text}>正在读取应用…</Text>}{data?.items.length===0&&<EmptyState title="暂时没有应用" actionLabel="重试" onAction={retry}/>} {data?.items.map(p=><View key={p.id} style={workspaceStyles.card}><Action label={p.name} onPress={()=>open(p.id)}/><Text style={workspaceStyles.text}>{p.summary}</Text><Text style={workspaceStyles.muted}>{p.creator} · {p.available?'正在运行':'暂不可用'}</Text></View>)}{data?.next_cursor&&<Action label={loading?'正在加载…':'加载更多'} disabled={loading} onPress={()=>void more()}/>}</WorkspacePage>;
  return <CommunityBackground insets={insets}>
   <Stack.Screen options={{headerShown:false}}/>
-  <View style={styles.header}><CircleAction accessibilityLabel="返回首页" icon="back" onPress={()=>router.push('/')}/><Text style={styles.headerTitle}>广场</Text><CircleAction accessibilityLabel="分享暂未开放" disabled icon="share" onPress={()=>undefined}/></View>
+  <View style={styles.header}><CircleAction accessibilityLabel="返回首页" icon="back" sourceMotion={getSourceMotion("825:6672","ON_CLICK")} canonicalTarget="/" onPress={()=>router.push('/')}/><Text style={styles.headerTitle}>广场</Text><CircleAction accessibilityLabel="分享暂未开放" disabled icon="share" onPress={()=>undefined}/></View>
   <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
    <View style={styles.heading}><CommunitySourceHeading kind="title"/><CommunitySourceHeading kind="subtitle"/></View>
    <View style={styles.railWrap}>

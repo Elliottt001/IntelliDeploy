@@ -1,4 +1,5 @@
-import {SourceGlassSurface} from '../../components/mobile/glass/SourceGlassSurface';
+import { getSourceMotion } from '../../design/sourceMotionEvidence';
+import {SourceGlassSurface,sourceSurfacePaintStyle} from '../../components/mobile/glass/SourceGlassSurface';
 import { useEffect, useRef, useState, type PropsWithChildren } from "react";
 import {
   Keyboard,
@@ -173,6 +174,7 @@ export function ChatbotPage({
             icon="back"
             surfaceOffset={headerSource.back.surfaceOffset}
             iconOffset={headerSource.back.iconOffset}
+            sourceMotion={getSourceMotion("845:3503","ON_CLICK")} canonicalTarget="/"
             onPress={onBack}
             testID="chatbot-back"
           />
@@ -330,7 +332,7 @@ export function CreateWorkspaceView({
             >
               <View
                 testID={`mibo-suggestion-face-${suggestion.nodeId}`}
-                style={[viewStyles.suggestion, { width: suggestion.width }]}
+                style={[viewStyles.suggestion, { width: suggestion.width },sourceSurfacePaintStyle(suggestion.nodeId)]}
               ><SourceGlassSurface sourceNodeId={suggestion.nodeId}/></View>
               <View
                 pointerEvents="none"

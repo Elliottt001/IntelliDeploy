@@ -1,4 +1,4 @@
-import {SourceGlassSurface} from '../../components/mobile/glass/SourceGlassSurface';
+import {SourceGlassSurface,sourceSurfacePaintStyle} from '../../components/mobile/glass/SourceGlassSurface';
 import { ApiError, type components } from '@intellideploy/api-client';
 import { Stack, useRouter, type Href } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -215,6 +215,7 @@ export default function StoreScreen() {
                   shadowRadius: searchShadow.radius!,
                   top: (mobileSpacing.controlMin - source.search.size.y) / 2,
                 },
+                sourceSurfacePaintStyle(source.search.surface.sourceNodeId),
               ]}
               testID="store-search-surface"
             ><SourceGlassSurface sourceNodeId={source.search.surface.sourceNodeId}/></View>
