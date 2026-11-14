@@ -5,6 +5,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { mobileEvidence, mobileApprovedFrameIds } from '../design/mobileEvidence';
 import { sourceAspects, summarizeSourceAcceptance } from '../scripts/summarize-mobile-source-acceptance.mjs';
 import { sourceBox, sourceNode } from '../tests/figmaSource';
+import { effectSupport } from '../design/sourceEffectSupport';
 import { installMobileSourceFixtures } from './sourceAssertions';
 import { makeVisualApp, visualJobStates, visualPrompt, visualRankingPublications } from './mobileVisualFixtures';
 
@@ -15,7 +16,19 @@ type SourceAcceptanceRecord = {
   checks: Record<typeof sourceAspects[number], CheckStatus>;
   evidence: string[];
 };
+// This collector already stores measurements; tracing every large SVG/texture payload
+// duplicates them and can stall trace finalization after a timeout.
+test.use({ trace: 'off' });
 const output = 'artifacts/source-acceptance';
+async function boundedAction<T>(label: string, action: () => Promise<T>, timeout = 10_000): Promise<T> {
+  console.log(`[source-acceptance] start ${label}`);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const result = await Promise.race([action(), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(`Source collection action timed out: ${label} (${timeout}ms)`)), timeout); })]);
+    console.log(`[source-acceptance] done ${label}`);
+    return result;
+  } finally { if (timer) clearTimeout(timer); }
+}
 const guid = (g: { sessionID: number; localID: number }) => `${g.sessionID}:${g.localID}`;
 const viewports = [320, 360, 375, 390, 430].map(width => ({ width, height: 812 }))
   .concat([{ width: 320, height: 568 }, { width: 430, height: 932 }]);
@@ -52,8 +65,9 @@ function pathKey(path: string) {
 }
 
 async function sample(page: Page) {
-  await page.evaluate(() => document.fonts.ready);
-  return page.evaluate(() => {
+  await boundedAction(`${page.url()} fonts`, () => page.evaluate(() => document.fonts.ready));
+  return boundedAction(`${page.url()} measurements`, () => page.evaluate(async () => {
+    const hash = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map(byte => byte.toString(16).padStart(2, '0')).join('');
     const box = (element: Element) => {
       const r = element.getBoundingClientRect();
       return { x: r.x, y: r.y, width: r.width, height: r.height };
@@ -90,19 +104,19 @@ async function sample(page: Page) {
         lineHeight: css.lineHeight, letterSpacing: css.letterSpacing, color: css.color,
         fontLoaded: document.fonts.check(`${css.fontSize} ${css.fontFamily}`) };
     });
-    const painted = Array.from(document.querySelectorAll('svg path,svg stop,svg filter,svg mask,svg clipPath,svg linearGradient,svg radialGradient')).map(element => ({
+    const painted = await Promise.all(Array.from(document.querySelectorAll('svg path,svg stop,svg filter,svg mask,svg clipPath,svg linearGradient,svg radialGradient')).map(async element => ({
       tag: element.tagName, attributes: Object.fromEntries(Array.from(element.attributes).map(a => [a.name, a.value])),
-      box: box(element), children: ['filter', 'mask', 'clipPath'].includes(element.tagName) ? element.innerHTML : undefined,
-    }));
+      box: box(element), children: ['filter', 'mask', 'clipPath'].includes(element.tagName) ? { length: element.innerHTML.length, sha256: await hash(element.innerHTML) } : undefined,
+    })));
     const fontFaces: Array<{family: string; status: string; weight: string; style: string}> = [];
     document.fonts.forEach(face => fontFaces.push({ family: face.family, status: face.status, weight: face.weight, style: face.style }));
     return { sampledAt: performance.now(), url: location.pathname, viewport: { width: innerWidth, height: innerHeight },
       documentWidth: document.documentElement.scrollWidth, reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
       fontFaces,
-      images: Array.from(document.images).map(img => ({ url: img.currentSrc || img.src, complete: img.complete,
-        naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight, box: box(img), objectFit: getComputedStyle(img).objectFit })),
+      images: await Promise.all(Array.from(document.images).map(async img => { const url = img.currentSrc || img.src; return { url: url.startsWith('data:') ? url.slice(0, url.indexOf(',')) : url, urlLength: url.length, dataUriSha256: url.startsWith('data:') ? await hash(url) : null, complete: img.complete,
+        naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight, box: box(img), objectFit: getComputedStyle(img).objectFit }; })),
       activeInput: document.activeElement?.getAttribute('data-testid'), elements, nativeText, painted };
-  });
+  }));
 }
 
 async function enterState(page: Page, family: string, number: number) {
@@ -119,7 +133,7 @@ async function enterState(page: Page, family: string, number: number) {
     if (number === 30) {
       const b = (await page.getByTestId('home-mibo-avatar').boundingBox())!;
       await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down();
-      await expect(page.getByTestId('home-avatar-pressed')).toBeVisible();
+      await expect(page.locator('g[data-source-group="188:16338"]')).toBeVisible();
     }
     const key = ({ 32: 'store', 33: 'products', 34: 'community', 35: 'profile' } as Record<number, string>)[number];
     if (key) { await page.getByTestId(`home-card-${key}`).click(); await expect(page.getByTestId(`home-card-${key}-open`)).toBeVisible(); }
@@ -172,26 +186,27 @@ test('collects actual 26 source states without upgrading partial or fixture evid
   await writeFile(`${output}/records.json`, JSON.stringify({ overall: 'NOT_RUN', records: [], sourceSha256, producer }));
   for (const [family, manifest] of Object.entries(mobileEvidence)) for (const [index, frameId] of manifest.frameIds.entries()) {
     const number = Number(manifest.pages[index].split('-')[1]);
+    console.log(`[source-acceptance] state ${frameId} (${family}/${number})`);
     const subtree = new Set<string>([frameId]);
     for (const id of subtree) for (const child of children.get(id) ?? []) subtree.add(child);
     const rawNodes = [...subtree].map(id => nodes.get(id)!);
-    const context = await browser.newContext({ baseURL: String(info.project.use.baseURL), viewport: { width: 375, height: 812 } });
-    const page = await context.newPage(), responses: unknown[] = [], pendingResponses: Promise<void>[] = [], snapshots: Awaited<ReturnType<typeof sample>>[] = [];
+    const context = await boundedAction(`${frameId} new-context`, () => browser.newContext({ baseURL: String(info.project.use.baseURL), viewport: { width: 375, height: 812 } }));
+    const page = await boundedAction(`${frameId} new-page`, () => context.newPage()), responses: unknown[] = [], pendingResponses: Promise<void>[] = [], snapshots: Awaited<ReturnType<typeof sample>>[] = [];
     page.setDefaultTimeout(10_000); page.setDefaultNavigationTimeout(15_000);
     const checks = Object.fromEntries(sourceAspects.map(a => [a, 'NOT_RUN'])) as SourceAcceptanceRecord['checks'];
     const rawEffects = rawNodes.flatMap(n => (n.effects ?? []).map((effect: unknown) => ({ nodeId: guid(n.guid), effect })));
-    const unsupported = rawEffects.filter(({ effect }: any) => ['GLASS', 'NOISE', 'GRAIN', 'LAYER_BLUR'].includes(effect.type));
+    const unsupported = rawEffects.filter(({ effect }: any) => effectSupport(effect.type, 'web') === 'NOT_IMPLEMENTED');
     if (unsupported.length) checks.PAINT_EFFECT = 'NOT_IMPLEMENTED';
-    // Shared BottomNav/source route transitions remain unimplemented. Local
-    // transitions below cannot certify the full source motion inventory.
-    checks.MOTION_INTERACTION = family === 'login' ? 'NOT_RUN' : 'NOT_IMPLEMENTED';
+    // Source motion is implemented; this partial collector does not certify the
+    // whole per-state action inventory or native presentation.
+    checks.MOTION_INTERACTION = 'NOT_RUN';
     checks.DATA_BINDING = family === 'community' || (family === 'home' && number === 34) ? 'API_UNAVAILABLE' : 'NOT_RUN';
     const record: SourceAcceptanceRecord & Record<string, unknown> = {
       frameId, sourceSha256, dataEvidence: checks.DATA_BINDING === 'API_UNAVAILABLE' ? 'unavailable' : 'fixture', checks,
       evidence: [`${output}/frame-${frameId.replace(':', '-')}.json`, 'Original Kiwi nodes/paths and actual browser measurements; fixture API does not certify real data',
         'Full structure/text/geometry inventories are not completely compared: NOT_RUN; native safe-area/keyboard/device/font scaling NOT_RUN',
-        'GLASS/NOISE are not implemented; supported filter samples do not certify an entire effect stack',
-        'Shared BottomNav/source route motion NOT_IMPLEMENTED; local actions do not certify every inherited/overridden interaction'],
+        'Source GLASS/NOISE are implemented; supported filter samples do not certify an entire effect stack or proprietary parity',
+        'Source controls/routes are implemented; local samples do not certify every inherited/overridden interaction'],
       family, page: number, producer,
     };
     let activeAspect = 'STRUCTURE';
@@ -200,10 +215,10 @@ test('collects actual 26 source states without upgrading partial or fixture evid
         if (/\/api\/|\/auth\//.test(response.url())) pendingResponses.push((async () => { responses.push({ path: new URL(response.url()).pathname, status: response.status(), body: await response.json().catch(() => null), origin: 'fixture' }); })());
       });
       await installMobileSourceFixtures(page);
-      await page.goto('/login'); // Establish origin before clearing login token.
-      await enterState(page, family, number);
+      await boundedAction(`${frameId} origin`, () => page.goto('/login')); // Establish origin before clearing login token.
+      await boundedAction(`${frameId} enter-state`, () => enterState(page, family, number), 20_000);
       for (const viewport of viewports) {
-        await page.setViewportSize(viewport); await page.waitForTimeout(80);
+        await boundedAction(`${frameId} viewport ${viewport.width}x${viewport.height}`, () => page.setViewportSize(viewport)); await page.waitForTimeout(80);
         const actual = await sample(page); snapshots.push(actual);
         activeAspect = 'RESPONSIVE_GEOMETRY';
         expect(actual.documentWidth, `${frameId} overflow at ${viewport.width}/${viewport.height}`).toBeLessThanOrEqual(viewport.width);
@@ -324,7 +339,8 @@ test('collects actual 26 source states without upgrading partial or fixture evid
       records.push({ frameId, sourceSha256, dataEvidence: record.dataEvidence, checks: record.checks, evidence: record.evidence,
         family, page: number, partialChecks: record.partialChecks, error: record.error, failedAspect: record.failedAspect,
         scope: { native: 'NOT_RUN', sourceStructureComplete: 'NOT_RUN', sourceFontsComplete: 'NOT_RUN', sourceLayoutComplete: 'NOT_RUN', supportedEffectsComplete: 'NOT_RUN' } });
-      await context.close();
+      await writeFile(`${output}/records.json`, JSON.stringify({ overall: 'NOT_RUN', records, sourceSha256, producer, failures, incompleteCollection: true }, null, 2));
+      await boundedAction(`${frameId} close-context`, () => context.close());
     }
   }
   const capabilityPath = '../.superpowers/sdd/2026-11-13-mobile-frontend-source-alignment/capability-final-readonly.json';
@@ -341,7 +357,7 @@ test('collects actual 26 source states without upgrading partial or fixture evid
   }
   const summary = summarizeSourceAcceptance(records, mobileApprovedFrameIds, sourceSha256);
   await writeFile(`${output}/records.json`, JSON.stringify({ ...summary, sourceSha256, producer, collectedAt: new Date().toISOString(), readonlyCapability, supplemental,
-    boundaries: { nativeDevices: 'NOT_RUN', nativeKeyboard: 'NOT_RUN', nativeFontScaling: 'NOT_RUN', sourceRouteMotion: 'NOT_IMPLEMENTED', bottomNavSourceMotion: 'NOT_IMPLEMENTED', glass: 'NOT_IMPLEMENTED', noise: 'NOT_IMPLEMENTED', realJobGeneration: 'NOT_RUN' }, failures }, null, 2));
+    boundaries: { nativeDevices: 'NOT_RUN', nativeKeyboard: 'NOT_RUN', nativeFontScaling: 'NOT_RUN', sourceRouteMotion: 'NOT_RUN', bottomNavSourceMotion: 'NOT_RUN', glass: 'NOT_RUN', noise: 'NOT_RUN', realJobGeneration: 'NOT_RUN' }, failures }, null, 2));
   await info.attach('source-acceptance-records', { path: `${output}/records.json`, contentType: 'application/json' });
   expect(records).toHaveLength(26); expect(summary.overall).toBe('INCOMPLETE'); expect(failures).toEqual([]);
 });

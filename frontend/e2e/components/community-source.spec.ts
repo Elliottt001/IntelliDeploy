@@ -34,14 +34,18 @@ test('source card keeps short and long bodies in independent slots with complete
 });
 
 test('source rail adapts across five widths and uses original drag motion',async({page})=>{
- for(const width of [320,360,375,390,430]){
+ for(const [index,width] of [320,360,375,390,430].entries()){
+  if(index)await page.clock.resume();
   await page.setViewportSize({width,height:812});await page.goto('/');
   const rail=page.getByTestId('community-source-rail'),responder=page.getByTestId('community-source-drag-responder'),card=page.getByTestId('community-source-card-fixture-long');
   await expect(rail).toBeVisible();await expect(responder).toHaveAttribute('data-source-responder','pan');const box=await card.boundingBox(),railBox=(await responder.boundingBox())!;expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.height).toBeGreaterThanOrEqual(345);
   await expect(rail).toHaveAttribute('data-source-duration-ms','300.00001192092896');
+  if(!index)await page.clock.install({time:new Date(0)});
+  await page.clock.pauseAt(await page.evaluate(()=>Date.now()+1000));
   await page.mouse.move(railBox.x+120,railBox.y+30);await page.mouse.down();await page.mouse.move(railBox.x+20,railBox.y+30,{steps:6});await page.mouse.up();
   const motion=getSourceMotion('825:5887','DRAG','825:6452')!,expectedMid=(source.railTarget.transform.m02-source.rail.transform.m02)*sampleSourceEasing(motion,150/motion.durationMs);
-  await page.waitForTimeout(150);expect(Math.abs(await railX(rail)-expectedMid)).toBeLessThanOrEqual(16);
+  await page.clock.runFor(150);expect(Math.abs(await railX(rail)-expectedMid)).toBeLessThanOrEqual(16);
+  await page.clock.runFor(motion.durationMs+100);
   await expect.poll(()=>rail.getAttribute('data-source-progress')).toBe('1');
   await expect.poll(()=>rail.evaluate(element=>new DOMMatrix(getComputedStyle(element).transform).m41)).toBeCloseTo(-94,1);
  }

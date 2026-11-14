@@ -146,3 +146,12 @@ All 13 `Ruling:` lines from progress.md are preserved below, in order. Each expl
 Controller performs independent Task11 review and full-branch review after the scoped commit. Important frontend defects return to their task with a failing regression and minimal source-based fix. Retain unsupported effects, API blockers, native NOT_RUN and unverified aspect inventories in that review.
 
 No push, main-workspace merge, worktree removal, ledger removal, source/baseline approval or WIP overwrite is performed by Task11. Integration requires the controller's authorized WIP-safe workflow and fresh checks for any subsequent changes.
+
+
+## 2026-11-14 玻璃与动效补充（原历史矩阵不改）
+
+代码范围 `2fd2ba6..f95cc92` 已交付真实背景采样的 GLASS/NOISE、源控件/路由/头像/云动效。完整 98 条动作闭包中 90 条已实现，6 条点赞记录有纯界面链但无持久化 API，2 条源 SCROLL_TO 没有目标。本轮精确验证、提交与限制见[玻璃与动效交付](2026-11-13-mobile-glass-motion-acceptance.md)。
+
+以上旧 `0/26`、六项矩阵和旧像素 `10 PASS / 16 FAIL` 都是独立历史记录，未重新批准或改写。`722687a` 的完整非视觉回归运行原收集器时发生 300 秒超时，留下初始化 `NOT_RUN / 0 records`。最小测试兼容修复后，`f95cc92` 的唯一一次收集在 1.5 分钟内完成，26 条记录、零错误，严格结论仍为 `INCOMPLETE`；[运行前保留的历史摘要](../../../frontend/artifacts/glass-motion/source-acceptance-before-final.json)仍含原 26 状态记录。修复前硬编码的 GLASS/NOISE、路由 `NOT_IMPLEMENTED` 属于落后的实现元数据；当前收集器已经更新说明并保守保留整栈/整页动作 `NOT_RUN`，没有重标为 PASS。新[逐状态实现与限制记录](../../../frontend/artifacts/glass-motion/current-evidence.json)单独记录当前实现，保留整页与原生验收 `NOT_RUN`，不把旧矩阵重标为 PASS。
+
+独立 iOS 应用生成记录保留，官方 RN core/Hermes 制品未下载齐使编译/运行未完成。旧三次 Ganesh/Metal 崩溃与后续 Hermes OOM 是实际失败；CPU 资源修复的 40 帧回归通过不证明长期稳定、帧率、零光学对照或设备源稿一致。源私有折射/反射/随机数算法未知；帖子/持久化点赞 API 缺口、未验证的统计数据供给、历史只读快照四条详情 500 和旧测试库 schema 阻塞未在本轮修复。已有图标/预览字段为空不等于接口不存在，本轮没有刷新真实 API 快照。

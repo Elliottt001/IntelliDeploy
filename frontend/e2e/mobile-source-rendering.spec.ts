@@ -3,6 +3,7 @@ import {expect,test} from '@playwright/test';
 import {catXml} from '../screens/login/generated/loginSvgAssets';
 import {readFile} from 'node:fs/promises';
 import {effectSupport} from '../design/sourceEffectSupport';
+import {sourceNode} from '../tests/figmaSource';
 test('Mibo composer preserves its source first-line baseline independently of the 44pt input target', async ({ page }) => {
  const source = process.env.INTELLIDEPLOY_FIGMA_SOURCE;
  test.skip(!source, 'Requires the original Figma source for the composer parent-chain audit');
@@ -240,7 +241,8 @@ test('home avatar preserves actual source paint order and optical effects withou
  await expect(page.locator('button button')).toHaveCount(0);
 });
 test('home avatars preserve their real native source masks for normal and pressed contours',async({page})=>{
- await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'Oasis'}}));await page.goto('/');await expect(page.locator('clipPath[id="home-avatar-mask-270-26297"]')).toHaveCount(1);const avatar=page.getByTestId('home-mibo-avatar');await avatar.hover();await page.mouse.down();try{await expect(page.locator('clipPath[id="home-avatar-pressed-mask-188-16344"]')).toHaveCount(1);}finally{await page.mouse.up();}
+ expect(sourceNode('270:26297').mask).toBe(true);expect(sourceNode('188:16344').mask).toBe(true);
+ await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'Oasis'}}));await page.goto('/');await expect(page.locator('clipPath[id$="-mask-270-26297"]')).toHaveCount(1);const avatar=page.getByTestId('home-mibo-avatar');await avatar.hover();await page.mouse.down();try{await expect(page.locator('clipPath[id$="-mask-188-16344"]')).toHaveCount(1);}finally{await page.mouse.up();}
 });
 
 test('login native flow retains the formal input origin and source blurred button ornaments',async({page})=>{
@@ -267,7 +269,7 @@ test('source white inner shadow preserves the exported low-alpha arithmetic and 
  await page.goto('/login');await expect(page.locator('path[data-source-node="119:76640"]')).toHaveAttribute('opacity','0.001');const filter=page.locator('filter[id="login-hero-119-76640-effects"]');await expect(filter).toBeAttached();const actual=await filter.evaluate(n=>n.outerHTML);const result=await page.evaluate(async({actual,xml})=>{const reference=new DOMParser().parseFromString(xml,'image/svg+xml').getElementById('filter5_i_0_24')!;reference.setAttribute('id','reference');reference.setAttribute('filterUnits','objectBoundingBox');for(const[k,v]of Object.entries({x:'-100%',y:'-100%',width:'300%',height:'300%'}))reference.setAttribute(k,v);const load=async(filter:string,id:string)=>{const i=new Image();i.src='data:image/svg+xml;base64,'+btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><defs>${filter}</defs><rect x="20" y="20" width="40" height="40" fill="white" fill-opacity=".01" filter="url(#${id})"/></svg>`);await i.decode();const c=document.createElement('canvas');c.width=80;c.height=80;const ctx=c.getContext('2d')!;ctx.drawImage(i,0,0);return ctx.getImageData(22,40,1,1).data[3];};return {actual:await load(actual,'login-hero-119-76640-effects'),source:await load(new XMLSerializer().serializeToString(reference),'reference')};},{actual,xml:catXml});expect(result.source).toBeGreaterThan(8);expect(result.actual).toBeGreaterThanOrEqual(result.source-1);
 });
 test('source drop shadow stays outside a translucent gradient node when behind-node shadow is disabled',async({page})=>{
- await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'Oasis'}}));await page.goto('/');const filter=await page.locator('filter[id="home-avatar-270-26293-effects"]').evaluate(n=>n.outerHTML);const alpha=await page.evaluate(async filter=>{const i=new Image();i.src='data:image/svg+xml;base64,'+btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><defs>${filter}</defs><rect x="20" y="20" width="40" height="40" fill="white" fill-opacity=".8" filter="url(#home-avatar-270-26293-effects)"/></svg>`);await i.decode();const c=document.createElement('canvas');c.width=80;c.height=80;const ctx=c.getContext('2d')!;ctx.drawImage(i,0,0);return ctx.getImageData(40,40,1,1).data[3];},filter);expect(alpha).toBeLessThanOrEqual(205);
+ await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'Oasis'}}));await page.goto('/');const filter=await page.locator('g[data-source-group="270:26293"] > defs > filter').evaluate(n=>({markup:n.outerHTML,id:n.id}));expect(filter.id).toBeTruthy();const alpha=await page.evaluate(async filter=>{const i=new Image();i.src='data:image/svg+xml;base64,'+btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><defs>${filter.markup}</defs><rect x="20" y="20" width="40" height="40" fill="white" fill-opacity=".8" filter="url(#${filter.id})"/></svg>`);await i.decode();const c=document.createElement('canvas');c.width=80;c.height=80;const ctx=c.getContext('2d')!;ctx.drawImage(i,0,0);return ctx.getImageData(40,40,1,1).data[3];},filter);expect(alpha).toBeLessThanOrEqual(205);
 });
 test('login provider artwork uses its actual source UV to crop standalone company logos',async({page})=>{
  await page.goto('/login');const github=page.getByTestId('login-github').locator('img');await expect(github).toBeAttached();expect((await github.boundingBox())!.width).toBeCloseTo(26/.4160156548023224,1);const apple=page.getByTestId('login-apple').locator('img');expect((await apple.boundingBox())!.width).toBeCloseTo(22/.2800000309944153,1);
@@ -303,8 +305,9 @@ test('product source asymmetric header and COLLECTION origin stay independent of
 });
 
 test('home source avatar accumulates both visible original shadows in one final composite',async({page})=>{
+ expect(sourceNode('270:26293').effects.filter((effect:{type:string;visible?:boolean})=>effect.type==='DROP_SHADOW'&&effect.visible!==false)).toHaveLength(2);
  await page.addInitScript(()=>localStorage.setItem('token','fixture-token'));await page.route('**/auth/me',r=>r.fulfill({json:{id:1,username:'Oasis',email:'fixture@test'}}));await page.goto('/');
- await expect(page.locator('filter[id=\"home-avatar-270-26293-effects\"]').locator('feMergeNode')).toHaveCount(3);
+ await expect(page.locator('g[data-source-group="270:26293"] > defs > filter').locator('feMergeNode')).toHaveCount(3);
 });
 
 test('Mibo greeting and suggestion source origins preserve the measured asymmetric composition',async({page})=>{
