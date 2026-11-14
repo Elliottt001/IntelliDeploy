@@ -35,6 +35,7 @@ def deterministic_queries(requirement: Requirement) -> QueryPlan:
         if all(phrase.lower() in text.lower() for phrase in phrases):
             categories.append(category)
             category_queries.append(query)
+            category_queries.extend(terms)
             translated_terms.extend(terms)
 
     capabilities: list[str] = []
