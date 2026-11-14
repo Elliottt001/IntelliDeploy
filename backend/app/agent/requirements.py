@@ -65,6 +65,19 @@ def delivery_policy_from_messages(messages, previous=None):
     return policy
 
 
+def _valid_fact_mapping(fact, ids):
+    if fact.acceptance_ids:
+        return set(fact.acceptance_ids) <= set(ids)
+    quote = fact.quote.strip(' 。；，,;.\n')
+    delivery_fact = fact.kind == 'EXTERNAL' and bool(re.fullmatch(
+        r'[^，。；\n]{0,30}(?:官方.{0,6}服务链接|自己部署|独立部署|自托管|从头生成|从零生成|(?:官方|仓库).{0,12}部署方式)[^，。；\n]{0,15}', quote)) \
+        and not re.search(r'AI|搜索|上传|账号|隔离|持久', quote, re.I)
+    waived_storage = fact.kind == 'DATA' and bool(re.fullmatch(
+        r'(?:只(?:需要|需|要)当次[^，,。；]{0,20}[，,]\s*)?(?:不要求|不需要|不必)[^。；]{0,30}(?:保存|恢复|存储|持久化)[^。；]{0,15}', quote)) \
+        and not re.search(r'必须|仍需|保留已有|保留现有|账号|登录|权限|隔离|不能丢|重启后仍', quote)
+    return bool(delivery_fact or waived_storage)
+
+
 def validate_revision(previous, draft, messages):
     if draft.questions or draft.unsupported:
         raise RequirementNeedsAnswer(
@@ -91,15 +104,7 @@ def validate_revision(previous, draft, messages):
             raise RequirementCoverageError(
                 "fact quote is not in the original user message"
             )
-        quote = fact.quote.strip(' 。；，,;.\n')
-        delivery_fact = fact.kind == 'EXTERNAL' and bool(re.fullmatch(
-            r'[^，。；\n]{0,30}(?:官方.{0,6}服务链接|自己部署|独立部署|自托管|从头生成|从零生成|(?:官方|仓库).{0,12}部署方式)[^，。；\n]{0,15}', quote)) \
-            and not re.search(r'AI|搜索|上传|账号|隔离|持久', quote, re.I)
-        waived_storage = fact.kind == 'DATA' and bool(re.fullmatch(
-            r'(?:只(?:需要|需|要)当次[^，,。；]{0,20}[，,]\s*)?(?:不要求|不需要|不必)[^。；]{0,30}(?:保存|恢复|存储|持久化)[^。；]{0,15}', quote)) \
-            and not re.search(r'必须|仍需|保留已有|保留现有|保持隔离|不能丢|重启后仍', quote)
-        if ((not fact.acceptance_ids and not (delivery_fact or waived_storage))
-                or not set(fact.acceptance_ids) <= set(ids)):
+        if not _valid_fact_mapping(fact, ids):
             raise RequirementCoverageError("fact has no valid acceptance mapping")
     if not any(fact.acceptance_ids for fact in draft.facts):
         raise RequirementCoverageError('business fact has no valid acceptance mapping')
@@ -334,6 +339,7 @@ def persist_requirement(
         not ids
         or len(ids) != len(requirement.acceptance)
         or not requirement.facts
+        or not any(fact.acceptance_ids for fact in requirement.facts)
         or not set(requirement.source_message_ids) <= set(known)
     ):
         raise RequirementCoverageError("frozen sources or acceptance are incomplete")
@@ -342,8 +348,7 @@ def persist_requirement(
             not fact.quote
             or fact.source_message_id not in known
             or fact.quote not in known[fact.source_message_id].content
-            or not fact.acceptance_ids
-            or not set(fact.acceptance_ids) <= ids
+            or not _valid_fact_mapping(fact, ids)
         ):
             raise RequirementCoverageError(
                 "frozen fact has an invalid source or mapping"

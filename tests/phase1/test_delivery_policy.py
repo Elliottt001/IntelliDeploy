@@ -69,6 +69,38 @@ def test_delivery_fact_cannot_replace_business_coverage():
         validate_revision(None, value, rows(text))
 
 
+def test_waived_storage_cannot_hide_an_access_requirement():
+    text = '编辑预览。不需要保存，但须账号隔离'
+    value = RequirementDraft(prompt=text, acceptance=[{'id': 'edit', 'action': '编辑预览', 'expected': '可用'}],
+        facts=[{'id': 'edit-fact', 'source_message_id': 'm', 'quote': '编辑预览', 'kind': 'FUNCTION', 'acceptance_ids': ['edit']},
+            {'id': 'mixed', 'source_message_id': 'm', 'quote': '不需要保存，但须账号隔离', 'kind': 'DATA', 'acceptance_ids': []}])
+    with pytest.raises(RequirementCoverageError, match='acceptance mapping'):
+        validate_revision(None, value, rows(text))
+
+
+def test_non_business_facts_survive_requirement_freezing(job_factory, session_factory):
+    from app.agent.requirements import persist_requirement
+    from app.apps.models import Message, RequirementRecord
+    from app.jobs.store import claim_job
+    from sqlalchemy import select
+    job = job_factory()
+    text = '编辑预览。不需要自己部署。'
+    source = [{'id': 'scope-message', 'role': 'user', 'sequence': 1, 'content': text}]
+    value = RequirementDraft(prompt=text, acceptance=[{'id': 'edit', 'action': '编辑预览', 'expected': '可用'}],
+        facts=[{'id': 'edit-fact', 'source_message_id': 'scope-message', 'quote': '编辑预览', 'kind': 'FUNCTION', 'acceptance_ids': ['edit']},
+            {'id': 'delivery-fact', 'source_message_id': 'scope-message', 'quote': '不需要自己部署。', 'kind': 'EXTERNAL', 'acceptance_ids': []}])
+    req = validate_revision(None, value, source)
+    with session_factory() as s:
+        s.add(Message(id='scope-message', app_id=job.app_id, role='user', sequence=1, content=text))
+        s.commit()
+        leased = claim_job(s, 'worker')
+        persist_requirement(s, job.id, req, worker_id='worker', generation=leased.lease_generation)
+        s.commit()
+        saved = s.scalar(select(RequirementRecord).where(RequirementRecord.app_id == job.app_id))
+        assert [a['id'] for a in saved.requirement['acceptance']] == ['edit']
+        assert saved.requirement['facts'][1]['acceptance_ids'] == []
+
+
 def test_confirmation_is_bound_to_the_actual_deployment_question():
     from app.agent.requirements import delivery_policy_from_messages
     messages=[{'id':'q','role':'assistant','sequence':1,'content':'是否部署独立实例？'},
